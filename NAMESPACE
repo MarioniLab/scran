@@ -1,0 +1,28 @@
+useDynLib(scran, .registration=TRUE, .fixes="cxx_")
+
+export(
+    DM, testVar,
+    correlateNull
+)
+
+exportMethods(
+    computeSumFactors, quickCluster, computeSpikeFactors, normalize,
+    trendVar, decomposeVar, 
+    sandbag, cyclone,
+    correlatePairs,
+    spikes, isSpike, "isSpike<-",
+    convertTo
+)
+
+importFrom("dynamicTreeCut", cutreeDynamic)
+importFrom("zoo", zoo, rollapply, index)
+importFrom("edgeR", cpm.default, DGEList, "[.DGEList")
+importFrom("limma", lmFit)
+importFrom("BiocGenerics", normalize, sizeFactors, "sizeFactors<-")
+importFrom("Biobase", assayDataElement, "assayDataElement<-", fData, exprs, featureData, phenoData, pData)
+importFrom("utils", combn)
+
+import(BiocParallel)
+import(scater)
+import(methods)
+import(stats)
