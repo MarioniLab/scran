@@ -38,15 +38,13 @@ setMethod("cyclone", "ANY", function(x, pairs, gene.names=rownames(x), iter=1000
     # Run the allocation algorithm
     ncells <- ncol(x)
     workass <- .workerAssign(ncells, BPPARAM)
-    FUN <- function(core, exprs, pairings) {
-        to.use <- c(workass$start[core], workass$end[core])
-        .Call(cxx_shuffle_scores, to.use, Ngenes, exprs, pairings$first, pairings$second, iter, min.iter, min.pairs) 
-    }
-
     all.cores <- seq_along(workass$start) 
-    out.G1 <- bplapply(all.cores, FUN, pairings=pairs$G1, exprs=x, BPPARAM=BPPARAM)
-    out.S <- bplapply(all.cores, FUN, pairings=pairs$S, exprs=x, BPPARAM=BPPARAM)
-    out.G2M <- bplapply(all.cores, FUN, pairings=pairs$G2M, exprs=x, BPPARAM=BPPARAM)
+    common.args <- list(X=all.cores, FUN=.get_phase_score, BPPARAM=BPPARAM,
+                        work.start=workass$start, work.end=workass$end, 
+                        Ngenes=Ngenes, exprs=x, iter=iter, min.iter=min.iter, min.pairs=min.pairs)
+    out.G1 <- do.call(bplapply, c(list(pairings=pairs$G1), common.args))
+    out.S <- do.call(bplapply, c(list(pairings=pairs$S), common.args))
+    out.G2M <- do.call(bplapply, c(list(pairings=pairs$G2M), common.args))
 
     # Assembling the output.
     lapply(out.G1, FUN=function(y) { if (is.character(y)) { stop(y) } })
@@ -60,6 +58,11 @@ setMethod("cyclone", "ANY", function(x, pairs, gene.names=rownames(x), iter=1000
     scores.normalised <- scores/rowSums(scores)
     return(list(scores=scores, normalized.scores=scores.normalised))  
 })
+
+.get_phase_score <- function(core, work.start, work.end, Ngenes, exprs, pairings, iter, min.iter, min.pairs) {
+    to.use <- c(work.start[core], work.end[core])
+    .Call(cxx_shuffle_scores, to.use, Ngenes, exprs, pairings$first, pairings$second, iter, min.iter, min.pairs) 
+}
 
 setMethod("cyclone", "SCESet", function(x, ..., assay="counts", get.spikes=FALSE) {
     cyclone(.getUsedMatrix(x, assay, get.spikes), ...)          

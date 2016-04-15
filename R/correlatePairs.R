@@ -53,10 +53,10 @@ setMethod("correlatePairs", "ANY", function(x, null.dist=NULL, design=NULL, BPPA
 
     # Running through each set of jobs 
     workass <- .workerAssign(length(gene1), BPPARAM)
-    out <- bplapply(seq_along(workass$start), FUN=function(core) {
-        to.use <- workass$start[core]:workass$end[core]
-        .Call(cxx_compute_rho, gene1[to.use], gene2[to.use], ncells, ranked.exprs, null.dist)
-    }, BPPARAM=BPPARAM)
+    out <- bplapply(seq_along(workass$start), FUN=.get_correlation,
+        work.start=workass$start, work.end=workass$end,
+        gene1=gene1, gene2=gene2, ncells=ncells, ranked.exprs=ranked.exprs, null.dist=null.dist,
+        BPPARAM=BPPARAM)
 
     # Peeling apart the output
     all.rho <- all.pval <- list()
@@ -99,6 +99,11 @@ setMethod("correlatePairs", "ANY", function(x, null.dist=NULL, design=NULL, BPPA
     starting <- unique(starting[seq_len(ncores)])
     ending <- c((starting - 1L)[-1], njobs)
     return(list(start=starting, end=ending))
+}
+
+.get_correlation <- function(core, work.start, work.end, gene1, gene2, ncells, ranked.exprs, null.dist) {
+    to.use <- work.start[core]:work.end[core]
+    .Call(cxx_compute_rho, gene1[to.use], gene2[to.use], ncells, ranked.exprs, null.dist)
 }
 
 setMethod("correlatePairs", "SCESet", function(x, ..., assay="exprs", get.spikes=FALSE) {

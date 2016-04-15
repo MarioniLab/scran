@@ -61,9 +61,7 @@ refFUN <- function(x, pairs) {
 
 # Setting cores constant to avoid messing with the seeds.
 
-current <- bpparam()
-bpworkers(current) <- 1
-register(current)
+register(SerialParam())
 
 # Spawning training data.
 
