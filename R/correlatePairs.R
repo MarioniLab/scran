@@ -21,12 +21,12 @@ correlateNull <- function(ncells, iters=1e6, design=NULL)
 
 setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
 
-setMethod("correlatePairs", "ANY", function(x, null.dist=NULL, design=NULL, BPPARAM=bpparam(), use.names=TRUE)
+setMethod("correlatePairs", "ANY", function(x, null.dist=NULL, design=NULL, BPPARAM=bpparam(), use.names=TRUE, tol=1e-8)
 # This calculates a (modified) Spearman's rho for each pair of genes.
 #
 # written by Aaron Lun
 # created 10 February 2016
-# last modified 21 February 2016
+# last modified 17 April 2016
 {
     exprs <- as.matrix(x)
     if (!is.null(design)) { 
@@ -42,7 +42,10 @@ setMethod("correlatePairs", "ANY", function(x, null.dist=NULL, design=NULL, BPPA
     if (is.unsorted(null.dist)) { 
         null.dist <- sort(null.dist)
     }
-    ranked.exprs <- apply(exprs, 1, FUN=rank, ties.method="random")
+    
+    # Ranking genes, in an error-tolerant way. This avoids getting untied rankings for zeroes
+    # (which should have the same value +/- precision, as the prior count scaling cancels out).
+    ranked.exprs <- apply(exprs, 1, FUN=.tolerant_rank, tol=tol)
 
     # Generating all pairs of genes
     ngenes <- nrow(exprs)
@@ -104,6 +107,17 @@ setMethod("correlatePairs", "ANY", function(x, null.dist=NULL, design=NULL, BPPA
 .get_correlation <- function(core, work.start, work.end, gene1, gene2, ncells, ranked.exprs, null.dist) {
     to.use <- work.start[core]:work.end[core]
     .Call(cxx_compute_rho, gene1[to.use], gene2[to.use], ncells, ranked.exprs, null.dist)
+}
+
+.tolerant_rank <- function(y, tol=1e-6) {
+    if (!length(y)) { return(integer(0)) }
+    o <- order(y)                          
+    rle.out <- rle(y[o])
+    okay <- c(TRUE, diff(rle.out$values) > tol)
+    to.use <- cumsum(okay)
+    rle.out$values <- rle.out$values[okay][to.use]
+    y[o] <- inverse.rle(rle.out)
+    rank(y, ties.method="random")
 }
 
 setMethod("correlatePairs", "SCESet", function(x, ..., assay="exprs", get.spikes=FALSE) {

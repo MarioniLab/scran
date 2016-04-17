@@ -36,6 +36,16 @@ expect_error(correlateNull(ncells=0), "number of cells should be greater than 2"
 expect_error(correlateNull(ncells=100, design=design), "cannot specify both 'ncells' and 'design'")
 
 ####################################################################################################
+# Checking what happens for the error-tolerant ranking.
+
+whee <- runif(100, -1e-16, 1e-16)
+set.seed(100)
+r <- scran:::.tolerant_rank(whee)
+set.seed(100)
+r2 <- rank(integer(100), ties.method="random")
+expect_identical(r, r2)
+
+####################################################################################################
 
 checkCorrelations <- function(out, exprs, null.dist) {
     ranked.exprs <- apply(exprs, 1, FUN=rank, ties.method="random")
