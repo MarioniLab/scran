@@ -1,5 +1,7 @@
 library(testthat)
 library(scran)
 
-test_check("scran")
+if (.Platform$OS.type!="windows") {
+    test_check("scran")
+}
 
