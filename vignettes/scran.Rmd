@@ -15,11 +15,12 @@ BiocStyle::markdown()
 
 ```{r setup, echo=FALSE, message=FALSE}
 library(scran)
+register(SerialParam())
 set.seed(100)
 ```
 
 # Food for the mind: using scran to perform basic analyses of single-cell RNA-seq data
-Package: `r Githubpkg("MarioniLab/scran")` <br />
+Package: `r Biocpkg("scran")` <br />
 Author: Aaron Lun (alun@wehi.edu.au) <br />
 Compilation date: `r Sys.Date()`
 
@@ -29,7 +30,7 @@ Single-cell RNA sequencing (scRNA-seq) is a widely used technique for profiling 
 This allows molecular biology to be studied at a resolution that cannot be matched by bulk sequencing of cell populations.
 Common analyses include detection of highly variable and correlated genes across cells, or assignment of cells to cell cycle phases.
 Cell-specific biases also need to be normalized in a manner that is robust to low counts and technical noise.
-The `r Githubpkg("MarioniLab/scran")` package implements methods to perform these analyses.
+The `r Biocpkg("scran")` package implements methods to perform these analyses.
 This vignette provides a brief description of each method and some toy examples for how they are used.
 
 # Setting up the data
@@ -238,7 +239,7 @@ Cells can be ordered on pseudotime with `r Biocpkg("monocle")` by converting the
 
 # Summary
 
-This vignette describes the main functions in the `r Githubpkg("MarioniLab/scran")` package for basic analysis of single-cell RNA-seq data.
+This vignette describes the main functions in the `r Biocpkg("scran")` package for basic analysis of single-cell RNA-seq data.
 We cover normalization, cell cycle phase assignment, HVG detection and correlation testing.
 Conversion to other formats can also be performed in preparation for analyses with other packages in the Bioconductor project.
 Further information can be obtained by reading the documentation for each function (e.g., `?convertTo`), or asking for help on the Bioconductor [support site](http://support.bioconductor.org) (please read the [posting guide](http://www.bioconductor.org/help/support/posting-guide) beforehand).

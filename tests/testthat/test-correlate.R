@@ -45,6 +45,14 @@ set.seed(100)
 r2 <- rank(integer(100), ties.method="random")
 expect_identical(r, r2)
 
+set.seed(200)
+extra <- sample(10, 100, replace=TRUE)
+set.seed(100)
+r <- scran:::.tolerant_rank(whee + extra)
+set.seed(100)
+r2 <- rank(extra, ties.method="random")
+expect_identical(r, r2)
+
 ####################################################################################################
 
 checkCorrelations <- function(out, exprs, null.dist) {
