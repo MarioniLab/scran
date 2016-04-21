@@ -1,4 +1,5 @@
 #include "scran.h"
+#include <cstring>
 
 double get_proportion (const double* expr, const int* access, const int * permuted_index, const int& npairs, const int& minpairs, const int * m1, const int * m2) {
     // Assumes m1, m2 are 1-based, and permuted_index is already shifted by 1 to compensate.
