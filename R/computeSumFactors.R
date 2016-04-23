@@ -72,39 +72,23 @@ setMethod("computeSumFactors", "ANY", function(x, sizes=c(20, 40, 60, 80, 100), 
         ngenes <- sum(keep)
 
         # Using our summation approach.
-        sphere <- .generateSphere(cur.libs) - 1L # zero-indexing in C++.
-        design <- list()
-        output <- list()
-        for (size in sizes) {
-            out <- .Call(cxx_forge_system, ngenes, cur.cells, cur.exprs, sphere, size, use.ave.cell)
-            if (is.character(out)) { stop(out) }
-            design <- c(design, out[1])
-            output <- c(output, out[2])
-        }
-        
-        # Adding extra equations to guarantee solvability (downweighted).
-        out <- .Call(cxx_forge_system, ngenes, cur.cells, cur.exprs, sphere, 1L, use.ave.cell)
-        if (is.character(out)) { stop(out) }
-        design <- c(design, out[1])
-        output <- c(output, out[2])
-        design <- do.call(rbind, design)
-        output <- unlist(output)
-
-        weights <- rep(c(1, 0.00001), c(nrow(design)-cur.cells, cur.cells))
-        root.weights <- sqrt(weights)
-        design <- design * root.weights
-        output <- output * root.weights
+        sphere <- .generateSphere(cur.libs) 
+        new.sys <- .create_linear_system(ngenes, cur.cells, cur.exprs, sphere, sizes, use.ave.cell) 
+        design <- new.sys$design
+        output <- new.sys$output
 
         # Weighted least-squares (inverse model for positivity).
         if (positive) { 
+            design <- as.matrix(design)
             fitted <- limSolve::lsei(A=design, B=output, G=diag(cur.cells), H=numeric(cur.cells), type=2)
             final.nf <- fitted$X
         } else if (errors) {
+            design <- as.matrix(design)
             fit <- limma::lmFit(output, design)
             final.nf <- fit$coefficients
             se.est <- fit$stdev.unscaled[1] * fit$sigma # All balanced, so they're all the same.
         } else {
-            final.nf <- solve(qr(design), output)
+            final.nf <- qr.coef(qr(design), output)
             if (any(final.nf < 0)) { 
                 if (!warned.neg) { warning("negative factor estimates, re-run with 'positive=TRUE'") }
                 warned.neg <- TRUE
@@ -153,4 +137,41 @@ setMethod("computeSumFactors", "SCESet", function(x, ..., assay="counts", get.sp
     sizeFactors(x) <- sf
     x
 })
+
+.create_linear_system <- function(ngenes, cur.cells, cur.exprs, sphere, sizes, use.ave.cell) {
+    sphere <- sphere - 1L # zero-indexing in C++.
+    row.dex <- col.dex <- output <- list()
+    last.row <- 0L
+
+    for (si in seq_along(sizes)) { 
+        out <- .Call(cxx_forge_system, ngenes, cur.cells, cur.exprs, sphere, sizes[si], use.ave.cell)
+        if (is.character(out)) { stop(out) }
+        row.dex[[si]] <- out[[1]] + last.row
+        col.dex[[si]] <- out[[2]]
+        output[[si]]<- out[[3]]
+        last.row <- last.row + cur.cells
+    }
+    
+    # Adding extra equations to guarantee solvability (downweighted).
+    out <- .Call(cxx_forge_system, ngenes, cur.cells, cur.exprs, sphere, 1L, use.ave.cell)
+    if (is.character(out)) { stop(out) }
+    si <- length(row.dex) + 1L
+    row.dex[[si]] <- out[[1]] + last.row
+    col.dex[[si]] <- out[[2]]
+    output[[si]] <- out[[3]]
+
+    # Weighting the system.
+    LOWWEIGHT <- 0.000001
+    output[[si]] <- output[[si]] * sqrt(LOWWEIGHT)
+    eqn.values <- rep(rep(c(1, sqrt(LOWWEIGHT)), c(si-1L, 1L)), lengths(row.dex))
+
+    # Constructing a sparse matrix.
+    row.dex <- unlist(row.dex)
+    col.dex <- unlist(col.dex)
+    eqn.values <- unlist(eqn.values)
+    output <- unlist(output)
+    design <- sparseMatrix(i=row.dex + 1L, j=col.dex + 1L, x=eqn.values, dims=c(length(output), cur.cells))
+
+    return(list(design=design, output=output))
+}
 

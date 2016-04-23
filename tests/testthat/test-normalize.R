@@ -30,7 +30,7 @@ expect_equal(out, count.sizes/exp(mean(log(count.sizes))))
 # Trying it out with other options.
 
 outx <- computeSumFactors(dummy, positive=TRUE)
-expect_true(all(abs(outx -  out) < 1e-4)) # need to be a bit generous here, the solution code is different.
+expect_true(all(abs(outx -  out) < 1e-3)) # need to be a bit generous here, the solution code is different.
 outx <- computeSumFactors(dummy, errors=TRUE)
 expect_equal(as.numeric(outx), out)
 expect_identical(names(attributes(outx)), "standard.error")
@@ -73,15 +73,32 @@ expect_identical(r[out][1:101], r[out][102:202]) # Repeated for easy windowing
 cur.exprs <- matrix(1, nrow=ngenes, ncol=ncells)
 subsphere <- sample(ncells)
 sphere <- c(subsphere, subsphere)
-size <- 20
+sizes <- c(20, 51)
 use.ave.cell <- rep(1, ngenes)
-out <- .Call(scran:::cxx_forge_system, as.integer(ngenes), as.integer(ncells), cur.exprs, sphere-1L, as.integer(size), use.ave.cell)
+out <- scran:::.create_linear_system(as.integer(ngenes), as.integer(ncells), cur.exprs, sphere, as.integer(sizes), use.ave.cell)
 
-for (i in seq_len(nrow(out[[1]]))) {
+out$design <- as.matrix(out$design)
+size <- sizes[1]
+for (i in seq_len(ncells)) { 
     used <- sphere[i:(i+size-1)]
     expect_equal(out[[1]][i, used], rep(1, size))
     expect_equal(out[[1]][i, -used], rep(0, ncells-size))
 }
+size <- sizes[2]
+for (i in seq_len(ncells)) { 
+    used <- sphere[i:(i+size-1)]
+    expect_equal(out[[1]][i + ncells, used], rep(1, size))
+    expect_equal(out[[1]][i + ncells, -used], rep(0, ncells-size))
+}
+for (i in seq_len(ncells)) { 
+    used <- sphere[i]
+    expect_equal(out[[1]][i + ncells*2, used], sqrt(0.000001))
+    expect_equal(out[[1]][i + ncells*2, -used], rep(0, ncells-1L))
+}
+
+expect_identical(nrow(out$design), as.integer(ncells*(length(sizes)+1L)))
+expect_identical(ncol(out$design), as.integer(ncells))
+expect_equal(out[[2]], rep(c(sizes, sqrt(0.000001)), each=ncells))
 
 ####################################################################################################
 

@@ -15,6 +15,7 @@ exportMethods(
 )
 
 importFrom("dynamicTreeCut", cutreeDynamic)
+importFrom("Matrix", sparseMatrix, qr, qr.coef)
 importFrom("zoo", zoo, rollapply, index)
 importFrom("edgeR", cpm.default, DGEList, "[.DGEList")
 importFrom("limma", lmFit)

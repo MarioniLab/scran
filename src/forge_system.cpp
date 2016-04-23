@@ -27,16 +27,14 @@ SEXP forge_system (SEXP ng, SEXP nc, SEXP exprs, SEXP ordering, SEXP size, SEXP 
     for (cell=1; cell<ncells; ++cell) { eptrs[cell]=eptrs[cell-1]+ngenes; }
 
     // Setting up the output matrix.
-    SEXP output=PROTECT(allocVector(VECSXP, 2));
+    SEXP output=PROTECT(allocVector(VECSXP, 3));
 try { 
-    SET_VECTOR_ELT(output, 0, allocMatrix(REALSXP, ncells, ncells));
-    double** oxptrs=(double**)R_alloc(ncells, sizeof(double*));
-    oxptrs[0]=REAL(VECTOR_ELT(output, 0));
-    for (cell=1; cell<ncells; ++cell) { oxptrs[cell]=oxptrs[cell-1]+ncells; } 
-    std::fill(oxptrs[0], oxptrs[0] + ncells*ncells, 0);
-
-    SET_VECTOR_ELT(output, 1, allocVector(REALSXP, ncells));
-    double* ofptr=REAL(VECTOR_ELT(output, 1));
+    SET_VECTOR_ELT(output, 0, allocVector(INTSXP, SIZE * ncells));
+    int* row_optr=INTEGER(VECTOR_ELT(output, 0));
+    SET_VECTOR_ELT(output, 1, allocVector(INTSXP, SIZE * ncells));
+    int* col_optr=INTEGER(VECTOR_ELT(output, 1));
+    SET_VECTOR_ELT(output, 2, allocVector(REALSXP, ncells));
+    double* ofptr=REAL(VECTOR_ELT(output, 2));
 
     // Running through the ordering.
     int index=0, gene=0;
@@ -49,7 +47,8 @@ try {
 
         for (index=0; index<SIZE; ++index) {
             const int& curcell=orptr[index+cell];
-            oxptrs[curcell][cell]=1;
+            *(row_optr++) = cell;
+            *(col_optr++) = curcell;
 
             for (gene=0; gene<ngenes; ++gene) { 
                 combined[gene]+=eptrs[curcell][gene];

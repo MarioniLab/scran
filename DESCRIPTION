@@ -9,7 +9,7 @@ Authors@R: c(person("Aaron", "Lun", role = c("aut", "cre"), email =
 Maintainer: Aaron Lun <alun@wehi.edu.au>
 Depends: R (>= 3.3.0), BiocParallel, scater
 Imports: dynamicTreeCut, zoo, edgeR, limma, stats, BiocGenerics,
-        methods, Biobase, utils
+        methods, Biobase, utils, Matrix
 Suggests: limSolve, testthat, knitr, BiocStyle, org.Mm.eg.db, DESeq2,
         monocle, S4Vectors
 biocViews: Normalization, Sequencing, RNASeq, Software, GeneExpression,
