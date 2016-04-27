@@ -27,10 +27,10 @@ hs.G2 <- grepl("G2", colnames(hs.counts))
 
 library(org.Hs.eg.db)
 anno <- select(org.Hs.eg.db, keytype="SYMBOL", key=rownames(hs.counts), column="ENSEMBL")
+anno <- anno[!is.na(anno$ENSEMBL),]
 m <- match(anno$SYMBOL, rownames(hs.counts))
 hs.counts2 <- as.matrix(hs.counts[m,])
 rownames(hs.counts2) <- anno$ENSEMBL
-hs.counts2 <- hs.counts2[!is.na(anno$ENSEMBL),]
 hs.cycle <- select(org.Hs.eg.db, keytype="GOALL", key="GO:0007049", column="ENSEMBL")
 hs.training <- rownames(hs.counts2) %in% hs.cycle$ENSEMBL
 

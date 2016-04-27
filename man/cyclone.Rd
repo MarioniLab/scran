@@ -1,13 +1,13 @@
 \name{cyclone}
 \alias{cyclone}
-\alias{cyclone,ANY-method}
+\alias{cyclone,matrix-method}
 \alias{cyclone,SCESet-method}
 
 \title{Cell cycle phase classification}
 \description{Classify single cells into their cell cycle phases based on gene expression data.}
 
 \usage{
-\S4method{cyclone}{ANY}(x, pairs, gene.names=rownames(x), iter=1000, min.iter=100, min.pairs=50, 
+\S4method{cyclone}{matrix}(x, pairs, gene.names=rownames(x), iter=1000, min.iter=100, min.pairs=50, 
     BPPARAM=bpparam(), verbose=FALSE)
 \S4method{cyclone}{SCESet}(x, ..., assay="counts", get.spikes=FALSE)
 }
@@ -24,7 +24,7 @@
 \item{min.pairs}{An integer scalar specifying the minimum number of pairs for cycle estimation.}
 \item{BPPARAM}{A BiocParallelParam object to use in \code{bplapply} for parallel processing.}
 \item{verbose}{A logical scalar specifying whether diagnostics should be printed to screen.}
-\item{...}{Additional arguments to pass to \code{cyclone,ANY-method}.}
+\item{...}{Additional arguments to pass to \code{cyclone,matrix-method}.}
 \item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
 \item{get.spikes}{A logical specifying whether spike-in transcripts should be used.}
 }

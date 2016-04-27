@@ -1,6 +1,6 @@
 setGeneric("decomposeVar", function(x, fit, ...) standardGeneric("decomposeVar"))
 
-setMethod("decomposeVar", c("ANY", "list"), function(x, fit, design=NA)
+setMethod("decomposeVar", c("matrix", "list"), function(x, fit, design=NA)
 # Computes the biological variability of the log-CPMs by subtracting the
 # inferred technical variance from the total variance.
 #
@@ -8,7 +8,6 @@ setMethod("decomposeVar", c("ANY", "list"), function(x, fit, design=NA)
 # created 21 January 2016 
 # last modified 21 February 2016
 {
-    x <- as.matrix(x)
     if (is.null(design)) { design <- .interceptModel(ncol(x)) }
     else if (length(design)==1L && is.na(design)) { design <- fit$design }
     lmeans <- rowMeans(x)

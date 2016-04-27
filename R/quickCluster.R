@@ -1,6 +1,6 @@
 setGeneric("quickCluster", function(x, ...) standardGeneric("quickCluster"))
 
-setMethod("quickCluster", "ANY", function(x, min.size=200, ...)  
+setMethod("quickCluster", "matrix", function(x, min.size=200, ...)  
 # This function generates a cluster vector containing the cluster number assigned to each cell.
 # It takes the counts matrix and a minimum number of Cells per cluster as input.
 # The minimum number should be at least twice as large as the largest group used for summation.

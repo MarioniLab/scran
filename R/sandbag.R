@@ -90,7 +90,7 @@ random.success <- function(cell, markers, N, Nmin, Nmin.couples)
 
 setGeneric("sandbag", function(x, ...) standardGeneric("sandbag"))
 
-setMethod("sandbag", "ANY", function(x, is.G1, is.S, is.G2M, gene.names=rownames(x), fraction=0.5) 
+setMethod("sandbag", "matrix", function(x, is.G1, is.S, is.G2M, gene.names=rownames(x), fraction=0.5) 
 # Identifies the relevant pairs before running 'cyclone'.
 # Basically runs through all combinations of 'find.markers' for each phase. 
 #
@@ -99,7 +99,6 @@ setMethod("sandbag", "ANY", function(x, is.G1, is.S, is.G2M, gene.names=rownames
 # created 22 January 2016 
 # last modified 17 February 2016          
 {
-    x <- as.matrix(x)
     G1.marker.pairs <- find.markers(id1=is.G1, id2=is.S, id3=is.G2M, training.data=x, fraction=fraction, gene.names=gene.names)
     S.marker.pairs <- find.markers(id1=is.S, id2=is.G1, id3=is.G2M, training.data=x, fraction=fraction, gene.names=gene.names)
     G2M.marker.pairs <- find.markers(id1=is.G2M, id2=is.G1, id3=is.S, training.data=x, fraction=fraction, gene.names=gene.names)

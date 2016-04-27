@@ -1,13 +1,13 @@
 \name{decomposeVar}
 \alias{decomposeVar}
-\alias{decomposeVar,ANY,list-method}
+\alias{decomposeVar,matrix,list-method}
 \alias{decomposeVar,SCESet,list-method}
 
 \title{Decompose the gene-level variance}
 \description{Decompose the gene-specific variance into biological and technical components for single-cell RNA-seq data.}
 
 \usage{
-\S4method{decomposeVar}{ANY,list}(x, fit, design=NA)
+\S4method{decomposeVar}{matrix,list}(x, fit, design=NA)
 \S4method{decomposeVar}{SCESet,list}(x, fit, ..., assay="exprs", get.spikes=FALSE)
 }
 
@@ -20,7 +20,7 @@
     A list containing the output of \code{\link{trendVar}}, run on log-expression values for spike-in genes.
 }
 \item{design}{A numeric matrix describing the systematic factors contributing to expression in each cell.}
-\item{...}{Additional arguments to pass to \code{decomposeVar,ANY,list-method}.}
+\item{...}{Additional arguments to pass to \code{decomposeVar,matrix,list-method}.}
 \item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
 \item{get.spikes}{A logical scalar specifying whether decomposition should be performed for spike-ins.}
 }

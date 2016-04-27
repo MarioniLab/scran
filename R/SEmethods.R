@@ -1,4 +1,4 @@
-setMethod("normalize", "ANY", function(object, size.factor=NULL, log=TRUE, prior.count=1) 
+.normalize.SCData <- function(object, size.factor=NULL, log=TRUE, prior.count=1) 
 # Computes the normalized log-expression values.
 # 
 # written by Aaron Lun
@@ -10,36 +10,20 @@ setMethod("normalize", "ANY", function(object, size.factor=NULL, log=TRUE, prior
     lsf <- log(size.factor) # Mean-centered size factors, for valid comparisons between size factor sets.
     size.factor <- exp(lsf - mean(lsf))
     cpm.default(object, lib.size=size.factor*1e6, prior.count=prior.count, log=log)
-})
+}
 
-setMethod("normalize", "SCESet", function(object, ..., separate.spikes=TRUE) {
-    out <- normalize(assayDataElement(object, "counts"), size.factor=sizeFactors(object), ...) # Normalizing everything, not just spikes.
+setMethod("normalize", "SCESet", function(object, log=TRUE, prior.count=1, separate.spikes=TRUE) {
+    out <- .normalize.SCData(assayDataElement(object, "counts"), size.factor=sizeFactors(object), 
+                             log=log, prior.count=prior.count) # Normalizing everything, not just spikes.
 
     if (separate.spikes && any(is.spike(object))) {
         object2 <- computeSpikeFactors(object)
-        out2 <- normalize(spikes(object, assay="counts"), size.factor=sizeFactors(object2), ...)
+        out2 <- .normalize.SCData(spikes(object, assay="counts"), size.factor=sizeFactors(object2), 
+                                  log=log, prior.count=prior.count)
         out[is.spike(object),] <- out2
     } 
     
     assayDataElement(object, "exprs") <- out
-    return(object)
-})
-
-setMethod("sizeFactors", "SCESet", function(object) {
-    out <- object$sizeFactor
-    if (is.null(out)) { 
-        warning("'sizeFactors' are not set, returning NULL") 
-        return(NULL)
-    }
-    names(out) <- colnames(object) 
-    return(out)
-})
-
-setReplaceMethod("sizeFactors", "SCESet", function(object, value) {
-    if (!is.numeric(value) && !is.null(value)) { 
-        stop("size factors should be numeric or NULL")
-    }        
-    object$sizeFactor <- value
     return(object)
 })
 

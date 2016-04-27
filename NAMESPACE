@@ -19,7 +19,7 @@ importFrom("Matrix", sparseMatrix, qr, qr.coef)
 importFrom("zoo", zoo, rollapply, index)
 importFrom("edgeR", cpm.default, DGEList, "[.DGEList")
 importFrom("limma", lmFit)
-importFrom("BiocGenerics", normalize, sizeFactors, "sizeFactors<-")
+importFrom("BiocGenerics", normalize)
 importFrom("Biobase", assayDataElement, "assayDataElement<-", fData, exprs, featureData, phenoData, pData)
 importFrom("utils", combn)
 

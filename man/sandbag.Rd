@@ -1,13 +1,13 @@
 \name{sandbag}
 \alias{sandbag}
-\alias{sandbag,ANY-method}
+\alias{sandbag,matrix-method}
 \alias{sandbag,SCESet-method}
 
 \title{Cell cycle phase training}
 \description{Use gene expression data to train a classifier for cell cycle phase.}
 
 \usage{
-\S4method{sandbag}{ANY}(x, is.G1, is.S, is.G2M, gene.names=rownames(x), fraction=0.5)
+\S4method{sandbag}{matrix}(x, is.G1, is.S, is.G2M, gene.names=rownames(x), fraction=0.5)
 \S4method{sandbag}{SCESet}(x, ..., assay="counts", get.spikes=FALSE)
 }
 
@@ -19,7 +19,7 @@
 \item{is.G1, is.S, is.G2M}{A vector indicating which cells are in each phase of the cell cycle.}
 \item{gene.names}{A character vector of gene names.}
 \item{fraction}{A numeric scalar specifying the minimum fraction to define a marker gene pair.}
-\item{...}{Additional arguments to pass to \code{sandbag,ANY-method}.}
+\item{...}{Additional arguments to pass to \code{sandbag,matrix-method}.}
 \item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
 \item{get.spikes}{A logical specifying whether spike-in transcripts should be used.}
 }

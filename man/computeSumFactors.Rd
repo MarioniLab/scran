@@ -1,13 +1,13 @@
 \name{Deconvolution Methods}
 \alias{computeSumFactors}
-\alias{computeSumFactors,ANY-method}
+\alias{computeSumFactors,matrix-method}
 \alias{computeSumFactors,SCESet-method}
 
 \title{Normalization by deconvolution}
 \description{Methods to normalize single-cell RNA-seq data by deconvolving size factors from cell pools.}
 
 \usage{
-\S4method{computeSumFactors}{ANY}(x, sizes=c(20, 40, 60, 80, 100), 
+\S4method{computeSumFactors}{matrix}(x, sizes=c(20, 40, 60, 80, 100), 
     clusters=NULL, ref.clust=NULL, positive=FALSE, errors=FALSE)
 \S4method{computeSumFactors}{SCESet}(x, ..., assay="counts", get.spikes=FALSE)
 }
@@ -22,7 +22,7 @@
 \item{ref.clust}{A level of \code{clusters} to be used as the reference cluster for inter-cluster normalization.}
 \item{positive}{A logical scalar indicating whether linear inverse models should be used to enforce positive estimates.}
 \item{errors}{A logical scalar indicating whether the standard error should be returned.}
-\item{...}{Additional arguments to pass to \code{computeSumFactors,ANY-method}.}
+\item{...}{Additional arguments to pass to \code{computeSumFactors,matrix-method}.}
 \item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
 \item{get.spikes}{A logical scalar specifying whether spike-in transcripts should be used.}
 }
@@ -78,7 +78,7 @@ Users wanting to perform spike-in normalization should see \code{\link{computeSp
 }
 
 \value{
-For \code{computeSumFactors,ANY-method}, a numeric vector of size factors for all cells in \code{x} is returned.
+For \code{computeSumFactors,matrix-method}, a numeric vector of size factors for all cells in \code{x} is returned.
 
 For \code{computeSumFactors,SCESet-method}, an object of class \code{x} is returned containing the vector of size factors in \code{sizeFactors(x)}.
 

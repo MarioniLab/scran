@@ -11,7 +11,7 @@
 
 setGeneric("computeSumFactors", function(x, ...) standardGeneric("computeSumFactors"))
 
-setMethod("computeSumFactors", "ANY", function(x, sizes=c(20, 40, 60, 80, 100), clusters=NULL, ref.clust=NULL, positive=FALSE, errors=FALSE) 
+setMethod("computeSumFactors", "matrix", function(x, sizes=c(20, 40, 60, 80, 100), clusters=NULL, ref.clust=NULL, positive=FALSE, errors=FALSE) 
 # This contains the function that performs normalization on the summed counts.
 # It also provides support for normalization within clusters, and then between
 # clusters to make things comparable. It can also switch to linear inverse models

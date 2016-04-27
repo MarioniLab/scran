@@ -1,6 +1,6 @@
 setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
 
-setMethod("cyclone", "ANY", function(x, pairs, gene.names=rownames(x), iter=1000, min.iter=100, min.pairs=50, BPPARAM=bpparam(), verbose=FALSE)
+setMethod("cyclone", "matrix", function(x, pairs, gene.names=rownames(x), iter=1000, min.iter=100, min.pairs=50, BPPARAM=bpparam(), verbose=FALSE)
 # Takes trained pairs and test data, and predicts the cell cycle phase from that. 
 #
 # written by Antonio Scialdone
@@ -8,7 +8,6 @@ setMethod("cyclone", "ANY", function(x, pairs, gene.names=rownames(x), iter=1000
 # created 22 January 2016    
 # last modified 17 February 2016
 { 
-    x <- as.matrix(x)
     storage.mode(x) <- "double"
     Ngenes <- nrow(x)
     if (length(gene.names)!=Ngenes) {

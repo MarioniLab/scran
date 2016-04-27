@@ -1,6 +1,6 @@
 setGeneric("trendVar", function(x, ...) standardGeneric("trendVar"))
 
-setMethod("trendVar", "ANY", function(x, trend=c("poly", "loess"), df=5, span=0.3, design=NULL)
+setMethod("trendVar", "matrix", function(x, trend=c("poly", "loess"), df=5, span=0.3, design=NULL)
 # Fits a polynomial trend to the technical variability of the log-CPMs,
 # against their abundance (i.e., average log-CPM).
 # 
@@ -8,7 +8,6 @@ setMethod("trendVar", "ANY", function(x, trend=c("poly", "loess"), df=5, span=0.
 # created 21 January 2016
 # last modified 21 February 2016
 {
-    x <- as.matrix(x)
     lmeans <- rowMeans(x)
     if (is.null(design)) { design <- .interceptModel(ncol(x)) }
     lvar <- .estimateVariance(design, x)

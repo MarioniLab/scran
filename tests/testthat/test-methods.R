@@ -26,7 +26,7 @@ expect_identical(spikes(X, "exprs"), exprs(X)[isSpike(X),,drop=FALSE])
 # Checking silly inputs
 
 expect_error(isSpike(X) <- "whee", "must be logical or NULL")
-expect_error(sizeFactors(X) <- "whee", "size factors should be numeric or NULL")
+expect_error(sizeFactors(X) <- "whee", "unable to find an inherited method")
 expect_identical(isSpike(X[0,]), logical(0))
 expect_identical(unname(sizeFactors(X[,0])), numeric(0))
 
@@ -40,5 +40,5 @@ expect_warning(out <- isSpike(X), "'isSpike' is not set, returning NULL")
 expect_identical(out, NULL)
 
 sizeFactors(X) <- NULL
-expect_warning(out <- sizeFactors(X), "'sizeFactors' are not set, returning NULL")
+expect_warning(out <- sizeFactors(X), "not been set")
 expect_identical(out, NULL)

@@ -1,13 +1,13 @@
 \name{Quick clustering}
 \alias{quickCluster}
-\alias{quickCluster,ANY-method}
+\alias{quickCluster,matrix-method}
 \alias{quickCluster,SCESet-method}
 
 \title{Quick clustering of cells}
 \description{Cluster similar cells based on rank correlations in their gene expression profiles.}
 
 \usage{
-\S4method{quickCluster}{ANY}(x, min.size=200, ...)
+\S4method{quickCluster}{matrix}(x, min.size=200, ...)
 \S4method{quickCluster}{SCESet}(x, ..., assay="counts", get.spikes=FALSE)
 }
 
@@ -18,8 +18,8 @@
 }
 \item{min.size}{An integer scalar specifying the minimum size of each cluster.}
 \item{...}{
-    For \code{quickCluster,ANY-method}, additional arguments to be passed to \code{\link{cutreeDynamic}}.
-    For \code{quickCluster,SCESet-method}, additional arguments to pass to \code{quickCluster,ANY-method}.
+    For \code{quickCluster,matrix-method}, additional arguments to be passed to \code{\link{cutreeDynamic}}.
+    For \code{quickCluster,SCESet-method}, additional arguments to pass to \code{quickCluster,matrix-method}.
 }
 \item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
 \item{get.spikes}{A logical specifying whether spike-in transcripts should be used.}

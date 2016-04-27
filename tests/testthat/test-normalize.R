@@ -193,44 +193,39 @@ set.seed(20003)
 ncells <- 200
 ngenes <- 1000
 dummy <- matrix(rnbinom(ncells*ngenes, mu=100, size=5), ncol=ncells, nrow=ngenes, byrow=TRUE)
-
-out <- normalize(dummy)
-ref <- log(colSums(dummy))
-sf <- exp(ref-mean(ref))
-expect_equal(out, edgeR::cpm.default(dummy, lib.size=sf*1e6, prior.count=1, log=TRUE))
-
-out <- normalize(dummy, log=FALSE)
-expect_equal(out, edgeR::cpm.default(dummy, lib.size=sf*1e6, prior.count=1, log=FALSE))
-out <- normalize(dummy, prior.count=3)
-expect_equal(out, edgeR::cpm.default(dummy, lib.size=sf*1e6, prior.count=3, log=TRUE))
-
-sf <- log(runif(ncells, 10, 20))
-sf <- exp(ref-mean(ref))
-out2 <- normalize(dummy, size.factor=sf)
-expect_equal(out2, edgeR::cpm.default(dummy, lib.size=sf*1e6, prior.count=1, log=TRUE))
-
-# Checking out silly inputs.
-
-expect_equal(dim(normalize(dummy[,0,drop=FALSE])), c(ngenes, 0L))
-#expect_equal(dim(normalize(dummy[0,,drop=FALSE])), c(0,ngenes)) # Doesn't work at the moment, due to cpm.default
-
-# Also testing it on the SCESet object.
-
 rownames(dummy) <- paste0("X", seq_len(ngenes))
 X <- newSCESet(countData=data.frame(dummy))
 
-out <- normalize(dummy, size.factor=sf)
+ref <- log(colSums(dummy))
+sf <- exp(ref-mean(ref))
 sizeFactors(X) <- sf
-X2 <- normalize(X)
-expect_equivalent(out, exprs(X2))
+out <- normalize(X)
+expect_equivalent(exprs(out), edgeR::cpm.default(dummy, lib.size=sf*1e6, prior.count=1, log=TRUE))
+
+out <- normalize(X, log=FALSE)
+expect_equivalent(exprs(out), edgeR::cpm.default(dummy, lib.size=sf*1e6, prior.count=1, log=FALSE))
+out <- normalize(X, prior.count=3)
+expect_equivalent(exprs(out), edgeR::cpm.default(dummy, lib.size=sf*1e6, prior.count=3, log=TRUE))
+
+sf <- log(runif(ncells, 10, 20))
+sf <- exp(ref-mean(ref))
+sizeFactors(X) <- sf
+out <- normalize(X)
+expect_equivalent(exprs(out), edgeR::cpm.default(dummy, lib.size=sf*1e6, prior.count=1, log=TRUE))
 
 isSpike(X) <- rbinom(ngenes, 1, 0.7)==0L
 X3 <- normalize(X, separate.spikes=FALSE)
-expect_equivalent(out, exprs(X3))
+expect_equivalent(exprs(out), exprs(X3))
 
 X4 <- normalize(X)
-expect_equivalent(out[!isSpike(X),], exprs(X4)[!isSpike(X),])
+expect_equivalent(exprs(out)[!isSpike(X),], exprs(X4)[!isSpike(X),])
 X5 <- computeSpikeFactors(X)
 X5 <- normalize(X5)
 expect_equal(exprs(X4)[isSpike(X),], exprs(X5)[isSpike(X),])
+
+# Checking out silly inputs.
+
+expect_equal(unname(dim(normalize(X[,0,drop=FALSE]))), c(ngenes, 0L))
+expect_equal(unname(dim(normalize(X[0,,drop=FALSE]))), c(0L, ncells)) 
+
 

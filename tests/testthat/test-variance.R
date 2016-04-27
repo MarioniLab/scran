@@ -7,7 +7,12 @@ ncells <- 200
 ngenes <- 1000
 dummy <- matrix(rnbinom(ngenes*ncells, mu=100, size=5), ncol=ncells, nrow=ngenes, byrow=TRUE)
 
-d <- normalize(dummy)
+rownames(dummy) <- paste0("X", seq_len(ngenes))
+X <- newSCESet(countData=data.frame(dummy))
+sizeFactors(X) <- colSums(dummy)
+X <- normalize(X)
+
+d <- exprs(X)
 out <- trendVar(d)
 expect_equal(out$mean, rowMeans(d))
 expect_equal(out$var, apply(d, 1, var))
@@ -20,18 +25,13 @@ expect_equal(out$trend(m), out$trend(m-1))
 
 expect_equal(out$design, as.matrix(rep(1, ncells)))
 
-# Get the same results with a SCESet.
-
-rownames(dummy) <- paste0("X", seq_len(ngenes))
-X <- newSCESet(countData=data.frame(dummy))
-sizeFactors(X) <- colSums(dummy)
-X <- normalize(X)
+# Get the same results directly on a SCESet.
 
 suppressWarnings(expect_error(trendVar(X), "'degree' must be less than number of unique points")) # because there aren't any spike-ins.
 isSpike(X) <- TRUE
 out2 <- trendVar(X)
-expect_equal(out$mean, unname(out2$mean))
-expect_equal(out$var, unname(out2$var))
+expect_equal(out$mean, out2$mean)
+expect_equal(out$var, out2$var)
 expect_equal(out$trend, out2$trend)
 expect_equal(out$design, out2$design)
 
@@ -95,9 +95,9 @@ expect_equal(out$design, design)
 
 # There's a lot of ways it can fail, as trend fitting will not work depending on the number of 'df' and 'span'.
 
-expect_error(trendVar(dummy[0,,drop=FALSE]), "'degree' must be less than number of unique points")
-expect_error(trendVar(dummy[,0,drop=FALSE]), "missing values are not allowed in 'poly'")
-expect_error(trendVar(dummy[,1,drop=FALSE]), "missing values are not allowed in 'poly'")
+expect_error(trendVar(d[0,,drop=FALSE]), "'degree' must be less than number of unique points")
+expect_error(trendVar(d[,0,drop=FALSE]), "missing values are not allowed in 'poly'")
+expect_error(trendVar(d[,1,drop=FALSE]), "missing values are not allowed in 'poly'")
 
 ####################################################################################################
 
@@ -107,10 +107,8 @@ set.seed(20001)
 ncells <- 200
 ngenes <- 1000
 dummy <- matrix(rnbinom(ngenes*ncells, mu=100, size=5), ncol=ncells, nrow=ngenes, byrow=TRUE)
-
-d <- normalize(dummy)
-out <- trendVar(d)
 rownames(dummy) <- paste0("X", seq_len(ngenes))
+
 X <- newSCESet(countData=data.frame(dummy))
 sizeFactors(X) <- colSums(dummy)
 isSpike(X) <- rbinom(ngenes, 1, 0.7)==0

@@ -1,6 +1,6 @@
 \name{correlatePairs}
 \alias{correlatePairs}
-\alias{correlatePairs,ANY-method}
+\alias{correlatePairs,matrix-method}
 \alias{correlatePairs,SCESet-method}
 \alias{correlateNull}
 
@@ -10,7 +10,7 @@
 \usage{
 correlateNull(ncells, iters=1e6, design=NULL) 
 
-\S4method{correlatePairs}{ANY}(x, null.dist=NULL, design=NULL, BPPARAM=bpparam(), use.names=TRUE, tol=1e-8)
+\S4method{correlatePairs}{matrix}(x, null.dist=NULL, design=NULL, BPPARAM=bpparam(), use.names=TRUE, tol=1e-8)
 \S4method{correlatePairs}{SCESet}(x, ..., assay="exprs", get.spikes=FALSE)
 }
 
@@ -29,7 +29,7 @@ correlateNull(ncells, iters=1e6, design=NULL)
     Alternatively, a character vector containing the names to use.
 }
 \item{tol}{A numeric scalar indicating the maximum difference under which two expression values are tied.}
-\item{...}{Additional arguments to pass to \code{correlatePairs,ANY-method}.}
+\item{...}{Additional arguments to pass to \code{correlatePairs,matrix-method}.}
 \item{assay}{A string specifying which assay values to use.}
 \item{get.spikes}{A logical specifying whether spike-in transcripts should be used.}
 }

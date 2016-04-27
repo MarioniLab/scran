@@ -1,13 +1,13 @@
 \name{trendVar}
 \alias{trendVar}
-\alias{trendVar,ANY-method}
+\alias{trendVar,matrix-method}
 \alias{trendVar,SCESet-method}
 
 \title{Get the biological variability}
 \description{Compute the biological and technical components of the gene-specific variance in single-cell RNA-seq data.}
 
 \usage{
-\S4method{trendVar}{ANY}(x, trend=c("poly", "loess"), df=5, span=0.3, design=NULL)
+\S4method{trendVar}{matrix}(x, trend=c("poly", "loess"), df=5, span=0.3, design=NULL)
 \S4method{trendVar}{SCESet}(x, ..., assay="exprs", use.spikes=TRUE)
 }
 
@@ -20,7 +20,7 @@
 \item{df}{An integer scalar specifying the degrees of freedom for polynomial fitting.}
 \item{span}{An numeric scalar specifying the span for loess fitting.}
 \item{design}{A numeric matrix describing the systematic factors contributing to expression in each cell.}
-\item{...}{Additional arguments to pass to \code{trendVar,ANY,list-method}.}
+\item{...}{Additional arguments to pass to \code{trendVar,matrix,list-method}.}
 \item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
 \item{use.spikes}{A logical scalar specifying whether the trend should be fitted to variances for spike-in or endogenous genes.}
 }
@@ -45,7 +45,7 @@ Note that this method is rather dependent on the quality of the spike-ins -- the
 In some data sets, a loess curve may yield better results, though this may require some fiddling with the \code{span}.
 
 When spike-ins are not available, \code{trendVar} can also be applied directly to the counts for endogenous genes by setting \code{use.spikes=FALSE} 
-    (or by manually supplying a matrix of normalized expression for endogenous genes, for \code{trendVar,ANY-method}).
+    (or by manually supplying a matrix of normalized expression for endogenous genes, for \code{trendVar,matrix-method}).
 This assumes that most genes exhibit technical variation and little biological variation, e.g., in a homogeneous population.
 A loess curve is recommended here as it is more robust to a subset of genes with very large or very small variances.
 If \code{use.spikes=NA}, every row will be used for trend fitting, regardless of whether it corresponds to a spike-in transcript or endogenous gene.
