@@ -195,6 +195,51 @@ alt.fit2 <- trendVar(sce, design=design)
 alt.decomp2 <- decomposeVar(sce, alt.fit)
 ```
 
+<!--
+We use log-transformed values as the count-based models put too much weight on large outliers.
+Consider the example below, where `counter1` contains an outlier but is otherwise less variable than the other `counter*` sets.
+If you run the code, you'll find that `counter1` still has a larger NB dispersion (and by implication, CV^2^) and random effect variance than the others.
+Only the variance of the log-counts does anything close to the right thing here.
+
+```{r, eval=FALSE}
+set.seed(102251)
+ncells <- 100
+niters <- 20
+averaged.GLM <- averaged.GLMM <- averaged.log <- 0
+for (it in seq_len(niters)) {
+
+counter1 <- rnbinom(ncells, mu=5, size=1)
+counter1[1] <- 10000
+counter2 <- rnbinom(ncells, mu=5, size=0.2) # Arguably, all more variable than above.
+counter3 <- rnbinom(ncells, mu=20, size=0.2)
+counter4 <- rnbinom(ncells, mu=100, size=0.2)
+
+# With GLMs.
+require(edgeR)
+y <- DGEList(rbind(counter1, counter2, counter3, counter4), lib.size=rep(1e6, ncells))
+y <- estimateDisp(y, cbind(rep(1, ncells)), prior.df=0)
+averaged.GLM <- averaged.GLM + y$tagwise.dispersion
+
+# With GLMMs (random effect variance is logged).
+require(lme4)
+plate <- integer(ncells)
+plate[(ncells/2+1):ncells] <- 1 # Just to stop it complaining.
+averaged.GLMM <- averaged.GLMM + c(
+    unlist(VarCorr(glmer(counter1 ~ (1|plate), family=negative.binomial(1)))),
+    unlist(VarCorr(glmer(counter2 ~ (1|plate), family=negative.binomial(1)))),
+    unlist(VarCorr(glmer(counter3 ~ (1|plate), family=negative.binomial(1)))),
+    unlist(VarCorr(glmer(counter4 ~ (1|plate), family=negative.binomial(1)))))
+
+# With variances of log-values.
+averaged.log <- averaged.log + apply(cpm(y, log=TRUE), 1, var)
+
+}
+averaged.GLM/niters
+averaged.GLMM/niters
+averaged.log/niters
+```
+-->
+
 # Detecting correlated genes
 
 The top set of HVGs can be used to identify significant correlations between pairs of genes.
@@ -218,6 +263,33 @@ cor.pairs2 <- correlatePairs(sce[top.hvgs[1:200],], null.dist=null.dist2, design
 Significant correlations between pairs of genes can be defined at a false discovery rate (FDR) threshold of, e.g., 5%.
 In this case, no correlations are significant as the counts were randomly generated for each gene.
 In other situations when correlated gene pairs are present, these can be used to construct heatmaps to verify whether subpopulations exist; for choosing marker genes in experimental validation; and to construct gene-gene association networks.
+
+<!--
+The modification simplifies things by allowing the same tie-free null distribution to be used for all genes.
+It also means that we can get spuriously large correlations (which we would have been protected from, had we considered ties).
+However, this is acceptable as we can let the error-control machinery deal with the possibility of such spuriously large values.
+We also don't have to account for HVG identification in multiple testing here, because correlations are independent of the variance of the genes.
+
+```{r, eval=FALSE}
+set.seed(1023423)
+ncells <- 100
+null.dist <- correlateNull(ncells)
+all.p <- list()
+for (it in 1:10000) {
+    x1 <- rpois(ncells, lambda=10)
+    x2 <- rpois(ncells, lambda=20)
+    rho2 <- cor(rank(x1, ties.method="random"), rank(x2, ties.method="random"), method="spearman")
+    all.p[[it]] <- sum(null.dist >= rho2)/length(null.dist)
+}
+sum(unlist(all.p) <= 0.01)/10000
+sum(unlist(all.p) <= 0.05)/10000
+```
+
+The idea is to mitigate dependence on explicit subpopulation identification for follow-up studies.
+We identify strongly correlated genes first, then only need to check for subpopulations as a diagnostic.
+This reduces the sensitivity of the analysis to ambiguity/uncertainty during subpopulation identification.
+It's possible because validation requires genes, not subpopulations (as the current cells are destroyed), so we skip the middleman.
+-->
 
 # Converting to other formats
 
