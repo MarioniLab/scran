@@ -102,7 +102,7 @@ Some protection is provided by focusing on HVGs, because genes dominated by zero
 %
 % Don't bother trying to fit a linear model to the ranks, either.
 % I thought it would be a generalization of the definition of Spearman's (Pearson's on ranks).
-% However, the null distribution will shift depending on the gradient of the (nuisance) covariate, so it's not something that can be relied on.
+% However, there's no guarantee that unevenly-spaced covariates (or factors, for that matter) will make sense when fitted to ranks.
 }
 
 \section{Approximating Spearman's rho with tied values}{

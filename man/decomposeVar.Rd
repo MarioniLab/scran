@@ -42,18 +42,20 @@ If \code{NA}, it will be extracted from \code{fit$design}, assuming that the sam
 }
 
 \value{
-A data frame is returned, containing:
+A data frame is returned where each row corresponds to and is named after a row of \code{x}.
+This contains the numeric fields:
 \describe{
-\item{\code{mean}:}{A numeric vector of mean log-CPMs for all cellular genes.}
-\item{\code{total}:}{A numeric vector of the variances of log-CPMs for all cellular genes.}
-\item{\code{bio}:}{A numeric vector containing the biological component of the variance for all genes.}
-\item{\code{tech}:}{A numeric vector containing the technical component of the variance for all genes.}
+\item{\code{mean}:}{Mean normalized log-count per gene.}
+\item{\code{total}:}{Variance of the normalized log-counts per gene.}
+\item{\code{bio}:}{Biological component of the variance.}
+\item{\code{tech}:}{Technical component of the variance.}
 }
 Rows corresponding to spike-in transcripts are set to \code{NA} unless \code{get.spikes=TRUE}. 
 }
 
 \seealso{
-\code{\link{trendVar}} 
+\code{\link{trendVar}},
+\code{\link{testVar}}
 }
 
 \author{

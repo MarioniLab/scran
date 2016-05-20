@@ -28,6 +28,7 @@
 \details{
 This function provides a correlation-based approach to quickly define clusters of a minimum size \code{min.size}.
 A distance matrix is constructed using Spearman's correlation on the counts between cells.
+(Some manipulation is performed to convert the correlation into a proper distance metric.)
 Hierarchical clustering is performed and a dynamic tree cut is used to define clusters of cells.
 A correlation-based approach is preferred here as it is invariant to scaling normalization.
 This avoids circularity between normalization and clustering.
@@ -67,3 +68,13 @@ clusters <- quickCluster(counts, min.size=20)
 }
 
 \keyword{normalization}
+
+\references{
+van Dongen S and Enright AJ (2012).
+Metric distances derived from cosine similarity and Pearson and Spearman correlations.
+\emph{arXiv} 1208.3145
+
+Lun ATL, Bach K and Marioni JC (2016).
+Pooling across cells to normalize single-cell RNA sequencing data with many zero counts.
+\emph{Genome Biol.} 17:75
+}

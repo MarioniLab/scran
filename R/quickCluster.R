@@ -13,7 +13,7 @@ setMethod("quickCluster", "matrix", function(x, min.size=200, ...)
         stop('fewer cells than the mininimum cluster size')
     }
 
-    distM <- as.dist( 1 - cor(x, method='spearman'))
+    distM <- as.dist(sqrt(0.5*(1 - cor(x, method='spearman'))))
     htree <- hclust(distM, method='ward.D2')
     clusters <- unname(cutreeDynamic(htree, minClusterSize=min.size, distM=as.matrix(distM), verbose=0, ...))
 

@@ -103,3 +103,9 @@ out.facs <- computeSumFactors(counts)
 }
 
 \keyword{normalization}
+
+\references{
+Lun ATL, Bach K and Marioni JC (2016).
+Pooling across cells to normalize single-cell RNA sequencing data with many zero counts.
+\emph{Genome Biol.} 17:75
+}
