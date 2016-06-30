@@ -4,27 +4,43 @@
 \alias{isSpike}
 \alias{isSpike,SCESet-method}
 \alias{isSpike<-}
-\alias{isSpike<-,SCESet-method}
+\alias{isSpike<-,SCESet,logical-method}
+\alias{isSpike<-,SCESet,character-method}
+\alias{isSpike<-,SCESet,NULL-method}
 
 \title{Construct the spike-in matrix}
 \description{Identify rows in the SCESet corresponding to spike-in transcripts, and retrieve a matrix of counts or normalized expression values for those rows.}
 
 \usage{
-\S4method{spikes}{SCESet}(x, assay="counts")
-\S4method{isSpike}{SCESet}(x)
-\S4method{isSpike}{SCESet}(x) <- value
+\S4method{isSpike}{SCESet}(x, type=NULL)
+\S4method{spikes}{SCESet}(x, assay="counts", type=NULL)
+
+\S4method{isSpike}{SCESet,logical}(x) <- value
+\S4method{isSpike}{SCESet,character}(x) <- value
+\S4method{isSpike}{SCESet,NULL}(x) <- value
 }
 
 \arguments{
 \item{x}{A SCESet object with spike-in data in the \code{colData}.}
+\item{type}{A string specifying which spike-in set should be extracted.}
 \item{assay}{A string specifying whether counts or normalized expression values are to be extracted.}
-\item{value}{A logical vector specifying which rows correspond to spike-ins.}
+\item{value}{
+A logical vector specifying which rows correspond to spike-ins,
+or a character vector specifying which control sets are spike-ins.
+Alternatively a \code{NULL} value, to remove existing spike-in specifications.
+}
 }
 
 \details{
-This function extracts the spike-in data from \code{x}, into a numeric matrix that can be used for downstream analyses.
-Users should set a logical vector in \code{isSpike(x)} indicating whether each row of \code{x} is a spike-in control.
+The \code{isSpikes} and \code{spikes} methods indicate which rows correspond to spike-ins and their expression values, respectively.
+If multiple spike-in sets are available, users can extract information for a specific set by supplying the name of the set in \code{type}.
+(By default, rows from all spike-in sets are extracted when \code{type=NULL}.)
 If \code{assay="exprs"}, users should have run \code{x} through \code{\link{normalize}}.
+
+Users can set a logical vector in \code{isSpike(x)} indicating whether each row of \code{x} is a spike-in control.
+Alternatively, if \code{\link[scater]{calculateQCMetrics}} has been used to process the data, the name(s) of the spike-in set(s) can be supplied.
+In the latter case, the logical vector will be automatically constructed and include rows from all supplied sets.
+Setting \code{NULL} will clear all existing spike-in information in \code{x}.
 }
 
 \value{
@@ -36,6 +52,7 @@ For \code{isSpike<-}, \code{x} is modified to store a spike-specifying vector in
 
 \seealso{
 \code{\link{normalize}},
+\code{\link[scater]{calculateQCMetrics}},
 \code{\link{SCESet}}
 }
 

@@ -1,6 +1,6 @@
 setGeneric("decomposeVar", function(x, fit, ...) standardGeneric("decomposeVar"))
 
-setMethod("decomposeVar", c("matrix", "list"), function(x, fit, design=NA)
+setMethod("decomposeVar", c("matrix", "list"), function(x, fit, design=NA, subset.row=NULL)
 # Computes the biological variability of the log-CPMs by subtracting the
 # inferred technical variance from the total variance.
 #
@@ -13,21 +13,28 @@ setMethod("decomposeVar", c("matrix", "list"), function(x, fit, design=NA)
     } else if (length(design)==1L && is.na(design)) { 
         design <- fit$design 
     }
-    lmeans <- rowMeans(x)
-    lvar <- .estimateVariance(design, x)
+    subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
+    QR <- .checkDesign(design)
+
+    lout <- .Call(cxx_estimate_variance, QR$qr, QR$qraux, x, subset.row-1L)
+    if (is.character(lout)) { stop(lout) }
+    lmeans <- lout[[1]]
+    lvar <- lout[[2]]
     
     tech.var <- fit$trend(lmeans)
     bio.var <- lvar - tech.var
     out <- data.frame(mean=lmeans, total=lvar, bio=bio.var, tech=tech.var)
-    rownames(out) <- rownames(x)
+    rownames(out) <- rownames(x)[subset.row]
     return(out)
 })
 
-setMethod("decomposeVar", c("SCESet", "list"), function(x, fit, ..., assay="exprs", get.spikes=FALSE) {
-    cur.assay <- .getUsedMatrix(x, assay, get.spikes=TRUE)
-    out <- decomposeVar(cur.assay, fit, ...)
+setMethod("decomposeVar", c("SCESet", "list"), function(x, fit, subset.row=NULL, ..., assay="exprs", get.spikes=FALSE) {
+    out <- decomposeVar(assayDataElement(x, assay), fit, ..., subset.row=subset.row)
     if (!get.spikes) {
         nokeep <- is.spike(x)
+        if (!is.null(subset.row)) { 
+            nokeep <- nokeep[subset.row]
+        }
         if (any(nokeep)) { 
             out[nokeep,] <- NA
         }

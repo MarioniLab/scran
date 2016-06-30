@@ -93,11 +93,24 @@ expect_equal(out$trend(m), out$trend(m-1))
 
 expect_equal(out$design, design)
 
-# There's a lot of ways it can fail, as trend fitting will not work depending on the number of 'df' and 'span'.
+# Trying again with a design matrix with non-trivial pivoting.
+
+covariate <- 1:200
+design <- model.matrix(~factor(rep(c(1,2), each=100)) + covariate)
+expect_identical(qr(design, LAPACK=TRUE)$pivot, c(3L, 1L, 2L))
+
+out <- trendVar(d, design=design)
+expect_equal(out$mean, rowMeans(d))
+fit <- lm.fit(y=t(d), x=design)
+effects <- fit$effects[-seq_len(ncol(design)),]
+expect_equal(out$var, colMeans(effects^2))
+
+# There's a lot of ways it can fail, e.g., trend fitting will not work depending on the number of 'df'.
 
 expect_error(trendVar(d[0,,drop=FALSE]), "'degree' must be less than number of unique points")
-expect_error(trendVar(d[,0,drop=FALSE]), "missing values are not allowed in 'poly'")
-expect_error(trendVar(d[,1,drop=FALSE]), "missing values are not allowed in 'poly'")
+expect_error(trendVar(d[2,,drop=FALSE]), "'degree' must be less than number of unique points")
+expect_error(trendVar(d[,0,drop=FALSE]), "design matrix is not of full rank")
+expect_error(trendVar(d[,1,drop=FALSE]), "design matrix is not of full rank")
 
 ####################################################################################################
 
@@ -136,6 +149,11 @@ expect_equivalent(out$tech, fit$trend(ref.mean))
 expect_equivalent(out$bio, out$total-out$tech)
 expect_true(all(abs(out.all$tech - fit$trend(out.all$mean)) < 1e-8 | is.na(out.all$tech)))
 expect_equivalent(out.all$bio, out.all$total-out.all$tech)
+
+shuffled <- c(500:1, 501:1000)
+out.ref <- decomposeVar(X[shuffled,], fit)
+out2 <- decomposeVar(X, fit, subset.row=shuffled)
+expect_identical(out.ref, out2) # Checking that subset.row works. 
 
 # Testing with a modified design matrix.
 

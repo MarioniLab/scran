@@ -27,6 +27,10 @@ expect_identical(y$genes, NULL)
 y <- convertTo(X, type="edgeR", get.spikes=TRUE)
 expect_identical(y$counts, counts(X))
 
+chosen <- c(50:1, 101:200)
+y <- convertTo(X, type="edgeR", subset.row=chosen)
+expect_identical(y$counts, counts(X)[chosen,])
+
 elib <- edgeR::getOffset(y)
 elib <- elib - mean(elib) + mean(log(sizeFactors(X)))
 expect_true(all(abs(exp(elib) - sizeFactors(X)) < 1e-8))
@@ -53,6 +57,10 @@ expect_identical(sizeFactors(y), sizeFactors(X))
 y <- convertTo(X, type="DESeq2", get.spikes=TRUE)
 expect_equal(counts(y), counts(X))
 
+chosen <- c(50:1, 101:200)
+y <- convertTo(X, type="DESeq2", subset.row=chosen)
+expect_equal(counts(y), counts(X)[chosen,])
+
 y <- convertTo(X, type="DESeq2", fData.col="SYMBOL", pData.col="other")
 expect_identical(y$other, X$other)
 expect_identical(mcols(y)$SYMBOL, fData(X)$SYMBOL[!is.spike])
@@ -68,12 +76,16 @@ expect_identical(mcols(y)$SYMBOL, fData(X)$SYMBOL[!is.spike])
 
 # Converting to a CellDataSet.
 
-to.comp <- t(t(counts(X))/sizeFactors(X)) 
+to.comp <- t(t(counts(X))/sizeFactors(X))
 y <- convertTo(X, type="monocle")
 expect_equal(exprs(y), to.comp[!is.spike,])
 
-y <- convertTo(X, type="monocle", get.spikes=TRUE)
+y <- convertTo(X, type="monocle", get.spikes=TRUE) # Assuming no spike-in-specific normalization.
 expect_equal(exprs(y), to.comp)
+
+chosen <- c(50:1, 101:200)
+y <- convertTo(X, type="monocle", subset.row=chosen)
+expect_equal(exprs(y), to.comp[chosen,])
 
 y <- convertTo(X, type="monocle", normalize=FALSE)
 expect_identical(exprs(y), counts(X)[!is.spike,])

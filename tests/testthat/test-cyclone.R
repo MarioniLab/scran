@@ -54,7 +54,12 @@ refFUN <- function(x, pairs) {
 
     scores <- data.frame(G1=score.G1, S=score.S, G2M=score.G2M) 
     scores.normalised<-data.frame(t(apply(scores, 1, function(x) (x)/sum(x))))
-    return(list(scores=scores, normalized.scores=scores.normalised))
+
+    phases <- rep("S", ncol(x))
+    phases[score.G1 >= 0.5] <- "G1"
+    phases[score.G2M >= 0.5 & score.G2M > score.G1] <- "G2M"
+
+    return(list(phases=phases, scores=scores, normalized.scores=scores.normalised))
 }
 
 ####################################################################################################
@@ -88,6 +93,7 @@ reference <- refFUN(X, markers)
 set.seed(100)
 observed <- cyclone(X, markers)
 
+expect_identical(reference$phases, observed$phases)
 expect_equal(reference$scores, observed$scores)
 expect_equal(reference$normalized.scores, observed$normalized.scores)
 
@@ -101,6 +107,7 @@ reference <- refFUN(X, markers)
 set.seed(100)
 observed <- cyclone(X, markers)
 
+expect_identical(reference$phases, observed$phases)
 expect_equal(reference$scores, observed$scores)
 expect_equal(reference$normalized.scores, observed$normalized.scores)
 
@@ -116,6 +123,7 @@ reference <- refFUN(X, markers)
 set.seed(100)
 observed <- cyclone(X, markers)
 
+expect_identical(reference$phases, observed$phases)
 expect_equal(reference$scores, observed$scores)
 expect_equal(reference$normalized.scores, observed$normalized.scores)
 
@@ -129,6 +137,7 @@ reference <- refFUN(X, markers)
 set.seed(100)
 observed <- cyclone(X, markers)
 
+expect_identical(reference$phases, observed$phases)
 expect_equal(reference$scores, observed$scores)
 expect_equal(reference$normalized.scores, observed$normalized.scores)
 
@@ -148,6 +157,8 @@ observed1 <- cyclone(X, markers)
 set.seed(100)
 observed2 <- cyclone(X2, markers, assay="counts")
 
+expect_identical(reference$phases, observed2$phases)
+expect_identical(observed1$phases, observed2$phases)
 expect_equal(reference$scores, observed2$scores)
 expect_equal(observed1$scores, observed2$scores)
 expect_equal(reference$normalized.scores, observed2$normalized.scores)
@@ -156,6 +167,7 @@ expect_equal(observed1$normalized.scores, observed2$normalized.scores)
 # Odd behaviour with no cells.
 
 out <- cyclone(X[,0], markers)
+expect_identical(out$phases, character(0))
 expect_identical(nrow(out$scores), 0L)
 expect_identical(colnames(out$scores), c("G1", "S", "G2M"))
 expect_identical(nrow(out$normalized.scores), 0L)
@@ -167,6 +179,7 @@ no.markers <- list(G1=re.pairs[0,],
                     S=re.pairs[0,],
                   G2M=re.pairs[0,])
 out <- cyclone(X, no.markers)
+expect_true(all(is.na(out$phases)))
 expect_identical(colnames(out$scores), c("G1", "S", "G2M"))
 expect_identical(nrow(out$scores), ncol(X))
 expect_true(all(is.na(out$scores)))

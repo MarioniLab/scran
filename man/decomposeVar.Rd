@@ -7,8 +7,8 @@
 \description{Decompose the gene-specific variance into biological and technical components for single-cell RNA-seq data.}
 
 \usage{
-\S4method{decomposeVar}{matrix,list}(x, fit, design=NA)
-\S4method{decomposeVar}{SCESet,list}(x, fit, ..., assay="exprs", get.spikes=FALSE)
+\S4method{decomposeVar}{matrix,list}(x, fit, design=NA, subset.row=NULL)
+\S4method{decomposeVar}{SCESet,list}(x, fit, subset.row=NULL, ..., assay="exprs", get.spikes=FALSE)
 }
 
 \arguments{
@@ -20,6 +20,7 @@
     A list containing the output of \code{\link{trendVar}}, run on log-expression values for spike-in genes.
 }
 \item{design}{A numeric matrix describing the systematic factors contributing to expression in each cell.}
+\item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to \code{decomposeVar,matrix,list-method}.}
 \item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
 \item{get.spikes}{A logical scalar specifying whether decomposition should be performed for spike-ins.}
@@ -39,10 +40,14 @@ Interpretation is not compromised -- HVGs will still be so, regardless of whethe
 The design matrix can be set if there are factors that should be blocked, e.g., batch effects, known (and uninteresting) clusters.
 If \code{NULL}, it will be set to an all-ones matrix, i.e., all cells are replicates.
 If \code{NA}, it will be extracted from \code{fit$design}, assuming that the same cells were used to fit the trend.
+
+Users can also directly specify which rows to use with \code{subset.row}.
+This is equivalent to running \code{decomposeVar} on \code{x[subset.row,]}, but is more efficient as it avoids the construction of large temporary matrices.
 }
 
 \value{
-A data frame is returned where each row corresponds to and is named after a row of \code{x}.
+A data frame is returned where each row corresponds to and is named after a row of \code{x} 
+(if \code{subset.row=NULL}; otherwise, each row corresponds to an element of \code{subset.row}).
 This contains the numeric fields:
 \describe{
 \item{\code{mean}:}{Mean normalized log-count per gene.}

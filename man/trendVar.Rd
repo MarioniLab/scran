@@ -7,8 +7,10 @@
 \description{Compute the biological and technical components of the gene-specific variance in single-cell RNA-seq data.}
 
 \usage{
-\S4method{trendVar}{matrix}(x, trend=c("poly", "loess"), df=5, span=0.3, design=NULL)
-\S4method{trendVar}{SCESet}(x, ..., assay="exprs", use.spikes=TRUE)
+\S4method{trendVar}{matrix}(x, trend=c("poly", "loess"), df=5, span=0.3, 
+    design=NULL, subset.row=NULL)
+\S4method{trendVar}{SCESet}(x, subset.row=NULL, ..., 
+    assay="exprs", use.spikes=TRUE)
 }
 
 \arguments{
@@ -20,6 +22,7 @@
 \item{df}{An integer scalar specifying the degrees of freedom for polynomial fitting.}
 \item{span}{An numeric scalar specifying the span for loess fitting.}
 \item{design}{A numeric matrix describing the systematic factors contributing to expression in each cell.}
+\item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to \code{trendVar,matrix,list-method}.}
 \item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
 \item{use.spikes}{A logical scalar specifying whether the trend should be fitted to variances for spike-in or endogenous genes.}
@@ -28,27 +31,33 @@
 \details{
 The strategy is to fit an abundance-dependent trend to the variance of the log-normalized expression for the spike-in genes, using \code{trendVar}.
 For SCESet objects, these expression values can be computed by \code{\link{normalize}} after setting the size factors, e.g., with \code{\link{computeSpikeFactors}}.
-Log-transformed values are used as these tend to be more robust to genes with strong expression in only one or two outlier cells.
+Log-transformed values are used as these are more robust to genes with strong expression in only one or two outlier cells.
 
 The mean and variance of the log-CPMs is calculated for each spike-in gene.
 A polynomial or loess trend is then fitted to the variance against the mean for all genes.
 This represents technical variability due to sequencing, drop-outs during capture, etc.
-Variance decomposition to biological and technical components for endogenous genes can then be performed 
+Variance decomposition to biological and technical components for endogenous genes can then be performed later with \code{\link{decomposeVar}}.
+
+By default, a polynomial trend with \code{df} degrees of freedom is fitted to the spike-in variances as it is more precise than the loess curve.
+Note that this method is rather dependent on the quality of the spike-ins -- the fit will obviously be poor if the coverage of all spike-ins is low.
+In some data sets, a loess curve may yield better results, though this may require some fiddling with the \code{span}.
 
 The design matrix can be set if there are factors that should be blocked, e.g., batch effects, known (and uninteresting) clusters.
 Otherwise, it will default to an all-ones matrix, effectively treating all cells as part of the same group.
 }
 
-\section{Additional notes}{
-By default, a polynomial trend with \code{df} degrees of freedom is fitted to the spike-in variances as it is more precise than the loess curve.
-Note that this method is rather dependent on the quality of the spike-ins -- the fit will obviously be poor if the coverage of all spike-ins is low.
-In some data sets, a loess curve may yield better results, though this may require some fiddling with the \code{span}.
+\section{Additional notes on row selection}{
+Spike-in transcripts can be selected in \code{trendVar,SCESet-method} using the \code{use.spikes} method. 
+By default, \code{use.spikes=TRUE} which means that only genes labelled as spike-ins with \code{isSpike(x)} will be used.
 
 When spike-ins are not available, \code{trendVar} can also be applied directly to the counts for endogenous genes by setting \code{use.spikes=FALSE} 
     (or by manually supplying a matrix of normalized expression for endogenous genes, for \code{trendVar,matrix-method}).
 This assumes that most genes exhibit technical variation and little biological variation, e.g., in a homogeneous population.
 A loess curve is recommended here as it is more robust to a subset of genes with very large or very small variances.
 If \code{use.spikes=NA}, every row will be used for trend fitting, regardless of whether it corresponds to a spike-in transcript or endogenous gene.
+
+Users can also directly specify which rows to use with \code{subset.row}.
+This will override any setting of \code{use.spikes}.
 }
 
 \value{

@@ -23,9 +23,19 @@ expect_identical(spikes(X), counts(X)[isSpike(X),,drop=FALSE])
 X <- normalize(X)
 expect_identical(spikes(X, "exprs"), exprs(X)[isSpike(X),,drop=FALSE])
 
+X <- newSCESet(countData=data.frame(dummy))
+X <- calculateQCMetrics(X, feature_controls=list(whee=is.spike))
+isSpike(X) <- "whee"
+expect_identical(isSpike(X), is.spike)
+expect_identical(isSpike(X, type="whee"), is.spike)
+isSpike(X) <- NULL
+expect_warning(isSpike(X), "'isSpike' is not set, returning NULL")
+
 # Checking silly inputs
 
-expect_error(isSpike(X) <- "whee", "must be logical or NULL")
+isSpike(X) <- is.spike
+sizeFactors(X) <- sf
+expect_error(isSpike(X) <- "aaron", "need to specify 'aaron' as a control")
 expect_error(sizeFactors(X) <- "whee", "unable to find an inherited method")
 expect_identical(isSpike(X[0,]), logical(0))
 expect_identical(unname(sizeFactors(X[,0])), numeric(0))

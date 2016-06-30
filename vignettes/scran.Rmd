@@ -66,12 +66,19 @@ all.counts <- rbind(gene.counts, spike.counts)
 
 Finally, we construct a `SCESet` object to store all of the data.
 We also indicate which rows correspond to spike-in transcripts.
+This is done through the `calculateQCMetrics` method from `r Biocpkg("scater")`, which takes a named list of sets of control genes.
+We can then easily indicate which sets of controls are spike-ins using the `isSpike` setter function.
+(In this case, there is only one control set, so the process may seem more complicated than necessary. 
+The usefulness of this setup becomes more obvious when multiple control sets are present.)
 This information can be easily extracted using the `isSpike` or `spikes` methods.
 
 ```{r}
 library(scran)
 sce <- newSCESet(countData=data.frame(all.counts))
-isSpike(sce) <- rep(c(FALSE, TRUE), c(ngenes, nspikes))
+sce <- calculateQCMetrics(sce, feature_controls=list(
+    MySpikes=rep(c(FALSE, TRUE), c(ngenes, nspikes))
+))
+isSpike(sce) <- "MySpikes"
 ```
 
 This is simulated data, so we assume that quality control has already been applied to remove low-quality cells or low-abundance genes.
@@ -81,7 +88,7 @@ Check out the `r Biocpkg("scater")` and `r Biocpkg("cellity")` packages for more
 
 # Normalizing cell-specific biases
 
-Cell-specific biases can be normalized using the `computeSumFactors` method.
+Cell-specific biases can be normalized using the `computeSumFactors` method, which implements the deconvolution strategy for scRNA-seq normalization.
 This computes size factors that are used to scale the counts in each cell.
 The assumption is that most genes are not differentially expressed (DE) between cells, such that any differences in expression across the majority of genes represents some technical bias that should be removed.
 
@@ -110,6 +117,17 @@ sce2 <- computeSpikeFactors(sce)
 summary(sizeFactors(sce2))
 ```
 
+Normalized expression values can be calculated using the `normalize` method from `r Biocpkg("scater")`.
+Note, however, that if the deconvolution size factors are used, then it is advisable to normalize the spike-ins separately.
+This is because the spike-ins do not include the effect of total mRNA content, such that the deconvolution size factors will over-normalize the spike-in counts.
+To avoid this, we set spike-in size factors to normalize the spike-ins separately, as shown below.
+(Obviously, if the spike-in size factors were already being used for normalization, then this extra step is unnecessary.)
+
+```{r}
+sizeFactors(sce, type="MySpikes") <- computeSpikeFactors(sce, sf.out=TRUE)
+sce <- normalize(sce)
+```
+
 # Cell cycle phase assignment
 
 We use a pre-defined classifier to assign cells into their cell cycle phases.
@@ -125,7 +143,7 @@ The classification itself is done using the `cyclone` function, given the count 
 This yields a number of scores representing the consistency of the signs with each phase.
 
 ```{r}
-assigned <- cyclone(sce, mm.pairs)
+assigned <- cyclone(sce, pairs=mm.pairs)
 head(assigned$scores)
 ```
 
@@ -256,7 +274,7 @@ head(cor.pairs)
 As with variance estimation, if uninteresting substructure is present, this should be blocked on using the `design` argument in both `correlateNull` and `correlatePairs`.
 
 ```{r}
-null.dist2 <- correlateNull(design=design)
+null.dist2 <- correlateNull(design=design, iter=1e5) # fewer iterations, to speed it up.
 cor.pairs2 <- correlatePairs(sce[top.hvgs[1:200],], null.dist=null.dist2, design=design)
 ```
 

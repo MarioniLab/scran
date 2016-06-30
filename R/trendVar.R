@@ -1,16 +1,22 @@
 setGeneric("trendVar", function(x, ...) standardGeneric("trendVar"))
 
-setMethod("trendVar", "matrix", function(x, trend=c("poly", "loess"), df=5, span=0.3, design=NULL)
+setMethod("trendVar", "matrix", function(x, trend=c("poly", "loess"), df=5, span=0.3, design=NULL, subset.row=NULL)
 # Fits a polynomial trend to the technical variability of the log-CPMs,
 # against their abundance (i.e., average log-CPM).
 # 
 # written by Aaron Lun
 # created 21 January 2016
-# last modified 21 February 2016
+# last modified 6 June 2016
 {
-    lmeans <- rowMeans(x)
+    subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     if (is.null(design)) { design <- .interceptModel(ncol(x)) }
-    lvar <- .estimateVariance(design, x)
+    QR <- .checkDesign(design)
+
+    lout <- .Call(cxx_estimate_variance, QR$qr, QR$qraux, x, subset.row - 1L)
+    if (is.character(lout)) { stop(lout) }
+    lmeans <- lout[[1]]
+    lvar <- lout[[2]]
+    names(lmeans) <- names(lvar) <- rownames(x)[subset.row]
 
     is.okay <- lvar > 1e-8
     kept.means <- lmeans[is.okay]
@@ -38,22 +44,30 @@ setMethod("trendVar", "matrix", function(x, trend=c("poly", "loess"), df=5, span
     as.matrix(rep(1, ncells)) 
 }
 
-setMethod("trendVar", "SCESet", function(x, ..., assay="exprs", use.spikes=TRUE) {
-    if (is.na(use.spikes)) {   
-        cur.assay <- assayDataElement(x, assay)
-    } else if (use.spikes) {
-        cur.assay <- spikes(x, assay)
-    } else {
-        cur.assay <- .getUsedMatrix(x, assay)
+.checkDesign <- function(design) {
+    if (ncol(design) >= nrow(design)) {
+        stop("design matrix is not of full rank")
     }
-    out <- trendVar(cur.assay, ...)
-    return(out)
-})
-
-.estimateVariance <- function(X, y) {
-    if (!nrow(y)) { return(numeric(0)) }
-    else if (!ncol(y)) { return(rep(NaN, nrow(y))) }
-    fit <- lm.fit(x=X, y=t(y))
-    return(colMeans(fit$effects[-fit$qr$pivot[seq_len(fit$rank)],,drop=FALSE]^2))
+    QR <- qr(design, LAPACK=TRUE)
+    if (QR$rank!=ncol(design)) {
+        stop("design matrix is not of full rank")
+    }
+    return(QR)
 }
 
+setMethod("trendVar", "SCESet", function(x, subset.row=NULL, ..., assay="exprs", use.spikes=TRUE) {
+    if (is.null(subset.row)) {
+        if (is.na(use.spikes)) {   
+            subset.row <- NULL
+        } else if (use.spikes) {
+            subset.row <- is.spike(x)
+            if (is.null(subset.row)) { 
+                subset.row <- logical(nrow(x)) # no spikes at all.
+            }
+        } else {
+            subset.row <- .spikeSubset(x, get.spikes=FALSE)
+        }
+    }
+    out <- trendVar(assayDataElement(x, assay), ..., subset.row=subset.row)
+    return(out)
+})

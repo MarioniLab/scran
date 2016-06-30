@@ -1,20 +1,20 @@
-find.markers <- function(id1, id2, id3, training.data, fraction=0.5, gene.names=rownames(training.data))
+find.markers <- function(data1, data2, data3, gene.names, fraction=0.5)
 # This identifies pairs of genes whose relative expression is > 0 in 
 # at least a 'fraction' of cells in one phase is < 0 in at least 
 # 'fraction' of the cells in each of the other phases.
 {
-    Ngenes <- nrow(training.data)
+    Ngenes <- ncol(data1)
     if (length(gene.names)!=Ngenes) {
-        stop("length of 'gene.names' vector must be equal to 'training.data' nrows")
+        stop("length of 'gene.names' vector must be equal to 'x' nrows")
     }
-
-    data1 <- t(training.data[,id1,drop=FALSE])
-    data2 <- t(training.data[,id2,drop=FALSE])
-    data3 <- t(training.data[,id3,drop=FALSE]) 
+    if (Ngenes!=ncol(data2) || Ngenes!=ncol(data3)) { 
+        stop("number of genes in each phase must be the same")
+    }
     if (nrow(data1)==0L || nrow(data2)==0L || nrow(data3)==0L) {
         stop("each phase must have at least one cell")
     }
 
+    # Calculating thresholds.
     Nthr1 <- ceiling(nrow(data1) * fraction)
     Nthr2 <- ceiling(nrow(data2) * fraction)
     Nthr3 <- ceiling(nrow(data3) * fraction)
@@ -56,55 +56,32 @@ find.markers <- function(id1, id2, id3, training.data, fraction=0.5, gene.names=
     return(data.frame(first=g1, second=g2, stringsAsFactors=FALSE))
 }
 
-classify.single <- function(cell, markers, Nmin.couples) 
-# Count number of successes for a single set of markers, given a cell's expression values.
-# Successes are defined as those pairs where the first gene is more highly expressed.
-{
-    test <- cell[markers[,1]] - cell[markers[,2]]
-    t1 <- sum(test>0)
-    tot <- sum(test!=0)
-    if (tot < Nmin.couples) { return(NA) }
-    return(t1/tot)
-}
-
-random.success <- function(cell, markers, N, Nmin, Nmin.couples)
-# Given a set of markers, a number N of trials and a cell, find the number of hits in each of the N randomised set of markers.
-# This returns the probability of randoml obtaining a fraction of hits lower than the observed fraction.
-# The null hypothesis is that the expression of each gene is sampled from the empirical distribution in 'cell',
-# in a manner that is independent of the pairings between genes. We then calculate the classification based on those pairings.
-{
-    success <- sapply(seq_len(N), function(x) {    
-                      cell.random <- cell[sample(length(cell))]
-                      classify.single(cell.random, markers, Nmin.couples)
-    })
-  
-    success <- success[!is.na(success)]
-    test <- classify.single(cell, markers, Nmin.couples)
-
-    if(length(success) < Nmin || is.na(test)) { 
-        warning("not enough gene pairs with different expression values")
-        return(NA) 
-    }
-    return(sum(success<test)/length(success))
-}
-
 setGeneric("sandbag", function(x, ...) standardGeneric("sandbag"))
 
-setMethod("sandbag", "matrix", function(x, is.G1, is.S, is.G2M, gene.names=rownames(x), fraction=0.5) 
+setMethod("sandbag", "matrix", function(x, is.G1, is.S, is.G2M, gene.names=rownames(x), fraction=0.5, subset.row=NULL) 
 # Identifies the relevant pairs before running 'cyclone'.
 # Basically runs through all combinations of 'find.markers' for each phase. 
 #
 # written by Aaron Lun
 # based on code by Antonio Scialdone
 # created 22 January 2016 
-# last modified 17 February 2016          
+# last modified 8 June 2016
 {
-    G1.marker.pairs <- find.markers(id1=is.G1, id2=is.S, id3=is.G2M, training.data=x, fraction=fraction, gene.names=gene.names)
-    S.marker.pairs <- find.markers(id1=is.S, id2=is.G1, id3=is.G2M, training.data=x, fraction=fraction, gene.names=gene.names)
-    G2M.marker.pairs <- find.markers(id1=is.G2M, id2=is.G1, id3=is.S, training.data=x, fraction=fraction, gene.names=gene.names)
+    subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
+    data.G1 <- t(x[subset.row,is.G1,drop=FALSE])
+    data.S <- t(x[subset.row,is.S,drop=FALSE])
+    data.G2M <- t(x[subset.row,is.G2M,drop=FALSE]) 
+    gene.names <- gene.names[subset.row]
+
+    G1.marker.pairs <- find.markers(data.G1, data.S, data.G2M, fraction=fraction, gene.names=gene.names)
+    S.marker.pairs <- find.markers(data.S, data.G1, data.G2M, fraction=fraction, gene.names=gene.names)
+    G2M.marker.pairs <- find.markers(data.G2M, data.G1, data.S, fraction=fraction, gene.names=gene.names)
     return(list(G1=G1.marker.pairs, S=S.marker.pairs, G2M=G2M.marker.pairs))
 })
 
-setMethod("sandbag", "SCESet", function(x, ..., assay="counts", get.spikes=FALSE) {
-    sandbag(.getUsedMatrix(x, assay, get.spikes), ...)
+setMethod("sandbag", "SCESet", function(x, is.G1, is.S, is.G2M, subset.row=NULL, ..., assay="counts", get.spikes=FALSE) {
+    if (is.null(subset.row)) { 
+        subset.row <- .spikeSubset(x, get.spikes)
+    }
+    sandbag(assayDataElement(x, assay), is.G1=is.G1, is.S=is.S, is.G2M=is.G2M, ..., subset.row=subset.row)
 })

@@ -7,8 +7,8 @@
 \description{Cluster similar cells based on rank correlations in their gene expression profiles.}
 
 \usage{
-\S4method{quickCluster}{matrix}(x, min.size=200, ...)
-\S4method{quickCluster}{SCESet}(x, ..., assay="counts", get.spikes=FALSE)
+\S4method{quickCluster}{matrix}(x, min.size=200, subset.row=NULL, ...)
+\S4method{quickCluster}{SCESet}(x, subset.row=NULL, ..., assay="counts", get.spikes=FALSE)
 }
 
 \arguments{
@@ -17,6 +17,7 @@
     Alternatively, a SCESet object containing such a matrix.
 }
 \item{min.size}{An integer scalar specifying the minimum size of each cluster.}
+\item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{
     For \code{quickCluster,matrix-method}, additional arguments to be passed to \code{\link{cutreeDynamic}}.
     For \code{quickCluster,SCESet-method}, additional arguments to pass to \code{quickCluster,matrix-method}.
@@ -40,8 +41,12 @@ Users are advised to check that the unassigned cells do indeed form their own cl
 If so, it is generally safe to ignore this warning and to treat all unassigned cells as a single cluster.
 Otherwise, it may be necessary to use a custom clustering algorithm.
 
-By default, spike-in transcripts are not used as they provide little information on the biological similarities between cells.
+In \code{quickCluster,SCESet-method}, spike-in transcripts are not used by default as they provide little information on the biological similarities between cells.
 This may not be the case if subpopulations differ by total RNA content, in which case setting \code{get.spikes=TRUE} may provide more discriminative power.
+Users can also set \code{subset.row} to specify which rows of \code{x} are to be used to calculate correlations.
+This is equivalent to but more efficient than subsetting \code{x} directly, as it avoids constructing a (potentially large) temporary matrix.
+Note that if \code{subset.row} is specified, it will overwrite any setting of \code{get.spikes}.
+
 }
 
 \value{
