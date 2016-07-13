@@ -256,7 +256,9 @@ expect_equal(out, ref)
 
 # With spikes.
 
-isSpike(X2) <- rbinom(Ngenes, 1, 0.6)==0L
+is_exprs(X2) <- matrix(1L, Ngenes, Ncells)
+X2 <- calculateQCMetrics(X2, list(MySpike=rbinom(Ngenes, 1, 0.6)==0L))
+isSpike(X2) <- "MySpike"
 set.seed(100)
 ref <- correlatePairs(exprs(X2)[!isSpike(X2),,drop=FALSE], null.dist=nulls)
 set.seed(100)

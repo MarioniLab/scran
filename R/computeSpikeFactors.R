@@ -1,6 +1,6 @@
 setGeneric("computeSpikeFactors", function(x, ...) { standardGeneric("computeSpikeFactors") })
 
-setMethod("computeSpikeFactors", "SCESet", function(x, type=NULL, sf.out=FALSE) 
+setMethod("computeSpikeFactors", "SCESet", function(x, type=NULL, sf.out=FALSE, general.use=TRUE) 
 # Uses the mean-centred total of spike-in transcripts as the size factor.
 #
 # written by Aaron Lun
@@ -12,10 +12,22 @@ setMethod("computeSpikeFactors", "SCESet", function(x, type=NULL, sf.out=FALSE)
         warning("zero spike-in counts during spike-in normalization")
     } 
     sf <- out/mean(out)
+
+    # Returning size factors directly.
     if (sf.out) {
         return(sf)
     }
-    sizeFactors(x) <- sf
+
+    # Saving size factors for general use, or for specific use by one (or all) of the spike-in sets.
+    if (general.use) {
+        sizeFactors(x) <- sf
+    } 
+    if (is.null(type)) {
+        type <- .get_feature_control_spike_names(x)
+    }
+    for (f in type) {
+        sizeFactors(x, type=f) <- sf
+    }        
     x
 })
 
@@ -43,29 +55,18 @@ setMethod("isSpike", "SCESet", function(x, type=NULL) {
 
 setGeneric("isSpike<-", function(x, value) standardGeneric("isSpike<-"))
 
-setReplaceMethod("isSpike", signature(x="SCESet", value="logical"), function(x, value) {
-    fData(x)$is_feature_spike <- value
-    return(x)
-})
-
 setReplaceMethod("isSpike", signature(x="SCESet", value="NULL"), function(x, value) {
     fData(x)$is_feature_spike <- NULL 
+    x@featureControlInfo$spike <- NULL
     return(x) 
 })
 
 setReplaceMethod("isSpike", signature(x="SCESet", value="character"), function(x, value) {
-    # Checking that the controls exist.
-    check.spikes <- ! (value %in% .get_feature_control_names(x))
-    if (any(check.spikes)) { 
-        stop(sprintf("need to specify '%s' as a control in calculateQCMetrics", value[which(check.spikes)[1]]))
-    }
+    # Recording all those that were listed as spikes.
+    x@featureControlInfo$spike <- .get_feature_control_names(x) %in% value
 
     # Running through and collecting them.
-    is.spike <- logical(nrow(x)) 
-    for (v in value) {
-        is.spike <- is.spike | fData(x)[[paste0("is_feature_control_", v)]]
-    }
-    fData(x)$is_feature_spike <- is.spike
+    fData(x)$is_feature_spike <- is.spike(x, value)
     return(x) 
 })
 

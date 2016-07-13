@@ -217,13 +217,33 @@ dummy[is.spike,] <- matrix(rnbinom(sum(is.spike)*ncells, mu=20, size=5), ncol=nc
 
 rownames(dummy) <- paste0("X", seq_len(ngenes))
 X <- newSCESet(countData=data.frame(dummy))
-isSpike(X) <- is.spike
+X <- calculateQCMetrics(X, list(MySpike=is.spike))
+isSpike(X) <- "MySpike"
 out <- computeSpikeFactors(X)
 ref <- colSums(dummy[is.spike,])
 expect_equal(unname(sizeFactors(out)), ref/mean(ref))
+expect_equal(sizeFactors(out), sizeFactors(out, type="MySpike"))
+
+# Checking out what happens when you have multiple spike-ins supplied.
+X2 <- newSCESet(countData=data.frame(dummy))
+X2 <- calculateQCMetrics(X2, list(MySpike=is.spike, SecondSpike=is.spike))
+isSpike(X2) <- c("MySpike", "SecondSpike")
+out2 <- computeSpikeFactors(X2)
+expect_equal(sizeFactors(out), sizeFactors(out2))
+expect_equal(sizeFactors(out), sizeFactors(out2, type="MySpike"))
+expect_equal(sizeFactors(out), sizeFactors(out2, type="SecondSpike"))
+out2 <- computeSpikeFactors(X2, type=c("MySpike", "SecondSpike"))
+expect_equal(sizeFactors(out), sizeFactors(out2))
+expect_equal(sizeFactors(out), sizeFactors(out2, type="MySpike"))
+expect_equal(sizeFactors(out), sizeFactors(out2, type="SecondSpike"))
+
+# Checking out the general use function.
+sizeFactors(X) <- 1
+out <- computeSpikeFactors(X, general.use=FALSE)
+expect_equal(unname(sizeFactors(out)), rep(1, ncells))
+expect_equal(unname(sizeFactors(out, type="MySpike")), ref/mean(ref))
 
 # Breaks if you try to feed it silly inputs.
-
 expect_warning(out <- computeSpikeFactors(X[0,]), "zero spike-in counts during spike-in normalization")
 expect_identical(unname(sizeFactors(out)), rep(NaN, ncol(out)))
 out <- computeSpikeFactors(X[,0])

@@ -107,7 +107,8 @@ frac <- 0.5
 X <- matrix(rpois(Ngenes*length(phases), lambda=10), nrow=Ngenes)
 rownames(X) <- paste0("X", seq_len(Ngenes))
 X <- newSCESet(countData=as.data.frame(X))
-isSpike(X) <- rbinom(Ngenes, 1, 0.7)==0L
+X <- calculateQCMetrics(X, list(MySpike=rbinom(Ngenes, 1, 0.7)==0L))
+isSpike(X) <- "MySpike"
 
 out <- sandbag(X, is.G1, is.S, is.G2M, fraction=frac)
 expect_identical(sandbag(counts(X)[!isSpike(X),], is.G1, is.S, is.G2M, fraction=frac), out)
@@ -122,7 +123,8 @@ expect_true(all(happycheck(XS, XG1, XG2M, out$S, frac)))
 
 # Testing for a SCESet, with all spike-ins.
 
-isSpike(X) <- TRUE
+X <- calculateQCMetrics(X, list(MySpike=!logical(Ngenes)))
+isSpike(X) <- "MySpike"
 out <- sandbag(X, is.G1, is.S, is.G2M, fraction=frac)
 expect_identical(out$G1, data.frame(first=character(0), second=character(0), stringsAsFactors=FALSE))
 expect_identical(out$G2M, data.frame(first=character(0), second=character(0), stringsAsFactors=FALSE))

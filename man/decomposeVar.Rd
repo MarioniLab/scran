@@ -70,7 +70,7 @@ Aaron Lun
 \examples{
 set.seed(100)
 
-nspikes <- ncells <- 100
+nspikes <- ncells <- 200
 spike.means <- 2^runif(nspikes, 3, 8)
 spike.disp <- 100/spike.means + 0.5
 spike.data <- matrix(rnbinom(nspikes*ncells, mu=spike.means, size=1/spike.disp), ncol=ncells)
@@ -84,10 +84,12 @@ combined <- rbind(cell.data, spike.data)
 colnames(combined) <- seq_len(ncells)
 rownames(combined) <- seq_len(nrow(combined))
 y <- newSCESet(countData=combined)
-isSpike(y) <- rep(c(FALSE, TRUE), c(ngenes, nspikes))
+y <- calculateQCMetrics(y, list(Spike=rep(c(FALSE, TRUE), c(ngenes, nspikes))))
+isSpike(y) <- "Spike"
 
 # Normalizing.
-y <- computeSpikeFactors(y) # or computeSumFactors
+y <- computeSumFactors(y)
+y <- computeSpikeFactors(y, general.use=FALSE)
 y <- normalize(y)
 
 # Decomposing technical and biological noise.

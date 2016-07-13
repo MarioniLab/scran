@@ -69,14 +69,14 @@ Aaron Lun
 
 \examples{
 ncells <- 200
-ngenes <- 100
+ngenes <- 1000
 count.sizes <- rnbinom(ncells, mu=100, size=5)
 dummy <- matrix(count.sizes, ncol=ncells, nrow=ngenes, byrow=TRUE)
 rownames(dummy) <- paste0("X", seq_len(ngenes))
 
 X <- newSCESet(countData=data.frame(dummy))
-is.spike <- rbinom(ngenes, 1, 0.5)==0L
-isSpike(X) <- is.spike
+X <- calculateQCMetrics(X, list(Spike=rbinom(ngenes, 1, 0.5)==0L))
+isSpike(X) <- "Spike"
 sizeFactors(X) <- 2^rnorm(ncells)
 X <- normalize(X)
 

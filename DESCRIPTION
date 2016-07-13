@@ -1,6 +1,6 @@
 Package: scran
-Version: 1.1.4
-Date: 2016-06-06
+Version: 1.1.5
+Date: 2016-07-11
 Title: Methods for Single-Cell RNA-Seq Data Analysis
 Authors@R: c(person("Aaron", "Lun", role = c("aut", "cre"), email =
         "alun@wehi.edu.au"), person("Karsten", "Bach", role = "aut"),
@@ -9,7 +9,7 @@ Authors@R: c(person("Aaron", "Lun", role = c("aut", "cre"), email =
 Maintainer: Aaron Lun <alun@wehi.edu.au>
 Depends: R (>= 3.3.0), BiocParallel, scater
 Imports: dynamicTreeCut, zoo, edgeR, stats, BiocGenerics, methods, 
-        Biobase, utils, Matrix, shiny, graphics, grDevices
+        Biobase, utils, Matrix, shiny, graphics, grDevices, statmod
 Suggests: limSolve, limma, testthat, knitr, BiocStyle, org.Mm.eg.db, 
         DESeq2, monocle, S4Vectors, ggplot2
 biocViews: Normalization, Sequencing, RNASeq, Software, GeneExpression,

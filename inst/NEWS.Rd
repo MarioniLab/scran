@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.1.4}{\itemize{
+\section{Version 1.1.5}{\itemize{
 \item
 Added 'min' argument to testVar().
 
@@ -13,7 +13,7 @@ Transformed correlations to a metric distance in quickCluster().
 Removed normalize() in favour of scater's normalize().
 
 \item 
-Allowed setting character strings in isSpike<-.
+Switched isSpike()<- to accept a character vector rather than a logical vector, to enforce naming of spike-in sets.
 
 \item
 Allowed compute*Factors() functions to directly return the size factors.
@@ -22,10 +22,14 @@ Allowed compute*Factors() functions to directly return the size factors.
 Added selectorPlot() function for interactive plotting.
 
 \item 
-Switched to residuals for calculating correlations with a design matrix in correlatePairs(), correlateNull().
+Switched to a group-based weighted correlation for one-way layouts in correlatePairs() and correlateNull(),
+and to a correlation of residuals for more complex design matrices.
 
 \item
 Added phase assignments to the cyclone() output.
+
+\item
+Implemented Brennecke et al.'s method in the technicalCV2() function.
 
 \item
 Moved code and subsetting into C++ to improve memory efficiency.

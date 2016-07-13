@@ -2,13 +2,31 @@
     x@featureControlInfo$name
 }
 
+.get_feature_control_spike_names <- function(x) {
+    x@featureControlInfo$name[x@featureControlInfo$spike]
+}
+
 is.spike <- function(x, type=NULL) { 
-    if (is.null(type)) { 
-        return(fData(x)$is_feature_spike)
-    } else if (type %in% .get_feature_control_names(x)) { 
-        return(fData(x)[[paste0("is_feature_control_", type)]])
+    if (is.null(type)) {
+        out <- fData(x)$is_feature_spike
+        return(out)
     } else {
-        return(NULL)
+        not.in <- !(type %in% .get_feature_control_spike_names(x))
+        if (any(not.in)) { 
+            stop(sprintf("'%s' is not specified as a spike-in control", type[which(not.in)[1]]))
+        } 
+        
+        # Returning directly if possible.
+        if (length(type)==1L) {
+            return(fData(x)[[paste0("is_feature_control_", type)]])
+        }
+
+        # Combining the spike-in identities. 
+        is.spike <- logical(nrow(x)) 
+        for (f in type) {
+            is.spike <- is.spike | fData(x)[[paste0("is_feature_control_", f)]]
+        }
+        return(is.spike)
     }
 }
 

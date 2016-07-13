@@ -38,8 +38,7 @@ refFUN <- function(x, pairs) {
         m1 <- m1[keep]
         m2 <- m2[keep]
         
-        all.present <- as.vector(rbind(m1, m2))
-        all.present <- all.present[!duplicated(all.present)]
+        all.present <- sort(unique(c(m1, m2)))
         chosen.x[[p]] <- x[all.present,,drop=FALSE]
         pairs[[p]] <- data.frame(first=match(m1, all.present),
                                  second=match(m2, all.present))

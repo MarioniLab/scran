@@ -28,14 +28,19 @@ expect_equal(out$design, as.matrix(rep(1, ncells)))
 # Get the same results directly on a SCESet.
 
 suppressWarnings(expect_error(trendVar(X), "'degree' must be less than number of unique points")) # because there aren't any spike-ins.
-isSpike(X) <- TRUE
+
+cntrl_data <- list(All=!logical(ngenes), Some=rbinom(ngenes, 1, 0.5)==0, None=logical(ngenes))
+X <- calculateQCMetrics(X, cntrl_data)
+isSpike(X) <- "All"
+expect_identical(isSpike(X), cntrl_data$All) # Just checking here...
 out2 <- trendVar(X)
 expect_equal(out$mean, out2$mean)
 expect_equal(out$var, out2$var)
 expect_equal(out$trend, out2$trend)
 expect_equal(out$design, out2$design)
 
-isSpike(X) <- FALSE
+isSpike(X) <- "None"
+expect_identical(isSpike(X), cntrl_data$None)
 expect_error(trendVar(X), "'degree' must be less than number of unique points")
 out3 <- trendVar(X, use.spikes=FALSE)
 expect_equal(out3$mean, out2$mean)
@@ -43,7 +48,11 @@ expect_equal(out3$var, out2$var)
 expect_equal(out3$trend, out2$trend)
 expect_equal(out3$design, out2$design)
 
-isSpike(X) <- rbinom(ngenes, 1, 0.5)==0
+isSpike(X) <- "Some"
+expect_identical(isSpike(X), cntrl_data$Some)
+out3a <- trendVar(X)
+expect_equal(out3$mean[cntrl_data$Some], out3a$mean)
+expect_equal(out3$var[cntrl_data$Some], out3a$var)
 out3b <- trendVar(X, use.spikes=NA)
 expect_equal(out3$mean, out3b$mean)
 expect_equal(out3$var, out3b$var)
@@ -53,9 +62,10 @@ expect_equal(out3$design, out3b$design)
 dummy2 <- rbind(dummy, 0)
 rownames(dummy2) <- paste0("X", seq_len(nrow(dummy2)))
 X2 <- newSCESet(countData=data.frame(dummy2))
+X2 <- calculateQCMetrics(X2, list(Chosen=rep(c(TRUE, FALSE), c(ngenes, 1))))
+isSpike(X2) <- "Chosen"
 sizeFactors(X2) <- colSums(dummy2)
 X2 <- normalize(X2)
-isSpike(X2) <- rep(c(TRUE, FALSE), c(ngenes, 1))
 
 out4 <- trendVar(X2)
 expect_equal(out4$mean, out2$mean)
@@ -123,8 +133,9 @@ dummy <- matrix(rnbinom(ngenes*ncells, mu=100, size=5), ncol=ncells, nrow=ngenes
 rownames(dummy) <- paste0("X", seq_len(ngenes))
 
 X <- newSCESet(countData=data.frame(dummy))
+X <- calculateQCMetrics(X, list(MySpikes=rbinom(ngenes, 1, 0.7)==0))
+isSpike(X) <- "MySpikes"
 sizeFactors(X) <- colSums(dummy)
-isSpike(X) <- rbinom(ngenes, 1, 0.7)==0
 X <- normalize(X)
 
 fit <- trendVar(X)

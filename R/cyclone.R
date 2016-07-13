@@ -27,7 +27,14 @@ setMethod("cyclone", "matrix", function(x, pairs, gene.names=rownames(x), iter=1
         keep <- !is.na(m1) & !is.na(m2)
         m1 <- m1[keep]
         m2 <- m2[keep]
-        pairs[[p]] <- list(first=m1, second=m2)
+
+        # Reformatting it to be a bit easier to access during permutations.
+        retained <- logical(length(gene.names))
+        retained[m1] <- TRUE
+        retained[m2] <- TRUE
+        new.indices <- cumsum(retained)
+        pairs[[p]] <- list(first=new.indices[m1]-1L, second=new.indices[m2]-1L, 
+                           index=which(retained)-1L) # For zero indexing.
     }
 
     if (verbose) { 
@@ -67,7 +74,7 @@ setMethod("cyclone", "matrix", function(x, pairs, gene.names=rownames(x), iter=1
 
 .get_phase_score <- function(core, work.start, work.end, exprs, pairings, iter, min.iter, min.pairs) {
     to.use <- c(work.start[core], work.end[core])
-    .Call(cxx_shuffle_scores, to.use, exprs, pairings$first, pairings$second, iter, min.iter, min.pairs) 
+    .Call(cxx_shuffle_scores, to.use, exprs, pairings$first, pairings$second, pairings$index, iter, min.iter, min.pairs) 
 }
 
 setMethod("cyclone", "SCESet", function(x, pairs, subset.row=NULL, ..., assay="counts", get.spikes=FALSE) {

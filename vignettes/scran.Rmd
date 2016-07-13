@@ -117,14 +117,21 @@ sce2 <- computeSpikeFactors(sce)
 summary(sizeFactors(sce2))
 ```
 
-Normalized expression values can be calculated using the `normalize` method from `r Biocpkg("scater")`.
-Note, however, that if the deconvolution size factors are used, then it is advisable to normalize the spike-ins separately.
-This is because the spike-ins do not include the effect of total mRNA content, such that the deconvolution size factors will over-normalize the spike-in counts.
-To avoid this, we set spike-in size factors to normalize the spike-ins separately, as shown below.
+If we decide to use the deconvolution size factors, it is recommended to compute a separate set of size factors for the spike-ins.
+This is because the spike-ins are not affected by total mRNA content.
+Using the deconvolution size factors will over-normalize the spike-in counts, whereas the spike-in size factors are more appropriate.
+To obtain the latter without overwriting the former, we can set `general.use=FALSE` in `computeSpikeFactors` such that the spike-in-based size factors will be computed and stored in the `SCESet` object, but will only be used by the spike-in transcripts.
 (Obviously, if the spike-in size factors were already being used for normalization, then this extra step is unnecessary.)
 
 ```{r}
-sizeFactors(sce, type="MySpikes") <- computeSpikeFactors(sce, sf.out=TRUE)
+sce <- computeSpikeFactors(sce, general.use=FALSE)
+```
+
+Normalized expression values can then be calculated using the `normalize` method from `r Biocpkg("scater")`.
+This will use the deconvolution size factors for the endogenous genes, and the spike-in-based size factors for the spike-in transcripts.
+Each expression value can be interpreted as a log-transformed "normalized count".
+
+```{r}
 sce <- normalize(sce)
 ```
 

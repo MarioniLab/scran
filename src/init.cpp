@@ -5,7 +5,7 @@ extern "C" {
 
 static const R_CallMethodDef all_call_entries[] = {
     REGISTER(forge_system, 4),
-    REGISTER(shuffle_scores, 7),
+    REGISTER(shuffle_scores, 8),
     REGISTER(get_null_rho, 2),
     REGISTER(get_null_rho_design, 3),
     REGISTER(compute_rho, 3),
@@ -15,6 +15,7 @@ static const R_CallMethodDef all_call_entries[] = {
     REGISTER(estimate_variance, 4),
     REGISTER(rank_subset, 4),
     REGISTER(get_residuals, 4),
+    REGISTER(compute_CV2, 3),
     {NULL, NULL, 0}
 };
 
