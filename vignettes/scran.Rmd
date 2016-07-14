@@ -228,41 +228,56 @@ Only the variance of the log-counts does anything close to the right thing here.
 
 ```{r, eval=FALSE}
 set.seed(102251)
-ncells <- 100
+ncells <- 200
 niters <- 20
-averaged.GLM <- averaged.GLMM <- averaged.log <- 0
-for (it in seq_len(niters)) {
+var.GLM <- var.cv2 <- var.log <- list()
+means <- list()
 
-counter1 <- rnbinom(ncells, mu=5, size=1)
-counter1[1] <- 10000
-counter2 <- rnbinom(ncells, mu=5, size=0.2) # Arguably, all more variable than above.
-counter3 <- rnbinom(ncells, mu=20, size=0.2)
-counter4 <- rnbinom(ncells, mu=100, size=0.2)
+for (it in seq_len(10)) {
+    cur.mean <- it*10
+    means[[it]] <- cur.mean
 
-# With GLMs.
-require(edgeR)
-y <- DGEList(rbind(counter1, counter2, counter3, counter4), lib.size=rep(1e6, ncells))
-y <- estimateDisp(y, cbind(rep(1, ncells)), prior.df=0)
-averaged.GLM <- averaged.GLM + y$tagwise.dispersion
+    counter1 <- integer(ncells)
+    counter1[1] <- cur.mean*ncells
+    counter2 <- rnbinom(ncells, mu=cur.mean, size=0.2) # Arguably, all of these are systematically more variable than above.
+    counter3 <- rnbinom(ncells, mu=cur.mean, size=0.5)
+    counter4 <- rnbinom(ncells, mu=cur.mean, size=1)
 
-# With GLMMs (random effect variance is logged).
-require(lme4)
-plate <- integer(ncells)
-plate[(ncells/2+1):ncells] <- 1 # Just to stop it complaining.
-averaged.GLMM <- averaged.GLMM + c(
-    unlist(VarCorr(glmer(counter1 ~ (1|plate), family=negative.binomial(1)))),
-    unlist(VarCorr(glmer(counter2 ~ (1|plate), family=negative.binomial(1)))),
-    unlist(VarCorr(glmer(counter3 ~ (1|plate), family=negative.binomial(1)))),
-    unlist(VarCorr(glmer(counter4 ~ (1|plate), family=negative.binomial(1)))))
+    # With GLMs.
+    require(edgeR)
+    y <- DGEList(rbind(counter1, counter2, counter3, counter4), lib.size=rep(1e6, ncells))
+    y <- estimateDisp(y, cbind(rep(1, ncells)), prior.df=0)
+    var.GLM[[it]] <- y$tagwise.dispersion
 
-# With variances of log-values.
-averaged.log <- averaged.log + apply(cpm(y, log=TRUE), 1, var)
+    # With CV2.
+    var.cv2[[it]] <- apply(y$counts, 1, var)/rowMeans(y$counts)^2
 
+    # With variances of log-values.
+    var.log[[it]] <- apply(cpm(y, log=TRUE), 1, var)
 }
-averaged.GLM/niters
-averaged.GLMM/niters
-averaged.log/niters
+
+means <- unlist(means)
+var.GLM <- do.call(cbind, var.GLM)
+var.cv2 <- do.call(cbind, var.cv2)
+var.log <- do.call(cbind, var.log)
+means <- matrix(means, nrow=nrow(var.GLM), ncol=ncol(var.GLM), byrow=TRUE)
+colors <- c("black", "red", "blue", "orange")
+
+par(mfrow=c(1,3))
+plot(means, var.GLM, col=colors, pch=16, main="BCV")
+for (x in seq_len(nrow(means))) {
+    lines(means[x,], var.GLM[x,], col=colors[x])
+}
+plot(means, var.cv2, col=colors, pch=16, main="CV2")
+for (x in seq_len(nrow(means))) {
+    lines(means[x,], var.cv2[x,], col=colors[x])
+}
+plot(means, var.log, col=colors, pch=16, main="Variance of log")
+for (x in seq_len(nrow(means))) {
+    lines(means[x,], var.log[x,], col=colors[x])
+}
 ```
+
 -->
 
 # Detecting correlated genes
@@ -314,6 +329,22 @@ The idea is to mitigate dependence on explicit subpopulation identification for 
 We identify strongly correlated genes first, then only need to check for subpopulations as a diagnostic.
 This reduces the sensitivity of the analysis to ambiguity/uncertainty during subpopulation identification.
 It's possible because validation requires genes, not subpopulations (as the current cells are destroyed), so we skip the middleman.
+
+We can also check what happens with a design matrix.
+Naively comparing against a null distribution of correlations that was constructed without considering the design will result in loss of control.
+Rather, the null distribution should be compared to an appropriate null, as shown below.
+
+```{r}
+set.seed(12120)
+design <- model.matrix(~factor(rep(1:5, 2)))
+y <- matrix(rnorm(1000, mean=rep(1:5, 5), sd=2), ncol=10, byrow=TRUE)
+null <- correlateNull(ncol(y))
+out <- correlatePairs(y, design=design, null=null)
+plot(log10(sort(out$p.value)/1:nrow(out)*nrow(out))) # wrong
+null <- correlateNull(design=design, residuals=TRUE)
+out <- correlatePairs(y, design=design, null=null, residuals=TRUE)
+plot(log10(sort(out$p.value)/1:nrow(out)*nrow(out))) # right
+```
 -->
 
 # Converting to other formats

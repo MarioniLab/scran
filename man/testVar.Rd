@@ -48,7 +48,7 @@ Adding \code{min} ensures that the absolute value of \code{bio} must be at least
 The default of 1 was chosen based on the assumption that variances are computed for log2-values.
 This means that significant genes will have at least a two-fold increase/decrease around the mean due to biological variability.
 
-% No matter how small \code{null} is, the gene's variance must be 0.5 greater than it. 
+% No matter how small \code{null} is, the gene's variance must be \code{min} greater than it. 
 % Of course, genes will small \code{null} will be favoured as the ratio is larger; this is sensible, as the variance estimate is more precise at small \code{null}.
 }
 

@@ -105,24 +105,3 @@ plot(results$mean, results$bio)
 
 \keyword{variance}
 
-% # Compare the pair - 'a' has higher CV2 and lower var(log), while 'b' has lower CV2 and higher var(log).
-% a <- integer(100)
-% a[1] <- 10000
-% mean(a)
-% var(a)/mean(a)^2
-% var(log(a+1))
-% b <- rep(c(0, 200), each=50)
-% mean(b)
-% var(b)/mean(b)^2
-% var(log(b+1))
-%
-% # Another way of looking at it, assuming an outlier of size 'x' and n<-100 cells.
-% # Variance of the log for NB-distributed (disp=0.5) spike-ins is greater than the outlier at each mean.
-% # The same cannot be said for the CV2.
-% n <- 100
-% par(mfrow=c(1,2))
-% curve(log(1+1/(x/n)+0.5), xlim=c(1, 1000), ylim=c(0,2)) # variance of the log (based on second moment of log-normal -> NB)
-% curve(log(x)^2/100, add=TRUE, col="red") # variance of log for one outlier 'x'; analytically derived from mean 'x/n' + Bessel's correction.
-% curve(1/(x/n) + 0.5, xlim=c(1, 1000)) # CV2 of the spike-in counts.
-% abline(h=n, col="blue") # CV2; divide variance by '(x/n)^2'.
-

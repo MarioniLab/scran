@@ -90,11 +90,11 @@ setMethod("correlatePairs", "matrix", function(x, null.dist=NULL, design=NULL, B
 
     # Checking that the null distribution is sensible.
     if (!identical(design, attr(null.dist, "design"))) { 
-        stop("'design' is not the same as that used to generate 'null.dist'")
+        warning("'design' is not the same as that used to generate 'null.dist'")
     }
     if (!is.null(design)) { 
         if (!identical(residuals, attr(null.dist, "residuals"))) {
-            stop("'residuals' is not the same as that used to generate 'null.dist'")
+            warning("'residuals' is not the same as that used to generate 'null.dist'")
         }
     }
     null.dist <- as.double(null.dist)

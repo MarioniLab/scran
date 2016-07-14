@@ -196,6 +196,9 @@ design <- model.matrix(~grouping)
 
 set.seed(200)
 nulls <- correlateNull(design=design, iter=1e3, residuals=TRUE)
+expect_warning(correlatePairs(X[1:5,], design=design, null=nulls, residuals=FALSE), "'residuals' is not the same as that used to generate")
+expect_warning(correlatePairs(X[1:5,], design=NULL, null=nulls, residuals=TRUE), "'design' is not the same as that used to generate")
+
 set.seed(100) # Need because of random ranking.
 out <- correlatePairs(X, design=design, null=nulls, residuals=TRUE)
 fit <- lm.fit(x=design, y=t(X))
@@ -271,16 +274,4 @@ expect_error(correlatePairs(X[0,], nulls), "need at least two genes to compute c
 expect_error(correlatePairs(X[,0], nulls), "number of cells should be greater than 2")
 out <- correlatePairs(X, numeric(0))
 expect_equal(out$p.value, rep(1, nrow(out)))
-
-####################################################################################################
-# A high-level test, to make sure that our stuff gives a uniform distribution of p-values.
-#
-# design <- model.matrix(~factor(rep(1:5, 2)))
-# y <- matrix(rnorm(1000, mean=rep(1:5, 5), sd=2), ncol=10, byrow=TRUE)
-# null <- correlateNull(ncol(y))
-# out <- correlatePairs(y, design=design, null=null)
-# plot(log10(sort(out$p.value)/1:nrow(out)*nrow(out))) # wrong
-# null <- correlateNull(design=design, residuals=TRUE)
-# out <- correlatePairs(y, design=design, null=null)
-# plot(log10(sort(out$p.value)/1:nrow(out)*nrow(out))) # right
 

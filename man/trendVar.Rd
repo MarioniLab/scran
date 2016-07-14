@@ -44,6 +44,9 @@ In some data sets, a loess curve may yield better results, though this may requi
 
 The design matrix can be set if there are factors that should be blocked, e.g., batch effects, known (and uninteresting) clusters.
 Otherwise, it will default to an all-ones matrix, effectively treating all cells as part of the same group.
+
+% This function is separated from decomposeVar in order to allow for different design matrices/cells to be used for trend fitting and variance estimation.
+% For example, if you have multiple groups, you can fit the trend to the spike-ins for all groups, but estimate the variance individually for each group.
 }
 
 \section{Additional notes on row selection}{
