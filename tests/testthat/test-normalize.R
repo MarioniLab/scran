@@ -226,12 +226,21 @@ expect_equal(sizeFactors(out), sizeFactors(out, type="MySpike"))
 
 # Checking out what happens when you have multiple spike-ins supplied.
 X2 <- newSCESet(countData=data.frame(dummy))
-X2 <- calculateQCMetrics(X2, list(MySpike=is.spike, SecondSpike=is.spike))
+subset <- split(which(is.spike), rep(1:2, length.out=sum(is.spike)))
+X2 <- calculateQCMetrics(X2, list(MySpike=subset[[1]], SecondSpike=subset[[2]]))
 isSpike(X2) <- c("MySpike", "SecondSpike")
+
+out.sub <- computeSpikeFactors(X2, type="MySpike") # Sanity check, to make sure that it's calculating it differently for each spike-in.
+subref <- colSums(dummy[subset[[1]],])
+expect_equal(unname(sizeFactors(out.sub)), subref/mean(subref))
+expect_equal(sizeFactors(out.sub), sizeFactors(out.sub, type="MySpike"))
+expect_warning(sizeFactors(out.sub, type="SecondSpike"), "'sizeFactors' have not been set for 'SecondSpike'")
+
 out2 <- computeSpikeFactors(X2)
 expect_equal(sizeFactors(out), sizeFactors(out2))
 expect_equal(sizeFactors(out), sizeFactors(out2, type="MySpike"))
 expect_equal(sizeFactors(out), sizeFactors(out2, type="SecondSpike"))
+
 out2 <- computeSpikeFactors(X2, type=c("MySpike", "SecondSpike"))
 expect_equal(sizeFactors(out), sizeFactors(out2))
 expect_equal(sizeFactors(out), sizeFactors(out2, type="MySpike"))

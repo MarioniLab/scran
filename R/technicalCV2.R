@@ -88,19 +88,51 @@ setGeneric("technicalCV2", function(x, ...) standardGeneric("technicalCV2"))
 
 setMethod("technicalCV2", "matrix", .technicalCV2)
 
-setMethod("technicalCV2", "SCESet", function(x, spike.type, ..., assay="counts") {
+setMethod("technicalCV2", "SCESet", function(x, spike.type=NULL, ..., assay="counts") {
     sf.cell <- sizeFactors(x)
-    if (!is.na(spike.type)) {  
-        sf.spike <- sizeFactors(x, type=spike.type)
-        if (is.null(sf.spike)) { 
+
+    if (is.null(spike.type) || !is.na(spike.type)) {  
+        is.spike <- isSpike(x, type=spike.type)
+        if (is.null(spike.type)) { 
+            # Get all spikes.
+            spike.type <- .get_feature_control_spike_names(x)            
+        }
+        if (!length(spike.type)) { 
+            stop("no spike-in sets specified from 'x'")
+        }
+
+        # Collecting the size factors for the requested spike-in sets.
+        collected <- list() 
+        for (st in spike.type) {
+            cur.sf <- suppressWarnings(sizeFactors(x, type=st))
+            if (is.null(cur.sf)) { 
+                collected[st] <- list(NULL)
+            } else {
+                collected[[st]] <- cur.sf
+            }
+        }
+
+        # Check that all spike-in factors are either NULL or identical.
+        if (length(collected)) {
+            for (i in seq_along(collected)[-1]) { 
+                if (!isTRUE(all.equal(collected[[i]], collected[[1]]))) { 
+                    stop("size factors differ between spike-in sets")
+                }
+            }
+            sf.spike <- collected[[1]]
+        } 
+
+        # Diverting to the cell-based size factors if all spike-in factors are NULL.
+        if (is.null(sf.spike)) {
+            warning("no spike-in size factors set, using cell-based factors")
             sf.spike <- sf.cell
         }
-        is.spike <- isSpike(x, type=spike.type)
+
     } else {
         sf.spike <- sf.cell
         is.spike <- NA
     }
     .technicalCV2(assayDataElement(x, assay), is.spike=is.spike, 
-                  sf.cell=sizeFactors(x), sf.spike=sf.spike, ...)          
+                  sf.cell=sf.cell, sf.spike=sf.spike, ...)          
 })
 

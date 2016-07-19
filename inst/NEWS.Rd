@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.1.5}{\itemize{
+\section{Version 1.1.6}{\itemize{
 \item
 Added 'min' argument to testVar().
 
@@ -30,6 +30,9 @@ Added phase assignments to the cyclone() output.
 
 \item
 Implemented Brennecke et al.'s method in the technicalCV2() function.
+
+\item
+Updated convertTo() to store spike-in-specific size factors as offsets.
 
 \item
 Moved code and subsetting into C++ to improve memory efficiency.

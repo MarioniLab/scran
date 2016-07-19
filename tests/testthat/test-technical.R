@@ -37,8 +37,33 @@ sizeFactors(X) <- sf
 sizeFactors(X, type="Spikes") <- 1
 
 default <- technicalCV2(counts, is.spike, sf.cell=sf, sf.spike=rep(1, nsamples))
+as.sceset <- technicalCV2(X)
+expect_equal(default, as.sceset)
 as.sceset <- technicalCV2(X, spike.type="Spikes")
 expect_equal(default, as.sceset)
+
+# Testing what happens when multiple spike-in sets are available.
+X2 <- newSCESet(countData=counts)
+expect_error(suppressWarnings(technicalCV2(X2)), "no spike-in sets specified from 'x'")
+subset <- split(which(is.spike), rep(1:2, length.out=sum(is.spike)))
+X2 <- calculateQCMetrics(X2, list(MySpike=subset[[1]], SecondSpike=subset[[2]]))
+isSpike(X2) <- c("MySpike", "SecondSpike")
+
+sizeFactors(X2) <- sf
+sizeFactors(X2, type="MySpike") <- 1
+sizeFactors(X2, type="SecondSpike") <- 1
+
+expect_equal(technicalCV2(X2), as.sceset)
+expect_equal(technicalCV2(X2, spike.type=c("MySpike", "SecondSpike")), as.sceset)
+expect_equal(technicalCV2(X2, spike.type="MySpike"), technicalCV2(counts, is.spike=subset[[1]], sf.cell=sf, sf.spike=rep(1, ncol(counts))))
+sizeFactors(X2, type="SecondSpike") <- sf
+expect_error(technicalCV2(X2), "size factors differ between spike-in sets")
+expect_equal(technicalCV2(X2, spike.type="SecondSpike"), technicalCV2(counts, is.spike=subset[[2]], sf.cell=sf, sf.spike=sf))
+sizeFactors(X2, type="SecondSpike") <- NULL
+expect_error(technicalCV2(X2), "size factors differ between spike-in sets")
+sizeFactors(X2, type="MySpike") <- NULL
+expect_warning(expect_equal(technicalCV2(X2), technicalCV2(counts, is.spike=is.spike, sf.cell=sf, sf.spike=sf)),
+               "no spike-in size factors set, using cell-based factors")
 
 # Testing what happens when is.spike=NA.
 all.used <- technicalCV2(counts, is.spike=NA)
@@ -53,7 +78,7 @@ all.used3 <- technicalCV2(X, spike.type=NA)
 expect_equal(all.used, all.used3)
 
 # Testing for silly inputs.
-expect_error(technicalCV2(X, spike.type="whee"), "'arg' should be one of")
+expect_error(technicalCV2(X, spike.type="whee"), "'whee' is not specified as a spike-in control")
 expect_error(technicalCV2(X[0,], spike.type="Spikes"), "need at least 2 spike-ins for trend fitting")
 expect_error(technicalCV2(X[,0], spike.type="Spikes"), "need two or more cells to compute variances")
 

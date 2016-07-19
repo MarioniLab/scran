@@ -24,9 +24,11 @@ X$other <- sample(LETTERS, ncells, replace=TRUE)
 y <- convertTo(X, type="edgeR")
 expect_identical(y$counts, counts(X)[!is.spike,])
 expect_identical(y$genes, NULL)
+expect_identical(y$offset, NULL) 
 
 y <- convertTo(X, type="edgeR", get.spikes=TRUE)
 expect_identical(y$counts, counts(X))
+expect_identical(y$offset, NULL) # Still NULL, as no spike-in-specific factors are set.
 
 chosen <- c(50:1, 101:200)
 y <- convertTo(X, type="edgeR", subset.row=chosen)
@@ -39,6 +41,18 @@ expect_true(all(abs(exp(elib) - sizeFactors(X)) < 1e-8))
 y <- convertTo(X, type="edgeR", fData.col="SYMBOL", pData.col="other")
 expect_identical(y$samples$other, X$other)
 expect_identical(y$genes$SYMBOL, fData(X)$SYMBOL[!is.spike])
+
+X2 <- X # Seeing how it behaves with offset matrices.
+sizeFactors(X2, type="MySpike") <- 1
+y <- convertTo(X2, type="edgeR", get.spikes=TRUE)
+expect_equal(unname(y$offset[isSpike(X2),,drop=FALSE]), matrix(0, sum(isSpike(X2)), ncol(X2)))
+expect_equal(unname(y$offset[!isSpike(X2),,drop=FALSE]),
+             matrix(log(sizeFactors(X2)) - mean(log(sizeFactors(X2))), 
+                    sum(!isSpike(X2)), ncol(X2), byrow=TRUE))
+y <- convertTo(X2, type="edgeR", use.all.sf=FALSE, get.spikes=TRUE)
+expect_identical(y$offset, NULL) 
+y <- convertTo(X2, type="edgeR")
+expect_identical(y$offset, NULL) # NULL because no rows are spike-ins.
 
 expect_warning(y <- convertTo(X[0,], type="edgeR", fData.col="SYMBOL"))
 expect_identical(y$counts, counts(X)[0,])
@@ -57,6 +71,19 @@ expect_identical(sizeFactors(y), sizeFactors(X))
 
 y <- convertTo(X, type="DESeq2", get.spikes=TRUE)
 expect_equal(counts(y), counts(X))
+expect_identical(normalizationFactors(y), NULL) # NULL, as spike-in-specific size factors have not been set.
+
+X2 <- X # Seeing how it behaves with offset matrices.
+sizeFactors(X2, type="MySpike") <- 1
+y <- convertTo(X2, type="DESeq2", get.spikes=TRUE)
+expect_equal(unname(normalizationFactors(y)[isSpike(X2),,drop=FALSE]), matrix(1, sum(isSpike(X2)), ncol(X2)))
+expect_equal(unname(normalizationFactors(y)[!isSpike(X2),,drop=FALSE]),
+             matrix(sizeFactors(X2)/exp(mean(log(sizeFactors(X2)))), 
+                    sum(!isSpike(X2)), ncol(X2), byrow=TRUE))
+y <- convertTo(X2, type="DESeq2", use.all.sf=FALSE, get.spikes=TRUE)
+expect_identical(normalizationFactors(y), NULL)
+y <- convertTo(X2, type="DESeq2")
+expect_identical(normalizationFactors(y), NULL)
 
 chosen <- c(50:1, 101:200)
 y <- convertTo(X, type="DESeq2", subset.row=chosen)
@@ -82,6 +109,14 @@ y <- convertTo(X, type="monocle")
 expect_equal(exprs(y), to.comp[!is.spike,])
 
 y <- convertTo(X, type="monocle", get.spikes=TRUE) # Assuming no spike-in-specific normalization.
+expect_equal(exprs(y), to.comp)
+
+X2 <- X # Now, with spike-in-specific normalization.
+sizeFactors(X2, type="MySpike") <- 1
+y <- convertTo(X2, type="monocle", get.spikes=TRUE)
+expect_equal(exprs(y)[!isSpike(X2),], to.comp[!is.spike,])
+expect_equal(exprs(y)[isSpike(X2),], counts(X)[is.spike,])
+y <- convertTo(X2, type="monocle", get.spikes=TRUE, use.all.sf=FALSE)
 expect_equal(exprs(y), to.comp)
 
 chosen <- c(50:1, 101:200)

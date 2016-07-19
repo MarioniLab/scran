@@ -32,6 +32,11 @@ expect_identical(isSpike(X), !logical(ngenes))
 isSpike(X) <- c("whee", "empty", "all") 
 expect_identical(isSpike(X), !logical(ngenes))
 
+expect_identical(isSpike(X, type="whee"), is.spike)
+expect_identical(isSpike(X, type=c("whee", "empty")), is.spike)
+expect_identical(isSpike(X, type=c("whee", "all")), !logical(ngenes))
+expect_identical(isSpike(X, type="empty"), logical(ngenes))
+
 isSpike(X) <- NULL
 expect_warning(isSpike(X), "'isSpike' is not set, returning NULL")
 

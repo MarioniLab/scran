@@ -10,7 +10,7 @@
 \S4method{technicalCV2}{matrix}(x, is.spike, sf.cell=NULL, sf.spike=NULL, 
     cv2.limit=0.3, cv2.tol=0.8, min.bio.disp=0.25) 
 
-\S4method{technicalCV2}{SCESet}(x, spike.type, ..., assay="counts")
+\S4method{technicalCV2}{SCESet}(x, spike.type=NULL, ..., assay="counts")
 }
 
 \arguments{
@@ -23,7 +23,7 @@
 \item{sf.spike}{A numeric vector containing size factors for spike-in transcripts.}
 \item{cv2.limit, cv2.tol}{Numeric scalars that determine the minimum mean abundance for the spike-in transcripts to be used for trend fitting.}
 \item{min.bio.disp}{A numeric scalar specifying the minimum biological dispersion.}
-\item{spike.type}{A string specifying the name of the spike-in set to use.}
+\item{spike.type}{A character vector containing the names of the spike-in sets to use.}
 \item{...}{Additional arguments to pass to \code{technicalCV2,matrix-method}.}
 \item{assay}{A string specifying which assay values to use.}
 }
@@ -45,15 +45,19 @@ The additional \code{min.bio.disp} is necessary for a ratio-based test, as other
 % However, this is probably academic as they're both fairly bad (4-fold for log, 20-fold for row over the type I error rate for a chi-squared test).
 % This would be compounded by instability in the curve fitting with limited numbers of spike-ins.
 
+For \code{technicalCV2,matrix-method}, the rows corresponding to spike-in transcripts are specified with \code{is.spike}.
+These rows will be used for trend fitting, while all other rows are treated as endogenous genes.
 If either \code{sf.cell} or \code{sf.spike} are not specified, the \code{\link[DESeq2]{estimateSizeFactorsForMatrix}} function is applied to compute size factors.
-For \code{technicalCV2,SCESet-method}, size factors for the endogenous genes are automatically extracted via \code{\link{sizeFactors}}.
-Spike-in-specific size factors for \code{spike.type} are extracted, if available; otherwise they are set to the size factors for the endogenous genes.
+
+For \code{technicalCV2,SCESet-method}, only the named spike-in sets in \code{spike.type} will be used for trend fitting.
+If \code{spike.type=NULL}, all spike-in sets listed in \code{x} will be used.
+Size factors for the endogenous genes are automatically extracted via \code{\link{sizeFactors}}.
+Spike-in-specific size factors for \code{spike.type} are extracted from \code{x}, if available; otherwise they are set to the size factors for the endogenous genes.
+Note that the spike-in-specific factors must be the same for each set in \code{spike.type}.
 
 If \code{is.spike} or \code{spike.type} are \code{NA}, all rows will be used for trend fitting, and (adjusted) p-values will be reported for all rows.
 This should be used in cases where there are no spike-ins.
 Here, the assumption is that most endogenous genes do not exhibit high biological variability and thus can be used to model technical variation. 
-
-Currently, this function does not support custom normalization multiple spike-in sets, nor does it allow for arbitrary design matrices to be used in calculating the variance.
 }
 
 \value{
