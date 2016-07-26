@@ -44,6 +44,13 @@ Note that direct assignment of a logical vector to \code{isSpike(x)<-} is no lon
 This is because the names of the spike-in sets are necessary for downstream processing, but will not be included if \code{isSpike(x)} is set directly.
 }
 
+\section{Note on overlapping sets}{
+While it is possible to declare overlapping sets as the spike-in sets with \code{isSpike(x)<-}, this is not advisable.
+This is because some downstream operations assume that each row belongs to only one set (i.e., one of the spike-in sets, or the set of endogenous genes).
+For example, normalization will use size factors from only one of the sets, so correspondence to multiple sets will not be honoured.
+A warning will thus be raised if overlapping sets are specified in \code{value}.
+}
+
 \value{
 For \code{spikes}, a numeric matrix of counts or normalized expression values, with one column per cell and one row per spike-in transcript.
 

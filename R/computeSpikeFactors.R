@@ -67,6 +67,18 @@ setReplaceMethod("isSpike", signature(x="SCESet", value="character"), function(x
 
     # Running through and collecting them.
     fData(x)$is_feature_spike <- is.spike(x, value)
+
+    # Checking that they don't overlap.
+    if (length(value) > 1L) { 
+        total.hits <- integer(nrow(x))
+        for (v in value) {
+            total.hits <- total.hits + is.spike(x, v)
+        }
+        if (any(total.hits > 1L)) { 
+            warning("overlapping spike-in sets detected")
+        }
+    }
+
     return(x) 
 })
 

@@ -27,9 +27,9 @@ expect_identical(spikes(X, "exprs"), exprs(X)[isSpike(X),,drop=FALSE])
 
 isSpike(X) <- c("whee", "empty") # Testing multiple specifications.
 expect_identical(isSpike(X), is.spike)
-isSpike(X) <- c("whee", "all") 
+expect_warning(isSpike(X) <- c("whee", "all"), "overlapping spike-in sets detected")
 expect_identical(isSpike(X), !logical(ngenes))
-isSpike(X) <- c("whee", "empty", "all") 
+expect_warning(isSpike(X) <- c("whee", "empty", "all"), "overlapping spike-in sets detected")
 expect_identical(isSpike(X), !logical(ngenes))
 
 expect_identical(isSpike(X, type="whee"), is.spike)
