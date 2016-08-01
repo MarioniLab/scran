@@ -29,8 +29,10 @@ expect_equal(out, count.sizes/mean(count.sizes))
 
 # Trying it out with other options.
 
+if (.Platform$OS.type!="windows") { # Because limSolve doesn't build on Windows, apparently.
 outx <- computeSumFactors(dummy, positive=TRUE)
 expect_true(all(abs(outx -  out) < 1e-3)) # need to be a bit generous here, the solution code is different.
+}
 outx <- computeSumFactors(dummy, errors=TRUE)
 expect_equal(as.numeric(outx), out)
 

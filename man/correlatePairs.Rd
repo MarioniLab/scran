@@ -163,7 +163,7 @@ Permutation P-values should never be zero: calculating exact P-values when permu
 set.seed(0)
 ncells <- 100
 null.dist <- correlateNull(ncells, iters=100000)
-\dontshow{# Stalls on Windows with MulticoreParam, for some reason.
+\dontshow{# Stalls on Windows for some reason; so we force single-core.
 old <- bpparam()
 register(SerialParam())}
 exprs <- matrix(rpois(ncells*100, lambda=10), ncol=ncells)

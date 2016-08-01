@@ -90,7 +90,7 @@ with modifications by Aaron Lun
 
 \examples{
 example(sandbag)
-\dontshow{# Stalls on Windows, for some reason.
+\dontshow{# Stalls on Windows, for some reason; so we force single-core.
 old <- bpparam()
 register(SerialParam())}
 # Classifying (note: test.data!=training.data in real cases)

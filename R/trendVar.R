@@ -1,6 +1,6 @@
 setGeneric("trendVar", function(x, ...) standardGeneric("trendVar"))
 
-setMethod("trendVar", "matrix", function(x, trend=c("poly", "loess"), df=5, span=0.3, design=NULL, subset.row=NULL)
+setMethod("trendVar", "matrix", function(x, trend=c("loess", "poly"), df=5, span=0.3, design=NULL, subset.row=NULL)
 # Fits a polynomial trend to the technical variability of the log-CPMs,
 # against their abundance (i.e., average log-CPM).
 # 

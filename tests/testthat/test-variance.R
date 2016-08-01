@@ -27,7 +27,7 @@ expect_equal(out$design, as.matrix(rep(1, ncells)))
 
 # Get the same results directly on a SCESet.
 
-suppressWarnings(expect_error(trendVar(X), "'degree' must be less than number of unique points")) # because there aren't any spike-ins.
+suppressWarnings(expect_error(trendVar(X), "invalid 'x'")) # because there aren't any spike-ins for loess.
 
 cntrl_data <- list(All=!logical(ngenes), Some=rbinom(ngenes, 1, 0.5)==0, None=logical(ngenes))
 X <- calculateQCMetrics(X, cntrl_data)
@@ -41,7 +41,7 @@ expect_equal(out$design, out2$design)
 
 isSpike(X) <- "None"
 expect_identical(isSpike(X), cntrl_data$None)
-expect_error(trendVar(X), "'degree' must be less than number of unique points")
+expect_error(trendVar(X), "invalid 'x'")
 out3 <- trendVar(X, use.spikes=FALSE)
 expect_equal(out3$mean, out2$mean)
 expect_equal(out3$var, out2$var)
@@ -73,9 +73,9 @@ expect_equal(out4$var, out2$var)
 expect_equal(out4$trend, out2$trend)
 expect_equal(out4$design, out2$design)
 
-# Trying again but with the loess.
+# Trying again but with the polynomial.
 
-out2 <- trendVar(d, trend="loess")
+out2 <- trendVar(d, trend="poly")
 expect_equal(out$mean, out2$mean)
 expect_equal(out$var, out2$var)
 expect_equal(out2$design, out$design)
@@ -115,10 +115,10 @@ fit <- lm.fit(y=t(d), x=design)
 effects <- fit$effects[-seq_len(ncol(design)),]
 expect_equal(out$var, colMeans(effects^2))
 
-# There's a lot of ways it can fail, e.g., trend fitting will not work depending on the number of 'df'.
+# There's a lot of ways it can fail when silly inputs are supplied.
 
-expect_error(trendVar(d[0,,drop=FALSE]), "'degree' must be less than number of unique points")
-expect_error(trendVar(d[2,,drop=FALSE]), "'degree' must be less than number of unique points")
+expect_error(trendVar(d[0,,drop=FALSE]), "invalid 'x'") # loess fails with empty input vectors.
+expect_error(trendVar(d[2,,drop=FALSE], trend="poly"), "'degree' must be less than number of unique points")
 expect_error(trendVar(d[,0,drop=FALSE]), "design matrix is not of full rank")
 expect_error(trendVar(d[,1,drop=FALSE]), "design matrix is not of full rank")
 

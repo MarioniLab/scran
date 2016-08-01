@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.1.6}{\itemize{
+\section{Version 1.1.8}{\itemize{
 \item
 Added 'min' argument to testVar().
 
@@ -14,6 +14,7 @@ Removed normalize() in favour of scater's normalize().
 
 \item 
 Switched isSpike()<- to accept a character vector rather than a logical vector, to enforce naming of spike-in sets.
+Also added warning code when the specified spike-in sets overlap.
 
 \item
 Allowed compute*Factors() functions to directly return the size factors.
@@ -36,6 +37,9 @@ Updated convertTo() to store spike-in-specific size factors as offsets.
 
 \item
 Moved code and subsetting into C++ to improve memory efficiency.
+
+\item
+Switched to loess-based trend fitting as the default in trendVar().
 
 \item
 Updated documentation and tests.
