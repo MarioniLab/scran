@@ -6,7 +6,7 @@ setMethod("cyclone", "matrix", function(x, pairs, gene.names=rownames(x), iter=1
 # written by Antonio Scialdone
 # with modifications by Aaron Lun
 # created 22 January 2016    
-# last modified 7 June 2016
+# last modified 6 August 2016
 { 
     if (length(gene.names)!=nrow(x)) {
         stop("length of 'gene.names' must be equal to 'x' nrows")
@@ -44,20 +44,16 @@ setMethod("cyclone", "matrix", function(x, pairs, gene.names=rownames(x), iter=1
     }
   
     # Run the allocation algorithm
-    ncells <- ncol(x)
-    workass <- .workerAssign(ncells, BPPARAM)
-    all.cores <- seq_along(workass$start) 
-    common.args <- list(X=all.cores, FUN=.get_phase_score, BPPARAM=BPPARAM,
-                        work.start=workass$start, work.end=workass$end, 
-                        exprs=x, iter=iter, min.iter=min.iter, min.pairs=min.pairs)
-    out.G1 <- do.call(bplapply, c(list(pairings=pairs$G1), common.args))
-    out.S <- do.call(bplapply, c(list(pairings=pairs$S), common.args))
-    out.G2M <- do.call(bplapply, c(list(pairings=pairs$G2M), common.args))
+    workass <- .workerAssign(ncol(x), BPPARAM)
+    common.args <- list(exprs=x, iter=iter, min.iter=min.iter, min.pairs=min.pairs)
+    out.G1 <- bpmapply(FUN=.get_phase_score, wstart=workass$start, wend=workass$end, BPPARAM=BPPARAM,
+                       MoreArgs=c(list(pairings=pairs$G1), common.args), SIMPLIFY=FALSE) 
+    out.S <- bpmapply(FUN=.get_phase_score, wstart=workass$start, wend=workass$end, BPPARAM=BPPARAM,
+                       MoreArgs=c(list(pairings=pairs$S), common.args), SIMPLIFY=FALSE) 
+    out.G2M <- bpmapply(FUN=.get_phase_score, wstart=workass$start, wend=workass$end, BPPARAM=BPPARAM,
+                       MoreArgs=c(list(pairings=pairs$G2M), common.args), SIMPLIFY=FALSE) 
 
     # Assembling the output.
-    lapply(out.G1, FUN=function(y) { if (is.character(y)) { stop(y) } })
-    lapply(out.S, FUN=function(y) { if (is.character(y)) { stop(y) } })
-    lapply(out.G2M, FUN=function(y) { if (is.character(y)) { stop(y) } })
     score.G1 <- unlist(out.G1)
     score.S <- unlist(out.S)
     score.G2M <- unlist(out.G2M)
@@ -72,9 +68,11 @@ setMethod("cyclone", "matrix", function(x, pairs, gene.names=rownames(x), iter=1
     return(list(phases=phases, scores=scores, normalized.scores=scores.normalised))  
 })
 
-.get_phase_score <- function(core, work.start, work.end, exprs, pairings, iter, min.iter, min.pairs) {
-    to.use <- c(work.start[core], work.end[core])
-    .Call(cxx_shuffle_scores, to.use, exprs, pairings$first, pairings$second, pairings$index, iter, min.iter, min.pairs) 
+.get_phase_score <- function(wstart, wend, exprs, pairings, iter, min.iter, min.pairs) {
+    to.use <- c(wstart, wend)
+    out <- .Call(cxx_shuffle_scores, to.use, exprs, pairings$first, pairings$second, pairings$index, iter, min.iter, min.pairs) 
+    if (is.character(out)) { stop(out) }
+    return(out)
 }
 
 setMethod("cyclone", "SCESet", function(x, pairs, subset.row=NULL, ..., assay="counts", get.spikes=FALSE) {

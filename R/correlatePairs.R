@@ -68,7 +68,7 @@ setMethod("correlatePairs", "matrix", function(x, null.dist=NULL, design=NULL, B
 #
 # written by Aaron Lun
 # created 10 February 2016
-# last modified 27 May 2016
+# last modified 6 August 2016
 {
     compute.residuals <- FALSE
     if (!is.null(design)) { 
@@ -134,19 +134,9 @@ setMethod("correlatePairs", "matrix", function(x, null.dist=NULL, design=NULL, B
 
         # Running through each set of jobs 
         workass <- .workerAssign(length(gene1), BPPARAM)
-        out <- bplapply(seq_along(workass$start), FUN=.get_correlation,
-            work.start=workass$start, work.end=workass$end,
-            gene1=gene1, gene2=gene2, ranked.exprs=ranked.exprs, 
-            BPPARAM=BPPARAM)
-
-        # Peeling apart the output.
-        current.rho <- list()
-        for (i in seq_along(out)) {
-            current <- out[[i]]
-            if (is.character(current)) { stop(current) }
-            current.rho[[i]] <- current
-        }
-        current.rho <- unlist(current.rho)
+        out <- bpmapply(FUN=.get_correlation, wstart=workass$start, wend=workass$end, BPPARAM=BPPARAM,
+                        MoreArgs=list(gene1=gene1, gene2=gene2, ranked.exprs=ranked.exprs), SIMPLIFY=FALSE)
+        current.rho <- unlist(out)
 
         # Adding a weighted value to the final.
         all.rho <- all.rho + current.rho * (length(subset.col)/ncol(x))
@@ -192,9 +182,11 @@ setMethod("correlatePairs", "matrix", function(x, null.dist=NULL, design=NULL, B
     return(list(start=starting, end=ending))
 }
 
-.get_correlation <- function(core, work.start, work.end, gene1, gene2, ranked.exprs) {
-    to.use <- work.start[core]:work.end[core]
-    .Call(cxx_compute_rho, gene1[to.use], gene2[to.use], ranked.exprs)
+.get_correlation <- function(wstart, wend, gene1, gene2, ranked.exprs) {
+    to.use <- wstart:wend
+    out <- .Call(cxx_compute_rho, gene1[to.use], gene2[to.use], ranked.exprs)
+    if (is.character(out)) { stop(out) }
+    return(out)         
 }
 
 setMethod("correlatePairs", "SCESet", function(x, subset.row=NULL, ..., assay="exprs", get.spikes=FALSE) {
