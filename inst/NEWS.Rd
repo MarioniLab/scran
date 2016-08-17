@@ -2,10 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.1.8}{\itemize{
-\item
-Added 'min' argument to testVar().
-
+\section{Version 1.1.9}{\itemize{
 \item
 Transformed correlations to a metric distance in quickCluster().
 
@@ -40,6 +37,9 @@ Moved code and subsetting into C++ to improve memory efficiency.
 
 \item
 Switched to loess-based trend fitting as the default in trendVar().
+
+\item
+Added significance statistics to output of decomposeVar().
 
 \item
 Updated documentation and tests.

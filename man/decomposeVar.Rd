@@ -54,6 +54,7 @@ This contains the numeric fields:
 \item{\code{total}:}{Variance of the normalized log-counts per gene.}
 \item{\code{bio}:}{Biological component of the variance.}
 \item{\code{tech}:}{Technical component of the variance.}
+\item{\code{p.value, FDR}:}{Raw and adjusted p-values for the test against the null hypothesis that \code{bio=0}.}
 }
 Rows corresponding to spike-in transcripts are set to \code{NA} unless \code{get.spikes=TRUE}. 
 }

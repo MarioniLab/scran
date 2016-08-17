@@ -143,3 +143,14 @@ X2 <- X
 sizeFactors(X2) <- NULL
 expect_error(convertTo(X2, type="monocle"), "size factors not defined for normalization")
 
+# Also testing how the methods behave when no spike-ins are specified.
+
+X <- newSCESet(countData=data.frame(dummy))
+y <- convertTo(X, type="edgeR")
+expect_identical(counts(X), y$counts)
+dds <- convertTo(X, type="DESeq2")
+expect_equal(counts(X), counts(dds))
+sizeFactors(X) <- 1
+y <- convertTo(X, type="monocle")
+expect_equal(exprs(y), counts(X))
+

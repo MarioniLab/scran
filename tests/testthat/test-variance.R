@@ -193,11 +193,11 @@ true.p <- runif(100)
 trended <- runif(100, 1, 2)
 df <- 20
 observed <- trended * qchisq(true.p, df=df, lower.tail=FALSE)/df
-pvals <- testVar(observed, trended, df=df, min=0)
+pvals <- testVar(observed, trended, df=df)
 expect_equal(pvals, true.p)
 
 design <- model.matrix(~factor(rep(c(1,2), each=11)))
-pvals <- testVar(observed, trended, design=design, min=0)
+pvals <- testVar(observed, trended, design=design)
 expect_equal(pvals, true.p)
 
 # Checking silly inputs

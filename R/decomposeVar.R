@@ -23,7 +23,9 @@ setMethod("decomposeVar", c("matrix", "list"), function(x, fit, design=NA, subse
     
     tech.var <- fit$trend(lmeans)
     bio.var <- lvar - tech.var
-    out <- data.frame(mean=lmeans, total=lvar, bio=bio.var, tech=tech.var)
+    pval <- testVar(total=lvar, null=tech.var, df=nrow(design) - ncol(design))
+    out <- data.frame(mean=lmeans, total=lvar, bio=bio.var, tech=tech.var,
+                      p.value=pval, FDR=p.adjust(pval, method="BH"))
     rownames(out) <- rownames(x)[subset.row]
     return(out)
 })
@@ -42,7 +44,7 @@ setMethod("decomposeVar", c("SCESet", "list"), function(x, fit, subset.row=NULL,
     return(out)
 })
 
-testVar <- function(total, null, df, design=NULL, min=1) 
+testVar <- function(total, null, df, design=NULL) 
 # Tests that total > null given variances estimated on 'df' degrees of freedom.
 # You can also give it the design matrix directly if you can't be bothered estimating 'df'.
 # Obviously there's an assumption of normality here, regarding the observations from which estimation was performed.
@@ -53,6 +55,6 @@ testVar <- function(total, null, df, design=NULL, min=1)
 {
     if (missing(df)) { df <- nrow(design) - qr(design)$rank }
     if (!length(null) || !length(df)) { return(rep(NA_real_, length(total))) }
-    pchisq(total/(null+min)*df, df=df, lower.tail=FALSE)
+    pchisq(total/null*df, df=df, lower.tail=FALSE)
 }
 

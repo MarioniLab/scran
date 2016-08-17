@@ -66,7 +66,9 @@ setMethod("convertTo", "SCESet", function(x, type=c("edgeR", "DESeq2", "monocle"
     } else if (type=="DESeq2") {
         dds <- DESeq2::DESeqDataSetFromMatrix(assayDataElement(x, assay), pd, ~1, ...)
         S4Vectors::mcols(dds) <- fd
-        sizeFactors(dds) <- sf
+        if (!is.null(sf)) { 
+            sizeFactors(dds) <- sf
+        }
         if (!is.null(subset.row)) { 
             dds <- dds[subset.row,] 
             offset.index <- offset.index[subset.row]            
