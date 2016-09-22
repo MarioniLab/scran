@@ -7,10 +7,10 @@ setMethod("quickCluster", "matrix", function(x, min.size=200, subset.row=NULL, .
 #
 # written by Karsten Bach, with modifications by Aaron Lun
 # created 1 December 2015
-# last modified 5 June 2016
+# last modified 21 September 2016
 {   
     if (ncol(x) < min.size){
-        stop('fewer cells than the mininimum cluster size')
+        stop('fewer cells than the minimum cluster size')
     }
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
 

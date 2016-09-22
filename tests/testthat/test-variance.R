@@ -73,9 +73,9 @@ expect_equal(out4$var, out2$var)
 expect_equal(out4$trend, out2$trend)
 expect_equal(out4$design, out2$design)
 
-# Trying again but with the polynomial.
+# Trying again but with the semiloessnomial.
 
-out2 <- trendVar(d, trend="poly")
+suppressWarnings(out2 <- trendVar(d, trend="semiloess"))
 expect_equal(out$mean, out2$mean)
 expect_equal(out$var, out2$var)
 expect_equal(out2$design, out$design)
@@ -118,7 +118,7 @@ expect_equal(out$var, colMeans(effects^2))
 # There's a lot of ways it can fail when silly inputs are supplied.
 
 expect_error(trendVar(d[0,,drop=FALSE]), "invalid 'x'") # loess fails with empty input vectors.
-expect_error(trendVar(d[2,,drop=FALSE], trend="poly"), "'degree' must be less than number of unique points")
+expect_error(trendVar(d[0,,drop=FALSE], trend="semiloess"), "need at least 4 values for non-linear curve fitting")
 expect_error(trendVar(d[,0,drop=FALSE]), "design matrix is not of full rank")
 expect_error(trendVar(d[,1,drop=FALSE]), "design matrix is not of full rank")
 
@@ -143,23 +143,22 @@ out <- decomposeVar(X, fit)
 out.all <- decomposeVar(X, fit, get.spikes=TRUE)
 expect_identical(rownames(out), rownames(X))
 expect_identical(rownames(out.all), rownames(X))
+basic <- c("mean", "total", "bio", "tech")
+expect_equivalent(out.all[,basic], out[,basic]) 
 
 ref.mean <- rowMeans(exprs(X))
 expect_equivalent(out.all$mean, ref.mean)
-ref.mean[isSpike(X)] <- NA_real_
-expect_equivalent(out$mean, ref.mean)
-
 ref.var <- apply(exprs(X), 1, var)
-expect_true(all(is.na(out.all$total)==is.na(ref.var)))
-expect_true(all(abs(unname(out.all$total)-ref.var) < 1e-8 | is.na(ref.var)))
-ref.var[isSpike(X)] <- NA_real_
-expect_true(all(is.na(out$total)==is.na(ref.var)))
-expect_true(all(abs(unname(out$total)-ref.var) < 1e-8 | is.na(ref.var)))
-
+expect_equivalent(ref.var, out.all$total)
 expect_equivalent(out$tech, fit$trend(ref.mean))
 expect_equivalent(out$bio, out$total-out$tech)
-expect_true(all(abs(out.all$tech - fit$trend(out.all$mean)) < 1e-8 | is.na(out.all$tech)))
-expect_equivalent(out.all$bio, out.all$total-out.all$tech)
+
+ref.p <- testVar(out$total, out$tech, df=ncells-1)
+expect_equivalent(ref.p, out.all$p.value)
+expect_equivalent(p.adjust(ref.p, method="BH"), out.all$FDR)
+ref.p[isSpike(X)] <- NA_real_
+expect_equivalent(ref.p, out$p.value)
+expect_equivalent(p.adjust(ref.p, method="BH"), out$FDR)
 
 shuffled <- c(500:1, 501:1000)
 out.ref <- decomposeVar(X[shuffled,], fit)
@@ -178,11 +177,15 @@ expect_equal(out$mean, out3$mean)
 refit <- lm.fit(y=t(exprs(X)), x=design)
 effects <- refit$effects[-seq_len(ncol(design)),]
 test.var <- colMeans(effects^2)
-test.var[isSpike(X)] <- NA
-expect_equivalent(out3$total, test.var)
 
+expect_equivalent(out3$total, test.var)
 expect_equivalent(out3$tech, fit$trend(ref.mean))
 expect_equivalent(out3$bio, out3$total-out3$tech)
+
+ref.p <- testVar(out3$total, out3$tech, df=nrow(design) - ncol(design))
+ref.p[isSpike(X)] <- NA_real_
+expect_equivalent(ref.p, out3$p.value)
+expect_equivalent(p.adjust(ref.p, method="BH"), out3$FDR)
 
 ####################################################################################################
 

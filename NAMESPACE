@@ -26,7 +26,7 @@ importFrom("BiocGenerics", normalize)
 importFrom("Biobase", assayDataElement, "assayDataElement<-", fData, exprs, featureData, phenoData, pData)
 
 importFrom("utils", combn)
-importFrom("stats", approx, as.dist, cor, fitted, hclust, lm, lm.fit, loess, median, p.adjust, pchisq, predict, quantile, coefficients)
+importFrom("stats", approx, as.dist, cor, fitted, hclust, loess, median, p.adjust, pchisq, predict, quantile, coefficients, nls, nls.control)
 importFrom("grDevices", grey.colors)
 importFrom("graphics", text)
 

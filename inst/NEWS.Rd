@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.1.9}{\itemize{
+\section{Version 1.1.10}{\itemize{
 \item
 Transformed correlations to a metric distance in quickCluster().
 
@@ -36,10 +36,10 @@ Updated convertTo() to store spike-in-specific size factors as offsets.
 Moved code and subsetting into C++ to improve memory efficiency.
 
 \item
-Switched to loess-based trend fitting as the default in trendVar().
+Switched to loess-based trend fitting as the default in trendVar(), replaced polynomial with semi-loess fitting.
 
 \item
-Added significance statistics to output of decomposeVar().
+Added significance statistics to output of decomposeVar(), with only the p-values replaced by NAs for spike-ins.
 
 \item
 Updated documentation and tests.

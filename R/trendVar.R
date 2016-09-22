@@ -1,12 +1,14 @@
 setGeneric("trendVar", function(x, ...) standardGeneric("trendVar"))
 
-setMethod("trendVar", "matrix", function(x, trend=c("loess", "poly"), df=5, span=0.3, design=NULL, subset.row=NULL)
+setMethod("trendVar", "matrix", function(x, trend=c("loess", "semiloess"), 
+    span=0.3, family="symmetric", degree=1, start=list(),
+    design=NULL, subset.row=NULL)
 # Fits a polynomial trend to the technical variability of the log-CPMs,
 # against their abundance (i.e., average log-CPM).
 # 
 # written by Aaron Lun
 # created 21 January 2016
-# last modified 6 June 2016
+# last modified 11 September 2016
 {
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     if (is.null(design)) { design <- .interceptModel(ncol(x)) }
@@ -19,23 +21,42 @@ setMethod("trendVar", "matrix", function(x, trend=c("loess", "poly"), df=5, span
     names(lmeans) <- names(lvar) <- rownames(x)[subset.row]
 
     is.okay <- lvar > 1e-8
+    kept.var <- lvar[is.okay]
     kept.means <- lmeans[is.okay]
-    llvar <- log2(lvar)[is.okay]
     
     trend <- match.arg(trend)
     if (trend=="loess") { 
-        fit <- loess(llvar ~ kept.means, span=span, degree=1, family="symmetric")
-    } else if (trend=="poly") {
-        fit <- lm(llvar ~ poly(kept.means, df=df))
+        kept.lvar <- log2(kept.var)
+        fit <- loess(kept.lvar ~ kept.means, span=span, degree=degree, family=family)
+        SUBFUN <- function(x) { 2^predict(fit, data.frame(kept.means=x)) }
+    } else if (trend=="semiloess") {
+        # Setting up starting parameters.
+        if (is.null(start$a1)) { start$a <- 5 }
+        if (is.null(start$n)) { start$n <- 5 }
+        if (is.null(start$b)) { start$b <- 1 }
+       
+        if (length(kept.var) <= 3L) {
+            stop("need at least 4 values for non-linear curve fitting")
+        } 
+        init.fit <- nls(kept.var ~ (a*kept.means)/(kept.means^n + b), start=start,
+                        control=nls.control(warnOnly=TRUE, maxiter=500), algorithm="port",
+                        lower=list(a=0, b=0, n=1))
+
+        leftovers <- log2(kept.var/fitted(init.fit))
+        loess.fit <- loess(leftovers ~ kept.means, span=span, degree=degree, family=family)
+        SUBFUN <- function(x) { 
+            args <- data.frame(kept.means=x)
+            predict(init.fit, args) * 2^predict(loess.fit, args)
+        }
     } 
 
-    left.edge <- which.min(kept.means)
-    right.edge <- which.max(kept.means)
+    left.edge <- min(kept.means)
+    right.edge <- max(kept.means)
     FUN <- function(x) {
-        out <- predict(fit, data.frame(kept.means=x))
-        out[x < kept.means[left.edge]] <- fitted(fit)[left.edge]
-        out[x > kept.means[right.edge]] <- fitted(fit)[right.edge]
-        return(2^out)
+        out <- SUBFUN(x)
+        out[x < left.edge] <- SUBFUN(left.edge)
+        out[x > right.edge] <- SUBFUN(right.edge)
+        return(out)
     }
     return(list(mean=lmeans, var=lvar, trend=FUN, design=design))
 })

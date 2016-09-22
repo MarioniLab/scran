@@ -56,7 +56,7 @@ This contains the numeric fields:
 \item{\code{tech}:}{Technical component of the variance.}
 \item{\code{p.value, FDR}:}{Raw and adjusted p-values for the test against the null hypothesis that \code{bio=0}.}
 }
-Rows corresponding to spike-in transcripts are set to \code{NA} unless \code{get.spikes=TRUE}. 
+Rows corresponding to spike-in transcripts have their p-value and FDR fields set to \code{NA} unless \code{get.spikes=TRUE}. 
 }
 
 \seealso{

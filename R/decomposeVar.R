@@ -38,7 +38,8 @@ setMethod("decomposeVar", c("SCESet", "list"), function(x, fit, subset.row=NULL,
             nokeep <- nokeep[subset.row]
         }
         if (any(nokeep)) { 
-            out[nokeep,] <- NA
+            out$p.value[nokeep] <- NA
+            out$FDR <- p.adjust(out$p.value, method="BH")
         }
     }
     return(out)

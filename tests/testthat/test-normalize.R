@@ -168,7 +168,7 @@ suppressWarnings(expect_identical(quickCluster(mat, subset.row=subset.row), quic
 # Checking out what happens with silly inputs.
 
 expect_error(quickCluster(dummy[0,]), "need at least 2 observations to compute correlations")
-expect_error(quickCluster(dummy[,0]), "fewer cells than the mininimum cluster size")
+expect_error(quickCluster(dummy[,0]), "fewer cells than the minimum cluster size")
 
 leftovers <- 100
 expect_warning(forced <- quickCluster(dummy[,c(which(known.clusters==1), which(known.clusters==2), which(known.clusters==3)[1:leftovers])]), 

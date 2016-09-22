@@ -1,6 +1,6 @@
 Package: scran
-Version: 1.1.9
-Date: 2016-08-10
+Version: 1.1.10
+Date: 2016-09-22
 Title: Methods for Single-Cell RNA-Seq Data Analysis
 Authors@R: c(person("Aaron", "Lun", role = c("aut", "cre"), email =
         "alun@wehi.edu.au"), person("Karsten", "Bach", role = "aut"),
@@ -13,7 +13,7 @@ Imports: dynamicTreeCut, zoo, edgeR, stats, BiocGenerics, methods,
 Suggests: limSolve, limma, testthat, knitr, BiocStyle, org.Mm.eg.db, 
         DESeq2, monocle, S4Vectors, ggplot2
 biocViews: Normalization, Sequencing, RNASeq, Software, GeneExpression,
-        Transcriptomics
+        Transcriptomics, SingleCell
 Description: Implements a variety of low-level analyses of single-cell 
         RNA-seq data. Methods are provided for normalization of 
         cell-specific biases, assignment of cell cycle phase, and 
