@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.1.10}{\itemize{
+\section{Version 1.2.0}{\itemize{
 \item
 Transformed correlations to a metric distance in quickCluster().
 
