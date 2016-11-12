@@ -31,13 +31,13 @@ DM <- function(mean, cv2, win.size=50)
 # written by Jong Kyoung Kim
 # with modifications by Aaron Lun
 # created 12 March 2015 
-# last modified 13 January 2016
+# last modified 11 November 2016
 {
     keep <- mean > 0 & !is.na(cv2) & cv2 > 0
     mean.expr <- log10(mean[keep])
     cv2.expr <- log10(cv2[keep])
     qloess <- quantile.trend(cv2.expr, mean.expr, quant=.5, size=win.size, overlap=.5)
-    dm.out <- cv2.expr - approx(x=qloess$x, y=qloess$y, xout=mean.expr)$y
+    dm.out <- cv2.expr - approx(x=qloess$x, y=qloess$y, xout=mean.expr, rule=2)$y
     DM <- rep(NA_real_, length(keep))
     DM[keep] <- dm.out
     names(DM) <- names(mean)

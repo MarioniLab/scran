@@ -74,23 +74,14 @@ Aaron Lun
 }
 
 \examples{
-ncells <- 200
-ngenes <- 1000
-count.sizes <- rnbinom(ncells, mu=100, size=5)
-dummy <- matrix(count.sizes, ncol=ncells, nrow=ngenes, byrow=TRUE)
-rownames(dummy) <- paste0("X", seq_len(ngenes))
+example(computeSpikeFactors) # Using the mocked up data 'y' from this example.
+sizeFactors(y) <- 2^rnorm(ncells) # Adding some additional embellishments.
+fData(y)$SYMBOL <- paste0("X", seq_len(nrow(y)))
+y$other <- sample(LETTERS, ncells, replace=TRUE)
 
-X <- newSCESet(countData=data.frame(dummy))
-X <- calculateQCMetrics(X, list(Spike=rbinom(ngenes, 1, 0.5)==0L))
-isSpike(X) <- "Spike"
-sizeFactors(X) <- 2^rnorm(ncells)
-X <- normalize(X)
-
-fData(X)$SYMBOL <- paste0("X", seq_len(ngenes))
-X$other <- sample(LETTERS, ncells, replace=TRUE)
-
-convertTo(X, type="edgeR")
-convertTo(X, type="DESeq2")
-convertTo(X, type="monocle")
+# Converting to various objects.
+convertTo(y, type="edgeR")
+convertTo(y, type="DESeq2")
+convertTo(y, type="monocle")
 }
 

@@ -44,24 +44,25 @@ setMethod("isSpike", "SCESet", function(x, type=NULL) {
     keep <- is.spike(x, type=type)
     if (is.null(keep)) {
         if (!is.null(type)) {
-            extra <- sprintf(" for type='%s'", type)
+            extra <- sprintf(" for '%s'", type)
         } else {
             extra <- ""
         }
-        warning(sprintf("'isSpike' is not set%s, returning NULL", extra)) 
+        warning(sprintf("no spike-ins specified%s, returning NULL", extra)) 
     }
     return(keep)
 })
 
-setGeneric("isSpike<-", function(x, value) standardGeneric("isSpike<-"))
 
-setReplaceMethod("isSpike", signature(x="SCESet", value="NULL"), function(x, value) {
+setGeneric("setSpike<-", function(x, value) standardGeneric("setSpike<-"))
+
+setReplaceMethod("setSpike", signature(x="SCESet", value="NULL"), function(x, value) {
     fData(x)$is_feature_spike <- NULL 
     x@featureControlInfo$spike <- NULL
     return(x) 
 })
 
-setReplaceMethod("isSpike", signature(x="SCESet", value="character"), function(x, value) {
+setReplaceMethod("setSpike", signature(x="SCESet", value="character"), function(x, value) {
     # Recording all those that were listed as spikes.
     x@featureControlInfo$spike <- .get_feature_control_names(x) %in% value
 
@@ -81,4 +82,20 @@ setReplaceMethod("isSpike", signature(x="SCESet", value="character"), function(x
 
     return(x) 
 })
+
+setGeneric("whichSpike", function(x) standardGeneric("whichSpike")) 
+
+setMethod("whichSpike", signature("SCESet"), function(x) {
+    .get_feature_control_names(x)[x@featureControlInfo$spike]
+})
+
+# Deprecated, to avoid confusion about character-in and logical-out.
+setGeneric("isSpike<-", function(x, value) standardGeneric("isSpike<-"))
+
+setReplaceMethod("isSpike", signature(x="SCESet"), function(x, value) {
+    .Deprecated("setSpike<-", old="isSpike<-")
+    setSpike(x) <- value
+    return(x)
+})
+
 

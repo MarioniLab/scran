@@ -31,7 +31,7 @@ rownames(counts) <- paste0("X", seq_len(ngenes))
 colnames(counts) <- paste0("Y", seq_len(nsamples))
 X <- newSCESet(countData=counts)
 X <- calculateQCMetrics(X, list(Spikes=is.spike))
-isSpike(X) <- "Spikes"
+setSpike(X) <- "Spikes"
 
 sizeFactors(X) <- sf
 sizeFactors(X, type="Spikes") <- 1
@@ -47,7 +47,7 @@ X2 <- newSCESet(countData=counts)
 expect_error(suppressWarnings(technicalCV2(X2)), "no spike-in sets specified from 'x'")
 subset <- split(which(is.spike), rep(1:2, length.out=sum(is.spike)))
 X2 <- calculateQCMetrics(X2, list(MySpike=subset[[1]], SecondSpike=subset[[2]]))
-isSpike(X2) <- c("MySpike", "SecondSpike")
+setSpike(X2) <- c("MySpike", "SecondSpike")
 
 sizeFactors(X2) <- sf
 sizeFactors(X2, type="MySpike") <- 1

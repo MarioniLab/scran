@@ -27,15 +27,15 @@
 }
 
 \details{
-This function computes the variance of the log-CPMs for each endogenous gene.
-The technical component of the variance for each gene is determined by interpolating the fitted trend in \code{fit} at the mean log-CPM for that gene.
+This function computes the variance of the normalized log-counts for each endogenous gene.
+The technical component of the variance for each gene is determined by interpolating the fitted trend in \code{fit} at the mean log-count for that gene.
 This represents variance due to sequencing noise, variability in capture efficiency, etc.
 The biological component is determined by subtracting the technical component from the total variance.
 
 Highly variable genes (HVGs) can be identified as those with large biological components.
-Unlike other methods for decomposition, this approach estimates the variance of the log-CPMs rather than of the counts themselves.
+Unlike other methods for decomposition, this approach estimates the variance of the log-counts rather than of the counts themselves.
 The log-transformation blunts the impact of large positive outliers and ensures that the HVG list is not dominated by outliers.
-Interpretation is not compromised -- HVGs will still be so, regardless of whether counts or log-CPMs are considered.
+Interpretation is not compromised -- HVGs will still be so, regardless of whether counts or log-counts are considered.
 
 The design matrix can be set if there are factors that should be blocked, e.g., batch effects, known (and uninteresting) clusters.
 If \code{NULL}, it will be set to an all-ones matrix, i.e., all cells are replicates.
@@ -69,39 +69,32 @@ Aaron Lun
 }
 
 \examples{
-set.seed(100)
-
-nspikes <- ncells <- 200
-spike.means <- 2^runif(nspikes, 3, 8)
-spike.disp <- 100/spike.means + 0.5
-spike.data <- matrix(rnbinom(nspikes*ncells, mu=spike.means, size=1/spike.disp), ncol=ncells)
-
-ngenes <- 10000
-cell.means <- 2^runif(ngenes, 2, 10)
-cell.disp <- 100/cell.means + 0.5
-cell.data <- matrix(rnbinom(ngenes*ncells, mu=cell.means, size=1/cell.disp), ncol=ncells)
-
-combined <- rbind(cell.data, spike.data)
-colnames(combined) <- seq_len(ncells)
-rownames(combined) <- seq_len(nrow(combined))
-y <- newSCESet(countData=combined)
-y <- calculateQCMetrics(y, list(Spike=rep(c(FALSE, TRUE), c(ngenes, nspikes))))
-isSpike(y) <- "Spike"
-
-# Normalizing.
-y <- computeSumFactors(y)
-y <- computeSpikeFactors(y, general.use=FALSE)
-y <- normalize(y)
+example(computeSpikeFactors) # Using the mocked-up data 'y' from this example.
+y <- computeSumFactors(y) # Size factors for the the endogenous genes.
+y <- computeSpikeFactors(y, general.use=FALSE) # Size factors for spike-ins. 
+y <- normalize(y) # Normalizing the counts by the size factors.
 
 # Decomposing technical and biological noise.
 fit <- trendVar(y)
 results <- decomposeVar(y, fit)
+head(results)
 
 plot(results$mean, results$total)
 o <- order(results$mean)
 lines(results$mean[o], results$tech[o], col="red", lwd=2)
 
 plot(results$mean, results$bio)
+
+# A trend fitted to endogenous genes can also be used, pending assumptions.
+fit.g <- trendVar(y, use.spikes=FALSE)
+results.g <- decomposeVar(y, fit.g)
+head(results.g)
+}
+
+\references{
+Lun ATL, McCarthy DJ and Marioni JC (2016). 
+A step-by-step workflow for low-level analysis of single-cell RNA-seq data with Bioconductor.
+\emph{F1000Res.} 5:2122
 }
 
 \keyword{variance}

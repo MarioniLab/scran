@@ -85,6 +85,7 @@ based on code from Brennecke et al. (2013)
 }
 
 \examples{
+# Mocking up some data.
 ngenes <- 10000
 means <- 2^runif(ngenes, 6, 10)
 dispersions <- 10/means + 0.2
@@ -93,22 +94,24 @@ counts <- matrix(rnbinom(ngenes*nsamples, mu=means, size=1/dispersions), ncol=ns
 is.spike <- logical(ngenes)
 is.spike[seq_len(500)] <- TRUE
 
+# Running it directly on the counts.
 out <- technicalCV2(counts, is.spike)
 head(out)
 plot(out$mean, out$cv2, log="xy")
 points(out$mean, out$trend, col="red", pch=16, cex=0.5)
 
-# Same again with an SCESet
+# Same again with an SCESet.
 rownames(counts) <- paste0("X", seq_len(ngenes))
 colnames(counts) <- paste0("Y", seq_len(nsamples))
 X <- newSCESet(countData=counts)
 X <- calculateQCMetrics(X, list(Spikes=is.spike))
-isSpike(X) <- "Spikes"
+setSpike(X) <- "Spikes"
 
-# Dummying up some size factors.
+# Dummying up some size factors (for convenience only, use computeSumFactors() instead).
 sizeFactors(X) <- 1
-sizeFactors(X, type="Spikes") <- 1
+X <- computeSpikeFactors(X, general.use=FALSE)
 
+# Running it.
 out <- technicalCV2(X, spike.type="Spikes")
 head(out)
 }

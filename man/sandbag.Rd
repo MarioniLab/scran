@@ -72,6 +72,7 @@ is.G1 <- 1:20
 is.S <- 21:30
 is.G2M <- 31:50
 out <- sandbag(training, is.G1, is.S, is.G2M) 
+str(out)
 
 # Getting pre-trained marker sets
 mm.pairs <- readRDS(system.file("exdata", "mouse_cycle_markers.rds", package="scran"))

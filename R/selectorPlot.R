@@ -1,9 +1,10 @@
-selectorPlot <- function(x, y, persist=FALSE, plot.width=5, plot.height=500, pch=16, ...)
+selectorPlot <- function(x, y, persist=FALSE, plot.width=5, plot.height=500, run=TRUE, pch=16, ...)
 # This generates an interactive plot where x/y coordinates can be selected
 # for further examination within R.
 #
 # created by Aaron Lun
 # written 8 June 2016
+# last modified 11 November 2016
 {
     N <- length(x)
     if (length(y)!=N) { stop("length of x and y vectors should be equal") }
@@ -34,7 +35,7 @@ selectorPlot <- function(x, y, persist=FALSE, plot.width=5, plot.height=500, pch
             column(width = plot.width,
                 plotOutput("plot2", height = plot.height)
             )
-        ),
+        ), hr(),
         actionButton("select", "Select"),
         actionButton("unselect", "Deselect"),
         actionButton("clear", "Clear selection"),
@@ -77,7 +78,12 @@ selectorPlot <- function(x, y, persist=FALSE, plot.width=5, plot.height=500, pch
         })
     }
 
-    shinyApp(ui, server)
+    app <- shinyApp(ui, server)
+    if (run) {
+        return(runApp(app))
+    } else {
+        return(app)
+    }
 }
 
 # A battery of internal functions, taken out to reduce the length of the main function.

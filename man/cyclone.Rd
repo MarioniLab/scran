@@ -89,13 +89,15 @@ with modifications by Aaron Lun
 }
 
 \examples{
-example(sandbag)
+example(sandbag) # Using the mocked-up data in this example.
 \dontshow{# Stalls on Windows, for some reason; so we force single-core.
 old <- bpparam()
 register(SerialParam())}
 # Classifying (note: test.data!=training.data in real cases)
 test <- training 
 assignments <- cyclone(test, out)
+head(assignments$scores)
+head(assignments$phases)
 
 # Visualizing
 col <- character(ncells)

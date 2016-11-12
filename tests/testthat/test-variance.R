@@ -31,7 +31,7 @@ suppressWarnings(expect_error(trendVar(X), "invalid 'x'")) # because there aren'
 
 cntrl_data <- list(All=!logical(ngenes), Some=rbinom(ngenes, 1, 0.5)==0, None=logical(ngenes))
 X <- calculateQCMetrics(X, cntrl_data)
-isSpike(X) <- "All"
+setSpike(X) <- "All"
 expect_identical(isSpike(X), cntrl_data$All) # Just checking here...
 out2 <- trendVar(X)
 expect_equal(out$mean, out2$mean)
@@ -39,7 +39,7 @@ expect_equal(out$var, out2$var)
 expect_equal(out$trend, out2$trend)
 expect_equal(out$design, out2$design)
 
-isSpike(X) <- "None"
+setSpike(X) <- "None"
 expect_identical(isSpike(X), cntrl_data$None)
 expect_error(trendVar(X), "invalid 'x'")
 out3 <- trendVar(X, use.spikes=FALSE)
@@ -48,7 +48,7 @@ expect_equal(out3$var, out2$var)
 expect_equal(out3$trend, out2$trend)
 expect_equal(out3$design, out2$design)
 
-isSpike(X) <- "Some"
+setSpike(X) <- "Some"
 expect_identical(isSpike(X), cntrl_data$Some)
 out3a <- trendVar(X)
 expect_equal(out3$mean[cntrl_data$Some], out3a$mean)
@@ -63,7 +63,7 @@ dummy2 <- rbind(dummy, 0)
 rownames(dummy2) <- paste0("X", seq_len(nrow(dummy2)))
 X2 <- newSCESet(countData=data.frame(dummy2))
 X2 <- calculateQCMetrics(X2, list(Chosen=rep(c(TRUE, FALSE), c(ngenes, 1))))
-isSpike(X2) <- "Chosen"
+setSpike(X2) <- "Chosen"
 sizeFactors(X2) <- colSums(dummy2)
 X2 <- normalize(X2)
 
@@ -134,7 +134,7 @@ rownames(dummy) <- paste0("X", seq_len(ngenes))
 
 X <- newSCESet(countData=data.frame(dummy))
 X <- calculateQCMetrics(X, list(MySpikes=rbinom(ngenes, 1, 0.7)==0))
-isSpike(X) <- "MySpikes"
+setSpike(X) <- "MySpikes"
 sizeFactors(X) <- colSums(dummy)
 X <- normalize(X)
 

@@ -101,12 +101,17 @@ Aaron Lun and Karsten Bach
 }
 
 \examples{
+# Mocking up some data.
 set.seed(100)
-popsize <- 800
+popsize <- 200
 ngenes <- 10000
 all.facs <- 2^rnorm(popsize, sd=0.5)
 counts <- matrix(rnbinom(ngenes*popsize, mu=all.facs*10, size=1), ncol=popsize, byrow=TRUE)
+
+# Computing the size factors.
 out.facs <- computeSumFactors(counts)
+head(out.facs)
+plot(colSums(counts), out.facs, log="xy")
 }
 
 \keyword{normalization}

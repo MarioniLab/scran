@@ -5,8 +5,7 @@
 \description{Generate an interactive Shiny plot in which cells can be selected for further analysis.}
 
 \usage{
-selectorPlot(x, y, persist=FALSE, plot.width=5, plot.height=500, pch=16, ...)
-
+selectorPlot(x, y, persist=FALSE, plot.width=5, plot.height=500, run=TRUE, pch=16, ...)
 }
 
 \arguments{
@@ -14,6 +13,7 @@ selectorPlot(x, y, persist=FALSE, plot.width=5, plot.height=500, pch=16, ...)
 \item{persist}{A logical scalar indicating whether selections should persist after stopping the app.}
 \item{plot.width}{A numeric scalar specifying the plot width, see \code{width} in \code{?\link[shiny]{column}}.}
 \item{plot.height}{A numeric scalar specifying the plot height in pixels.}
+\item{run}{A logical scalar specifying whether the Shiny app should be run.}
 \item{pch, ...}{Other arguments to pass to \code{plot}.}
 }
 
@@ -30,20 +30,23 @@ This can be repeated multiple times to obtain several groups of interest.
 
 Several buttons are available within the app:
 \describe{
-\item{\code{Select}:}{Marks the current selection of cells.}
-\item{\code{Deselect}:}{Unmarks the current selection of cells.}
-\item{\code{Clear selection}:}{Unmarks all currently marked cells.}
-\item{\code{Add to list}:}{Saves currently marked cells into a list.}
-\item{\code{Reset all}:}{Removes all marking, removes all saved cells from the list.}
-\item{\code{Save list to R}:}{Stops the app and returns the list of saved cells to R.}
+\item{\dQuote{Select}:}{Marks the current selection of cells.}
+\item{\dQuote{Deselect}:}{Unmarks the current selection of cells.}
+\item{\dQuote{Clear selection}:}{Unmarks all currently marked cells.}
+\item{\dQuote{Add to list}:}{Saves currently marked cells into a list.}
+\item{\dQuote{Reset all}:}{Removes all marking, removes all saved cells from the list.}
+\item{\dQuote{Save list to R}:}{Stops the app and returns the list of saved cells to R.}
 }
 }
 
 \value{
-A Shiny app object is returned, which can be run with \code{\link{runApp}}.
+If \code{run=FALSE}, a Shiny app object is returned, which can be run with \code{\link{runApp}}.
 This transfers control to a browser window where cells can be selected.
-Upon stopping the app with the \code{Save list to R} button, control is transferred back to R and the list of saved cells is returned.
+Upon stopping the app with the \dQuote{Save list to R} button, control is transferred back to R and the list of saved cells is returned.
 Each element of the list is a logical vector indicating which cells were saved in that group of interest.
+
+If \code{run=TRUE}, a Shiny app object is created and run.
+This returns a list of saved cells upon stopping the app as previously described.
 }
 
 \seealso{
@@ -57,15 +60,17 @@ Aaron Lun
 \examples{
 example(newSCESet)
 pca <- plotPCA(example_sceset)
+x <- pca$data$PC1
+y <- pca$data$PC2
 
-# Slightly tedious to extract x/y from ggplot objects:
-x <- ggplot2::ggplot_build(pca)$data[[1]][,1]
-y <- ggplot2::ggplot_build(pca)$data[[1]][,2]
+# Creating the app object.
+app <- selectorPlot(x, y, run=FALSE)
 
-app <- selectorPlot(x, y)
-
-\dontrun{
+\dontrun{# Running the app object.
 saved <- shiny::runApp(app) 
+
+# Running the app directly from the function.
+saved <- selectorPlot(x, y)
 }
 
 }

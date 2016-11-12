@@ -220,7 +220,7 @@ dummy[is.spike,] <- matrix(rnbinom(sum(is.spike)*ncells, mu=20, size=5), ncol=nc
 rownames(dummy) <- paste0("X", seq_len(ngenes))
 X <- newSCESet(countData=data.frame(dummy))
 X <- calculateQCMetrics(X, list(MySpike=is.spike))
-isSpike(X) <- "MySpike"
+setSpike(X) <- "MySpike"
 out <- computeSpikeFactors(X)
 ref <- colSums(dummy[is.spike,])
 expect_equal(unname(sizeFactors(out)), ref/mean(ref))
@@ -230,7 +230,7 @@ expect_equal(sizeFactors(out), sizeFactors(out, type="MySpike"))
 X2 <- newSCESet(countData=data.frame(dummy))
 subset <- split(which(is.spike), rep(1:2, length.out=sum(is.spike)))
 X2 <- calculateQCMetrics(X2, list(MySpike=subset[[1]], SecondSpike=subset[[2]]))
-isSpike(X2) <- c("MySpike", "SecondSpike")
+setSpike(X2) <- c("MySpike", "SecondSpike")
 
 out.sub <- computeSpikeFactors(X2, type="MySpike") # Sanity check, to make sure that it's calculating it differently for each spike-in.
 subref <- colSums(dummy[subset[[1]],])

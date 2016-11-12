@@ -12,7 +12,7 @@ rownames(dummy) <- paste0("X", seq_len(ngenes))
 X <- newSCESet(countData=data.frame(dummy))
 is.spike <- rbinom(ngenes, 1, 0.5)==0L
 X <- calculateQCMetrics(X, list(MySpike=is.spike))
-isSpike(X) <- "MySpike"
+setSpike(X) <- "MySpike"
 sizeFactors(X) <- 2^rnorm(ncells)
 X <- normalize(X)
 

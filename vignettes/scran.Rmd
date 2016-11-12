@@ -71,10 +71,10 @@ all.counts <- rbind(gene.counts, spike.counts)
 Finally, we construct a `SCESet` object to store all of the data.
 We also indicate which rows correspond to spike-in transcripts.
 This is done through the `calculateQCMetrics` method from `r Biocpkg("scater")`, which takes a named list of sets of control genes.
-We can then easily indicate which sets of controls are spike-ins using the `isSpike` setter function.
+We can then easily indicate which sets of controls are spike-ins using the `setSpike` setter function.
 (In this case, there is only one control set, so the process may seem more complicated than necessary. 
 The usefulness of this setup becomes more obvious when multiple control sets are present.)
-This information can be easily extracted using the `isSpike` or `spikes` methods.
+This information can be easily extracted using the `isSpike`, `spikes` and `whichSpike` methods.
 
 ```{r}
 library(scran)
@@ -82,7 +82,7 @@ sce <- newSCESet(countData=data.frame(all.counts))
 sce <- calculateQCMetrics(sce, feature_controls=list(
     MySpikes=rep(c(FALSE, TRUE), c(ngenes, nspikes))
 ))
-isSpike(sce) <- "MySpikes"
+setSpike(sce) <- "MySpikes"
 ```
 
 This is simulated data, so we assume that quality control has already been applied to remove low-quality cells or low-abundance genes.

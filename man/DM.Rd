@@ -32,10 +32,18 @@ with modifications by Aaron Lun
 }
 
 \examples{
-ngenes <- 10000
-means <- exp(runif(ngenes, 2, 8))
-cv2 <- rgamma(ngenes, 5, 5)
+# Mocking up some data
+ngenes <- 1000
+ncells <- 100
+gene.means <- 2^runif(ngenes, 0, 10)
+dispersions <- 1/gene.means + 0.2
+counts <- matrix(rnbinom(ngenes*ncells, mu=gene.means, size=1/dispersions), nrow=ngenes)
+
+# Computing the DM.
+means <- rowMeans(counts)
+cv2 <- apply(counts, 1, var)/means^2
 dm.stat <- DM(means, cv2)
+head(dm.stat)
 }
 
 \references{

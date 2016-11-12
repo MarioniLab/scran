@@ -46,38 +46,51 @@ Aaron Lun
 }
 
 \examples{
-# Setting up an example.
+################
+# Mocking up some data.
 set.seed(100)
-popsize <- 200
-ngenes <- 1000
-all.facs <- 2^rnorm(popsize, sd=0.5)
-counts <- matrix(rnbinom(ngenes*popsize, mu=all.facs*10, size=1), ncol=popsize, byrow=TRUE)
-spikes <- matrix(rnbinom(100*popsize, mu=all.facs*10, size=0.5), ncol=popsize, byrow=TRUE)
+ncells <- 200
 
-combined <- rbind(counts, spikes)
-colnames(combined) <- seq_len(popsize)
+nspikes <- 100
+spike.means <- 2^runif(nspikes, 3, 8)
+spike.disp <- 100/spike.means + 0.5
+spike.data <- matrix(rnbinom(nspikes*ncells, mu=spike.means, size=1/spike.disp), ncol=ncells)
+
+ngenes <- 2000
+cell.means <- 2^runif(ngenes, 2, 10)
+cell.disp <- 100/cell.means + 0.5
+cell.data <- matrix(rnbinom(ngenes*ncells, mu=cell.means, size=1/cell.disp), ncol=ncells)
+
+combined <- rbind(cell.data, spike.data)
+colnames(combined) <- seq_len(ncells)
 rownames(combined) <- seq_len(nrow(combined))
 y <- newSCESet(countData=combined)
-y <- calculateQCMetrics(y, list(IAmASpike=rep(c(FALSE, TRUE), c(ngenes, 100))))
-isSpike(y) <- "IAmASpike"
+y <- calculateQCMetrics(y, list(Spike=rep(c(FALSE, TRUE), c(ngenes, nspikes))))
+setSpike(y) <- "Spike"
 
-# 
-y <- computeSpikeFactors(y)
-sizeFactors(y)
-sizeFactors(y, type="IAmASpike")
+################
+# Computing and storing spike-in size factors. 
+y2 <- computeSpikeFactors(y)
+head(sizeFactors(y2))
+head(sizeFactors(y2, type="Spike"))
 
 # general.use=FALSE does not modify general size factors
-y2 <- y
 sizeFactors(y2) <- 1
-sizeFactors(y2, type="IAmASpike") <- 1
+sizeFactors(y2, type="Spike") <- 1
 y2 <- computeSpikeFactors(y2, general.use=FALSE)
-sizeFactors(y2)
-sizeFactors(y2, type="IAmASpike")
-
+head(sizeFactors(y2))
+head(sizeFactors(y2, type="Spike"))
 }
 
 \seealso{
 \code{\link{SCESet}}
+}
+
+\references{
+Lun ATL, McCarthy DJ and Marioni JC (2016). 
+A step-by-step workflow for low-level analysis of single-cell RNA-seq data with Bioconductor.
+\emph{F1000Res.} 5:2122
+
 }
 
 \keyword{normalization}

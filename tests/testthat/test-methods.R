@@ -12,8 +12,9 @@ rownames(dummy) <- paste0("X", seq_len(ngenes))
 X <- newSCESet(countData=data.frame(dummy))
 is.spike <- rbinom(ngenes, 1, 0.5)==0L
 X <- calculateQCMetrics(X, feature_controls=list(whee=is.spike, empty=logical(ngenes), all=!logical(ngenes)))
-isSpike(X) <- "whee"
+setSpike(X) <- "whee"
 expect_identical(isSpike(X), is.spike)
+expect_identical(whichSpike(X), "whee")
 expect_identical(isSpike(X, type="whee"), is.spike)
 
 sf <- runif(ncells, 0.5, 1.5)
@@ -25,11 +26,12 @@ expect_identical(spikes(X), counts(X)[isSpike(X),,drop=FALSE])
 X <- normalize(X)
 expect_identical(spikes(X, "exprs"), exprs(X)[isSpike(X),,drop=FALSE])
 
-isSpike(X) <- c("whee", "empty") # Testing multiple specifications.
+setSpike(X) <- c("whee", "empty") # Testing multiple specifications.
 expect_identical(isSpike(X), is.spike)
-expect_warning(isSpike(X) <- c("whee", "all"), "overlapping spike-in sets detected")
+expect_identical(whichSpike(X), c("whee", "empty"))
+expect_warning(setSpike(X) <- c("whee", "all"), "overlapping spike-in sets detected")
 expect_identical(isSpike(X), !logical(ngenes))
-expect_warning(isSpike(X) <- c("whee", "empty", "all"), "overlapping spike-in sets detected")
+expect_warning(setSpike(X) <- c("whee", "empty", "all"), "overlapping spike-in sets detected")
 expect_identical(isSpike(X), !logical(ngenes))
 
 expect_identical(isSpike(X, type="whee"), is.spike)
@@ -37,25 +39,25 @@ expect_identical(isSpike(X, type=c("whee", "empty")), is.spike)
 expect_identical(isSpike(X, type=c("whee", "all")), !logical(ngenes))
 expect_identical(isSpike(X, type="empty"), logical(ngenes))
 
-isSpike(X) <- NULL
-expect_warning(isSpike(X), "'isSpike' is not set, returning NULL")
+setSpike(X) <- NULL
+expect_warning(isSpike(X), "no spike-ins specified, returning NULL")
 
 # Checking silly inputs
 
-isSpike(X) <- "whee"
+setSpike(X) <- "whee"
 sizeFactors(X) <- sf
-expect_error(isSpike(X) <- "aaron", "'aaron' is not specified as a spike-in control")
+expect_error(setSpike(X) <- "aaron", "'aaron' is not specified as a spike-in control")
 expect_error(sizeFactors(X) <- "whee", "unable to find an inherited method")
 expect_identical(isSpike(X[0,]), logical(0))
 expect_identical(unname(sizeFactors(X[,0])), numeric(0))
 
 expect_identical(spikes(X[0,]), exprs(X)[0,])
 expect_identical(spikes(X[,0]), exprs(X)[isSpike(X),0])
-isSpike(X) <- "empty"
+setSpike(X) <- "empty"
 expect_identical(spikes(X), exprs(X)[0,])
 
-isSpike(X) <- NULL
-expect_warning(out <- isSpike(X), "'isSpike' is not set, returning NULL")
+setSpike(X) <- NULL
+expect_warning(out <- isSpike(X), "no spike-ins specified, returning NULL")
 expect_identical(out, NULL)
 
 sizeFactors(X) <- NULL
