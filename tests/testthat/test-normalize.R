@@ -276,15 +276,15 @@ ref <- colSums(dummy)
 sf <- ref/mean(ref)
 sizeFactors(X) <- sf
 out <- normalize(X)
-expect_equivalent(exprs(out), edgeR::cpm.default(dummy, lib.size=sf*1e6, prior.count=1, log=TRUE))
+expect_equivalent(exprs(out), log2(t(t(dummy)/sf)+1))
 out <- normalize(X, logExprsOffset=3)
-expect_equivalent(exprs(out), edgeR::cpm.default(dummy, lib.size=sf*1e6, prior.count=3, log=TRUE))
+expect_equivalent(exprs(out), log2(t(t(dummy)/sf)+3))
 
 sf <- runif(ncells, 10, 20)
 sf <- ref/mean(ref)
 sizeFactors(X) <- sf
 out <- normalize(X)
-expect_equivalent(exprs(out), edgeR::cpm.default(dummy, lib.size=sf*1e6, prior.count=1, log=TRUE))
+expect_equivalent(exprs(out), log2(t(t(dummy)/sf)+1)) 
 
 chosen <- rbinom(ngenes, 1, 0.7)==0L
 X <- calculateQCMetrics(X, feature_controls=list(whee=chosen))
@@ -296,7 +296,7 @@ X4 <- normalize(X)
 expect_equivalent(exprs(out)[!chosen,], exprs(X4)[!chosen,])
 ref <- sizeFactors(X, type="whee")
 sf <- ref/mean(ref)
-expect_equivalent(exprs(X4)[chosen,], edgeR::cpm.default(dummy[chosen,], lib.size=sf*1e6, prior.count=1, log=TRUE))
+expect_equivalent(exprs(X4)[chosen,], log2(t(t(dummy[chosen,])/sf)+1))
 
 # Checking out silly inputs.
 
