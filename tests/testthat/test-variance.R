@@ -64,7 +64,7 @@ rownames(dummy2) <- paste0("X", seq_len(nrow(dummy2)))
 X2 <- newSCESet(countData=data.frame(dummy2))
 X2 <- calculateQCMetrics(X2, list(Chosen=rep(c(TRUE, FALSE), c(ngenes, 1))))
 setSpike(X2) <- "Chosen"
-sizeFactors(X2) <- colSums(dummy2)
+sizeFactors(X2) <- sizeFactors(X2, "Chosen") <- colSums(dummy2)
 X2 <- normalize(X2)
 
 out4 <- trendVar(X2)
@@ -73,7 +73,7 @@ expect_equal(out4$var, out2$var)
 expect_equal(out4$trend, out2$trend)
 expect_equal(out4$design, out2$design)
 
-# Trying again but with the semiloessnomial.
+# Trying again but with the semiloess.
 
 suppressWarnings(out2 <- trendVar(d, trend="semiloess"))
 expect_equal(out$mean, out2$mean)
@@ -135,7 +135,7 @@ rownames(dummy) <- paste0("X", seq_len(ngenes))
 X <- newSCESet(countData=data.frame(dummy))
 X <- calculateQCMetrics(X, list(MySpikes=rbinom(ngenes, 1, 0.7)==0))
 setSpike(X) <- "MySpikes"
-sizeFactors(X) <- colSums(dummy)
+sizeFactors(X) <- sizeFactors(X, "MySpikes") <- colSums(dummy)
 X <- normalize(X)
 
 fit <- trendVar(X)

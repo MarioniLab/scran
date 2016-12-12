@@ -81,7 +81,7 @@ setMethod("trendVar", "SCESet", function(x, subset.row=NULL, ..., assay="exprs",
         if (is.na(use.spikes)) {   
             subset.row <- NULL
         } else if (use.spikes) {
-            subset.row <- is.spike(x)
+            subset.row <- isSpike(x, warning=FALSE)
             if (is.null(subset.row)) { 
                 subset.row <- logical(nrow(x)) # no spikes at all.
             }

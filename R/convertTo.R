@@ -32,7 +32,7 @@ setMethod("convertTo", "SCESet", function(x, type=c("edgeR", "DESeq2", "monocle"
     if (is.null(sf)) { 
         collected.sfs[[1]] <- numeric(length(sf))
     } 
-    for (st in .get_feature_control_spike_names(x)) {
+    for (st in whichSpike(x)) {
         spike.sf <- suppressWarnings(sizeFactors(x, type=st))
         if (!is.null(spike.sf)) {
             it <- length(collected.sfs) + 1L

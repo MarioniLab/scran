@@ -11,7 +11,7 @@ exportMethods(
     trendVar, decomposeVar, technicalCV2, 
     sandbag, cyclone,
     correlatePairs,
-    spikes, isSpike, "isSpike<-", "setSpike<-", whichSpike,
+    "isSpike<-", 
     convertTo
 )
 

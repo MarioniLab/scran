@@ -33,7 +33,7 @@ setMethod("decomposeVar", c("matrix", "list"), function(x, fit, design=NA, subse
 setMethod("decomposeVar", c("SCESet", "list"), function(x, fit, subset.row=NULL, ..., assay="exprs", get.spikes=FALSE) {
     out <- decomposeVar(assayDataElement(x, assay), fit, ..., subset.row=subset.row)
     if (!get.spikes) {
-        nokeep <- is.spike(x)
+        nokeep <- isSpike(x, warning=FALSE)
         if (!is.null(subset.row)) { 
             nokeep <- nokeep[subset.row]
         }

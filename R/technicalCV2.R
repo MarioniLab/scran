@@ -95,7 +95,7 @@ setMethod("technicalCV2", "SCESet", function(x, spike.type=NULL, ..., assay="cou
         is.spike <- isSpike(x, type=spike.type)
         if (is.null(spike.type)) { 
             # Get all spikes.
-            spike.type <- .get_feature_control_spike_names(x)            
+            spike.type <- whichSpike(x)            
         }
         if (!length(spike.type)) { 
             stop("no spike-in sets specified from 'x'")

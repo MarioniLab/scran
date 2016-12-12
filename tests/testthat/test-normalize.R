@@ -286,10 +286,17 @@ sizeFactors(X) <- sf
 out <- normalize(X)
 expect_equivalent(exprs(out), log2(t(t(dummy)/sf)+1)) 
 
+# Now adding some controls.
+
 chosen <- rbinom(ngenes, 1, 0.7)==0L
 X <- calculateQCMetrics(X, feature_controls=list(whee=chosen))
 X3 <- normalize(X)
-expect_equivalent(exprs(out), exprs(X3))
+expect_equal(exprs(out), exprs(X3))
+
+Xb <- X
+setSpike(Xb) <- "whee"
+expect_warning(X3b <- normalize(Xb), "spike-in transcripts in 'whee'")
+expect_equal(exprs(X3b), exprs(X3))
 
 sizeFactors(X, type="whee") <- colSums(counts(X)[chosen,])
 X4 <- normalize(X)
@@ -297,6 +304,11 @@ expect_equivalent(exprs(out)[!chosen,], exprs(X4)[!chosen,])
 ref <- sizeFactors(X, type="whee")
 sf <- ref/mean(ref)
 expect_equivalent(exprs(X4)[chosen,], log2(t(t(dummy[chosen,])/sf)+1))
+
+Xb <- X
+setSpike(Xb) <- "whee"
+expect_warning(X4b <- normalize(Xb), NA)
+expect_equal(exprs(X4b), exprs(X4))
 
 # Checking out silly inputs.
 

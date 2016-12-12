@@ -254,7 +254,7 @@ nulls <- sort(runif(1e6, -1, 1))
 set.seed(100)
 ref <- correlatePairs(X, null.dist=nulls)
 set.seed(100)
-X2 <- newSCESet(exprsData=data.frame(X))
+X2 <- newSCESet(exprsData=data.frame(X), logExprsOffset=1, lowerDetectionLimit=0)
 out <- correlatePairs(X2, null.dist=nulls)
 expect_equal(out, ref)
 

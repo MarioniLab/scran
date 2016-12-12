@@ -23,70 +23,12 @@ setMethod("computeSpikeFactors", "SCESet", function(x, type=NULL, sf.out=FALSE, 
         sizeFactors(x) <- sf
     } 
     if (is.null(type)) {
-        type <- .get_feature_control_spike_names(x)
+        type <- whichSpike(x)
     }
     for (f in type) {
         sizeFactors(x, type=f) <- sf
     }        
     x
-})
-
-setGeneric("spikes", function(x, ...) standardGeneric("spikes"))
-
-setMethod("spikes", "SCESet", function(x, assay="counts", type=NULL) {
-    cur.assay <- assayDataElement(x, assay)[isSpike(x, type=type),,drop=FALSE]
-    return(cur.assay)
-})
-
-setGeneric("isSpike", function(x, ...) standardGeneric("isSpike"))
-
-setMethod("isSpike", "SCESet", function(x, type=NULL) {
-    keep <- is.spike(x, type=type)
-    if (is.null(keep)) {
-        if (!is.null(type)) {
-            extra <- sprintf(" for '%s'", type)
-        } else {
-            extra <- ""
-        }
-        warning(sprintf("no spike-ins specified%s, returning NULL", extra)) 
-    }
-    return(keep)
-})
-
-
-setGeneric("setSpike<-", function(x, value) standardGeneric("setSpike<-"))
-
-setReplaceMethod("setSpike", signature(x="SCESet", value="NULL"), function(x, value) {
-    fData(x)$is_feature_spike <- NULL 
-    x@featureControlInfo$spike <- NULL
-    return(x) 
-})
-
-setReplaceMethod("setSpike", signature(x="SCESet", value="character"), function(x, value) {
-    # Recording all those that were listed as spikes.
-    x@featureControlInfo$spike <- .get_feature_control_names(x) %in% value
-
-    # Running through and collecting them.
-    fData(x)$is_feature_spike <- is.spike(x, value)
-
-    # Checking that they don't overlap.
-    if (length(value) > 1L) { 
-        total.hits <- integer(nrow(x))
-        for (v in value) {
-            total.hits <- total.hits + is.spike(x, v)
-        }
-        if (any(total.hits > 1L)) { 
-            warning("overlapping spike-in sets detected")
-        }
-    }
-
-    return(x) 
-})
-
-setGeneric("whichSpike", function(x) standardGeneric("whichSpike")) 
-
-setMethod("whichSpike", signature("SCESet"), function(x) {
-    .get_feature_control_names(x)[x@featureControlInfo$spike]
 })
 
 # Deprecated, to avoid confusion about character-in and logical-out.

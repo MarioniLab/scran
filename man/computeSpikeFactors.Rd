@@ -22,7 +22,7 @@ This is equivalent to normalizing to equalize spike-in coverage between cells.
 Size factors are scaled so that the mean of all size factors is unity, for standardization purposes if one were to compare different sets of size factors.
 
 Spike-in counts are assumed to be stored in the rows specified by \code{isSpike(x)}.
-This specification should have been performed by supplying the names of the spike-in sets -- see \code{?\link{isSpike<-}} for more details.
+This specification should have been performed by supplying the names of the spike-in sets -- see \code{?\link[scater]{setSpike}} for more details.
 By default, if multiple spike-in sets are available, all of them will be used to compute the size factors.
 The function can be restricted to a subset of the spike-ins by specifying the names of the desired spike-in sets in \code{type}.
 
@@ -83,7 +83,8 @@ head(sizeFactors(y2, type="Spike"))
 }
 
 \seealso{
-\code{\link{SCESet}}
+\code{\link[scater]{isSpike}},
+\code{\link[scater]{setSpike}}
 }
 
 \references{

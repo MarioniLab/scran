@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.3.1}{\itemize{
+\section{Version 1.3.3}{\itemize{
 \item
 Added run argument to selectorPlot().
 
@@ -10,7 +10,7 @@ Added run argument to selectorPlot().
 Minor bug fix to DM() when extrapolation is required.
 
 \item
-Added setSpike<-, whichSpike() for setting and getting spike-in names.
+Moved spike-in specification to the scater package.
 
 \item
 Deprecated isSpike<- to avoid confusion over input/output types.

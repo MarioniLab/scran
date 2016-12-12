@@ -23,6 +23,7 @@ expect_identical(sf, unname(sizeFactors(X)))
 expect_identical(colnames(X), names(sizeFactors(X)))
 
 expect_identical(spikes(X), counts(X)[isSpike(X),,drop=FALSE])
+sizeFactors(X, "whee") <- sf # just to avoid the warning.
 X <- normalize(X)
 expect_identical(spikes(X, "exprs"), exprs(X)[isSpike(X),,drop=FALSE])
 

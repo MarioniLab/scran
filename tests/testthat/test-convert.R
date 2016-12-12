@@ -14,7 +14,7 @@ is.spike <- rbinom(ngenes, 1, 0.5)==0L
 X <- calculateQCMetrics(X, list(MySpike=is.spike))
 setSpike(X) <- "MySpike"
 sizeFactors(X) <- 2^rnorm(ncells)
-X <- normalize(X)
+expect_warning(X <- normalize(X), "spike-in transcripts in 'MySpike'")
 
 fData(X)$SYMBOL <- paste0("X", seq_len(ngenes))
 X$other <- sample(LETTERS, ncells, replace=TRUE)
