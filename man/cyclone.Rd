@@ -9,6 +9,7 @@
 \usage{
 \S4method{cyclone}{matrix}(x, pairs, gene.names=rownames(x), iter=1000, min.iter=100, min.pairs=50, 
     BPPARAM=bpparam(), verbose=FALSE, subset.row=NULL)
+
 \S4method{cyclone}{SCESet}(x, pairs, subset.row=NULL, ..., assay="counts", get.spikes=FALSE)
 }
 
@@ -32,42 +33,54 @@
 
 \details{
 This function implements the classification step of the pair-based prediction method described by Scialdone et al. (2015).
-Consider classification into G1 phase.
+To illustrate, consider classification of cells into G1 phase.
 Pairs of marker genes are identified with \code{\link{sandbag}}, where the expression of the first gene in the training data is greater than the second in G1 phase but less than the second in all other phases.
 For each cell, \code{cyclone} calculates the proportion of all marker pairs where the expression of the first gene is greater than the second in the new data \code{x}
     (pairs with the same expression are ignored).
 A high proportion suggests that the cell is likely to belong in G1 phase, as the expression ranking in the new data is consistent with that in the training data.
 
-To make the proportions comparable between phases, a distribution of proportions is constructed by shuffling the expression values within the cell and recalculating the proportion at each iteration.
-The phase score for that cell is then defined as the lower tail probability of this distribution.
-By default, shuffling is performed \code{iter} times to obtain the distribution from which the score is estimated.
-However, some iterations may not be used if there are fewer than \code{min.pairs} pairs with different expression, such that the proportion cannot be calculated precisely.
-Also, a score is only returned if the distribution is large enough for stable calculation of the tail probability, i.e., consists of results from at least \code{min.iter} iterations.
-
-% The original implementation shuffled expression values from all genes in the training set, rather than only genes in the marker set for each phase.
-% In theory, this shouldn't matter, as the score calculation depends on the ranking of each gene.
-% That should be the same regardless of the distribution of expression values -- each set of rankings is equally likely, no matter what.
-% In practice, the number of ties will differ between different set of genes.
-% The most appropriate comparison would involve the same number of ties as that used to calculate the observed score.
-% Thus, I would set the marker set genes as the empirical distribution, rather than the entire training set of genes.
-
-The same process is repeated for all phases, using the appropriate set of marker pairs in \code{pairs} for each phase.
-Cells with G1 or G2M scores above 0.5 should be assigned to the G1 or G2M phases, respectively.
+Proportions are converted into scores (see below) that are comparable between phases.
+The same process is repeated for all phases, using the corresponding set of marker pairs in \code{pairs}.
+Cells with G1 or G2M scores above 0.5 are assigned to the G1 or G2M phases, respectively.
 (If both are above 0.5, the higher score is used for assignment.)
-This is based on the interpretation of the score as 1 minus the p-value for the null distribution of proportions.
-The null hypothesis here is that expression of the marker genes is independent within each cell, i.e., with no cycle-induced correlations between marker pairs.
-Cells can be assigned to S phase based on the S phase score, but a more reliable approach is to define S phase cells based on those cells with G1 and G2M scores below 0.5.
+Cells can be assigned to S phase based on the S score, but a more reliable approach is to define S phase cells as those with G1 and G2M scores below 0.5.
 
-% Training should protect against non-cycle-based correlations, as such they should be present across all phases and not get included in the marker set.
-% This is analogous to randomization to get p-values against the null in correlatePairs().
-
-For \code{cyclone,SCESet-method}, the matrix of counts is used but can be replaced with expression values by setting \code{assays}.
+For \code{cyclone,SCESet-method}, the matrix of counts is used but can be replaced with expression values by setting \code{assay}.
 By default, \code{get.spikes=FALSE} which means that any rows corresponding to spike-in transcripts will not be considered for score calculation.
 This is for the same reasons as described in \code{?\link{sandbag}}.
 
 Users can also manually set \code{subset.row} to specify which rows of \code{x} are to be used.
 This is better than subsetting \code{x} directly, as it reduces memory usage and also subsets \code{gene.names} at the same time.
 If this is specified, it will overwrite any setting of \code{get.spikes}.
+
+While this method is described for cell cycle phase classification, any biological groupings can be used here -- see \code{?\link{sandbag}} for details.
+However, for non-cell cycle phase groupings, the output \code{phases} will be an empty character vector.
+Users should manually apply their own score thresholds for assigning cells into specific groups.
+}
+
+\section{Description of the score calculation}{ 
+To make the proportions comparable between phases, a distribution of proportions is constructed by shuffling the expression values within each cell and recalculating the proportion.
+The phase score is defined as the lower tail probability at the observed proportion.
+High scores indicate that the proportion is greater than what is expected by chance if the expression of marker genes were independent 
+(i.e., with no cycle-induced correlations between marker pairs within each cell).
+
+% The shuffling assumes that the marker genes are IID from the same distribution of expression values, such that there's no correlations.
+% The question is then what distribution of expression values to use - see below.
+% Training also should protect against non-cycle-based correlations, as such they should be present across all phases and not get included in the marker set.
+
+By default, shuffling is performed \code{iter} times to obtain the distribution from which the score is estimated.
+However, some iterations may not be used if there are fewer than \code{min.pairs} pairs with different expression, such that the proportion cannot be calculated precisely.
+A score is only returned if the distribution is large enough for stable calculation of the tail probability, i.e., consists of results from at least \code{min.iter} iterations.
+
+Note that the score calculation in \code{cyclone} is slightly different from that described originally by Scialdone et al.
+The original code shuffles all expression values within each cell, while in this implementation, only the expression values of genes in the marker pairs are shuffled.
+This modification aims to use the most relevant expression values to build the null score distribution.
+
+% In theory, this shouldn't matter, as the score calculation depends on the ranking of each gene.
+% That should be the same regardless of the distribution of expression values -- each set of rankings is equally likely, no matter what.
+% In practice, the number of tied expression values will differ between different set of genes, e.g., due to abundance (low counts more likely to get ties).
+% The most appropriate comparison would involve the same number of ties as that used to calculate the observed score.
+% It doesn't make sense, for example, to shuffle in a whole bunch of non-expressed genes (lots of zeroes, ties) when the markers are always expressed.
 }
 
 \value{

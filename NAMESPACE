@@ -19,14 +19,15 @@ importFrom("dynamicTreeCut", cutreeDynamic)
 importFrom("Matrix", sparseMatrix, qr, qr.coef, qr.qty)
 importFrom("zoo", zoo, rollapply, index)
 
-importFrom("edgeR", DGEList, "[.DGEList", designAsFactor)
+importFrom("edgeR", DGEList, "[.DGEList", designAsFactor, scaleOffset.DGEList)
+importFrom("limma", fitFDistRobustly)
 importFrom("statmod", glmgam.fit)
 
 importFrom("BiocGenerics", normalize)
 importFrom("Biobase", assayDataElement, "assayDataElement<-", fData, exprs, featureData, phenoData, pData)
 
 importFrom("utils", combn)
-importFrom("stats", approx, as.dist, cor, fitted, hclust, loess, median, p.adjust, pchisq, predict, quantile, coefficients, nls, nls.control)
+importFrom("stats", approx, as.dist, cor, fitted, hclust, loess, median, p.adjust, pchisq, pf, predict, quantile, coefficients, nls, nls.control)
 importFrom("grDevices", grey.colors)
 importFrom("graphics", text)
 

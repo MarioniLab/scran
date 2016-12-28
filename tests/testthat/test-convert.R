@@ -1,6 +1,6 @@
 # Tests the convertTo function.
 
-# require(scran); require(testthat)
+# require(scran); require(testthat); source("test-convert.R")
 
 set.seed(40000)
 ncells <- 200
@@ -45,9 +45,10 @@ expect_identical(y$genes$SYMBOL, fData(X)$SYMBOL[!is.spike])
 X2 <- X # Seeing how it behaves with offset matrices.
 sizeFactors(X2, type="MySpike") <- 1
 y <- convertTo(X2, type="edgeR", get.spikes=TRUE)
-expect_equal(unname(y$offset[isSpike(X2),,drop=FALSE]), matrix(0, sum(isSpike(X2)), ncol(X2)))
+log.mls <- mean(log(y$samples$lib.size))
+expect_equal(unname(y$offset[isSpike(X2),,drop=FALSE]), matrix(log.mls, sum(isSpike(X2)), ncol(X2)))
 expect_equal(unname(y$offset[!isSpike(X2),,drop=FALSE]),
-             matrix(log(sizeFactors(X2)) - mean(log(sizeFactors(X2))), 
+             matrix(log(sizeFactors(X2)) - mean(log(sizeFactors(X2))) + log.mls, 
                     sum(!isSpike(X2)), ncol(X2), byrow=TRUE))
 y <- convertTo(X2, type="edgeR", use.all.sf=FALSE, get.spikes=TRUE)
 expect_identical(y$offset, NULL) 

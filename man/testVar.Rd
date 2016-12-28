@@ -5,7 +5,8 @@
 \description{Test for whether the total variance exceeds that expected under some null hypothesis, for sample variances estimated from normally distributed observations.}
 
 \usage{
-testVar(total, null, df, design=NULL) 
+testVar(total, null, df, design=NULL, test=c("chisq", "f"), 
+    fit=NULL, verbose=FALSE)
 }
 
 \arguments{
@@ -21,22 +22,38 @@ An integer scalar specifying the degrees of freedom on which the variances were 
 \item{design}{
 A design matrix, used to determine the degrees of freedom if \code{df} is missing.
 }
+\item{test}{
+A string specifying the type of test to perform.
+}
+\item{fit}{
+A list object produced by \code{\link{trendVar}}, only required if \code{test="f"}.
+}
+\item{verbose}{
+A logical scalar specifying whether test parameters should be reported.
+}
 }
 
 \details{
-The null hypothesis states that the true variance for each gene is equal to \code{null}.
-(Technically, it states that the variance is equal to or less than this value, but the most conservative test is obtained at equality.)
-Variance estimates should follow a scaled chi-squared distribution on \code{df} degrees of freedom, where the scaling factor is equal to \code{null/df}.
-This can be used to compute a p-value for \code{total} being greater than \code{null}.
-The assumption is that the original observations were normally distributed -- using log-CPMs tends to work reasonably well for count data.
+The null hypothesis is that the true variance for each gene is equal to \code{null}.
+(Technically, it is that the variance is equal to or less than this value, but the most conservative test is obtained at equality.)
+If \code{test="chisq"}, variance estimates are assumed to follow a chi-squared distribution on \code{df} degrees of freedom and scaled by \code{null/df}.
+This is used to compute a p-value for \code{total} being greater than \code{null}.
+The underlying assumption is that the observations are normally distributed under the null, which is reasonable for log-counts with low-to-moderate dispersions.
 
 % Also protects against outliers, whereas using the CV2 (e.g., in Brennecke's test method) doesn't.
 
-The idea is to use this function to identify significantly highly variable genes (HVGs).
+The aim is to use this function to identify significantly highly variable genes (HVGs).
 For example, the \code{null} vector can be set to the values of the trend fitted to the spike-in variances.
 This will identify genes with variances significantly greater than technical noise.
 Alternatively, it can be set to the trend fitted to the cellular variances, which will identify those that are significantly more variable than the bulk of genes.
-Ranking HVGs on p-values is better than ranking on \code{total - null}, as the latter is less precise when \code{null} is large.
+Selecting HVGs on p-values is better than using \code{total - null}, as the latter is less precise when \code{null} is large.
+
+If \code{test="f"}, the true variance of each spike-in transcript is assumed to be sampled from a scaled inverse chi-squared distribution.
+This accounts for any inflated scatter around the trend due to differences in amplification efficiency between transcripts.
+As a result, the gene-wise variance estimates are F-distributed under the null, which is exploited to calculate the p-value for each gene.
+Parameters of the F distribution are estimated from values in \code{fit} using \code{\link[limma]{fitFDistRobustly}}.
+
+% Each transcript is treated as a random variable; thus, while error may not be controlled for a specific transcript, it will be controlled over all transcripts.
 }
 
 \value{
@@ -45,7 +62,8 @@ A numeric vector of p-values for all genes.
 
 \seealso{
 \code{\link{trendVar}},
-\code{\link{decomposeVar}}
+\code{\link{decomposeVar}},
+\code{\link[limma]{fitFDistRobustly}}
 }
 
 \author{

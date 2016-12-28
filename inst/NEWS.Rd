@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.3.3}{\itemize{
+\section{Version 1.3.6}{\itemize{
 \item
 Added run argument to selectorPlot().
 
@@ -10,10 +10,19 @@ Added run argument to selectorPlot().
 Minor bug fix to DM() when extrapolation is required.
 
 \item
+Added check for centred size factors in trendVar(), decomposeVar() methods.
+
+\item
 Moved spike-in specification to the scater package.
 
 \item
 Deprecated isSpike<- to avoid confusion over input/output types.
+
+\item 
+Generalized sandbag(), cyclone() to work for other classification problems.
+
+\item
+Added test="f" option in testVar() to account for additional scatter.
 
 \item
 Streamlined examples when mocking up data sets.

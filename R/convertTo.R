@@ -59,7 +59,7 @@ setMethod("convertTo", "SCESet", function(x, type=c("edgeR", "DESeq2", "monocle"
             offset.index <- offset.index[subset.row]            
         }
         if (!all(offset.index==1L) && use.all.sf) {
-            y$offset <- collected.offs[offset.index,,drop=FALSE]
+            y <- scaleOffset.DGEList(y, collected.offs[offset.index,,drop=FALSE])
         }
         return(y)
 

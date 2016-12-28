@@ -7,10 +7,10 @@
 \description{Use gene expression data to train a classifier for cell cycle phase.}
 
 \usage{
-\S4method{sandbag}{matrix}(x, is.G1, is.S, is.G2M, gene.names=rownames(x), 
+\S4method{sandbag}{matrix}(x, phases, gene.names=rownames(x), 
     fraction=0.5, subset.row=NULL)
 
-\S4method{sandbag}{SCESet}(x, is.G1, is.S, is.G2M, subset.row=NULL, ..., 
+\S4method{sandbag}{SCESet}(x, phases, subset.row=NULL, ..., 
     assay="counts", get.spikes=FALSE)
 }
 
@@ -19,7 +19,8 @@
     A numeric matrix of gene expression values where rows are genes and columns are cells.
     Alternatively, a SCESet object containing such a matrix.
 }
-\item{is.G1, is.S, is.G2M}{A vector indicating which cells are in each phase of the cell cycle.}
+\item{phases}{A list of subsetting vectors specifying which cells are in each phase of the cell cycle.
+This should typically be of length 3, with elements named as \code{"G1"}, \code{"S"} and \code{"G2M"}.}
 \item{gene.names}{A character vector of gene names.}
 \item{fraction}{A numeric scalar specifying the minimum fraction to define a marker gene pair.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
@@ -47,6 +48,11 @@ By default, \code{get.spikes=FALSE} which means that any rows corresponding to s
 This is because the amount of spike-in RNA added will vary between experiments and will not be a robust predictor.
 Nonetheless, if all rows are required, users can set \code{get.spikes=TRUE}.
 Users can also manually select which rows to use via \code{subset.row}, which will override any setting of \code{get.spikes}.
+
+While \code{sandbag} and its partner function \code{\link{cyclone}} were originally designed for cell cyclone phase classification,
+the same computational strategy can be used to classify cells into any mutually exclusive groupings.
+Any number and nature of groups can be specified in \code{phases}, e.g., differentiation lineages, activation states. 
+Only the names of \code{phases} need to be modified to reflect the biology being studied.
 }
 
 \value{
@@ -71,7 +77,7 @@ rownames(training) <- paste0("X", seq_len(ngenes))
 is.G1 <- 1:20
 is.S <- 21:30
 is.G2M <- 31:50
-out <- sandbag(training, is.G1, is.S, is.G2M) 
+out <- sandbag(training, list(G1=is.G1, S=is.S, G2M=is.G2M))
 str(out)
 
 # Getting pre-trained marker sets

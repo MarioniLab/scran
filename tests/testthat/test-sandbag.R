@@ -38,7 +38,8 @@ is.S <- phases==3L
 frac <- 0.5
 X <- matrix(rpois(Ngenes*length(phases), lambda=10), nrow=Ngenes)
 rownames(X) <- paste0("X", seq_len(Ngenes))
-out <- sandbag(X, is.G1, is.S, is.G2M, fraction=frac)
+cur.classes <- list(G1=is.G1, S=is.S, G2M=is.G2M)
+out <- sandbag(X, cur.classes, fraction=frac)
 
 XG1 <- X[,is.G1,drop=FALSE]
 XS <- X[,is.S,drop=FALSE]
@@ -50,16 +51,17 @@ expect_true(all(happycheck(XS, XG1, XG2M, out$S, frac)))
 
 # Checking silly inputs.
 
-out <- sandbag(X[0,], is.G1, is.S, is.G2M, fraction=frac)
+out <- sandbag(X[0,], cur.classes, fraction=frac)
 expect_identical(out$G1, data.frame(first=character(0), second=character(0), stringsAsFactors=FALSE))
 expect_identical(out$G2M, data.frame(first=character(0), second=character(0), stringsAsFactors=FALSE))
 expect_identical(out$S, data.frame(first=character(0), second=character(0), stringsAsFactors=FALSE))
-expect_error(sandbag(X, integer(0), is.S, is.G2M, fraction=frac), "each phase must have at least one cell")
+expect_error(sandbag(X, list(G1=integer(0), S=is.S, G2M=is.G2M), fraction=frac), "each class must have at least one cell")
+expect_error(sandbag(X, unname(cur.classes), fraction=frac), "names")
 
 is.G1 <- 1
 is.G2M <- 2
 is.S <- 3
-out <- sandbag(X, is.G1, is.S, is.G2M, fraction=frac)
+out <- sandbag(X, list(G1=is.G1, S=is.S, G2M=is.G2M), fraction=frac)
 XG1 <- X[,is.G1,drop=FALSE]
 XS <- X[,is.S,drop=FALSE]
 XG2M <- X[,is.G2M,drop=FALSE]
@@ -82,8 +84,9 @@ X <- matrix(rpois(Ngenes*length(phases), lambda=10), nrow=Ngenes)
 rownames(X) <- paste0("X", seq_len(Ngenes))
 X <- newSCESet(countData=as.data.frame(X))
 
-out <- sandbag(X, is.G1, is.S, is.G2M, fraction=frac)
-expect_identical(sandbag(counts(X), is.G1, is.S, is.G2M, fraction=frac), out)
+cur.classes <- list(G1=is.G1, S=is.S, G2M=is.G2M)
+out <- sandbag(X, cur.classes, fraction=frac)
+expect_identical(sandbag(counts(X), cur.classes, fraction=frac), out)
 
 XG1 <- counts(X[,is.G1,drop=FALSE])
 XS <- counts(X[,is.S,drop=FALSE])
@@ -110,8 +113,9 @@ X <- newSCESet(countData=as.data.frame(X))
 X <- calculateQCMetrics(X, list(MySpike=rbinom(Ngenes, 1, 0.7)==0L))
 setSpike(X) <- "MySpike"
 
-out <- sandbag(X, is.G1, is.S, is.G2M, fraction=frac)
-expect_identical(sandbag(counts(X)[!isSpike(X),], is.G1, is.S, is.G2M, fraction=frac), out)
+cur.classes <- list(G1=is.G1, S=is.S, G2M=is.G2M)
+out <- sandbag(X, cur.classes, fraction=frac)
+expect_identical(sandbag(counts(X)[!isSpike(X),], cur.classes, fraction=frac), out)
 
 XG1 <- counts(X[,is.G1,drop=FALSE])
 XS <- counts(X[,is.S,drop=FALSE])
@@ -125,7 +129,7 @@ expect_true(all(happycheck(XS, XG1, XG2M, out$S, frac)))
 
 X <- calculateQCMetrics(X, list(MySpike=!logical(Ngenes)))
 setSpike(X) <- "MySpike"
-out <- sandbag(X, is.G1, is.S, is.G2M, fraction=frac)
+out <- sandbag(X, cur.classes, fraction=frac)
 expect_identical(out$G1, data.frame(first=character(0), second=character(0), stringsAsFactors=FALSE))
 expect_identical(out$G2M, data.frame(first=character(0), second=character(0), stringsAsFactors=FALSE))
 expect_identical(out$S, data.frame(first=character(0), second=character(0), stringsAsFactors=FALSE))

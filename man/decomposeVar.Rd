@@ -7,7 +7,7 @@
 \description{Decompose the gene-specific variance into biological and technical components for single-cell RNA-seq data.}
 
 \usage{
-\S4method{decomposeVar}{matrix,list}(x, fit, design=NA, subset.row=NULL)
+\S4method{decomposeVar}{matrix,list}(x, fit, design=NA, subset.row=NULL, ...)
 \S4method{decomposeVar}{SCESet,list}(x, fit, subset.row=NULL, ..., assay="exprs", get.spikes=FALSE)
 }
 
@@ -21,7 +21,10 @@
 }
 \item{design}{A numeric matrix describing the systematic factors contributing to expression in each cell.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
-\item{...}{Additional arguments to pass to \code{decomposeVar,matrix,list-method}.}
+\item{...}{
+For \code{decomposeVar,matrix,list-method}, additional arguments to pass to \code{\link{testVar}}.
+For \code{decomposeVar,SCESet,list-method}, additional arguments to pass to the matrix method.
+}
 \item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
 \item{get.spikes}{A logical scalar specifying whether decomposition should be performed for spike-ins.}
 }
@@ -43,6 +46,8 @@ If \code{NA}, it will be extracted from \code{fit$design}, assuming that the sam
 
 Users can also directly specify which rows to use with \code{subset.row}.
 This is equivalent to running \code{decomposeVar} on \code{x[subset.row,]}, but is more efficient as it avoids the construction of large temporary matrices.
+
+If \code{assay="exprs"} and the size factors are not centred at unity, a warning will be raised - see \code{?\link{trendVar}} for details.
 }
 
 \value{

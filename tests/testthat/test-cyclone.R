@@ -110,6 +110,16 @@ expect_identical(reference$phases, observed$phases)
 expect_equal(reference$scores, observed$scores)
 expect_equal(reference$normalized.scores, observed$normalized.scores)
 
+# Changing the names of the markers.
+
+re.markers <- markers
+names(re.markers) <- paste0("X", names(markers))
+set.seed(100)
+re.out <- cyclone(X, re.markers)
+expect_identical(re.out$phase, character(0))
+expect_identical(colnames(re.out$scores), names(re.markers))
+expect_equal(unname(re.out$scores), unname(observed$scores))
+
 # Low counts to induce more ties.
 
 set.seed(1002)

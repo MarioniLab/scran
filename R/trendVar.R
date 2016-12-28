@@ -77,6 +77,7 @@ setMethod("trendVar", "matrix", function(x, trend=c("loess", "semiloess"),
 }
 
 setMethod("trendVar", "SCESet", function(x, subset.row=NULL, ..., assay="exprs", use.spikes=TRUE) {
+    .check_centered_SF(x, assay=assay)
     if (is.null(subset.row)) {
         if (is.na(use.spikes)) {   
             subset.row <- NULL

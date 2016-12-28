@@ -1,46 +1,50 @@
-find.markers <- function(data1, data2, data3, gene.names, fraction=0.5)
+find.markers <- function(current.data, other.data, gene.names, fraction=0.5)
 # This identifies pairs of genes whose relative expression is > 0 in 
 # at least a 'fraction' of cells in one phase is < 0 in at least 
 # 'fraction' of the cells in each of the other phases.
 {
-    Ngenes <- ncol(data1)
+    Ngenes <- ncol(current.data)
     if (length(gene.names)!=Ngenes) {
         stop("length of 'gene.names' vector must be equal to 'x' nrows")
     }
-    if (Ngenes!=ncol(data2) || Ngenes!=ncol(data3)) { 
-        stop("number of genes in each phase must be the same")
+    other.Ngenes <- sapply(other.data, ncol)
+    if (any(other.Ngenes!=Ngenes)) { 
+        stop("number of genes in each class must be the same")
     }
-    if (nrow(data1)==0L || nrow(data2)==0L || nrow(data3)==0L) {
-        stop("each phase must have at least one cell")
+    Ncells <- nrow(current.data)
+    other.Ncells <- sapply(other.data, nrow)
+    if (Ncells==0L || any(other.Ncells==0L)) {
+        stop("each class must have at least one cell")
     }
 
     # Calculating thresholds.
-    Nthr1 <- ceiling(nrow(data1) * fraction)
-    Nthr2 <- ceiling(nrow(data2) * fraction)
-    Nthr3 <- ceiling(nrow(data3) * fraction)
+    Nthr.cur <- ceiling(Ncells * fraction)
+    Nthr.other <- ceiling(other.Ncells * fraction)
 
     if (Ngenes) { 
         collected <- list()
         counter <- 1L
+
         for (i in seq_len(Ngenes-1L)) { 
             others <- (i+1):Ngenes
-            diff1 <- data1[,i] - data1[,others,drop=FALSE]
-            diff2 <- data2[,i] - data2[,others,drop=FALSE]
-            diff3 <- data3[,i] - data3[,others,drop=FALSE]
+            cur.diff <- current.data[,i] - current.data[,others,drop=FALSE]
+            other.diff <- lapply(other.data, function(odata) { odata[,i] - odata[,others,drop=FALSE] })
 
-            npos1 <- colSums(diff1 > 0)
-            npos2 <- colSums(diff2 > 0)
-            npos3 <- colSums(diff3 > 0)
-            nneg1 <- colSums(diff1 < 0)
-            nneg2 <- colSums(diff2 < 0)
-            nneg3 <- colSums(diff3 < 0)
-
-            chosen <- others[npos1 >= Nthr1 & nneg2 >= Nthr2 & nneg3 >= Nthr3]
+            # Looking for marker pairs that are up in the current group and down in the other groups.
+            cur.pos.above.threshold <- colSums(cur.diff > 0) >= Nthr.cur
+            other.neg.above.threshold <- mapply(function(odata, thr) { colSums(odata < 0) >= thr}, 
+                                                other.diff, Nthr.other, SIMPLIFY=FALSE, USE.NAMES=FALSE)
+            chosen <- others[cur.pos.above.threshold & do.call(`&`, other.neg.above.threshold)]
             if (length(chosen)) { 
                 collected[[counter]] <- cbind(i, chosen)
                 counter <- counter + 1L
             }
-            chosen.flip <- others[nneg1 >= Nthr1 & npos2 >= Nthr2 & npos3 >= Nthr3]
+
+            # Looking for marker pairs that are down in the current group and up in the other groups.
+            cur.neg.above.threshold <- colSums(cur.diff < 0) >= Nthr.cur
+            other.pos.above.threshold <- mapply(function(odata, thr) { colSums(odata > 0) >= thr}, 
+                                                other.diff, Nthr.other, SIMPLIFY=FALSE, USE.NAMES=FALSE)
+            chosen.flip <- others[cur.neg.above.threshold & do.call(`&`, other.pos.above.threshold)]
             if (length(chosen.flip)) { 
                 collected[[counter]] <- cbind(chosen.flip, i)
                 counter <- counter + 1L
@@ -58,30 +62,34 @@ find.markers <- function(data1, data2, data3, gene.names, fraction=0.5)
 
 setGeneric("sandbag", function(x, ...) standardGeneric("sandbag"))
 
-setMethod("sandbag", "matrix", function(x, is.G1, is.S, is.G2M, gene.names=rownames(x), fraction=0.5, subset.row=NULL) 
+setMethod("sandbag", "matrix", function(x, phases, gene.names=rownames(x), fraction=0.5, subset.row=NULL) 
 # Identifies the relevant pairs before running 'cyclone'.
 # Basically runs through all combinations of 'find.markers' for each phase. 
 #
 # written by Aaron Lun
 # based on code by Antonio Scialdone
 # created 22 January 2016 
-# last modified 8 June 2016
+# last modified 16 December 2016
 {
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
-    data.G1 <- t(x[subset.row,is.G1,drop=FALSE])
-    data.S <- t(x[subset.row,is.S,drop=FALSE])
-    data.G2M <- t(x[subset.row,is.G2M,drop=FALSE]) 
     gene.names <- gene.names[subset.row]
 
-    G1.marker.pairs <- find.markers(data.G1, data.S, data.G2M, fraction=fraction, gene.names=gene.names)
-    S.marker.pairs <- find.markers(data.S, data.G1, data.G2M, fraction=fraction, gene.names=gene.names)
-    G2M.marker.pairs <- find.markers(data.G2M, data.G1, data.S, fraction=fraction, gene.names=gene.names)
-    return(list(G1=G1.marker.pairs, S=S.marker.pairs, G2M=G2M.marker.pairs))
+    class.names <- names(phases)
+    if (is.null(class.names) || is.na(class.names)) stop("'phases' must have non-missing, non-NULL names") 
+    gene.data <- lapply(phases, function(cl) t(x[subset.row,cl,drop=FALSE]))
+
+    marker.pairs <- list()
+    for (i in seq_along(gene.data)) {
+        marker.pairs[[i]] <- find.markers(gene.data[[i]], gene.data[-i], fraction=fraction, gene.names=gene.names)
+    }
+
+    names(marker.pairs) <- class.names
+    return(marker.pairs)
 })
 
-setMethod("sandbag", "SCESet", function(x, is.G1, is.S, is.G2M, subset.row=NULL, ..., assay="counts", get.spikes=FALSE) {
+setMethod("sandbag", "SCESet", function(x, phases, subset.row=NULL, ..., assay="counts", get.spikes=FALSE) {
     if (is.null(subset.row)) { 
         subset.row <- .spikeSubset(x, get.spikes)
     }
-    sandbag(assayDataElement(x, assay), is.G1=is.G1, is.S=is.S, is.G2M=is.G2M, ..., subset.row=subset.row)
+    sandbag(assayDataElement(x, assay), phases=phases, ..., subset.row=subset.row)
 })

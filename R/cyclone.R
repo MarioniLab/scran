@@ -6,7 +6,7 @@ setMethod("cyclone", "matrix", function(x, pairs, gene.names=rownames(x), iter=1
 # written by Antonio Scialdone
 # with modifications by Aaron Lun
 # created 22 January 2016    
-# last modified 6 August 2016
+# last modified 16 December 2016
 { 
     if (length(gene.names)!=nrow(x)) {
         stop("length of 'gene.names' must be equal to 'x' nrows")
@@ -38,32 +38,28 @@ setMethod("cyclone", "matrix", function(x, pairs, gene.names=rownames(x), iter=1
     }
 
     if (verbose) { 
-        cat(sprintf("Number of G1 pairs: %d\n", length(pairs$G1[[1]])))
-        cat(sprintf("Number of S pairs: %d\n", length(pairs$S[[1]])))
-        cat(sprintf("Number of G2M pairs: %d\n", length(pairs$G2[[1]])))
+        for (cl in names(pairs)) { 
+            cat(sprintf("Number of %s pairs: %d\n", cl, length(pairs[[cl]][[1]])))
+        }
     }
   
     # Run the allocation algorithm
     workass <- .workerAssign(ncol(x), BPPARAM)
     common.args <- list(exprs=x, iter=iter, min.iter=min.iter, min.pairs=min.pairs)
-    out.G1 <- bpmapply(FUN=.get_phase_score, wstart=workass$start, wend=workass$end, BPPARAM=BPPARAM,
-                       MoreArgs=c(list(pairings=pairs$G1), common.args), SIMPLIFY=FALSE) 
-    out.S <- bpmapply(FUN=.get_phase_score, wstart=workass$start, wend=workass$end, BPPARAM=BPPARAM,
-                       MoreArgs=c(list(pairings=pairs$S), common.args), SIMPLIFY=FALSE) 
-    out.G2M <- bpmapply(FUN=.get_phase_score, wstart=workass$start, wend=workass$end, BPPARAM=BPPARAM,
-                       MoreArgs=c(list(pairings=pairs$G2M), common.args), SIMPLIFY=FALSE) 
+    all.scores <- list()
+    for (cl in names(pairs)) { 
+        cur.scores <- bpmapply(FUN=.get_phase_score, wstart=workass$start, wend=workass$end, BPPARAM=BPPARAM,
+                               MoreArgs=c(list(pairings=pairs[[cl]]), common.args), SIMPLIFY=FALSE) 
+        all.scores[[cl]] <- unlist(cur.scores)
+    }
 
     # Assembling the output.
-    score.G1 <- unlist(out.G1)
-    score.S <- unlist(out.S)
-    score.G2M <- unlist(out.G2M)
-
-    scores <- data.frame(G1=score.G1, S=score.S, G2M=score.G2M)
+    scores <- do.call(data.frame, all.scores)
     scores.normalised <- scores/rowSums(scores)
 
     # Getting the phases.
-    phases <- ifelse(score.G1 >= score.G2M, "G1", "G2M")
-    phases[score.G1 < 0.5 & score.G2M < 0.5] <- "S"
+    phases <- ifelse(scores$G1 >= scores$G2M, "G1", "G2M")
+    phases[scores$G1 < 0.5 & scores$G2M < 0.5] <- "S"
 
     return(list(phases=phases, scores=scores, normalized.scores=scores.normalised))  
 })

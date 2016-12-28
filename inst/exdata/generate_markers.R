@@ -10,7 +10,7 @@ out <- unzip(zipfile, exdir="temp")
 pdata <- out[grep("pairs_functions.RData$", out)]
 load(pdata)
 
-all.pairs <- sandbag(is.G1=id.G1, is.S=id.S, is.G2M=id.G2M, training.data[genes.training,], fraction=0.5)
+all.pairs <- sandbag(training.data, list(G1=id.G1, S=id.S, G2M=id.G2M), fraction=0.5, subset.row=genes.training)
 saveRDS(file="mouse_cycle_markers.rds", all.pairs)
 
 rm(list=ls())
@@ -34,7 +34,7 @@ rownames(hs.counts2) <- anno$ENSEMBL
 hs.cycle <- select(org.Hs.eg.db, keytype="GOALL", key="GO:0007049", column="ENSEMBL")
 hs.training <- rownames(hs.counts2) %in% hs.cycle$ENSEMBL
 
-all.pairs <- sandbag(is.G1=hs.G1, is.S=hs.S, is.G2M=hs.G2, hs.counts2[hs.training,], fraction=0.5)
+all.pairs <- sandbag(hs.counts2, list(G1=hs.G1, S=hs.S, G2M=hs.G2), fraction=0.5, subset.row=hs.training)
 saveRDS(file="human_cycle_markers.rds", all.pairs)
 
 # Cleaning up:

@@ -101,19 +101,7 @@ This approach can also be used for one-way layouts by setting \code{residuals=TR
 
 (The second procedure assumes normality, during both linear modelling and generation of the null distribution.
 This is why it is not used for the simpler one-way layouts by default.
-However, this assumption is largely unavoidable for complex designs.
-Nuisance effects cannot be precisely removed without placing some quantitative constraints on how observations change in response to those effects.
-In fact, even with \code{design=NULL}, there is the assumption that all observations are equally likely to receive any rank when performing the permutations.
-This will not be the case in practice as some observations are more variable than others, depending on the expected expression in each cell.
-Thus, caution is required at low counts where the log-expression values will be highly non-normal.)
-
-% Consider a real-valued covariate of 1:100 for 100 cells, where the count for the last cell is unity in each of two genes, and zeroes everywhere else.
-% You'll get correlations of 1 because the residual effects will be negative for the zeros.
-% This seems unavoidable; after all, the likelihood of obtaining a zero does change across cells, given the changes in the fitted value you want to correct for.
-%
-% Don't bother trying to fit a linear model to the ranks, either.
-% I thought it would be a generalization of the definition of Spearman's (Pearson's on ranks).
-% However, there's no guarantee that unevenly-spaced covariates (or factors, for that matter) will make sense when fitted to ranks.
+However, this assumption is largely unavoidable for complex designs, where some quantitative constraints are required to remove nuisance effects.)
 }
 
 \section{Gene selection}{

@@ -273,18 +273,25 @@ colnames(dummy) <- paste0("Y", seq_len(ncells))
 X <- newSCESet(countData=dummy)
 
 ref <- colSums(dummy)
-sf <- ref/mean(ref)
-sizeFactors(X) <- sf
+sizeFactors(X) <- ref
 out <- normalize(X)
+sf <- ref/mean(ref)
 expect_equivalent(exprs(out), log2(t(t(dummy)/sf)+1))
 out <- normalize(X, logExprsOffset=3)
 expect_equivalent(exprs(out), log2(t(t(dummy)/sf)+3))
 
-sf <- runif(ncells, 10, 20)
-sf <- ref/mean(ref)
-sizeFactors(X) <- sf
+ref <- runif(ncells, 10, 20)
+sizeFactors(X) <- ref
 out <- normalize(X)
+sf <- ref/mean(ref)
 expect_equivalent(exprs(out), log2(t(t(dummy)/sf)+1)) 
+
+expect_equivalent(sf, sizeFactors(out))
+Xb <- X
+sizeFactors(Xb) <- ref
+outb <- normalize(Xb, centre_size_factors=FALSE)
+expect_equivalent(ref, sizeFactors(outb))
+expect_equivalent(exprs(out), exprs(outb))
 
 # Now adding some controls.
 
@@ -299,16 +306,16 @@ expect_warning(X3b <- normalize(Xb), "spike-in transcripts in 'whee'")
 expect_equal(exprs(X3b), exprs(X3))
 
 sizeFactors(X, type="whee") <- colSums(counts(X)[chosen,])
-X4 <- normalize(X)
+expect_warning(X4 <- normalize(X), NA) # i.e., no warning.
 expect_equivalent(exprs(out)[!chosen,], exprs(X4)[!chosen,])
 ref <- sizeFactors(X, type="whee")
 sf <- ref/mean(ref)
 expect_equivalent(exprs(X4)[chosen,], log2(t(t(dummy[chosen,])/sf)+1))
 
-Xb <- X
-setSpike(Xb) <- "whee"
-expect_warning(X4b <- normalize(Xb), NA)
-expect_equal(exprs(X4b), exprs(X4))
+expect_equivalent(sizeFactors(X4, type="whee"), sf)
+X4b <- normalize(X, centre_size_factors=FALSE)
+expect_equivalent(sizeFactors(X4b, type="whee"), sizeFactors(X, type="whee"))
+expect_equivalent(exprs(X4), exprs(X4b))
 
 # Checking out silly inputs.
 
