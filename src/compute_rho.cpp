@@ -333,7 +333,8 @@ SEXP compute_rho(SEXP g1, SEXP g2, SEXP rankings) try {
         double* orptr=REAL(output);
         
         const int* r1ptr, * r2ptr;
-        int cell, tmp, working;
+        int cell, tmp;
+        double working;
         const double mult=rho_mult(Ncells); 
 
         for (int p=0; p<Npairs; ++p) {
