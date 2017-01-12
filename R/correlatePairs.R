@@ -63,7 +63,7 @@ correlateNull <- function(ncells, iters=1e6, design=NULL, residuals=FALSE)
 
 setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
 
-setMethod("correlatePairs", "matrix", function(x, null.dist=NULL, design=NULL, BPPARAM=bpparam(), use.names=TRUE, tol=1e-8, residuals=FALSE, subset.row=NULL)
+setMethod("correlatePairs", "matrix", function(x, null.dist=NULL, design=NULL, BPPARAM=SerialParam(), use.names=TRUE, tol=1e-8, residuals=FALSE, subset.row=NULL)
 # This calculates a (modified) Spearman's rho for each pair of genes.
 #
 # written by Aaron Lun

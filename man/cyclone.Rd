@@ -8,7 +8,7 @@
 
 \usage{
 \S4method{cyclone}{matrix}(x, pairs, gene.names=rownames(x), iter=1000, min.iter=100, min.pairs=50, 
-    BPPARAM=bpparam(), verbose=FALSE, subset.row=NULL)
+    BPPARAM=SerialParam(), verbose=FALSE, subset.row=NULL)
 
 \S4method{cyclone}{SCESet}(x, pairs, subset.row=NULL, ..., assay="counts", get.spikes=FALSE)
 }

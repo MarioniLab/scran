@@ -10,7 +10,7 @@
 \usage{
 correlateNull(ncells, iters=1e6, design=NULL, residuals=FALSE) 
 
-\S4method{correlatePairs}{matrix}(x, null.dist=NULL, design=NULL, BPPARAM=bpparam(), 
+\S4method{correlatePairs}{matrix}(x, null.dist=NULL, design=NULL, BPPARAM=SerialParam(), 
     use.names=TRUE, tol=1e-8, residuals=FALSE, subset.row=NULL)
 
 \S4method{correlatePairs}{SCESet}(x, subset.row=NULL, ..., assay="exprs", get.spikes=FALSE)

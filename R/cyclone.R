@@ -1,6 +1,6 @@
 setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
 
-setMethod("cyclone", "matrix", function(x, pairs, gene.names=rownames(x), iter=1000, min.iter=100, min.pairs=50, BPPARAM=bpparam(), verbose=FALSE, subset.row=NULL)
+setMethod("cyclone", "matrix", function(x, pairs, gene.names=rownames(x), iter=1000, min.iter=100, min.pairs=50, BPPARAM=SerialParam(), verbose=FALSE, subset.row=NULL)
 # Takes trained pairs and test data, and predicts the cell cycle phase from that. 
 #
 # written by Antonio Scialdone
