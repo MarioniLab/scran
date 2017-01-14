@@ -2,7 +2,10 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.3.6}{\itemize{
+\section{Version 1.3.8}{\itemize{
+\item 
+Switched default BPPARAM to SerialParam() in all functions.
+
 \item
 Added run argument to selectorPlot().
 
@@ -23,6 +26,11 @@ Generalized sandbag(), cyclone() to work for other classification problems.
 
 \item
 Added test="f" option in testVar() to account for additional scatter.
+
+\item
+Added per.gene=FALSE option in correlatePairs(), expanded accepted value types for subset.row.
+Fixed an integer overflow in correlatePairs().
+Also added information on whether the permutation p-value reaches its lower bound.
 
 \item
 Streamlined examples when mocking up data sets.

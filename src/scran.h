@@ -26,6 +26,8 @@ SEXP get_null_rho_design (SEXP, SEXP, SEXP);
 
 SEXP compute_rho(SEXP, SEXP, SEXP);
 
+SEXP combine_corP(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+
 SEXP auto_shuffle(SEXP, SEXP);
 
 SEXP compute_cordist(SEXP, SEXP);

@@ -103,9 +103,7 @@ with modifications by Aaron Lun
 
 \examples{
 example(sandbag) # Using the mocked-up data in this example.
-\dontshow{# Stalls on Windows, for some reason; so we force single-core.
-old <- bpparam()
-register(SerialParam())}
+
 # Classifying (note: test.data!=training.data in real cases)
 test <- training 
 assignments <- cyclone(test, out)
@@ -118,7 +116,6 @@ col[is.G1] <- "red"
 col[is.G2M] <- "blue"
 col[is.S] <- "darkgreen"
 plot(assignments$score$G1, assignments$score$G2M, col=col, pch=16)
-\dontshow{register(old)}
 }
 
 \references{

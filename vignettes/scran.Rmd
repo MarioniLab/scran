@@ -15,7 +15,6 @@ BiocStyle::markdown()
 
 ```{r setup, echo=FALSE, message=FALSE}
 library(scran)
-register(SerialParam())
 set.seed(100)
 ```
 

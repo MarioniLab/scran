@@ -63,10 +63,6 @@ refFUN <- function(x, pairs) {
 
 ####################################################################################################
 
-# Setting cores constant to avoid messing with the seeds.
-
-register(SerialParam())
-
 # Spawning training data.
 
 all.names <- paste0("X", seq_len(500))
