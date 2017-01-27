@@ -6,15 +6,12 @@ setMethod("decomposeVar", c("matrix", "list"), function(x, fit, design=NA, subse
 #
 # written by Aaron Lun
 # created 21 January 2016 
-# last modified 6 May 2016
+# last modified 19 January 2017
 {
-    if (is.null(design)) { 
-        design <- .interceptModel(ncol(x)) 
-    } else if (length(design)==1L && is.na(design)) { 
-        design <- fit$design 
-    }
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
-    QR <- .checkDesign(design)
+    checked <- .makeVarDefaults(x, fit=fit, design=design)
+    design <- checked$design
+    QR <- qr(design, LAPACK=TRUE)
 
     lout <- .Call(cxx_estimate_variance, QR$qr, QR$qraux, x, subset.row-1L)
     if (is.character(lout)) { stop(lout) }

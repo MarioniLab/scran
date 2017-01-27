@@ -2,12 +2,13 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.3.8}{\itemize{
+\section{Version 1.3.9}{\itemize{
 \item 
 Switched default BPPARAM to SerialParam() in all functions.
 
 \item
 Added run argument to selectorPlot().
+Bug fix to avoid adding an empty list.
 
 \item
 Minor bug fix to DM() when extrapolation is required.
@@ -31,6 +32,12 @@ Added test="f" option in testVar() to account for additional scatter.
 Added per.gene=FALSE option in correlatePairs(), expanded accepted value types for subset.row.
 Fixed an integer overflow in correlatePairs().
 Also added information on whether the permutation p-value reaches its lower bound.
+
+\item
+Added the combineVar() function to combine results from separate decomposeVar() calls.
+
+\item 
+Added protection against all-zero rows in technicalCV2().
 
 \item
 Streamlined examples when mocking up data sets.

@@ -6,6 +6,7 @@
 # written by Aaron Lun
 # based on code by Phillipe Brennecke et al. (2013).
 # created 11 July 2016
+# last modified 27 January 2017
 {
     if (any(!is.na(is.spike))) { 
         if (any(is.na(is.spike))) { 
@@ -50,6 +51,27 @@
     vars.spike <- spike.out[[2]]
     cv2.spike <- vars.spike/means.spike^2
 
+    # Protection against all-zero rows.
+    non.zero <- means.cell > 0L
+    if (any(non.zero)) {
+        means.cell <- means.cell[non.zero]
+        vars.cell <- vars.cell[non.zero]
+        cv2.cell <- cv2.cell[non.zero]
+        is.cell <- is.cell[non.zero]
+    }
+
+    non.zero <- means.spike > 0L
+    if (any(non.zero)) {
+        means.spike <- means.spike[non.zero]
+        vars.spike <- vars.spike[non.zero]
+        cv2.spike <- cv2.spike[non.zero]
+        is.spike <- is.spike[non.zero]
+    }
+
+    if (length(is.spike) < 2L) {
+        stop("need at least 2 non-zero spike-ins for trend fitting")
+    }
+
     # Fitting the trend.
     above.limit <- cv2.spike > cv2.limit
     if (any(above.limit)) { 
@@ -70,14 +92,17 @@
     pA <- 1 - pchisq( vars.cell * (m-1) / testDenomA, m-1 )
 
     # Formatting the returned output.
-    output.mean <- output.var <- output.cv2 <- numeric(nrow(x))
+    output.mean <- output.var <- numeric(nrow(x))
+    output.cv2 <- rep(NaN, nrow(x))
     output.mean[is.spike] <- means.spike
     output.var[is.spike] <- vars.spike
     output.cv2[is.spike] <- cv2.spike
     output.mean[is.cell] <- means.cell
     output.var[is.cell] <- vars.cell
     output.cv2[is.cell] <- cv2.cell
+
     output.trend <- coefficients(fitA)["a0"] + coefficients(fitA)["a1tilde"]/output.mean
+    output.trend[is.infinite(output.trend)] <- NA_real_
     output.p <- rep(NA_real_, nrow(x))
     output.p[is.cell] <- pA
     return(data.frame(mean=output.mean, var=output.var, cv2=output.cv2, trend=output.trend,
@@ -91,7 +116,7 @@ setMethod("technicalCV2", "matrix", .technicalCV2)
 setMethod("technicalCV2", "SCESet", function(x, spike.type=NULL, ..., assay="counts") {
     sf.cell <- sizeFactors(x)
 
-    if (is.null(spike.type) || !is.na(spike.type)) {  
+    if (is.null(spike.type) || !is.na(spike.type)) { 
         is.spike <- isSpike(x, type=spike.type)
         if (is.null(spike.type)) { 
             # Get all spikes.

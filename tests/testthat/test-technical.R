@@ -86,3 +86,13 @@ out <- technicalCV2(counts, is.spike=!logical(ngenes))
 expect_true(all(is.na(out$p.value)))
 expect_error(technicalCV2(counts, is.spike=logical(ngenes)), "need at least 2 spike-ins for trend fitting")
 
+# Testing for robustness to zeroes.
+X3 <- X
+counts(X3)[1,] <- 0
+counts(X3)[501,] <- 0
+out <- technicalCV2(X3)
+expect_identical(out$mean[1], 0)
+expect_identical(out$var[1], 0)
+expect_identical(out$cv2[1], NaN)
+expect_identical(out$trend[1], NA_real_)
+expect_equivalent(out[1,], out[501,])

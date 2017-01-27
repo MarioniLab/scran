@@ -57,12 +57,14 @@ selectorPlot <- function(x, y, persist=FALSE, plot.width=5, plot.height=500, run
         })
 
         observeEvent(input$list_add, {
-            n <- length(collected$all.selected)
-            collected$all.selected[[n+1]] <- collected$current.selected
-            collected$old.selected[collected$current.selected] <- TRUE
-            collected$current.selected[] <- FALSE
-            plotFun1(output)
-            plotFun2(output)
+            if (any(collected$current.selected)) {
+                n <- length(collected$all.selected)
+                collected$all.selected[[n+1]] <- collected$current.selected
+                collected$old.selected[collected$current.selected] <- TRUE
+                collected$current.selected[] <- FALSE
+                plotFun1(output)
+                plotFun2(output)
+            }
         })
 
         observeEvent(input$reset, {

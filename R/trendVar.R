@@ -8,11 +8,12 @@ setMethod("trendVar", "matrix", function(x, trend=c("loess", "semiloess"),
 # 
 # written by Aaron Lun
 # created 21 January 2016
-# last modified 11 September 2016
+# last modified 19 January 2017
 {
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
-    if (is.null(design)) { design <- .interceptModel(ncol(x)) }
-    QR <- .checkDesign(design)
+    checked <- .makeVarDefaults(x, fit=NULL, design=design)
+    design <- checked$design
+    QR <- qr(design, LAPACK=TRUE)
 
     lout <- .Call(cxx_estimate_variance, QR$qr, QR$qraux, x, subset.row - 1L)
     if (is.character(lout)) { stop(lout) }
@@ -60,21 +61,6 @@ setMethod("trendVar", "matrix", function(x, trend=c("loess", "semiloess"),
     }
     return(list(mean=lmeans, var=lvar, trend=FUN, design=design))
 })
-
-.interceptModel <- function(ncells) {
-    as.matrix(rep(1, ncells)) 
-}
-
-.checkDesign <- function(design) {
-    if (ncol(design) >= nrow(design)) {
-        stop("design matrix is not of full rank")
-    }
-    QR <- qr(design, LAPACK=TRUE)
-    if (QR$rank!=ncol(design)) {
-        stop("design matrix is not of full rank")
-    }
-    return(QR)
-}
 
 setMethod("trendVar", "SCESet", function(x, subset.row=NULL, ..., assay="exprs", use.spikes=TRUE) {
     .check_centered_SF(x, assay=assay)

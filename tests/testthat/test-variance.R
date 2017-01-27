@@ -123,8 +123,8 @@ expect_equal(out$var, colMeans(effects^2))
 
 expect_error(trendVar(d[0,,drop=FALSE]), "invalid 'x'") # loess fails with empty input vectors.
 expect_error(trendVar(d[0,,drop=FALSE], trend="semiloess"), "need at least 4 values for non-linear curve fitting")
-expect_error(trendVar(d[,0,drop=FALSE]), "design matrix is not of full rank")
-expect_error(trendVar(d[,1,drop=FALSE]), "design matrix is not of full rank")
+expect_error(trendVar(d[,0,drop=FALSE]), "BLAS/LAPACK routine 'DGEQP3' gave error code -4") # QR fails straight away.
+expect_error(trendVar(d[,1,drop=FALSE]), "invalid 'x'") # undefined variance with no d.f.
 
 ####################################################################################################
 

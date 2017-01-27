@@ -1,66 +1,3 @@
-correlateNull <- function(ncells, iters=1e6, design=NULL, residuals=FALSE) 
-# This builds a null distribution for the modified Spearman's rho.
-#
-# written by Aaron Lun
-# created 10 February 2016
-# last modified 27 May 2016
-{
-    if (!is.null(design)) { 
-        if (!missing(ncells)) { 
-            stop("cannot specify both 'ncells' and 'design'")
-        }
-
-        groupings <- .isOneWay(design)
-        if (is.null(groupings) || residuals) { 
-            # Using residualsd residual effects if the design matrix is not a one-way layout (or if forced by residuals=TRUE).
-            QR <- .checkDesign(design)
-            out <- .Call(cxx_get_null_rho_design, QR$qr, QR$qraux, as.integer(iters))
-            if (is.character(out)) { 
-                stop(out)
-            }
-        } else {
-            # Otherwise, estimating the correlation as a weighted mean of the correlations in each group.
-            # This avoids the need for the normality assumption in the residual effect simulation.
-            out <- 0
-            for (gr in groupings) {
-                out.g <- .Call(cxx_get_null_rho, length(gr), as.integer(iters))
-                if (is.character(out.g)) { 
-                    stop(out.g)
-                }
-                out <- out + out.g * length(gr)
-            }
-            out <- out/nrow(design)
-        }
-        attrib <- list(design=design, residuals=residuals)
-
-    } else {
-        out <- .Call(cxx_get_null_rho, as.integer(ncells), as.integer(iters))
-        if (is.character(out)) { 
-            stop(out)
-        }
-        attrib <- NULL
-    }
-
-    # Storing attributes, to make sure it matches up.
-    out <- sort(out)
-    attributes(out) <- attrib
-    return(out)  
-}
-
-.isOneWay <- function(design) {
-    if (nrow(design) <= ncol(design)) {
-        stop("design matrix has no residual degrees of freedom")
-    }
-    group <- designAsFactor(design)
-    if (nlevels(group) == ncol(design)) {
-        # Stripping out groups with only one level.
-        groupings <- split(seq_len(nrow(design)), group)
-        groupings[lengths(groupings)==1L] <- NULL
-        return(groupings)
-    } 
-    return(NULL)
-}
-
 setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
 
 .correlate_pairs <- function(x, null.dist=NULL, design=NULL, BPPARAM=SerialParam(), use.names=TRUE, tol=1e-8, 
@@ -69,11 +6,11 @@ setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
 #
 # written by Aaron Lun
 # created 10 February 2016
-# last modified 10 January 2017
+# last modified 19 January 2016
 {
     compute.residuals <- FALSE
     if (!is.null(design)) { 
-        QR <- .checkDesign(design)
+        QR <- qr(design, LAPACK=TRUE)
         groupings <- .isOneWay(design)
         if (is.null(groupings) || residuals) { 
             compute.residuals <- TRUE
@@ -225,14 +162,6 @@ setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
     }
 
     return(list(subset.row=subset.row, gene1=gene1, gene2=gene2, reorder=!is.ordered))
-}
-
-.workerAssign <- function(njobs, BPPARAM) {
-    ncores <- bpworkers(BPPARAM)
-    starting <- as.integer(seq(from=1, to=njobs+1, length.out=ncores+1))
-    starting <- unique(starting[seq_len(ncores)])
-    ending <- c((starting - 1L)[-1], njobs)
-    return(list(start=starting, end=ending))
 }
 
 .get_correlation <- function(wstart, wend, gene1, gene2, ranked.exprs) {

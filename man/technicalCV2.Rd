@@ -49,13 +49,14 @@ For \code{technicalCV2,matrix-method}, the rows corresponding to spike-in transc
 These rows will be used for trend fitting, while all other rows are treated as endogenous genes.
 If either \code{sf.cell} or \code{sf.spike} are not specified, the \code{\link[DESeq2]{estimateSizeFactorsForMatrix}} function is applied to compute size factors.
 
-For \code{technicalCV2,SCESet-method}, only the named spike-in sets in \code{spike.type} will be used for trend fitting.
+For \code{technicalCV2,SCESet-method}, transcripts from spike-in sets named in \code{spike.type} will be used for trend fitting.
 If \code{spike.type=NULL}, all spike-in sets listed in \code{x} will be used.
 Size factors for the endogenous genes are automatically extracted via \code{\link{sizeFactors}}.
 Spike-in-specific size factors for \code{spike.type} are extracted from \code{x}, if available; otherwise they are set to the size factors for the endogenous genes.
 Note that the spike-in-specific factors must be the same for each set in \code{spike.type}.
 
-If \code{is.spike} or \code{spike.type} are \code{NA}, all rows will be used for trend fitting, and (adjusted) p-values will be reported for all rows.
+Users can also set \code{is.spike} to \code{NA} in \code{technicalCV2,matrix-method}; or \code{spike.type} to \code{NA} in \code{technicalCV2,SCESet-method}.
+In such cases, all rows will be used for trend fitting, and (adjusted) p-values will be reported for all rows.
 This should be used in cases where there are no spike-ins.
 Here, the assumption is that most endogenous genes do not exhibit high biological variability and thus can be used to model technical variation. 
 }
