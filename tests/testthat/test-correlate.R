@@ -195,7 +195,7 @@ grouping <- factor(rep(c(1,2), each=50))
 design <- model.matrix(~grouping)
 
 set.seed(200)
-nulls <- correlateNull(design=design, iter=1e3, residuals=TRUE)
+nulls <- correlateNull(design=design, iter=1e4, residuals=TRUE)
 expect_warning(correlatePairs(X[1:5,], design=design, null=nulls, residuals=FALSE), "'residuals' is not the same as that used to generate")
 expect_warning(correlatePairs(X[1:5,], design=NULL, null=nulls, residuals=TRUE), "'design' is not the same as that used to generate")
 
@@ -381,6 +381,7 @@ expect_equal(gene.out, ref)
 
 expect_error(correlatePairs(X[0,], nulls), "need at least two genes to compute correlations")
 expect_error(correlatePairs(X[,0], nulls), "number of cells should be greater than 2")
-out <- correlatePairs(X, numeric(0))
+expect_warning(correlatePairs(X, iters=1), "lower bound on p-values at a FDR of 0.05, increase 'iter'")
+expect_warning(out <- correlatePairs(X, numeric(0)), "lower bound on p-values at a FDR of 0.05, increase 'iter'")
 expect_equal(out$p.value, rep(1, nrow(out)))
 

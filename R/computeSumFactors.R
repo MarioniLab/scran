@@ -19,7 +19,7 @@ setMethod("computeSumFactors", "matrix", function(x, sizes=c(20, 40, 60, 80, 100
 #
 # written by Aaron Lun
 # created 23 November 2015
-# last modified 5 June 2016
+# last modified 2 February 2017
 {
     ncells <- ncol(x)
     if (!is.null(clusters)) {
@@ -43,7 +43,6 @@ setMethod("computeSumFactors", "matrix", function(x, sizes=c(20, 40, 60, 80, 100
 
     # Setting some other values.
     clust.nf <- clust.profile <- clust.libsizes <- clust.meanlib <- list()
-    warned.size <- FALSE
     warned.neg <- FALSE
 
     # Computing normalization factors within each cluster first.
@@ -58,10 +57,7 @@ setMethod("computeSumFactors", "matrix", function(x, sizes=c(20, 40, 60, 80, 100
         # Checking cluster sizes
         if (any(sizes > cur.cells)) { 
             stop("not enough cells in each cluster for specified 'sizes'") 
-        } else if (any(sizes*2L > cur.cells)) {
-            if (!warned.size) { warning("number of cells in each cluster should be at least twice that of the largest 'sizes'") }
-            warned.size <- TRUE
-        }
+        } 
 
         # Getting rid of zeros.
         ave.cell <- rowMeans(cur.exprs)

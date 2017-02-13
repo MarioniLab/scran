@@ -5,8 +5,7 @@
 \description{Test for whether the total variance exceeds that expected under some null hypothesis, for sample variances estimated from normally distributed observations.}
 
 \usage{
-testVar(total, null, df, design=NULL, test=c("chisq", "f"), 
-    fit=NULL, verbose=FALSE)
+testVar(total, null, df, design=NULL, test=c("chisq", "f"), second.df=NULL)
 }
 
 \arguments{
@@ -25,11 +24,8 @@ A design matrix, used to determine the degrees of freedom if \code{df} is missin
 \item{test}{
 A string specifying the type of test to perform.
 }
-\item{fit}{
-A list object produced by \code{\link{trendVar}}, only required if \code{test="f"}.
-}
-\item{verbose}{
-A logical scalar specifying whether test parameters should be reported.
+\item{second.df}{
+A numeric scalar specifying the second degrees of freedom for the F-distribution when \code{test="f"}.
 }
 }
 
@@ -50,8 +46,9 @@ Selecting HVGs on p-values is better than using \code{total - null}, as the latt
 
 If \code{test="f"}, the true variance of each spike-in transcript is assumed to be sampled from a scaled inverse chi-squared distribution.
 This accounts for any inflated scatter around the trend due to differences in amplification efficiency between transcripts.
-As a result, the gene-wise variance estimates are F-distributed under the null, which is exploited to calculate the p-value for each gene.
-Parameters of the F distribution are estimated from values in \code{fit} using \code{\link[limma]{fitFDistRobustly}}.
+As a result, the gene-wise variance estimates are should be F-distributed around the trend under the null.
+The second degrees of freedom is estimated from the scatter around the trend in \code{\link{trendVar}} using \code{\link[limma]{fitFDistRobustly}},
+and needs to be supplied to \code{second.df} to calculate an appropriate p-value.
 
 % Each transcript is treated as a random variable; thus, while error may not be controlled for a specific transcript, it will be controlled over all transcripts.
 }

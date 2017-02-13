@@ -8,7 +8,7 @@ export(
 
 exportMethods(
     computeSumFactors, quickCluster, computeSpikeFactors, normalize,
-    trendVar, decomposeVar, technicalCV2, 
+    trendVar, decomposeVar, technicalCV2, improvedCV2,
     sandbag, cyclone,
     correlatePairs,
     "isSpike<-", 
@@ -27,9 +27,11 @@ importFrom("BiocGenerics", normalize)
 importFrom("Biobase", assayDataElement, "assayDataElement<-", fData, exprs, featureData, phenoData, pData)
 
 importFrom("utils", combn)
-importFrom("stats", approx, as.dist, cor, fitted, hclust, loess, median, p.adjust, pchisq, pf, predict, quantile, coefficients, nls, nls.control)
+importFrom("stats", approx, as.dist, cor, fitted, hclust, loess, median, p.adjust, pchisq, pf, predict, quantile, coefficients, nls, nls.control, lm, pnorm, coef)
 importFrom("grDevices", grey.colors)
 importFrom("graphics", text)
+
+importFrom("splines", ns)
 
 importFrom("shiny", actionButton, brushOpts, brushedPoints, column, fluidPage, fluidRow, observeEvent, plotOutput, renderPlot, shinyApp, stopApp, runApp, hr)
 

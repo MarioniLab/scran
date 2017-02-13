@@ -90,3 +90,46 @@
     return(NULL)
 }
 
+.prepare_cv2_data <- function(x, spike.type) 
+# Prepares data for calculation of CV2.
+# In particular, extracting spike-ins and their size factors.    
+{
+    sf.cell <- sizeFactors(x)
+    if (is.null(spike.type) || !is.na(spike.type)) { 
+        is.spike <- isSpike(x, type=spike.type)
+        if (is.null(spike.type)) { 
+            # Get all spikes.
+            spike.type <- whichSpike(x)            
+        }
+        if (!length(spike.type)) { 
+            stop("no spike-in sets specified from 'x'")
+        }
+
+        # Collecting the size factors for the requested spike-in sets.
+        # Check that all spike-in factors are either NULL or identical.
+        collected <- NULL
+        for (st in seq_along(spike.type)) {
+            cur.sf <- suppressWarnings(sizeFactors(x, type=spike.type[st]))
+            if (st==1L) {
+                collected <- cur.sf
+            } else if (!isTRUE(all.equal(collected, cur.sf))) {
+                stop("size factors differ between spike-in sets")
+            }
+        }
+
+        # Otherwise, diverting to the cell-based size factors if all spike-in factors are NULL.
+        if (!is.null(collected)) {
+            sf.spike <- collected
+        } else {
+            warning("no spike-in size factors set, using cell-based factors")
+            sf.spike <- sf.cell
+        }
+
+    } else {
+        sf.spike <- sf.cell
+        is.spike <- NA
+    }
+
+    return(list(is.spike=is.spike, sf.cell=sf.cell, sf.spike=sf.spike))
+} 
+

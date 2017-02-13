@@ -1,11 +1,12 @@
 # This tests the variance calculation functions in scran.
 
-require(scran); require(testthat);
+# require(scran); require(testthat); source("test-variance.R")
 
 set.seed(20000)
 ncells <- 200
 ngenes <- 1000
-dummy <- matrix(rnbinom(ngenes*ncells, mu=100, size=5), ncol=ncells, nrow=ngenes, byrow=TRUE)
+means <- 2^runif(ngenes, -1, 5)
+dummy <- matrix(rnbinom(ngenes*ncells, mu=means, size=5), ncol=ncells, nrow=ngenes)
 
 rownames(dummy) <- paste0("X", seq_len(ngenes))
 X <- newSCESet(countData=data.frame(dummy))
@@ -21,7 +22,7 @@ expect_is(out$trend, "function") # hard to test it without copying the code, so 
 m <- max(out$mean)
 expect_equal(out$trend(m), out$trend(m+1))
 m <- min(out$mean)
-expect_equal(out$trend(m), out$trend(m-1))
+expect_equal(out$trend(m-1), out$trend(m)/m * (m-1))
 
 expect_equal(out$design, as.matrix(rep(1, ncells)))
 
@@ -88,7 +89,7 @@ expect_is(out2$trend, "function")
 m <- max(out2$mean)
 expect_equal(out2$trend(m), out2$trend(m+1))
 m <- min(out2$mean)
-expect_equal(out2$trend(m), out2$trend(m-1))
+expect_equal(out2$trend(m-1), out2$trend(m)/m * (m-1))
 
 # Trying again with a design matrix.
 
@@ -103,7 +104,7 @@ expect_is(out$trend, "function")
 m <- max(out$mean)
 expect_equal(out$trend(m), out$trend(m+1))
 m <- min(out$mean)
-expect_equal(out$trend(m), out$trend(m-1))
+expect_equal(out$trend(m-1), out$trend(m)/m * (m-1))
 
 expect_equal(out$design, design)
 
@@ -211,8 +212,6 @@ design <- model.matrix(~factor(rep(c(1,2), each=11)))
 pvals <- testVar(observed, trended, design=design)
 expect_equal(pvals, true.p)
 
-expect_message(testVar(observed, trended, df=df, verbose=TRUE), "degrees of freedom")
-
 # Checking that the F-test works.
 
 nspikes <- ncells <- 100
@@ -222,15 +221,15 @@ spike.data <- matrix(rnbinom(nspikes*ncells, mu=spike.means, size=1/spike.disp),
 
 exprs <- log2(spike.data/(colSums(spike.data)/mean(colSums(spike.data)))+1)
 fit <- trendVar(exprs)
-pvals <- testVar(fit$var, fit$trend(fit$mean), df=ncells-1, fit=fit, test='f')
+pvals <- testVar(fit$var, fit$trend(fit$mean), df=ncells-1, second.df=fit$df, test='f')
 
 rat <- (fit$var/fit$trend(fit$mean))[fit$var > 0]
 df1 <- nrow(fit$design)-ncol(fit$design)
 ffit <- limma::fitFDistRobustly(rat, df=df1)
 expect_equal(pvals, pf(rat/ffit$scale, df1=df1, df2=ffit$df2, lower.tail=FALSE))
 
-expect_message(testVar(fit$var, fit$trend(fit$mean), df=ncells-1, fit=fit, test='f', verbose=TRUE),
-               "degrees of freedom")
+expect_error(testVar(fit$var, fit$trend(fit$mean), df=ncells-1, test='f'),
+             "second df from trendVar() must be specified for test='f'", fixed=TRUE)
 
 # Checking silly inputs
 

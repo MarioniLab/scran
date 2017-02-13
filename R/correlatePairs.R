@@ -1,12 +1,12 @@
 setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
 
 .correlate_pairs <- function(x, null.dist=NULL, design=NULL, BPPARAM=SerialParam(), use.names=TRUE, tol=1e-8, 
-                             residuals=FALSE, subset.row=NULL, per.gene=FALSE)
+                             iters=1e6, residuals=FALSE, subset.row=NULL, per.gene=FALSE)
 # This calculates a (modified) Spearman's rho for each pair of genes.
 #
 # written by Aaron Lun
 # created 10 February 2016
-# last modified 19 January 2016
+# last modified 2 February 2017
 {
     compute.residuals <- FALSE
     if (!is.null(design)) { 
@@ -17,12 +17,12 @@ setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
             groupings <- list(seq_len(ncol(x)))
         } 
         if (is.null(null.dist)) { 
-            null.dist <- correlateNull(design=design, residuals=residuals)
+            null.dist <- correlateNull(design=design, residuals=residuals, iters=iters)
         }
     } else {
         groupings <- list(seq_len(ncol(x)))
         if (is.null(null.dist)) { 
-            null.dist <- correlateNull(ncol(x))
+            null.dist <- correlateNull(ncol(x), iters=iters)
         } 
     }
 
@@ -94,6 +94,7 @@ setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
                           FDR=p.adjust(by.gene[[1]], method="BH"), 
                           limited=by.gene[[3]], stringsAsFactors=FALSE)
         rownames(out) <- NULL
+        .is_sig_limited(out)
         return(out)
     }
 
@@ -107,6 +108,7 @@ setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
         out <- out[order(out$p.value, -abs(out$rho)),]
         rownames(out) <- NULL
     }
+    .is_sig_limited(out)
     return(out)
 }
 
@@ -187,6 +189,13 @@ setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
         subset.row <- newnames[subset.row]
     }
     return(subset.row)
+}
+
+.is_sig_limited <- function(results, threshold=0.05) {
+    if (any(results$FDR > threshold & results$limited)) { 
+        warning(sprintf("lower bound on p-values at a FDR of %s, increase 'iter'", as.character(threshold)))
+    }
+    invisible(NULL)
 }
 
 setMethod("correlatePairs", "matrix", .correlate_pairs)

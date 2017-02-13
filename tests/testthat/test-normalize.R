@@ -65,7 +65,6 @@ expect_equal(unname(sizeFactors(out)), computeSumFactors(dummy))
 
 expect_error(computeSumFactors(dummy[,0,drop=FALSE]), "not enough cells in each cluster")
 expect_error(computeSumFactors(dummy[0,,drop=FALSE]), "cells should have non-zero library sizes")
-expect_warning(computeSumFactors(dummy[,1:100]), "number of cells in each cluster should be at least twice")
 expect_error(computeSumFactors(dummy, sizes=c(10, 10, 20)), "'sizes' is not unique")
 expect_error(computeSumFactors(dummy, clusters=integer(0)), "'x' ncols is not equal to 'clusters' length")
 

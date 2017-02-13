@@ -39,7 +39,8 @@ For each cell, \code{cyclone} calculates the proportion of all marker pairs wher
     (pairs with the same expression are ignored).
 A high proportion suggests that the cell is likely to belong in G1 phase, as the expression ranking in the new data is consistent with that in the training data.
 
-Proportions are converted into scores (see below) that are comparable between phases.
+Proportions are not directly comparable between phases due to the use of different sets of gene pairs for each phase.
+Instead, proportions are converted into scores (see below) that account for the size and precision of the proportion estimate. 
 The same process is repeated for all phases, using the corresponding set of marker pairs in \code{pairs}.
 Cells with G1 or G2M scores above 0.5 are assigned to the G1 or G2M phases, respectively.
 (If both are above 0.5, the higher score is used for assignment.)

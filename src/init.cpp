@@ -16,7 +16,7 @@ static const R_CallMethodDef all_call_entries[] = {
     REGISTER(estimate_variance, 4),
     REGISTER(rank_subset, 4),
     REGISTER(get_residuals, 4),
-    REGISTER(compute_CV2, 3),
+    REGISTER(compute_CV2, 4),
     {NULL, NULL, 0}
 };
 

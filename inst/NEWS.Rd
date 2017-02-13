@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.3.9}{\itemize{
+\section{Version 1.3.10}{\itemize{
 \item 
 Switched default BPPARAM to SerialParam() in all functions.
 
@@ -15,6 +15,7 @@ Minor bug fix to DM() when extrapolation is required.
 
 \item
 Added check for centred size factors in trendVar(), decomposeVar() methods.
+Refactored trendVar() to include automatic start point estimation, location rescaling and df2 estimation.
 
 \item
 Moved spike-in specification to the scater package.
@@ -38,6 +39,12 @@ Added the combineVar() function to combine results from separate decomposeVar() 
 
 \item 
 Added protection against all-zero rows in technicalCV2().
+
+\item
+Added the improvedCV2() function as a more stable alternative to technicalCV2().
+
+\item
+Removed warning requiring at least twice the max size in computeSumFactors().
 
 \item
 Streamlined examples when mocking up data sets.

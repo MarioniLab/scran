@@ -7,12 +7,10 @@
 \description{Fit a mean-dependent trend to the gene-specific variances in single-cell RNA-seq data.}
 
 \usage{
-\S4method{trendVar}{matrix}(x, trend=c("loess", "semiloess"), 
-    span=0.3, family="symmetric", degree=1, start=list(), 
-    design=NULL, subset.row=NULL)
+\S4method{trendVar}{matrix}(x, trend=c("loess", "semiloess"), span=0.3, 
+    family="symmetric", degree=1, start=NULL, design=NULL, subset.row=NULL)
 
-\S4method{trendVar}{SCESet}(x, subset.row=NULL, ..., 
-    assay="exprs", use.spikes=TRUE)
+\S4method{trendVar}{SCESet}(x, subset.row=NULL, ..., assay="exprs", use.spikes=TRUE)
 }
 
 \arguments{
@@ -20,9 +18,10 @@
     A numeric matrix of normalized expression values, where each column corresponds to a cell and each row corresponds to a spike-in transcript.
     Alternatively, a SCESet object that contains such values.
 }
-\item{trend}{A string indicating whether the trend should be polynomial or loess-based.}
+\item{trend}{A string indicating whether the trend should be fully loess-based, or a mixture of loess and parametric fitting.}
 \item{span, family, degree}{Arguments to pass to \code{\link{loess}}.}
-\item{start}{A list containing starting values for \code{\link{nls}}.}
+\item{start}{A named list of numeric scalars, containing starting values for parametric fitting with \code{\link{nls}}. 
+This is automatically generated with the most suitable values if set to \code{NULL}.}
 \item{design}{A numeric matrix describing the systematic factors contributing to expression in each cell.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to \code{trendVar,matrix-method}.}
@@ -61,7 +60,7 @@ Conversely, the parametric form is not exact, so the loess curve models any rema
 In general, the semi-loess setting tends to give smoother curves than loess alone.
 It is more robust to the uneven distribution of spike-in transcripts across the covariate range.
 However, it tends to be susceptible to convergence issues, and may require some fiddling with the start values to converge properly.
-By default, the start values are \code{a=5}, \code{n=5} and \code{b=1}, which can be altered as named arguments in \code{start}.
+Reasonably good starting values for \code{a}, \code{n} and \code{b} are chosen automatically but these can be set manually with \code{start}.
 }
 
 \section{Additional notes on row selection}{

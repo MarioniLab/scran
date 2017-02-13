@@ -11,7 +11,8 @@
 correlateNull(ncells, iters=1e6, design=NULL, residuals=FALSE) 
 
 \S4method{correlatePairs}{matrix}(x, null.dist=NULL, design=NULL, BPPARAM=SerialParam(), 
-    use.names=TRUE, tol=1e-8, residuals=FALSE, subset.row=NULL, per.gene=FALSE)
+    use.names=TRUE, tol=1e-8, iters=1e6, residuals=FALSE, 
+    subset.row=NULL, per.gene=FALSE)
 
 \S4method{correlatePairs}{SCESet}(x, subset.row=NULL, use.names=TRUE, per.gene=FALSE,
     ..., assay="exprs", get.spikes=FALSE)
@@ -63,6 +64,7 @@ For \code{correlatePairs}, a pre-computed empirical distribution can be supplied
 Otherwise, it will be automatically constructed via \code{correlateNull} with \code{ncells} set to the number of columns in \code{exprs}.
 If the \code{limited} field is \code{TRUE} in the returned dataframe, it may be possible to obtain lower p-values by increasing \code{iters}.
 This should be examined for non-significant pairs, in case some correlations are overlooked due to computational limitations.
+The function will automatically raise a warning if any genes are limited in their significance at a FDR of 5\%.
 
 For \code{correlatePairs,SCESet-method}, correlations should be computed for normalized expression values in the specified \code{assay}. 
 By default, rows corresponding to spike-in transcripts are removed with \code{get.spikes=FALSE}. 

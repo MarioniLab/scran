@@ -1,6 +1,6 @@
 # Checks the technicalCV2 function.
 
-require(scran); require(testthat)
+# require(scran); require(testthat); source("test-technical.R")
 
 set.seed(6000)
 ngenes <- 10000
@@ -15,13 +15,13 @@ is.spike[seq_len(500)] <- TRUE
 
 # Testing the CV2 calculator. 
 chosen <- which(is.spike)
-stuff <- .Call(scran:::cxx_compute_CV2, counts, chosen - 1L, sf)
+stuff <- .Call(scran:::cxx_compute_CV2, counts, chosen - 1L, sf, NULL)
 normed <- t(t(counts[chosen,])/sf)
 expect_equal(stuff[[1]], rowMeans(normed))
 expect_equal(stuff[[2]], apply(normed, 1, var))
 
 chosen <- sample(ngenes, 1000)
-stuff <- .Call(scran:::cxx_compute_CV2, counts, chosen - 1L, sf)
+stuff <- .Call(scran:::cxx_compute_CV2, counts, chosen - 1L, sf, NULL)
 normed <- t(t(counts[chosen,])/sf)
 expect_equal(stuff[[1]], rowMeans(normed))
 expect_equal(stuff[[2]], apply(normed, 1, var))
@@ -34,9 +34,10 @@ X <- calculateQCMetrics(X, list(Spikes=is.spike))
 setSpike(X) <- "Spikes"
 
 sizeFactors(X) <- sf
-sizeFactors(X, type="Spikes") <- 1
+spike.sf <- 2^rnorm(nsamples)
+sizeFactors(X, type="Spikes") <- spike.sf
 
-default <- technicalCV2(counts, is.spike, sf.cell=sf, sf.spike=rep(1, nsamples))
+default <- technicalCV2(counts, is.spike, sf.cell=sf, sf.spike=spike.sf)
 as.sceset <- technicalCV2(X)
 expect_equal(default, as.sceset)
 as.sceset <- technicalCV2(X, spike.type="Spikes")
@@ -50,15 +51,15 @@ X2 <- calculateQCMetrics(X2, list(MySpike=subset[[1]], SecondSpike=subset[[2]]))
 setSpike(X2) <- c("MySpike", "SecondSpike")
 
 sizeFactors(X2) <- sf
-sizeFactors(X2, type="MySpike") <- 1
-sizeFactors(X2, type="SecondSpike") <- 1
+sizeFactors(X2, type="MySpike") <- spike.sf
+sizeFactors(X2, type="SecondSpike") <- spike.sf
 
 expect_equal(technicalCV2(X2), as.sceset)
 expect_equal(technicalCV2(X2, spike.type=c("MySpike", "SecondSpike")), as.sceset)
-expect_equal(technicalCV2(X2, spike.type="MySpike"), technicalCV2(counts, is.spike=subset[[1]], sf.cell=sf, sf.spike=rep(1, ncol(counts))))
-sizeFactors(X2, type="SecondSpike") <- sf
+expect_equal(technicalCV2(X2, spike.type="MySpike"), technicalCV2(counts, is.spike=subset[[1]], sf.cell=sf, sf.spike=spike.sf))
+sizeFactors(X2, type="SecondSpike") <- rev(spike.sf)
 expect_error(technicalCV2(X2), "size factors differ between spike-in sets")
-expect_equal(technicalCV2(X2, spike.type="SecondSpike"), technicalCV2(counts, is.spike=subset[[2]], sf.cell=sf, sf.spike=sf))
+expect_equal(technicalCV2(X2, spike.type="SecondSpike"), technicalCV2(counts, is.spike=subset[[2]], sf.cell=sf, sf.spike=rev(spike.sf)))
 sizeFactors(X2, type="SecondSpike") <- NULL
 expect_error(technicalCV2(X2), "size factors differ between spike-in sets")
 sizeFactors(X2, type="MySpike") <- NULL
