@@ -21,7 +21,7 @@ correlateNull(ncells, iters=1e6, design=NULL, residuals=FALSE)
 \arguments{
 \item{ncells}{An integer scalar indicating the number of cells in the data set.}
 \item{iters}{An integer scalar specifying the number of values in the null distribution.}
-\item{design}{A numeric design matrix describing fixed effects to factorize out.}
+\item{design}{A numeric design matrix containing uninteresting factors to be ignored.}
 \item{residuals}{A logical scalar indicating whether correlations should be calculated from residuals when \code{design!=NULL}.}
 \item{x}{
     A numeric matrix of normalized expression values, where rows are genes and columns are cells.

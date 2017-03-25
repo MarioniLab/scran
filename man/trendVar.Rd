@@ -22,7 +22,7 @@
 \item{span, family, degree}{Arguments to pass to \code{\link{loess}}.}
 \item{start}{A named list of numeric scalars, containing starting values for parametric fitting with \code{\link{nls}}. 
 This is automatically generated with the most suitable values if set to \code{NULL}.}
-\item{design}{A numeric matrix describing the systematic factors contributing to expression in each cell.}
+\item{design}{A numeric matrix describing the uninteresting factors contributing to expression in each cell.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to \code{trendVar,matrix-method}.}
 \item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}

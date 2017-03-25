@@ -129,6 +129,7 @@ expect_equal(cur.out[[2]], t(t(x[subset.row,subset.col])/cur.out[[1]]))
 
 # Checking out what happens with clustering.
 
+require(scran);require(testthat)
 set.seed(20001)
 ncells <- 700
 ngenes <- 1000
@@ -146,18 +147,36 @@ expect_true(length(unique(paste0(known.clusters, emp.clusters)))==3L)
 shuffled <- c(1:50, 301:350, 601:650)
 expect_identical(quickCluster(dummy, subset.row=shuffled), emp.clusters)
 
+# Checking out the ranks.
+
+emp.ranks <- quickCluster(dummy, get.ranks=TRUE)
+ref <- apply(dummy, 2, FUN=function(y) {
+    r <- rank(y)
+    r <- r - mean(r)
+    r/sqrt(sum(r^2))/2
+})
+expect_equal(emp.ranks, ref)
+
+emp.ranks <- quickCluster(dummy, get.ranks=TRUE, subset.row=shuffled)
+ref <- apply(dummy, 2, FUN=function(y) {
+    r <- rank(y[shuffled])
+    r <- r - mean(r)
+    r/sqrt(sum(r^2))/2
+})
+expect_equal(emp.ranks, ref)
+
 # Checking out deeper internals.
 
 set.seed(200011)
 mat <- matrix(rpois(10000, lambda=5), nrow=20)
 
 subset.row <- seq_len(nrow(mat))
-distM <- .Call(scran:::cxx_compute_cordist, mat, subset.row - 1L)
+distM <- .Call(scran:::cxx_compute_cordist, mat, subset.row - 1L, FALSE)
 refM <- sqrt(0.5*(1 - cor(mat, method="spearman")))
 expect_equal(distM, refM)
 
 subset.row <- 15:1 # With subsetting
-distM <- .Call(scran:::cxx_compute_cordist, mat, subset.row - 1L)
+distM <- .Call(scran:::cxx_compute_cordist, mat, subset.row - 1L, FALSE)
 refM <- sqrt(0.5*(1 - cor(mat[subset.row,], method="spearman")))
 expect_equal(distM, refM)
 

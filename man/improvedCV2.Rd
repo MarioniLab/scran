@@ -11,7 +11,7 @@ This is intended to be a more stable version of \code{\link{technicalCV2}}.
 
 \usage{
 \S4method{improvedCV2}{matrix}(x, is.spike, sf.cell=NULL, sf.spike=NULL, 
-    log.prior=NULL, df=4, use.spikes=FALSE)
+    log.prior=NULL, df=4, robust=FALSE, use.spikes=FALSE)
 
 \S4method{improvedCV2}{SCESet}(x, spike.type=NULL, ..., assay="exprs", logged=NULL)
 }
@@ -27,6 +27,7 @@ This is intended to be a more stable version of \code{\link{technicalCV2}}.
 \item{log.prior}{A numeric scalar specifying the pseudo-count added prior to log-transformation.
 If this is set, \code{x} is assumed to contain log-expression values, otherwise it is assumed to contain counts.}
 \item{df}{An integer scalar indicating the number of degrees of freedom for the spline fit with \code{\link[splines]{ns}}.}
+\item{robust}{A logical scalar indicating whether robust fitting should be performed with \code{\link[MASS]{rlm}}.}
 \item{use.spikes}{A logical scalar indicating whether p-values should be returned for spike-in transcripts.}
 \item{spike.type}{A character vector containing the names of the spike-in sets to use.}
 \item{...}{Additional arguments to pass to \code{improvedCV2,matrix-method}.}
@@ -37,7 +38,7 @@ This is automatically determined if \code{assay="counts"} or \code{"exprs"}.}
 
 \details{
 This function will estimate the squared coefficient of variation (CV2) and mean for each spike-in transcript.
-Both values are log-transformed and a mean-dependent trend is fitted to the CV2 values for the transcripts, using a natural spline of degree \code{df}.
+Both values are log-transformed and a mean-dependent trend is fitted to the log-CV2 values, using a linear model with a natural spline of degree \code{df}.
 The trend is used to obtain the technical contribution to the CV2 for each gene.
 The biological contribution is computed by subtracting the technical contribution from the total CV2.
 

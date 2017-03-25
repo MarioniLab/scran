@@ -10,35 +10,21 @@
 
 .subset_to_index <- function(subset, x, byrow=TRUE) {
     if (byrow) {
-        dimlen <- nrow(x)
-        names <- rownames(x)
+        dummy <- seq_len(nrow(x))
+        names(dummy) <- rownames(x)
     } else {
-        dimlen <- ncol(x)
-        names <- colnames(x)
+        dummy <- seq_len(ncol(x))
+        names(dummy) <- colnames(x) 
     }
 
-    if (is.logical(subset)) { 
-        if (length(subset)!=dimlen) {
-            stop("subset vector is longer than matrix dimensions") 
-        }
-        subset <- which(subset)
-    } else if (is.character(subset)) {
-        subset <- match(subset, names)
-        if (any(is.na(subset))) { 
-            stop("missing names in subset vector")
-        }
-    } else if (is.null(subset)) {
-        subset <- seq_len(dimlen)
-    } else if (is.numeric(subset)) {
-        subset <- as.integer(subset)
-        if (min(subset) < 1L || max(subset) > dimlen) {
-            stop("subset indices out of range")
-        }
-    } else {
-        stop("unrecognized type of subset vector")
+    if (!is.null(subset)) { 
+        dummy <- dummy[subset]
     }
-
-    return(subset)
+    out <- unname(dummy)
+    if (any(is.na(out))) {
+        stop("'subset' indices out of range of 'x'")
+    }
+    return(out)
 }
 
 .makeVarDefaults <- function(x, fit, design) 

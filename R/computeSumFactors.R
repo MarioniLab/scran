@@ -19,7 +19,7 @@ setMethod("computeSumFactors", "matrix", function(x, sizes=c(20, 40, 60, 80, 100
 #
 # written by Aaron Lun
 # created 23 November 2015
-# last modified 2 February 2017
+# last modified 22 March 2017
 {
     ncells <- ncol(x)
     if (!is.null(clusters)) {
@@ -42,11 +42,12 @@ setMethod("computeSumFactors", "matrix", function(x, sizes=c(20, 40, 60, 80, 100
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
 
     # Setting some other values.
-    clust.nf <- clust.profile <- clust.libsizes <- clust.meanlib <- list()
+    nclusters <- length(indices)
+    clust.nf <- clust.profile <- clust.libsizes <- clust.meanlib <- vector("list", nclusters)
     warned.neg <- FALSE
 
     # Computing normalization factors within each cluster first.
-    for (clust in seq_along(indices)) { 
+    for (clust in seq_len(nclusters)) { 
         curdex <- indices[[clust]]
         cur.out <- .Call(cxx_subset_and_divide, x, subset.row-1L, curdex-1L) 
         if (is.character(cur.out)) { stop(cur.out) }
@@ -110,8 +111,8 @@ setMethod("computeSumFactors", "matrix", function(x, sizes=c(20, 40, 60, 80, 100
             stop("'ref.clust' value not in 'clusters'")
         }
     }
-    clust.nf.scaled <- list()
-    for (clust in seq_along(indices)) { 
+    clust.nf.scaled <- vector("list", nclusters)
+    for (clust in seq_len(nclusters)) { 
         clust.nf.scaled[[clust]] <- clust.nf[[clust]] * median(clust.profile[[clust]]/clust.profile[[ref.col]], na.rm=TRUE)
     }
     clust.nf.scaled <- unlist(clust.nf.scaled)
@@ -148,7 +149,7 @@ setMethod("computeSumFactors", "SCESet", function(x, subset.row=NULL, ..., assay
 
 .create_linear_system <- function(cur.exprs, sphere, sizes, use.ave.cell) {
     sphere <- sphere - 1L # zero-indexing in C++.
-    row.dex <- col.dex <- output <- list()
+    row.dex <- col.dex <- output <- vector("list", length(sizes))
     last.row <- 0L
     cur.cells <- ncol(cur.exprs)
 

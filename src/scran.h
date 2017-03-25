@@ -30,7 +30,7 @@ SEXP combine_corP(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
 SEXP auto_shuffle(SEXP, SEXP);
 
-SEXP compute_cordist(SEXP, SEXP);
+SEXP compute_cordist(SEXP, SEXP, SEXP);
 
 SEXP subset_and_divide(SEXP, SEXP, SEXP); 
 

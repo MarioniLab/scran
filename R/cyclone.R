@@ -47,7 +47,8 @@ setMethod("cyclone", "matrix", function(x, pairs, gene.names=rownames(x), iter=1
     # Run the allocation algorithm
     workass <- .workerAssign(ncol(x), BPPARAM)
     common.args <- list(exprs=x, iter=iter, min.iter=min.iter, min.pairs=min.pairs)
-    all.scores <- list()
+    all.scores <- vector('list', length(pairs))
+    names(all.scores) <- names(pairs)
     for (cl in names(pairs)) { 
         cur.scores <- bpmapply(FUN=.get_phase_score, wstart=workass$start, wend=workass$end, BPPARAM=BPPARAM,
                                MoreArgs=c(list(pairings=pairs[[cl]]), common.args), SIMPLIFY=FALSE) 

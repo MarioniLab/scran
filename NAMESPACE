@@ -11,6 +11,8 @@ exportMethods(
     trendVar, decomposeVar, technicalCV2, improvedCV2,
     sandbag, cyclone,
     correlatePairs,
+    denoisePCA,
+    findMarkers,
     "isSpike<-", 
     convertTo
 )
@@ -20,20 +22,23 @@ importFrom("Matrix", sparseMatrix, qr, qr.coef, qr.qty)
 importFrom("zoo", zoo, rollapply, index)
 
 importFrom("edgeR", DGEList, "[.DGEList", designAsFactor, scaleOffset.DGEList)
-importFrom("limma", fitFDistRobustly)
+importFrom("limma", fitFDistRobustly, lmFit, eBayes, contrasts.fit, topTable)
 importFrom("statmod", glmgam.fit)
 
 importFrom("BiocGenerics", normalize)
 importFrom("Biobase", assayDataElement, "assayDataElement<-", fData, exprs, featureData, phenoData, pData)
 
 importFrom("utils", combn)
-importFrom("stats", approx, as.dist, cor, fitted, hclust, loess, median, p.adjust, pchisq, pf, predict, quantile, coefficients, nls, nls.control, lm, pnorm, coef)
+importFrom("stats", approx, as.dist, cor, fitted, hclust, loess, median, p.adjust, pchisq, pf, 
+           predict, quantile, coefficients, nls, nls.control, lm, pnorm, coef, var, prcomp, model.matrix)
 importFrom("grDevices", grey.colors)
 importFrom("graphics", text)
 
 importFrom("splines", ns)
+importFrom("MASS", rlm)
 
-importFrom("shiny", actionButton, brushOpts, brushedPoints, column, fluidPage, fluidRow, observeEvent, plotOutput, renderPlot, shinyApp, stopApp, runApp, hr)
+importFrom("shiny", actionButton, brushOpts, brushedPoints, column, fluidPage, fluidRow, observeEvent, 
+           plotOutput, renderPlot, shinyApp, stopApp, runApp, hr)
 
 import(BiocParallel)
 import(scater)

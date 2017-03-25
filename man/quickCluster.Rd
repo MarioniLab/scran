@@ -7,7 +7,8 @@
 \description{Cluster similar cells based on rank correlations in their gene expression profiles.}
 
 \usage{
-\S4method{quickCluster}{matrix}(x, min.size=200, subset.row=NULL, ...)
+\S4method{quickCluster}{matrix}(x, min.size=200, subset.row=NULL, get.ranks=FALSE, ...)
+
 \S4method{quickCluster}{SCESet}(x, subset.row=NULL, ..., assay="counts", get.spikes=FALSE)
 }
 
@@ -18,6 +19,7 @@
 }
 \item{min.size}{An integer scalar specifying the minimum size of each cluster.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
+\item{get.ranks}{A logical scalar specifying whether a matrix of adjusted ranks should be returned.}
 \item{...}{
     For \code{quickCluster,matrix-method}, additional arguments to be passed to \code{\link{cutreeDynamic}}.
     For \code{quickCluster,SCESet-method}, additional arguments to pass to \code{quickCluster,matrix-method}.
@@ -28,13 +30,13 @@
 
 \details{
 This function provides a correlation-based approach to quickly define clusters of a minimum size \code{min.size}.
-A distance matrix is constructed using Spearman's correlation on the counts between cells.
-(Some manipulation is performed to convert the correlation into a proper distance metric.)
+A distance matrix is constructed using Spearman's rho on the counts between cells.
+(Some manipulation is performed to convert Spearman's rho into a proper distance metric.)
 Hierarchical clustering is performed and a dynamic tree cut is used to define clusters of cells.
 A correlation-based approach is preferred here as it is invariant to scaling normalization.
 This avoids circularity between normalization and clustering.
 
-Note that some cells may not be assigned to any cluster.
+Note that some cells may not be assigned to any cluster, and are assigned identities of \code{"0"} in the output vector.
 In most cases, this is because those cells belong in a separate cluster with fewer than \code{min.size} cells.
 The function will not be able to call this as a cluster as the minimum threshold on the number of cells has not been passed.
 Users are advised to check that the unassigned cells do indeed form their own cluster.
@@ -47,11 +49,17 @@ Users can also set \code{subset.row} to specify which rows of \code{x} are to be
 This is equivalent to but more efficient than subsetting \code{x} directly, as it avoids constructing a (potentially large) temporary matrix.
 Note that if \code{subset.row} is specified, it will overwrite any setting of \code{get.spikes}.
 
+Users can also set \code{get.ranks=TRUE}, in which case a matrix of ranks will be returned.
+Each column contains the ranks for the expression values within a single cell after standardization and mean-centring.
+Computing Euclidean distances between the rank vectors for pairs of cells will yield the same correlation-based distance as that used above.
+This allows users to apply their own clustering algorithms (e.g., graph-based methods), especially in large data sets where hierarchical clustering is not feasible.
+The use of ranks protects against outliers and is invariant to scaling.
 }
 
 \value{
-A vector of cluster identities for each cell in \code{counts}. 
-Values of \code{"0"} are used to indicate cells that are not assigned to any cluster.
+If \code{get.ranks=FALSE}, a character vector of cluster identities for each cell in \code{counts} is returned.
+
+If \code{get.ranks=TRUE}, a numeric matrix is returned where each column contains ranks for the expression values in each cell.
 }
 
 \author{

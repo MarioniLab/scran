@@ -3,6 +3,7 @@ combineVar <- function(..., method=c("fisher", "simes", "berger"))
 #
 # written by Aaron Lun
 # created 19 January 2017
+# last modified 22 March 2017
 {
     all.results <- list(...)
     ref <- NULL
@@ -15,7 +16,8 @@ combineVar <- function(..., method=c("fisher", "simes", "berger"))
     }
 
     to.average <- c("mean", "total", "bio", "tech")
-    output <- list()
+    output <- vector("list", length(to.average))
+    names(output) <- to.average
     for (val in to.average) { 
         combined <- 0
         for (x in all.results) {
@@ -26,8 +28,9 @@ combineVar <- function(..., method=c("fisher", "simes", "berger"))
     }
 
     # Combining the p-values.
-    p.combine <- list()
-    for (i in seq_along(all.results)) {
+    nresults <- length(all.results)
+    p.combine <- vector("list", nresults)
+    for (i in seq_len(nresults)) {
         p.combine[[i]] <- all.results[[i]]$p.value
     }
     p.combine <- do.call(cbind, p.combine)

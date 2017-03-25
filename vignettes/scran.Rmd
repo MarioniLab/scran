@@ -30,14 +30,15 @@ This allows molecular biology to be studied at a resolution that cannot be match
 Common analyses include detection of highly variable and correlated genes across cells, or assignment of cells to cell cycle phases.
 Cell-specific biases also need to be normalized in a manner that is robust to low counts and technical noise.
 The `r Biocpkg("scran")` package implements methods to perform these analyses.
-This vignette provides a brief description of each method and some toy examples for how they are used.
+This vignette provides brief descriptions of these methods and some toy examples to demonstrate their use.
 
 # Setting up the data
 
 We start off with a count matrix where each row is a gene and each column is a cell.
-These should have been obtained by mapping read sequences to a reference genome, and then counting the number of reads mapped to the exons of each gene.
+These can be obtained by mapping read sequences to a reference genome, and then counting the number of reads mapped to the exons of each gene.
 (See, for example, the `r Biocpkg("Rsubread")` package to do both of these tasks.)
-For simplicity, though, we just simulate some counts here from a negative binomial distribution.
+Alternatively, pseudo-alignment methods can be used to quantify the abundance of each transcript in each cell.
+For simplicity, though, we'll just simulate some counts here from a negative binomial distribution.
 
 ```{r}
 ngenes <- 10000
@@ -70,10 +71,10 @@ all.counts <- rbind(gene.counts, spike.counts)
 Finally, we construct a `SCESet` object to store all of the data.
 We also indicate which rows correspond to spike-in transcripts.
 This is done through the `calculateQCMetrics` method from `r Biocpkg("scater")`, which takes a named list of sets of control genes.
-We can then easily indicate which sets of controls are spike-ins using the `setSpike` setter function.
+We indicate which sets of controls are spike-ins using the `setSpike` setter function.
 (In this case, there is only one control set, so the process may seem more complicated than necessary. 
 The usefulness of this setup becomes more obvious when multiple control sets are present.)
-This information can be easily extracted using the `isSpike`, `spikes` and `whichSpike` methods.
+This information can be easily extracted later on using the `isSpike`, `spikes` and `whichSpike` methods.
 
 ```{r}
 library(scran)
@@ -86,57 +87,7 @@ setSpike(sce) <- "MySpikes"
 
 This is simulated data, so we assume that quality control has already been applied to remove low-quality cells or low-abundance genes.
 Check out the `r Biocpkg("scater")` and `r Biocpkg("cellity")` packages for more details.
-
-<!-- refer to the workflow for more details. -->
-
-# Normalizing cell-specific biases
-
-Cell-specific biases can be normalized using the `computeSumFactors` method, which implements the deconvolution strategy for scRNA-seq normalization.
-This computes size factors that are used to scale the counts in each cell.
-The assumption is that most genes are not differentially expressed (DE) between cells, such that any differences in expression across the majority of genes represents some technical bias that should be removed.
-
-```{r}
-sce <- computeSumFactors(sce)
-summary(sizeFactors(sce))
-```
-
-For larger data sets, clustering can be performed with the `quickCluster` function before normalization.
-Briefly, cells are grouped into clusters of similar expression; normalization is applied within each cluster to compute size factors for each cell; and the factors are rescaled by normalization between clusters.
-This reduces the risk of violating the above assumption when many genes are DE across a heterogeneous population.
-
-```{r}
-larger.sce <- newSCESet(countData=data.frame(cbind(all.counts, all.counts, all.counts)))
-clusters <- quickCluster(larger.sce)
-larger.sce <- computeSumFactors(larger.sce, cluster=clusters)
-```
-
-An alternative approach is to normalize based on the spike-in counts.
-The idea is that the same quantity of spike-in RNA was added to each cell prior to library preparation.
-Size factors can then be computed to scale the counts such that the total coverage of the spike-in transcripts is equal across cells.
-The main practical difference is that spike-in normalization preserves differences in total RNA content between cells, whereas `computeSumFactors` and other non-DE methods do not.
-
-```{r}
-sce2 <- computeSpikeFactors(sce)
-summary(sizeFactors(sce2))
-```
-
-If we decide to use the deconvolution size factors, it is recommended to compute a separate set of size factors for the spike-ins.
-This is because the spike-ins are not affected by total mRNA content.
-Using the deconvolution size factors will over-normalize the spike-in counts, whereas the spike-in size factors are more appropriate.
-To obtain the latter without overwriting the former, we can set `general.use=FALSE` in `computeSpikeFactors` such that the spike-in-based size factors will be computed and stored in the `SCESet` object, but will only be used by the spike-in transcripts.
-(Obviously, if the spike-in size factors were already being used for normalization, e.g., in `sce2`, then this extra step is unnecessary.)
-
-```{r}
-sce <- computeSpikeFactors(sce, general.use=FALSE)
-```
-
-Normalized expression values can then be calculated using the `normalize` method from `r Biocpkg("scater")`.
-This will use the deconvolution size factors for the endogenous genes, and the spike-in-based size factors for the spike-in transcripts.
-Each expression value can be interpreted as a log-transformed "normalized count".
-
-```{r}
-sce <- normalize(sce)
-```
+Also see https://www.bioconductor.org/help/workflows/simpleSingleCell/ for a workflow where all these steps are used in real data analyses.
 
 # Cell cycle phase assignment
 
@@ -163,11 +114,65 @@ Cells are considered to be in G1 phase, if the G1 score is above 0.5 and the G2/
 Despite the availability of a S score, it tends to be more accurate to assign cells based on the G1 and G2/M scores only.
 
 ```{r}
-phase <- rep("S", ncol(sce))
-phase[assigned$scores$G1 > 0.5] <- "G1"
-phase[assigned$scores$G2M > 0.5] <- "G2M"
-phase[assigned$scores$G1 > 0.5 & assigned$scores$G2M > 0.5] <- "unknown"
-table(phase)
+table(assigned$phases)
+```
+
+Note that it is generally best practice to perform cell cycle phase assignment _before_ filtering out low-abundance genes.
+
+# Normalizing cell-specific biases
+
+## Based on the gene counts
+
+Cell-specific biases are normalized using the `computeSumFactors` method, which implements the deconvolution strategy for scRNA-seq normalization.
+This computes size factors that are used to scale the counts in each cell.
+The assumption is that most genes are not differentially expressed (DE) between cells, such that any differences in expression across the majority of genes represents some technical bias that should be removed.
+
+```{r}
+sce <- computeSumFactors(sce)
+summary(sizeFactors(sce))
+```
+
+For larger data sets, clustering should be performed with the `quickCluster` function before normalization.
+Briefly, cells are grouped into clusters of similar expression; normalization is applied within each cluster to compute size factors for each cell; and the factors are rescaled by normalization between clusters.
+This reduces the risk of violating the above assumption when many genes are DE between clusters in a heterogeneous population.
+
+```{r}
+larger.sce <- newSCESet(countData=data.frame(cbind(all.counts, all.counts, all.counts)))
+clusters <- quickCluster(larger.sce)
+larger.sce <- computeSumFactors(larger.sce, cluster=clusters)
+```
+
+## Based on the spike-in counts
+
+An alternative approach is to normalize based on the spike-in counts.
+The idea is that the same quantity of spike-in RNA was added to each cell prior to library preparation.
+Size factors are computed to scale the counts such that the total coverage of the spike-in transcripts is equal across cells.
+The main practical difference is that spike-in normalization preserves differences in total RNA content between cells, whereas `computeSumFactors` and other non-DE methods do not.
+
+```{r}
+sce2 <- computeSpikeFactors(sce)
+summary(sizeFactors(sce2))
+```
+
+Even if we decide to use the deconvolution size factors, it is _strongly_ recommended to compute a separate set of size factors for the spike-ins.
+This is because the spike-ins are not affected by total mRNA content.
+Using the deconvolution size factors will over-normalize the spike-in counts, whereas the spike-in size factors are more appropriate.
+To obtain the latter without overwriting the former, we set `general.use=FALSE` in our call to `computeSpikeFactors`.
+This means that the spike-in-based size factors will be computed and stored in the `SCESet` object, but will only be used by the spike-in transcripts.
+(Obviously, if the spike-in size factors were already being used for normalization, e.g., in `sce2`, then this extra step is unnecessary.)
+
+```{r}
+sce <- computeSpikeFactors(sce, general.use=FALSE)
+```
+
+## Computing normalized expression values
+
+Normalized expression values are calculated using the `normalize` method from `r Biocpkg("scater")`.
+This will use the deconvolution size factors for the endogenous genes, and the spike-in-based size factors for the spike-in transcripts.
+Each expression value can be interpreted as a log-transformed "normalized count", and can be used in downstream applications like clustering or dimensionality reduction.
+
+```{r}
+sce <- normalize(sce)
 ```
 
 # Detecting highly variable genes
@@ -181,9 +186,9 @@ By default, this done using only the spike-in transcripts, as these should only 
 fit <- trendVar(sce)
 ```
 
-The fitted value of the trend can then be used as an estimate of the technical component.
+The fitted value of the trend is used as an estimate of the technical component.
 We subtract the fitted value from the total variance to obtain the biological component for each gene.
-HVGs can be defined as the top set of genes with the largest biological components.
+HVGs are defined as the top set of genes with the largest biological components.
 
 ```{r}
 decomp <- decomposeVar(sce, fit)
@@ -191,7 +196,7 @@ top.hvgs <- order(decomp$bio, decreasing=TRUE)
 head(decomp[top.hvgs,])
 ```
 
-This can be examined more visually by constructing a mean-variance plot.
+We examined this in more detail by constructing a mean-variance plot.
 Here, the black points represent the endogenous genes; the red points represent spike-in transcripts; and the red line represents the mean-variance trend fitted to the spike-ins.
 
 ```{r}
@@ -224,76 +229,18 @@ alt.decomp2 <- decomposeVar(sce, alt.fit)
 
 Alternative approaches to identifying HVGs are implemented in the `DM` and `technicalCV2` functions.
 These are based on the coefficient of variation for count data, which provides more power for rare subpopulations but is also more sensitive to outliers.
-
-<!--
-We use log-transformed values as the count-based models put too much weight on large outliers.
-Consider the example below, where `counter1` contains an outlier but is otherwise less variable than the other `counter*` sets.
-If you run the code, you'll find that `counter1` still has a larger NB dispersion (and by implication, CV^2^) and random effect variance than the others.
-Only the variance of the log-counts does anything close to the right thing here.
-
-```{r, eval=FALSE}
-set.seed(102251)
-ncells <- 200
-niters <- 20
-var.GLM <- var.cv2 <- var.log <- list()
-means <- list()
-
-for (it in seq_len(10)) {
-    cur.mean <- it*10
-    means[[it]] <- cur.mean
-
-    counter1 <- integer(ncells)
-    counter1[1] <- cur.mean*ncells
-    counter2 <- rnbinom(ncells, mu=cur.mean, size=0.2) # Arguably, all of these are systematically more variable than above.
-    counter3 <- rnbinom(ncells, mu=cur.mean, size=0.5)
-    counter4 <- rnbinom(ncells, mu=cur.mean, size=1)
-
-    # With GLMs.
-    require(edgeR)
-    y <- DGEList(rbind(counter1, counter2, counter3, counter4), lib.size=rep(1e6, ncells))
-    y <- estimateDisp(y, cbind(rep(1, ncells)), prior.df=0)
-    var.GLM[[it]] <- y$tagwise.dispersion
-
-    # With CV2.
-    var.cv2[[it]] <- apply(y$counts, 1, var)/rowMeans(y$counts)^2
-
-    # With variances of log-values.
-    var.log[[it]] <- apply(cpm(y, log=TRUE), 1, var)
-}
-
-means <- unlist(means)
-var.GLM <- do.call(cbind, var.GLM)
-var.cv2 <- do.call(cbind, var.cv2)
-var.log <- do.call(cbind, var.log)
-means <- matrix(means, nrow=nrow(var.GLM), ncol=ncol(var.GLM), byrow=TRUE)
-colors <- c("black", "red", "blue", "orange")
-
-par(mfrow=c(1,3))
-plot(means, var.GLM, col=colors, pch=16, main="BCV")
-for (x in seq_len(nrow(means))) {
-    lines(means[x,], var.GLM[x,], col=colors[x])
-}
-plot(means, var.cv2, col=colors, pch=16, main="CV2")
-for (x in seq_len(nrow(means))) {
-    lines(means[x,], var.cv2[x,], col=colors[x])
-}
-plot(means, var.log, col=colors, pch=16, main="Variance of log")
-for (x in seq_len(nrow(means))) {
-    lines(means[x,], var.log[x,], col=colors[x])
-}
-```
-
--->
+Also see the `improvedCV2` function, which is intended as a more stable counterpart of `technicalCV2`.
 
 # Detecting correlated genes
 
-The top set of HVGs can be used to identify significant correlations between pairs of genes.
+Another useful procedure is to identify significant pairwise correlations between pairs of HVGs.
 The idea is to distinguish between HVGs caused by random stochasticity, and those that are driving systematic heterogeneity, e.g., between subpopulations.
 Correlations are computed in the `correlatePairs` method using a slightly modified version of Spearman's rho.
 Testing is performed against the null hypothesis of independent genes, using a permutation method in `correlateNull` to construct a null distribution.
 
 ```{r}
 null.dist <- correlateNull(ncol(sce))
+# Only using the first 200 genes as a demonstration.
 cor.pairs <- correlatePairs(sce[top.hvgs[1:200],], null.dist=null.dist)
 head(cor.pairs)
 ```
@@ -305,52 +252,18 @@ null.dist2 <- correlateNull(design=design, iter=1e5) # fewer iterations, to spee
 cor.pairs2 <- correlatePairs(sce[top.hvgs[1:200],], null.dist=null.dist2, design=design)
 ```
 
-Significant correlations between pairs of genes can be defined at a false discovery rate (FDR) threshold of, e.g., 5%.
-In this case, no correlations are significant as the counts were randomly generated for each gene.
-In other situations when correlated gene pairs are present, these can be used to construct heatmaps to verify whether subpopulations exist; for choosing marker genes in experimental validation; and to construct gene-gene association networks.
-
-<!--
-The modification simplifies things by allowing the same tie-free null distribution to be used for all genes.
-It also means that we can get spuriously large correlations (which we would have been protected from, had we considered ties).
-However, this is acceptable as we can let the error-control machinery deal with the possibility of such spuriously large values.
-We also don't have to account for HVG identification in multiple testing here, because correlations are independent of the variance of the genes.
-
-```{r, eval=FALSE}
-set.seed(1023423)
-ncells <- 100
-null.dist <- correlateNull(ncells)
-all.p <- list()
-for (it in 1:10000) {
-    x1 <- rpois(ncells, lambda=10)
-    x2 <- rpois(ncells, lambda=20)
-    rho2 <- cor(rank(x1, ties.method="random"), rank(x2, ties.method="random"), method="spearman")
-    all.p[[it]] <- sum(null.dist >= rho2)/length(null.dist)
-}
-sum(unlist(all.p) <= 0.01)/10000
-sum(unlist(all.p) <= 0.05)/10000
-```
-
-The idea is to mitigate dependence on explicit subpopulation identification for follow-up studies.
-We identify strongly correlated genes first, then only need to check for subpopulations as a diagnostic.
-This reduces the sensitivity of the analysis to ambiguity/uncertainty during subpopulation identification.
-It's possible because validation requires genes, not subpopulations (as the current cells are destroyed), so we skip the middleman.
-
-We can also check what happens with a design matrix.
-Naively comparing against a null distribution of correlations that was constructed without considering the design will result in loss of control.
-Rather, the null distribution should be compared to an appropriate null, as shown below.
+The pairs can be used for choosing marker genes in experimental validation, and to construct gene-gene association networks.
+In other situations, the pairs may not be of direct interest - rather, we just want to know whether a gene is correlated with any other gene.
+This is often the case if we are to select a set of correlated HVGs for use in downstream steps like clustering or dimensionality reduction.
+To do so, we set `per.gene=TRUE` to compute a single set of statistics for each gene, rather than for each pair.
 
 ```{r}
-set.seed(12120)
-design <- model.matrix(~factor(rep(1:5, 2)))
-y <- matrix(rnorm(1000, mean=rep(1:5, 5), sd=2), ncol=10, byrow=TRUE)
-null <- correlateNull(ncol(y))
-out <- correlatePairs(y, design=design, null=null)
-plot(log10(sort(out$p.value)/1:nrow(out)*nrow(out))) # wrong
-null <- correlateNull(design=design, residuals=TRUE)
-out <- correlatePairs(y, design=design, null=null, residuals=TRUE)
-plot(log10(sort(out$p.value)/1:nrow(out)*nrow(out))) # right
+cor.genes <- correlatePairs(sce[top.hvgs[1:200],], null.dist=null.dist, per.gene=TRUE)
 ```
--->
+
+Significant correlations are defined at a false discovery rate (FDR) threshold of, e.g., 5%.
+Note that the p-values are calculated by permutation and will have a lower bound.
+If there were insufficient permutation iterations, a warning will be issued suggesting that more iterations be performed.
 
 # Converting to other formats
 
@@ -375,9 +288,9 @@ Cells can be ordered on pseudotime with `r Biocpkg("monocle")` by converting the
 This vignette describes the main functions in the `r Biocpkg("scran")` package for basic analysis of single-cell RNA-seq data.
 We cover normalization, cell cycle phase assignment, HVG detection and correlation testing.
 Conversion to other formats can also be performed in preparation for analyses with other packages in the Bioconductor project.
-Further information can be obtained by reading the documentation for each function (e.g., `?convertTo`), or asking for help on the Bioconductor [support site](http://support.bioconductor.org) (please read the [posting guide](http://www.bioconductor.org/help/support/posting-guide) beforehand).
-
-<!-- We suggest reading the workflow, but I can't say that yet. -->
+Further information can be obtained by examining the documentation for each function (e.g., `?convertTo`);
+    reading the workflow at https://www.bioconductor.org/help/workflows/simpleSingleCell;
+    or asking for help on the Bioconductor [support site](http://support.bioconductor.org) (please read the [posting guide](http://www.bioconductor.org/help/support/posting-guide) beforehand).
 
 # Session information
 

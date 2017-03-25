@@ -22,8 +22,8 @@ find.markers <- function(current.data, other.data, gene.names, fraction=0.5)
     Nthr.other <- ceiling(other.Ncells * fraction)
 
     if (Ngenes) { 
-        collected <- list()
-        counter <- 1L
+        collected <- vector("list", Ngenes*2)
+        collected[[1]] <- matrix(0L, 0, 2)
 
         for (i in seq_len(Ngenes-1L)) { 
             others <- (i+1):Ngenes
@@ -36,8 +36,7 @@ find.markers <- function(current.data, other.data, gene.names, fraction=0.5)
                                                 other.diff, Nthr.other, SIMPLIFY=FALSE, USE.NAMES=FALSE)
             chosen <- others[cur.pos.above.threshold & do.call(`&`, other.neg.above.threshold)]
             if (length(chosen)) { 
-                collected[[counter]] <- cbind(i, chosen)
-                counter <- counter + 1L
+                collected[[i*2]] <- cbind(i, chosen)
             }
 
             # Looking for marker pairs that are down in the current group and up in the other groups.
@@ -46,10 +45,10 @@ find.markers <- function(current.data, other.data, gene.names, fraction=0.5)
                                                 other.diff, Nthr.other, SIMPLIFY=FALSE, USE.NAMES=FALSE)
             chosen.flip <- others[cur.neg.above.threshold & do.call(`&`, other.pos.above.threshold)]
             if (length(chosen.flip)) { 
-                collected[[counter]] <- cbind(chosen.flip, i)
-                counter <- counter + 1L
+                collected[[i*2+1]] <- cbind(chosen.flip, i)
             }
         }
+
         collected <- do.call(rbind, collected)
         g1 <- gene.names[collected[,1]]
         g2 <- gene.names[collected[,2]]
@@ -78,8 +77,9 @@ setMethod("sandbag", "matrix", function(x, phases, gene.names=rownames(x), fract
     if (is.null(class.names) || is.na(class.names)) stop("'phases' must have non-missing, non-NULL names") 
     gene.data <- lapply(phases, function(cl) t(x[subset.row,cl,drop=FALSE]))
 
-    marker.pairs <- list()
-    for (i in seq_along(gene.data)) {
+    nclasses <- length(gene.data)
+    marker.pairs <- vector("list", nclasses)
+    for (i in seq_len(nclasses)) {
         marker.pairs[[i]] <- find.markers(gene.data[[i]], gene.data[-i], fraction=fraction, gene.names=gene.names)
     }
 

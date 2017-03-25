@@ -1,5 +1,5 @@
-.improvedCV2 <- function(x, is.spike, sf.cell=NULL, sf.spike=NULL, 
-                          log.prior=NULL, df=4, use.spikes=FALSE)
+.improvedCV2 <- function(x, is.spike, sf.cell=NULL, sf.spike=NULL, log.prior=NULL, 
+                         df=4, robust=FALSE, use.spikes=FALSE)
 # Fits a spline to the log-CV2 values and computes a p-value for its deviation.
 #
 # written by Aaron Lun
@@ -53,8 +53,14 @@
     use.log.cv2 <- log.cv2[to.use]
 
     # Fit a spline to the log-variances, compute p-values.
-    fit <- lm(use.log.cv2 ~ ns(use.log.means, df=df))
-    tech.sd <- sqrt(mean(fit$effects[-seq_len(fit$rank)]^2))
+    form <- use.log.cv2 ~ ns(use.log.means, df=df)
+    if (robust) {
+        fit <- rlm(form)
+        tech.sd <- fit$s
+    } else {
+        fit <- lm(form)
+        tech.sd <- sqrt(mean(fit$effects[-seq_len(fit$rank)]^2))
+    }
     tech.log.cv2 <- predict(fit, data.frame(use.log.means=log.means[ok.means]))
 
     p <- rep(1, length(ok.means))

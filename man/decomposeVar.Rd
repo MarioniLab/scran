@@ -8,6 +8,7 @@
 
 \usage{
 \S4method{decomposeVar}{matrix,list}(x, fit, design=NA, subset.row=NULL, ...)
+
 \S4method{decomposeVar}{SCESet,list}(x, fit, subset.row=NULL, ..., assay="exprs", get.spikes=FALSE)
 }
 
@@ -19,7 +20,7 @@
 \item{fit}{
     A list containing the output of \code{\link{trendVar}}, run on log-expression values for spike-in genes.
 }
-\item{design}{A numeric matrix describing the systematic factors contributing to expression in each cell.}
+\item{design}{A numeric matrix describing the uninteresting factors contributing to expression in each cell.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{
 For \code{decomposeVar,matrix,list-method}, additional arguments to pass to \code{\link{testVar}}.
