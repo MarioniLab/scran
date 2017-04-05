@@ -51,9 +51,13 @@ Removed warning requiring at least twice the max size in computeSumFactors().
 
 \item
 Allowed quickCluster() to return a matrix of ranks for use in other clustering methods.
+Added method="igraph" option to perform graph-based clustering for large numbers of cells.
 
 \item 
 Added findMarkers() function to automatically identify potential markers for cell clusters.
+
+\item
+Added buildSNNGraph() function to build a SNN graph for cells from their expression profiles.
 
 \item
 Streamlined examples when mocking up data sets.

@@ -7,7 +7,8 @@ export(
 )
 
 exportMethods(
-    computeSumFactors, quickCluster, computeSpikeFactors, normalize,
+    quickCluster, buildSNNGraph,
+    computeSumFactors, computeSpikeFactors, normalize,
     trendVar, decomposeVar, technicalCV2, improvedCV2,
     sandbag, cyclone,
     correlatePairs,
@@ -36,6 +37,9 @@ importFrom("graphics", text)
 
 importFrom("splines", ns)
 importFrom("MASS", rlm)
+
+importFrom("FNN", get.knn)
+importFrom("igraph", make_graph, simplify, E, "E<-", cluster_fast_greedy)
 
 importFrom("shiny", actionButton, brushOpts, brushedPoints, column, fluidPage, fluidRow, observeEvent, 
            plotOutput, renderPlot, shinyApp, stopApp, runApp, hr)

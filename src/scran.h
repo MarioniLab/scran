@@ -42,6 +42,8 @@ SEXP get_residuals(SEXP, SEXP, SEXP, SEXP);
 
 SEXP compute_CV2(SEXP, SEXP, SEXP, SEXP);
 
+SEXP build_snn(SEXP);
+
 }
 
 #include "utils.h"
