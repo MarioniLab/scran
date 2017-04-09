@@ -41,7 +41,7 @@ sphere <- scran:::.generateSphere(colSums(dummy))
 sizes <- c(20, 40, 60, 80, 100)
 use.ave.cell <- rowMeans(dummy)
 collected <- scran:::.create_linear_system(dummy, sphere, as.integer(sizes), use.ave.cell)
-sqw <- rep(c(1, 1e-3), c(ncells*length(sizes), ncells))
+sqw <- rep(c(1, sqrt(scran:::LOWWEIGHT)), c(ncells*length(sizes), ncells))
 fit <- limma::lmFit(design=as.matrix(collected[[1]])/sqw, object=collected[[2]]/sqw, weight=sqw^2) # Checking to limma's value.
 expect_equal(unname(attributes(outx)$standard.error), unname(fit$sigma * fit$coefficients[1,]/as.numeric(outx)))
 
@@ -67,6 +67,8 @@ expect_error(computeSumFactors(dummy[,0,drop=FALSE]), "not enough cells in each 
 expect_error(computeSumFactors(dummy[0,,drop=FALSE]), "cells should have non-zero library sizes")
 expect_error(computeSumFactors(dummy, sizes=c(10, 10, 20)), "'sizes' is not unique")
 expect_error(computeSumFactors(dummy, clusters=integer(0)), "'x' ncols is not equal to 'clusters' length")
+
+####################################################################################################
 
 # Checking the ring construction.
 
@@ -108,13 +110,13 @@ for (i in seq_len(ncells)) {
 }
 for (i in seq_len(ncells)) { 
     used <- sphere[i]
-    expect_equal(out[[1]][i + ncells*2, used], sqrt(0.000001))
+    expect_equal(out[[1]][i + ncells*2, used], sqrt(scran:::LOWWEIGHT))
     expect_equal(out[[1]][i + ncells*2, -used], rep(0, ncells-1L))
 }
 
 expect_identical(nrow(out$design), as.integer(ncells*(length(sizes)+1L)))
 expect_identical(ncol(out$design), as.integer(ncells))
-expect_equal(out[[2]], rep(c(sizes, sqrt(0.000001)), each=ncells))
+expect_equal(out[[2]], rep(c(sizes, sqrt(scran:::LOWWEIGHT)), each=ncells))
 
 # Checking some other internals.
 

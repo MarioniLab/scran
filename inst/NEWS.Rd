@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.3.12}{\itemize{
+\section{Version 1.4.0}{\itemize{
 \item 
 Switched default BPPARAM to SerialParam() in all functions.
 

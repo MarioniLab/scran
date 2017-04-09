@@ -146,39 +146,37 @@ setMethod("computeSumFactors", "SCESet", function(x, subset.row=NULL, ..., assay
     sizeFactors(x) <- sf
     x
 })
+    
+LOWWEIGHT <- 0.000001
 
 .create_linear_system <- function(cur.exprs, sphere, sizes, use.ave.cell) {
     sphere <- sphere - 1L # zero-indexing in C++.
-    row.dex <- col.dex <- output <- vector("list", length(sizes))
-    last.row <- 0L
+    nsizes <- length(sizes)
+    row.dex <- col.dex <- output <- vector("list", nsizes + 1L)
     cur.cells <- ncol(cur.exprs)
 
-    for (si in seq_along(sizes)) { 
+    for (si in seq_len(nsizes)) { 
         out <- .Call(cxx_forge_system, cur.exprs, sphere, sizes[si], use.ave.cell)
         if (is.character(out)) { stop(out) }
-        row.dex[[si]] <- out[[1]] + last.row
+        row.dex[[si]] <- out[[1]] + cur.cells * (si - 1L)
         col.dex[[si]] <- out[[2]]
         output[[si]]<- out[[3]]
-        last.row <- last.row + cur.cells
     }
     
     # Adding extra equations to guarantee solvability (downweighted).
     out <- .Call(cxx_forge_system, cur.exprs, sphere, 1L, use.ave.cell)
     if (is.character(out)) { stop(out) }
-    si <- length(row.dex) + 1L
-    row.dex[[si]] <- out[[1]] + last.row
+    si <- nsizes + 1L
+    row.dex[[si]] <- out[[1]] + cur.cells * nsizes
     col.dex[[si]] <- out[[2]]
-    output[[si]] <- out[[3]]
+    output[[si]] <- out[[3]] * sqrt(LOWWEIGHT)
 
-    # Weighting the system.
-    LOWWEIGHT <- 0.000001
-    output[[si]] <- output[[si]] * sqrt(LOWWEIGHT)
-    eqn.values <- rep(rep(c(1, sqrt(LOWWEIGHT)), c(si-1L, 1L)), lengths(row.dex))
+    # Setting up the entries of the LHS matrix.
+    eqn.values <- rep(c(rep(1, nsizes), sqrt(LOWWEIGHT)), lengths(row.dex))
 
     # Constructing a sparse matrix.
     row.dex <- unlist(row.dex)
     col.dex <- unlist(col.dex)
-    eqn.values <- unlist(eqn.values)
     output <- unlist(output)
     design <- sparseMatrix(i=row.dex + 1L, j=col.dex + 1L, x=eqn.values, dims=c(length(output), cur.cells))
 
