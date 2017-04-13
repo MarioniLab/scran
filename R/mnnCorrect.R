@@ -1,0 +1,173 @@
+mnnCorrect <- function(..., k=20, sigma=1, cos.norm=TRUE, svd.dim=20, order=NULL) 
+# Performs correction based on the batches specified in the ellipsis.
+#    
+# written by Laleh Haghverdi
+# with modifications by Aaron Lun
+# created 7 April 2017
+# last modified 12 April 2017
+{ 
+    batches <- list(...) 
+    nbatches <- length(batches) 
+    if (nbatches < 2L) { stop("at least two batches must be specified") }
+    if (cos.norm) { batches <- lapply(batches, cosine.norm) } 
+
+    # Setting up the order.
+    if (is.null(order)) {
+        order <- seq_len(nbatches)
+    } else {
+        order <- as.integer(order)
+        if (!identical(seq_len(nbatches), sort(order))) { 
+            stop(sprintf("'order' should contain values in 1:%i", nbatches))
+        }
+    }
+   
+    # Setting up the variables.
+    ref <- order[1]
+    ref.batch <- batches[[ref]]
+    num.mnn <- matrix(NA_integer_, nbatches, 2)
+    output <- vector("list", nbatches)
+    output[[ref]] <- ref.batch
+
+    for (b in 2:nbatches) { 
+        other.batch <- batches[[order[b]]]
+
+        # Finding pairs of mutual nearest neighbours.
+        sets <- find.mutual.nn(ref.batch, other.batch, k1=k, k2=k, sigma=sigma)
+        s1 <- sets$set1
+        s2 <- sets$set2
+
+        # Computing the biological subspace in both batches.
+        ndim <- min(c(svd.dim, dim(ref.batch), dim(other.batch)))
+        span1 <- get.bio.span(ref.batch[,s1,drop=FALSE], min(ndim, length(s1)))
+        span2 <- get.bio.span(other.batch[,s2,drop=FALSE], min(ndim, length(s2)))
+        nshared <- find.shared.subspace(span1, span2, assume.orthonormal=TRUE, get.angle=FALSE)$nshared
+        if (nshared==0L) { warning("batches not sufficiently related") }
+
+        # Identifying the biological component of the batch correction vector 
+        # (i.e., the part that is parallel to the biological subspace) and removing it.
+        bio.span <- cbind(span1, span2)
+        bv <- sets$vect
+        bio.comp <- bv %*% bio.span %*% t(bio.span)
+        correction <- t(bv) - t(bio.comp) 
+
+        # Applying the correction and storing the numbers of nearest neighbors.
+        other.batch <- other.batch + correction
+        num.mnn[b,] <- c(length(s1), length(s2))
+        output[[b]] <- other.batch
+
+        # Expanding the reference batch to include the new, corrected data.
+        ref.batch <- cbind(ref.batch, other.batch)
+    }
+
+    # Formatting output to be consistent with input.
+    names(output) <- names(batches)
+    list(corrected=output, num.mnn=num.mnn)
+}
+
+find.mutual.nn <- function(exprs1, exprs2, k1, k2, sigma=1)
+# Finds mutal neighbors between data1 and data2.
+# Computes the batch correction vector for each cell in data2.
+{
+    data1 <- t(exprs1)
+    data2 <- t(exprs2)
+
+    n1 <- nrow(data1)
+    n2 <- nrow(data2)
+    n.total <- n1 + n2
+    W <- matrix(0, n.total, n.total)
+
+    W21 <- FNN::get.knnx(data2, query=data1, k=k1)
+    js1 <- matrix(seq_len(n1), n1, k1)
+    is1 <- n1 + W21$nn.index
+    indices1 <- cbind(as.vector(js1), as.vector(is1))
+    W[indices1] <- 1
+
+    W12 <- FNN::get.knnx(data1, query=data2, k=k2)
+    js2 <- matrix(n1 + seq_len(n2), n2, k2)
+    is2 <- W12$nn.index
+    indices2 <- cbind(as.vector(js2), as.vector(is2))
+    W[indices2] <- 1
+
+    W <- W * t(W) # elementwise multiplication to keep mutual nns only
+    A <- which(W>0, arr.ind=TRUE) # row/col indices of mutual NNs
+    set <- A
+
+    # Computing the batch correction vector between MNN pairs.
+    A1 <- A[,1]
+    A1 <- A1[A1 <= n1]
+    A2 <- A[,2] - n1
+    A2 <- A2[A2 > 0]
+    vect <- data1[A1,] - data2[A2,]    
+
+    # Gaussian smoothing of individual correction vectors for MNN pairs.
+    if (sigma==0) {
+        G <- matrix(1, n2, n2)
+    } else {
+        dd2 <- as.matrix(dist(data2))
+        G <- exp(-dd2^2/sigma)  
+    }
+    
+    D <- rowSums(G)
+    nA2 <- tabulate(A2, nbins=n2)
+    norm.dens <- t(G/(D*nA2))[,A2,drop=FALSE] # density normalized to avoid domination from dense parts
+    batchvect <- norm.dens %*% vect 
+    partitionf <- rowSums(norm.dens)
+    batchvect <- batchvect/partitionf
+
+    # Report cells that are MNNs, and the correction vector per cell in data2.
+    list(set1=unique(A1), set2=unique(A2), vect=batchvect)
+}
+
+get.bio.span <- function(exprs, ndim) 
+# Computes the basis matrix of the biological subspace of 'exprs'.
+# The first 'ndim' dimensions are assumed to capture the biological subspace.
+# Avoids extra dimensions dominated by technical noise, which will result in both 
+# trivially large and small angles when using find.shared.subspace().
+{
+    exprs <- exprs - rowMeans(exprs) 
+    S <- svd(exprs, nu=ndim, nv=0)
+    S$u
+}
+
+find.shared.subspace <- function(A, B, sin.threshold=0.85, cos.threshold=1/sqrt(2), 
+                                 assume.orthonormal=FALSE, get.angle=TRUE) 
+# Computes the maximum angle between subspaces, to determine if spaces are orthogonal.
+# Also identifies if there are any shared subspaces. 
+{
+    if (!assume.orthonormal) { 
+        A <- pracma::orth(A)
+        B <- pracma::orth(B)
+    }
+     
+    # Singular values close to 1 indicate shared subspace A \invertsymbol{U} B
+    # Otherwise A and B are completely orthogonal, i.e., all angles=90.
+    S <- svd(t(A) %*% B)
+    shared <- sum(S$d > sin.threshold)
+    if (!get.angle) {
+        return(list(nshared=shared))
+    }
+
+    # Computing the angle from singular values; using cosine for large angles,
+    # sine for small angles (due to differences in relative accuracy).
+    costheta <- min(S$d) 
+    if (costheta < cos.threshold){ 
+        theta <- acos(min(1, costheta))
+    } else {
+        if (ncol(A) < ncol(B)){ 
+            sintheta <- svd(t(A) - (t(A) %*% B) %*% t(B))$d[1]
+        } else {
+            sintheta <- svd(t(B) - (t(B) %*% A) %*% t(A))$d[1]
+        }
+        theta <- asin(min(1, sintheta)) 
+    }
+    
+    list(angle=180*theta/pi, nshared=shared)
+}
+
+cosine.norm <- function(X)
+# Computes the cosine norm, with some protection from zero-length norms.
+{
+    cellnorm <- pmax(1e-8, sqrt(colSums(X^2)))
+    X/matrix(cellnorm, nrow(X), ncol(X), byrow=TRUE)
+}
+

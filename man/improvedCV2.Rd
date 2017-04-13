@@ -52,6 +52,11 @@ These are converted back to the count scale prior to calculation of the CV2.
 Otherwise, \code{x} is assumed to contain raw counts, which need to be normalized with \code{sf.cell} and \code{sf.spike} prior to calculating the CV2.
 Note that both sets of size factors are set to 1 by default if their values are not supplied to the function.
 
+For any given data set, the maximum CV2 that can be achieved is equal to the number of cells.
+(This occurs when only one cell has a non-zero expression value - proof via Holder's inequality.)
+Genes with CV2 values equal to the maximum are ignored during trend fitting.
+This ensures that the trend is not distorted by the presence of an upper bound on CV2 values, especially at low means. 
+
 For \code{improvedCV2,matrix-method}, the rows corresponding to spike-in transcripts are specified with \code{is.spike}.
 These rows will be used for trend fitting, while all other rows are treated as endogenous genes.
 By default, p-values are set to \code{NA} for the spike-in transcripts, such that they do not contribute to the multiple testing correction.

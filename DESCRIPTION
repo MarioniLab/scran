@@ -5,16 +5,17 @@ Title: Methods for Single-Cell RNA-Seq Data Analysis
 Authors@R: c(person("Aaron", "Lun", role = c("aut", "cre"), email =
         "alun@wehi.edu.au"), person("Karsten", "Bach", role = "aut"),
         person("Jong Kyoung", "Kim", role = "ctb"), person("Antonio", 
-        "Scialdone", role="ctb"))
+        "Scialdone", role="ctb"), person("Laleh", "Haghverdi", 
+        role="ctb"))
 Maintainer: Aaron Lun <alun@wehi.edu.au>
 Depends: R (>= 3.4), BiocParallel, scater
-Imports: dynamicTreeCut, zoo, edgeR, stats, BiocGenerics, methods, 
-        Biobase, utils, Matrix, shiny, graphics, grDevices, statmod,
-        limma, splines, MASS, FNN, igraph
-Suggests: limSolve, testthat, knitr, BiocStyle, org.Mm.eg.db, 
-        DESeq2, monocle, S4Vectors, ggplot2
+Imports: Biobase, stats, methods, utils, graphics, grDevices, Matrix, 
+        edgeR, limma, dynamicTreeCut, FNN, igraph, shiny, zoo, statmod, 
+        splines, ggplot2, MASS, DT, viridis
+Suggests: testthat, knitr, BiocStyle, limSolve, org.Mm.eg.db, DESeq2, 
+        monocle, S4Vectors, Rtsne, pracma
 biocViews: Normalization, Sequencing, RNASeq, Software, GeneExpression,
-        Transcriptomics, SingleCell
+        Transcriptomics, SingleCell, Visualization, BatchEffect
 Description: Implements a variety of low-level analyses of single-cell 
         RNA-seq data. Methods are provided for normalization of 
         cell-specific biases, assignment of cell cycle phase, and 
@@ -23,4 +24,4 @@ License: GPL-3
 NeedsCompilation: yes
 VignetteBuilder: knitr
 Author: Aaron Lun [aut, cre], Karsten Bach [aut], Jong Kyoung Kim [ctb],
-        Antonio Scialdone [ctb]
+        Antonio Scialdone [ctb], Laleh Haghverdi [ctb]

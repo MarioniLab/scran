@@ -65,12 +65,9 @@ y <- pca$data$PC2
 
 # Creating the app object.
 app <- selectorPlot(x, y, run=FALSE)
+if (interactive()) { saved <- shiny::runApp(app) }
 
-\dontrun{# Running the app object.
-saved <- shiny::runApp(app) 
-
-# Running the app directly from the function.
+\dontrun{# Running the app directly from the function.
 saved <- selectorPlot(x, y)
 }
-
 }

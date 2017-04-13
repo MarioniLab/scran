@@ -79,7 +79,8 @@ Aaron Lun and Karsten Bach
 
 \seealso{
 \code{\link{cutreeDynamic}},
-\code{\link{computeSumFactors}}
+\code{\link{computeSumFactors}},
+\code{\link{buildSNNGraph}}
 }
 
 \examples{

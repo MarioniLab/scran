@@ -1,16 +1,26 @@
-.buildSNNGraph <- function(x, k=10, subset.row=NULL) 
+.buildSNNGraph <- function(x, k=10, d=50, subset.row=NULL) 
 # Builds a shared nearest-neighbor graph, where edges are present between each 
 # cell and its 'k' nearest neighbours. Edges are weighted based on the ranks of 
 # the shared nearest neighbours of the two cells, as described in the SNN-Cliq paper.
 #
 # written by Aaron Lun
 # created 3 April 2017
-# last modified 5 April 2017    
+# last modified 13 April 2017    
 { 
+    ncells <- ncol(x)
     if (!is.null(subset.row)) {
-        x <- x[.subset_to_index(subset.row, x, byrow=TRUE),]
+        x <- x[.subset_to_index(subset.row, x, byrow=TRUE),,drop=FALSE]
     }
-    nn.out <- get.knn(t(x), k=k, algorithm="cover_tree") 
+    
+    # Reducing dimensions.
+    x <- t(x)
+    if (!is.na(d) && d < ncells) {
+        pc <- prcomp(x)
+        x <- pc$x[,seq_len(d),drop=FALSE]
+    }
+
+    # Getting the kNNs.
+    nn.out <- get.knn(x, k=k, algorithm="cover_tree") 
 
     g.out <- .Call(cxx_build_snn, nn.out$nn.index)
     if (is.character(g.out)) { stop(g.out) }

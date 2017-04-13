@@ -64,8 +64,13 @@ This can be specified using \code{ref.clust} if there is prior knowledge about w
 Within each cluster (if not specified, all cells are put into a single cluster), cells are sorted by increasing library size and a sliding window is applied to this ordering.
 Each location of the window defines a cell pool with similar library sizes.
 This avoids inflated estimation errors for very small cells when they are pooled with very large cells.
-Sliding the window will construct a linear system.
-This is repeated with all window sizes in \code{sizes} to obtain an over-determined system that can be solved with methods like the QR decomposition.
+Sliding the window will construct an over-determined linear system that can be solved with methods like the QR decomposition.
+
+Window sliding is repeated with different window sizes to construct the linear system, as specified by \code{sizes}.
+By default, the number of cells in each window ranges from 20 to 100.
+Using a range of window sizes improves the precision of the estimates, at the cost of increased computational complexity.
+The smallest window should be large enough so that the pool-based size factors are, on average, non-zero.
+We recommend window sizes no lower than 20 for UMI data, though smaller windows may be possible for read count data.
 
 In theory, it is possible to obtain negative estimates for the size factors.
 These are most likely for very small library sizes and are obviously nonsensical.
@@ -73,7 +78,9 @@ Some protection can be provided by setting \code{positive=TRUE}, which will use 
 This ensures that non-negative values for the size factors will always be obtained.
 Note that some cells may still have size factors of zero and should be removed prior to downstream analysis.
 Such occurrences are unavoidable -- rather, the aim is to prevent negative values from affecting the estimates for all other cells.
+}
 
+\section{Gene selection}{
 By default, \code{get.spikes=FALSE} in \code{quickCluster,SCESet-method} which means that spike-in transcripts are not included in the set of genes used for deconvolution.
 This is because they can behave differently from the endogenous genes. 
 Users wanting to perform spike-in normalization should see \code{\link{computeSpikeFactors}} instead.
@@ -81,6 +88,10 @@ Users wanting to perform spike-in normalization should see \code{\link{computeSp
 Users can also set \code{subset.row} to specify which rows of \code{x} are to be used to calculate correlations.
 This is equivalent to but more efficient than subsetting \code{x} directly, as it avoids constructing a (potentially large) temporary matrix.
 If this is specified, it will overwrite any setting of \code{get.spikes}.
+
+Note that pooling does not eliminate the need to filter out low-abundance genes.
+If too many genes have consistently low counts across all cells, even the pool-based size factors will be zero.
+Filtering ensures that this is not the case, e.g., by removing genes with average counts below 1.
 }
 
 \value{

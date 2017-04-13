@@ -11,6 +11,9 @@ Added run argument to selectorPlot().
 Bug fix to avoid adding an empty list.
 
 \item
+Added exploreData() function for visualization of scRNA-seq data.
+
+\item
 Minor bug fix to DM() when extrapolation is required.
 
 \item
@@ -54,10 +57,13 @@ Allowed quickCluster() to return a matrix of ranks for use in other clustering m
 Added method="igraph" option to perform graph-based clustering for large numbers of cells.
 
 \item 
-Added findMarkers() function to automatically identify potential markers for cell clusters.
+Added the findMarkers() function to automatically identify potential markers for cell clusters.
 
 \item
-Added buildSNNGraph() function to build a SNN graph for cells from their expression profiles.
+Added the buildSNNGraph() function to build a SNN graph for cells from their expression profiles.
+
+\item
+Added the correctMNN() function to perform batch correction based on mutual nearest neighbors.
 
 \item
 Streamlined examples when mocking up data sets.

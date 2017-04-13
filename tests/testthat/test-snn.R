@@ -6,7 +6,7 @@
 library(igraph)
 library(FNN)
 check <- function(vals, k=10) {
-    g <- buildSNNGraph(vals, k=k)
+    g <- buildSNNGraph(vals, k=k, d=NA)
     nn.out <- get.knn(t(vals), k=k)
     IDX <- cbind(seq_len(ncol(vals)), nn.out$nn.index)
 

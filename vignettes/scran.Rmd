@@ -283,6 +283,15 @@ The same conversion strategy roughly applies to the other supported formats.
 DE analyses can be performed using `r Biocpkg("DESeq2")` by converting the object to a `DESeqDataSet`.
 Cells can be ordered on pseudotime with `r Biocpkg("monocle")` by converting the object to a `CellDataSet` (in this case, normalized _unlogged_ expression values are stored). 
 
+# Graphical interaction with the data
+
+`r Biocpkg("scran")` provides several functions for exploring scRNA-seq data:
+
+- The `exploreData` function visualizes expression values for selected genes with respect to a reduced dimension plot and/or covariates of interest.
+- The `selectorPlot` function allows groups of cells in a reduced dimension plot to be manually selected for further inspection in R.
+
+These functions will generate and load Shiny apps for interactive data exploration.
+
 # Summary
 
 This vignette describes the main functions in the `r Biocpkg("scran")` package for basic analysis of single-cell RNA-seq data.
