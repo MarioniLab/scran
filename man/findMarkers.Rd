@@ -7,7 +7,7 @@
 \description{Find candidate marker genes for clusters of cells, by testing for differential expression between clusters.}
 
 \usage{
-\S4method{findMarkers}{matrix}(x, clusters, block=NULL, subset.row=NULL)
+\S4method{findMarkers}{matrix}(x, clusters, design=NULL, subset.row=NULL)
 
 \S4method{findMarkers}{SCESet}(x, ..., subset.row=NULL, assay="exprs", get.spikes=FALSE) 
 }
@@ -20,7 +20,7 @@
 \item{clusters}{
 A vector of cluster identities for all cells.
 }
-\item{block}{A numeric matrix describing the uninteresting factors driving expression across cells.}
+\item{design}{A numeric matrix containing blocking terms, i.e., uninteresting factors driving expression across cells.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to the matrix method.}
 \item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
@@ -45,6 +45,8 @@ Properly correcting for multiple testing is not generally possible when \code{cl
 
 The application of \pkg{limma} uses the \dQuote{trend} approach on the normalized log-expression values, as described by Law et al. (2015).
 This is fast and avoids putting too much weight on outliers or cells with large library sizes.
+Uninteresting factors of variation (e.g., preparation time, sequencing batch) will be blocked if they are stored in \code{design}.
+Note that the presence of factors that are confounded with \code{clusters} will raise a warning about unestimable coefficients.
 
 By default, spike-in transcripts are ignored in \code{findMarkers,SCESet-method} with \code{get.spikes=FALSE}.
 This is overridden by any non-\code{NULL} value of \code{subset.row}.

@@ -68,7 +68,7 @@ REFFUN(exprs(X), design, levels(clusters), out)
 
 clust <- kmeans(t(exprs(X)), centers=3)
 block <- factor(sample(2, ncol(X), replace=TRUE))
-out.des <- findMarkers(X, clusters=clust$cluster, block=model.matrix(~block))
+out.des <- findMarkers(X, clusters=clust$cluster, design=model.matrix(~block))
 
 clusters <- as.factor(clust$cluster)
 design <- model.matrix(~0 + clusters + block)

@@ -14,7 +14,7 @@ exportMethods(
     sandbag, cyclone,
     correlatePairs,
     denoisePCA,
-    findMarkers,
+    findMarkers, overlapExprs,
     "isSpike<-", 
     convertTo
 )

@@ -111,7 +111,7 @@ If there is only one factor in \code{design}, the levels of the factor are defin
 For each pair of genes, correlations are computed within each group, and a weighted mean (based on the group size) of the correlations is taken across all groups.
 The same strategy is used to generate the null distribution where ranks are computed and shuffled within each group.
 
-For designs containing multiple factors or covariates, a linear model is fitted to the normalized expression values with \code{design}.
+For designs containing multiple factors or covariates, a linear model is fitted to the (log-normalized) expression values with \code{design}.
 The correlation between a pair of genes is then computed from the residuals of the fitted model.
 Similarly, to obtain a null distribution of rho values, normally-distributed random errors are simulated in a fitted model based on \code{design};
     the corresponding residuals are generated from these errors; and the correlation between sets of residuals is computed at each iteration.
@@ -125,17 +125,15 @@ However, this assumption is largely unavoidable for complex designs, where some 
 }
 
 \section{Gene selection}{
-Users should select their genes in \code{subset.row} with some care.
-Using a top set of 100-200 highly variable genes (HVGs) is recommended.
+We recommend setting  \code{subset.row} to contain only the subset of highly variable genes (HVGs).
 This will focus on genes contributing to cell-to-cell heterogeneity (and thus more likely to be involved in driving substructure).
 There is no need to account for HVG pre-selection in multiple testing, because rank correlations are unaffected by the variance.
 For more genes, set \code{BPPARAM} to use more workers and reduce computational time.
 
-It is also advisable to choose HVGs after filtering on abundance to remove lowly-expressed genes.
-This is because tied counts may not result in tied normalized expression values or residuals.
-Uncertainty in model fitting with \code{design} will introduce differences due to coefficient estimation error (more so if \code{design} was misspecified).
-This will break ties in a consistent manner across genes, which may yield large correlations between genes with many zero counts.
-Focusing on HVGs should avoid detecting such correlations, as genes dominated by zeroes will usually have low variance.
+Lowly-expressed genes can also cause problems when \code{design} is non-\code{NULL} and \code{residuals=TRUE}.
+Tied counts, and zeroes in particular, may not result in tied residuals after fitting of the linear model. 
+Model fitting may break ties in a consistent manner across genes, yielding large correlations between genes with many zero counts.
+Focusing on HVGs should mitigate the detection of these uninteresting correlations, as genes dominated by zeroes will usually have low variance.
 
 If \code{subset.row} is a list of two vectors, correlations will be computed between one gene in the first vector and another gene in the second vector.
 This improves efficiency if the only correlations of interest are those between two pre-defined sets of genes.

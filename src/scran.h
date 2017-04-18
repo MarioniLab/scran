@@ -44,6 +44,8 @@ SEXP compute_CV2(SEXP, SEXP, SEXP, SEXP);
 
 SEXP build_snn(SEXP);
 
+SEXP overlap_exprs(SEXP, SEXP, SEXP, SEXP);
+
 }
 
 #include "utils.h"

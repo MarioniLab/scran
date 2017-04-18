@@ -60,6 +60,9 @@ Added method="igraph" option to perform graph-based clustering for large numbers
 Added the findMarkers() function to automatically identify potential markers for cell clusters.
 
 \item
+Added the overlapExprs() function to compute the overlap in expression distributions between groups.
+
+\item
 Added the buildSNNGraph() function to build a SNN graph for cells from their expression profiles.
 
 \item

@@ -18,6 +18,7 @@ static const R_CallMethodDef all_call_entries[] = {
     REGISTER(get_residuals, 4),
     REGISTER(compute_CV2, 4),
     REGISTER(build_snn, 1),
+    REGISTER(overlap_exprs, 4),
     {NULL, NULL, 0}
 };
 
