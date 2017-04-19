@@ -51,6 +51,9 @@ Added the denoisePCA() function to remove technical noise via selection of early
 
 \item
 Removed warning requiring at least twice the max size in computeSumFactors().
+Elaborated on the circumstances surrounding negative size factors.
+Increased the default number of window sizes to be examined.
+Refactored C++ code for increased speed.
 
 \item
 Allowed quickCluster() to return a matrix of ranks for use in other clustering methods.

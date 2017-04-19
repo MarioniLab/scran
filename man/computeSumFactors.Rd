@@ -7,7 +7,7 @@
 \description{Methods to normalize single-cell RNA-seq data by deconvolving size factors from cell pools.}
 
 \usage{
-\S4method{computeSumFactors}{matrix}(x, sizes=c(20, 40, 60, 80, 100), clusters=NULL, 
+\S4method{computeSumFactors}{matrix}(x, sizes=seq(20, 100, 5), clusters=NULL, 
     ref.clust=NULL, positive=FALSE, errors=FALSE, subset.row=NULL)
 \S4method{computeSumFactors}{SCESet}(x, subset.row=NULL, ..., assay="counts", 
     get.spikes=FALSE, sf.out=FALSE)
@@ -62,19 +62,31 @@ This can be specified using \code{ref.clust} if there is prior knowledge about w
 
 \section{Additional details about pooling and deconvolution}{
 Within each cluster (if not specified, all cells are put into a single cluster), cells are sorted by increasing library size and a sliding window is applied to this ordering.
-Each location of the window defines a cell pool with similar library sizes.
+Each location of the window defines a pool of cells with similar library sizes.
 This avoids inflated estimation errors for very small cells when they are pooled with very large cells.
 Sliding the window will construct an over-determined linear system that can be solved with methods like the QR decomposition.
 
 Window sliding is repeated with different window sizes to construct the linear system, as specified by \code{sizes}.
 By default, the number of cells in each window ranges from 20 to 100.
 Using a range of window sizes improves the precision of the estimates, at the cost of increased computational complexity.
+The defaults are chosen to provide a reasonable compromise between these two considerations.
+
 The smallest window should be large enough so that the pool-based size factors are, on average, non-zero.
 We recommend window sizes no lower than 20 for UMI data, though smaller windows may be possible for read count data.
+}
 
+\section{Dealing with negative size factors}{ 
 In theory, it is possible to obtain negative estimates for the size factors.
-These are most likely for very small library sizes and are obviously nonsensical.
-Some protection can be provided by setting \code{positive=TRUE}, which will use linear inverse models to solve the system.
+These values are obviously nonsensical and \code{computeSumFactors} will raise a warning if they are encountered.
+Negative estimates are mostly commonly generated from low quality cells with few expressed features, such that most counts are zero even after pooling.
+They may also occur if insufficient filtering of low-abundance genes was performed.
+
+To avoid negative size factors, the best solution is to increase the stringency of the quality control.
+This removes cells that are difficult to normalize reliably under any approach.
+A complementary approach is to increase in the number of \code{sizes} to improve the precision of the estimates.
+This reduces the chance of obtaining negative size factors due to estimation error for cells with near-zero true size factors.
+
+As a last resort, some protection can be provided by setting \code{positive=TRUE}, which will use linear inverse models to solve the system.
 This ensures that non-negative values for the size factors will always be obtained.
 Note that some cells may still have size factors of zero and should be removed prior to downstream analysis.
 Such occurrences are unavoidable -- rather, the aim is to prevent negative values from affecting the estimates for all other cells.

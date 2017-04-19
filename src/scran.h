@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <algorithm>
 #include <deque>
+#include <vector>
 #include <cmath>
 
 extern "C" {

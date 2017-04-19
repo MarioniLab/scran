@@ -1,17 +1,4 @@
-.generateSphere <- function(lib.sizes) 
-# This function sorts cells by their library sizes, and generates an ordering vector.
-{
-    nlibs <- length(lib.sizes)
-    o <- order(lib.sizes)
-    even <- seq(2,nlibs,2)
-    odd <- seq(1,nlibs,2)
-    out <- c(o[odd], rev(o[even]))
-    c(out, out)
-}
-
-setGeneric("computeSumFactors", function(x, ...) standardGeneric("computeSumFactors"))
-
-setMethod("computeSumFactors", "matrix", function(x, sizes=c(20, 40, 60, 80, 100), clusters=NULL, ref.clust=NULL, positive=FALSE, errors=FALSE, subset.row=NULL) 
+.computeSumFactors <- function(x, sizes=seq(20, 100, 5), clusters=NULL, ref.clust=NULL, positive=FALSE, errors=FALSE, subset.row=NULL) 
 # This contains the function that performs normalization on the summed counts.
 # It also provides support for normalization within clusters, and then between
 # clusters to make things comparable. It can also switch to linear inverse models
@@ -33,7 +20,7 @@ setMethod("computeSumFactors", "matrix", function(x, sizes=c(20, 40, 60, 80, 100
     }
 
     # Checking sizes.
-    sizes <- as.integer(sizes)
+    sizes <- sort(as.integer(sizes))
     if (anyDuplicated(sizes)) { 
         stop("'sizes' is not unique") 
     }
@@ -81,7 +68,7 @@ setMethod("computeSumFactors", "matrix", function(x, sizes=c(20, 40, 60, 80, 100
             QR <- qr(design)
             final.nf <- qr.coef(QR, output)
             if (any(final.nf < 0)) { 
-                if (!warned.neg) { warning("negative factor estimates, re-run with 'positive=TRUE'") }
+                if (!warned.neg) { warning("encountered negative factor estimates") }
                 warned.neg <- TRUE
             }
 
@@ -133,46 +120,42 @@ setMethod("computeSumFactors", "matrix", function(x, sizes=c(20, 40, 60, 80, 100
         attr(final.sf, "standard.error") <- se.est * final.sf/clust.nf
     }
     return(final.sf)
-})
+}
 
-setMethod("computeSumFactors", "SCESet", function(x, subset.row=NULL, ..., assay="counts", get.spikes=FALSE, sf.out=FALSE) { 
-    if (is.null(subset.row)) { 
-        subset.row <- .spikeSubset(x, get.spikes)
-    }
-    sf <- computeSumFactors(assayDataElement(x, assay), subset.row=subset.row, ...) 
-    if (sf.out) { 
-        return(sf) 
-    }
-    sizeFactors(x) <- sf
-    x
-})
-    
+.generateSphere <- function(lib.sizes) 
+# This function sorts cells by their library sizes, and generates an ordering vector.
+{
+    nlibs <- length(lib.sizes)
+    o <- order(lib.sizes)
+    even <- seq(2,nlibs,2)
+    odd <- seq(1,nlibs,2)
+    out <- c(o[odd], rev(o[even]))
+    c(out, out)
+}
+
 LOWWEIGHT <- 0.000001
 
 .create_linear_system <- function(cur.exprs, sphere, sizes, use.ave.cell) {
     sphere <- sphere - 1L # zero-indexing in C++.
     nsizes <- length(sizes)
-    row.dex <- col.dex <- output <- vector("list", nsizes + 1L)
+    row.dex <- col.dex <- output <- vector("list", 2L)
     cur.cells <- ncol(cur.exprs)
 
-    for (si in seq_len(nsizes)) { 
-        out <- .Call(cxx_forge_system, cur.exprs, sphere, sizes[si], use.ave.cell)
-        if (is.character(out)) { stop(out) }
-        row.dex[[si]] <- out[[1]] + cur.cells * (si - 1L)
-        col.dex[[si]] <- out[[2]]
-        output[[si]]<- out[[3]]
-    }
+    out <- .Call(cxx_forge_system, cur.exprs, sphere, sizes, use.ave.cell)
+    if (is.character(out)) { stop(out) }
+    row.dex[[1]] <- out[[1]] 
+    col.dex[[1]] <- out[[2]]
+    output[[1]]<- out[[3]]
     
     # Adding extra equations to guarantee solvability (downweighted).
     out <- .Call(cxx_forge_system, cur.exprs, sphere, 1L, use.ave.cell)
     if (is.character(out)) { stop(out) }
-    si <- nsizes + 1L
-    row.dex[[si]] <- out[[1]] + cur.cells * nsizes
-    col.dex[[si]] <- out[[2]]
-    output[[si]] <- out[[3]] * sqrt(LOWWEIGHT)
+    row.dex[[2]] <- out[[1]] + cur.cells * nsizes
+    col.dex[[2]] <- out[[2]]
+    output[[2]] <- out[[3]] * sqrt(LOWWEIGHT)
 
     # Setting up the entries of the LHS matrix.
-    eqn.values <- rep(c(rep(1, nsizes), sqrt(LOWWEIGHT)), lengths(row.dex))
+    eqn.values <- rep(c(1, sqrt(LOWWEIGHT)), lengths(row.dex))
 
     # Constructing a sparse matrix.
     row.dex <- unlist(row.dex)
@@ -183,3 +166,19 @@ LOWWEIGHT <- 0.000001
     return(list(design=design, output=output))
 }
 
+setGeneric("computeSumFactors", function(x, ...) standardGeneric("computeSumFactors"))
+
+setMethod("computeSumFactors", "matrix", .computeSumFactors)
+
+setMethod("computeSumFactors", "SCESet", function(x, subset.row=NULL, ..., assay="counts", get.spikes=FALSE, sf.out=FALSE) { 
+    if (is.null(subset.row)) { 
+        subset.row <- .spikeSubset(x, get.spikes)
+    }
+    sf <- .computeSumFactors(assayDataElement(x, assay), subset.row=subset.row, ...) 
+    if (sf.out) { 
+        return(sf) 
+    }
+    sizeFactors(x) <- sf
+    x
+})
+    
