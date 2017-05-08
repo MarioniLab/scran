@@ -32,8 +32,9 @@ This function uses \pkg{limma} to test for differentially expressed genes (DEGs)
 For each cluster, the log-fold changes and other statistics from all relevant pairwise comparisons are combined into a single table.
 A list of such tables is returned for all clusters to define a set of potential marker genes.
 
-The table for each table is sorted by the \code{Top} value, which specifies the size of the candidate marker set.
-Taking all rows with \code{Top} values below some value X will yield a set containing the top X genes (ranked by significance) from each pairwise comparison.
+Each table is sorted by the \code{Top} value, which specifies the size of the candidate marker set.
+Taking all rows with \code{Top} values no greater than some integer X will yield a set containing the top X genes (ranked by significance) from each pairwise comparison.
+For example, if X is 5, the set will consist of the \emph{union} of the top 5 genes from each pairwise comparison.
 This set allows the cluster to be distinguished from the others based on the expression of at least one gene.
 It should be stressed that markers are not explicitly chosen to be uniquely expressed in the cluster.
 Such a strategy is often too stringent, especially in cases involving overclustering or cell types defined by combinatorial gene expression.
