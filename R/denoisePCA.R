@@ -4,6 +4,7 @@
 #
 # written by Aaron Lun
 # created 13 March 2017    
+# last modified 27 April 2017
 {
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     x <- x[subset.row,] # Might as well, need to do PCA on the subsetted matrix anyway.
@@ -11,13 +12,12 @@
     all.means <- rowMeans(x)
 
     if (!is.null(design)) { 
-        checked <- .makeVarDefaults(x, fit=NULL, design=design)
+        checked <- .make_var_defaults(x, fit=NULL, design=design)
         design <- checked$design
         QR <- qr(design, LAPACK=TRUE)
-
-        # Computing residuals.
-        rx <- .Call(cxx_get_residuals, x, QR$qr, QR$qraux, subset.row - 1L)
-        if (is.character(rx)) { stop(rx) }
+        
+        # Computing residuals; don't set a lower bound.
+        rx <- .calc_residuals_wt_zeroes(x, QR=QR, subset.row=subset.row, lower.bound=NA) 
 
         # Rescaling residuals so that the variance is unbiased.
         # This is necessary because variance of residuals is underestimated.
@@ -65,9 +65,10 @@ setMethod("denoisePCA", "matrix", .denoisePCA)
 
 setMethod("denoisePCA", "SCESet", function(x, ..., subset.row=NULL, assay="exprs", get.spikes=FALSE) {
     if (is.null(subset.row)) {
-        subset.row <- .spikeSubset(x, get.spikes)
+        subset.row <- .spike_subset(x, get.spikes)
     }
     out <- .denoisePCA(assayDataElement(x, assay), ..., subset.row=subset.row)
     reducedDimension(x) <- out
     return(x)
 })
+

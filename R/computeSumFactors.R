@@ -172,7 +172,7 @@ setMethod("computeSumFactors", "matrix", .computeSumFactors)
 
 setMethod("computeSumFactors", "SCESet", function(x, subset.row=NULL, ..., assay="counts", get.spikes=FALSE, sf.out=FALSE) { 
     if (is.null(subset.row)) { 
-        subset.row <- .spikeSubset(x, get.spikes)
+        subset.row <- .spike_subset(x, get.spikes)
     }
     sf <- .computeSumFactors(assayDataElement(x, assay), subset.row=subset.row, ...) 
     if (sf.out) { 

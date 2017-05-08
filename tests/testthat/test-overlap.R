@@ -140,9 +140,17 @@ design <- model.matrix(~block)
 X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes)+1)
 rownames(X) <- paste0("X", seq_len(Ngenes))
 
-out <- scran:::.overlapExprs(X, grouping, design=design, residuals=TRUE)
+out <- scran:::.overlapExprs(X, grouping, design=design, residuals=TRUE, lower.bound=NA)
 fit <- lm.fit(y=t(X),x=design)
 ref <- scran:::.overlapExprs(t(fit$residuals), grouping)
+expect_equal(out, ref)
+
+X[] <- log(matrix(rpois(Ngenes*Ncells, lambda=1), nrow=Ngenes)+1)
+out <- scran:::.overlapExprs(X, grouping, design=design, residuals=TRUE, lower.bound=0) # With boundedness.
+fit <- lm.fit(y=t(X),x=design)
+resid <- t(fit$residuals)
+resid[X<=0] <- -100
+ref <- scran:::.overlapExprs(resid, grouping)
 expect_equal(out, ref)
 
 # A more natural example with a covariate.
@@ -151,16 +159,24 @@ design <- model.matrix(~block)
 X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes)+1)
 rownames(X) <- paste0("X", seq_len(Ngenes))
 
-out <- scran:::.overlapExprs(X, grouping, design=design)
+out <- scran:::.overlapExprs(X, grouping, design=design, lower.bound=NA)
 fit <- lm.fit(y=t(X),x=design)
 ref <- scran:::.overlapExprs(t(fit$residuals), grouping)
+expect_equal(out, ref)
+
+X[] <- log(matrix(rpois(Ngenes*Ncells, lambda=1), nrow=Ngenes)+1)
+out <- scran:::.overlapExprs(X, grouping, design=design, lower.bound=0) # With boundedness.
+fit <- lm.fit(y=t(X),x=design)
+resid <- t(fit$residuals)
+resid[X<=0] <- -100
+ref <- scran:::.overlapExprs(resid, grouping)
 expect_equal(out, ref)
 
 #############################
 # Checking for consistent behaviour with SCEsets.
 
 Y <- matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes)+1
-rownames(X) <- paste0("X", seq_len(Ngenes))
+rownames(Y) <- paste0("X", seq_len(Ngenes))
 X2 <- newSCESet(countData=Y, logExprsOffset=1, lowerDetectionLimit=0)
 grouping <- rep(1:4, each=25)
 expect_equal(overlapExprs(exprs(X2), grouping), overlapExprs(X2, grouping)) 

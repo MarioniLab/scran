@@ -9,7 +9,7 @@ setMethod("decomposeVar", c("matrix", "list"), function(x, fit, design=NA, subse
 # last modified 19 January 2017
 {
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
-    checked <- .makeVarDefaults(x, fit=fit, design=design)
+    checked <- .make_var_defaults(x, fit=fit, design=design)
     design <- checked$design
     QR <- qr(design, LAPACK=TRUE)
 

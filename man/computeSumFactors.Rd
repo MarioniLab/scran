@@ -81,8 +81,13 @@ These values are obviously nonsensical and \code{computeSumFactors} will raise a
 Negative estimates are mostly commonly generated from low quality cells with few expressed features, such that most counts are zero even after pooling.
 They may also occur if insufficient filtering of low-abundance genes was performed.
 
-To avoid negative size factors, the best solution is to increase the stringency of the quality control.
-This removes cells that are difficult to normalize reliably under any approach.
+To avoid negative size factors, the best solution is to increase the stringency of the filtering.
+\itemize{
+\item If only a few negative size factors are present, they are likely to correspond to a few low-quality cells with few expressed features.
+Such cells are difficult to normalize reliably under any approach, and can be removed by increasing the stringency of the quality control.
+\item If many negative size factors are present, it is probably due to insufficient filtering of low-abundance genes.
+This results in many zero counts and pooled size factors of zero, and can be fixed by filtering out more genes.
+}
 A complementary approach is to increase in the number of \code{sizes} to improve the precision of the estimates.
 This reduces the chance of obtaining negative size factors due to estimation error for cells with near-zero true size factors.
 
@@ -102,7 +107,8 @@ This is equivalent to but more efficient than subsetting \code{x} directly, as i
 If this is specified, it will overwrite any setting of \code{get.spikes}.
 
 Note that pooling does not eliminate the need to filter out low-abundance genes.
-If too many genes have consistently low counts across all cells, even the pool-based size factors will be zero.
+As mentioned above, if too many genes have consistently low counts across all cells, even the pool-based size factors will be zero.
+This results in zero or negative size factor estimates for many cells.
 Filtering ensures that this is not the case, e.g., by removing genes with average counts below 1.
 }
 

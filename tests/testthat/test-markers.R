@@ -13,12 +13,9 @@ X <- newSCESet(countData=data.frame(dummy))
 sizeFactors(X) <- colSums(dummy)
 X <- normalize(X)
 
-# Checking against the reference output.
-clust <- kmeans(t(exprs(X)), centers=3)
-out <- findMarkers(X, clusters=clust$cluster)
-
+# Setting up a reference function.
 library(limma)
-REFFUN <- function(y, design, clust.vals, output) { 
+REFFUN <- function(y, design, clust.vals, output, pval.type="any") { 
     lfit <- lmFit(y, design)
     for (host in clust.vals) {
         collected.lfc <- collected.p <- list()
@@ -32,7 +29,7 @@ REFFUN <- function(y, design, clust.vals, output) {
             fit2 <- eBayes(fit2, trend=TRUE, robust=TRUE)
             res <- topTable(fit2, n=Inf, sort.by="none")
             
-            collected.lfc[[target]] <- res$logFC
+            collected.lfc[[paste0("logFC.", target)]] <- res$logFC
             collected.p[[target]] <- res$P.Value
         }
         
@@ -50,19 +47,31 @@ REFFUN <- function(y, design, clust.vals, output) {
             expect_equal(collected.lfc[[target]][reordered], cur.out[[target]])
         }
         
-        # Checking the FDR.
+        # Checking the FDR, after Simes' or with the IUT.
         combined.p <- do.call(cbind, collected.p)
-        simes.p <- apply(combined.p, 1, FUN=function(x) { min(p.adjust(x, method="BH")) })
-        adj.simes.p <- p.adjust(simes.p, method="BH")
-        expect_equal(adj.simes.p[reordered], cur.out$FDR)
+        if (pval.type=="any") { 
+            pval <- apply(combined.p, 1, FUN=function(x) { min(p.adjust(x, method="BH")) })
+        } else {
+            pval <- apply(combined.p, 1, FUN=max)
+        }
+        adj.p <- p.adjust(pval, method="BH")
+        expect_equal(adj.p[reordered], cur.out$FDR)
     }  
     return(TRUE)
 }
+
+clust <- kmeans(t(exprs(X)), centers=3)
+out <- findMarkers(X, clusters=clust$cluster)
 
 clusters <- as.factor(clust$cluster)
 design <- model.matrix(~0 + clusters)
 colnames(design) <- levels(clusters)
 REFFUN(exprs(X), design, levels(clusters), out)
+
+# Checking that the IUT calculation is correct.
+
+out <- findMarkers(X, clusters=clust$cluster, pval.type="all")
+REFFUN(exprs(X), design, levels(clusters), out, pval.type="all")
 
 # Checking how it behaves with a design matrix.
 

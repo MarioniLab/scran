@@ -45,13 +45,12 @@ setMethod("cyclone", "matrix", function(x, pairs, gene.names=rownames(x), iter=1
     }
   
     # Run the allocation algorithm
-    workass <- .workerAssign(ncol(x), BPPARAM)
-    common.args <- list(exprs=x, iter=iter, min.iter=min.iter, min.pairs=min.pairs)
+    wout <- .worker_assign(ncol(x), BPPARAM)
     all.scores <- vector('list', length(pairs))
     names(all.scores) <- names(pairs)
     for (cl in names(pairs)) { 
-        cur.scores <- bpmapply(FUN=.get_phase_score, wstart=workass$start, wend=workass$end, BPPARAM=BPPARAM,
-                               MoreArgs=c(list(pairings=pairs[[cl]]), common.args), SIMPLIFY=FALSE) 
+        cur.scores <- bplapply(wout, FUN=.get_phase_score, exprs=x, iter=iter, min.iter=min.iter, 
+                               min.pairs=min.pairs, pairings=pairs[[cl]], BPPARAM=BPPARAM)
         all.scores[[cl]] <- unlist(cur.scores)
     }
 
@@ -66,8 +65,10 @@ setMethod("cyclone", "matrix", function(x, pairs, gene.names=rownames(x), iter=1
     return(list(phases=phases, scores=scores, normalized.scores=scores.normalised))  
 })
 
-.get_phase_score <- function(wstart, wend, exprs, pairings, iter, min.iter, min.pairs) {
-    to.use <- c(wstart, wend)
+.get_phase_score <- function(to.use, exprs, pairings, iter, min.iter, min.pairs) 
+# Pass all arguments explicitly rather than via function environment
+# (avoid duplication of memory in bplapply).
+{
     out <- .Call(cxx_shuffle_scores, to.use, exprs, pairings$first, pairings$second, pairings$index, iter, min.iter, min.pairs) 
     if (is.character(out)) { stop(out) }
     return(out)
@@ -75,7 +76,7 @@ setMethod("cyclone", "matrix", function(x, pairs, gene.names=rownames(x), iter=1
 
 setMethod("cyclone", "SCESet", function(x, pairs, subset.row=NULL, ..., assay="counts", get.spikes=FALSE) {
     if (is.null(subset.row)) {
-        subset.row <- .spikeSubset(x, get.spikes)
+        subset.row <- .spike_subset(x, get.spikes)
     }
     cyclone(assayDataElement(x, assay), pairs=pairs, subset.row=subset.row, ...)          
 })

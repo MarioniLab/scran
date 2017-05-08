@@ -105,29 +105,33 @@ expect_identical(mcols(y)$SYMBOL, fData(X)$SYMBOL[!is.spike])
 
 # Converting to a CellDataSet.
 
+catch_warning <- function(...) {
+    expect_warning(..., "None of your featureData columns are named 'gene_short_name'")
+}
+
 to.comp <- t(t(counts(X))/sizeFactors(X))
-y <- convertTo(X, type="monocle")
+catch_warning(y <- convertTo(X, type="monocle"))
 expect_equal(exprs(y), to.comp[!is.spike,])
 
-y <- convertTo(X, type="monocle", get.spikes=TRUE) # Assuming no spike-in-specific normalization.
+catch_warning(y <- convertTo(X, type="monocle", get.spikes=TRUE)) # Assuming no spike-in-specific normalization.
 expect_equal(exprs(y), to.comp)
 
 X2 <- X # Now, with spike-in-specific normalization.
 sizeFactors(X2, type="MySpike") <- 1
-y <- convertTo(X2, type="monocle", get.spikes=TRUE)
+catch_warning(y <- convertTo(X2, type="monocle", get.spikes=TRUE))
 expect_equal(exprs(y)[!isSpike(X2),], to.comp[!is.spike,])
 expect_equal(exprs(y)[isSpike(X2),], counts(X)[is.spike,])
-y <- convertTo(X2, type="monocle", get.spikes=TRUE, use.all.sf=FALSE)
+catch_warning(y <- convertTo(X2, type="monocle", get.spikes=TRUE, use.all.sf=FALSE))
 expect_equal(exprs(y), to.comp)
 
 chosen <- c(50:1, 101:200)
-y <- convertTo(X, type="monocle", subset.row=chosen)
+catch_warning(y <- convertTo(X, type="monocle", subset.row=chosen))
 expect_equal(exprs(y), to.comp[chosen,])
 
-y <- convertTo(X, type="monocle", normalize=FALSE)
+catch_warning(y <- convertTo(X, type="monocle", normalize=FALSE))
 expect_identical(exprs(y), counts(X)[!is.spike,])
 
-y <- convertTo(X, type="monocle", fData.col="SYMBOL", pData.col="other")
+catch_warning(y <- convertTo(X, type="monocle", fData.col="SYMBOL", pData.col="other"))
 expect_identical(y$other, X$other)
 expect_identical(fData(y)$SYMBOL, fData(X)$SYMBOL[!is.spike])
 
@@ -136,7 +140,7 @@ expect_identical(fData(y)$SYMBOL, fData(X)$SYMBOL[!is.spike])
 # expect_identical(exprs(y), to.comp[0,])
 # expect_identical(fData(y)$SYMBOL, character(0))
 
-y <- convertTo(X[,0], type="monocle", pData.col="other")
+catch_warning(y <- convertTo(X[,0], type="monocle", pData.col="other"))
 expect_identical(exprs(y), to.comp[!is.spike,0])
 expect_identical(y$other, character(0))
 
@@ -152,6 +156,6 @@ expect_identical(counts(X), y$counts)
 dds <- convertTo(X, type="DESeq2")
 expect_equal(counts(X), counts(dds))
 sizeFactors(X) <- 1
-y <- convertTo(X, type="monocle")
+catch_warning(y <- convertTo(X, type="monocle"))
 expect_equal(exprs(y), counts(X))
 

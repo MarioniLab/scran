@@ -27,7 +27,7 @@ importFrom("Matrix", sparseMatrix, qr, qr.coef, qr.qty)
 importFrom("edgeR", DGEList, "[.DGEList", designAsFactor, scaleOffset.DGEList)
 importFrom("limma", fitFDistRobustly, lmFit, eBayes, contrasts.fit, topTable)
 
-importFrom("utils", combn)
+importFrom("utils", combn, head)
 importFrom("stats", approx, as.dist, cor, fitted, hclust, loess, median, p.adjust, pchisq, pf, dist,
            predict, quantile, coefficients, nls, nls.control, lm, pnorm, coef, var, prcomp, model.matrix)
 

@@ -35,28 +35,39 @@ SEXP overlap_exprs_internal(const T* ptr, const matrix_info& MAT, SEXP groups, S
     try {
         SET_VECTOR_ELT(output, 0, allocVector(VECSXP, ngroups));
         SEXP pout=VECTOR_ELT(output, 0);
-        std::deque<double*> pptrs(ngroups*ngroups);
-        SET_VECTOR_ELT(output, 1, allocVector(VECSXP, ngroups));
-        SEXP nout=VECTOR_ELT(output, 1);
-        std::deque<double*> nptrs(ngroups*ngroups);
-
+        std::deque<double*> pptrs(ngroups*ngroups, NULL);
         int counter=0;
+        
         for (int i=0; i<ngroups; ++i) {
             SET_VECTOR_ELT(pout, i, allocMatrix(REALSXP, slen, ngroups-1));
-            SET_VECTOR_ELT(nout, i, allocVector(REALSXP, ngroups-1));
             double * pptr=REAL(VECTOR_ELT(pout, i));
-            double * nptr=REAL(VECTOR_ELT(nout, i));
             for (int j=0; j<ngroups; ++j, ++counter) {
                 if (i!=j) { 
                     pptrs[counter] = pptr;
                     std::fill(pptr, pptr+slen, 0);
                     pptr += slen;
+                }
+            }
+        }
+
+        // Calclulating the number of cells for each pair of groups.
+        SET_VECTOR_ELT(output, 1, allocVector(VECSXP, ngroups));
+        SEXP nout=VECTOR_ELT(output, 1);
+        std::deque<double*> nptrs(ngroups*ngroups, NULL);
+        counter=0;
+
+        double isize, jsize;
+        for (int i=0; i<ngroups; ++i) {
+            isize=groupsize[i];
+            SET_VECTOR_ELT(nout, i, allocVector(REALSXP, ngroups-1));
+            double * nptr=REAL(VECTOR_ELT(nout, i));
+
+            for (int j=0; j<ngroups; ++j, ++counter) {
+                jsize=groupsize[j];
+                if (i!=j) { 
                     nptrs[counter] = nptr;
-                    (*nptr)=0;
+                    (*nptr)= (isize && jsize) ? jsize + isize : 0;
                     ++nptr;
-                } else {
-                    pptrs[counter] = NULL;
-                    nptrs[counter] = NULL;
                 }
             }
         }
@@ -111,11 +122,9 @@ SEXP overlap_exprs_internal(const T* ptr, const matrix_info& MAT, SEXP groups, S
                     score/=double(ncells1)*double(ncells2);
 
                     // Accounting for the total number of cells.
-                    total_cells=double(ncells1 + ncells2);
-                    nptrs[counter][0]=total_cells;
+                    const double& total_cells=nptrs[counter][0];
                     counter=i2*ngroups + i1; // Adding the symmetric value.
                     pptrs[counter][s]=(1-score) * total_cells;
-                    nptrs[counter][0]=total_cells;
                     score *= total_cells;
                 }
             } 

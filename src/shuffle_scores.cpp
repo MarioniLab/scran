@@ -18,12 +18,11 @@ template <typename T>
 SEXP shuffle_scores_internal (SEXP mycells, const T* eptr, const matrix_info& emat, 
         SEXP marker1, SEXP marker2, SEXP used, SEXP iter, SEXP miniter, SEXP minpair) { 
 
-    if (!isInteger(mycells) || LENGTH(mycells)!=2) { throw std::runtime_error("cell indices must be an integer vector of length 2"); }
-    const int start=INTEGER(mycells)[0] - 1;
-    const int last=INTEGER(mycells)[1];
-    if (start < 0 || last > emat.ncol) { throw std::runtime_error("cell indices are out of range"); }
-    const int nc=last-start;
+    if (!isInteger(mycells)) { throw std::runtime_error("cell indices must be an integer vector"); }
+    const int* cptr=INTEGER(mycells);
+    const int nc=LENGTH(mycells);
     const int ng=int(emat.nrow);
+    const int totalcells=int(emat.ncol);
 
     if (!isInteger(marker1) || !isInteger(marker2)) { throw std::runtime_error("vectors of markers must be integer"); }
     const int npairs = LENGTH(marker1);
@@ -66,8 +65,13 @@ SEXP shuffle_scores_internal (SEXP mycells, const T* eptr, const matrix_info& em
         T* current_exprs=(T*)R_alloc(nused, sizeof(T));
 
         for (int cell=0; cell<nc; ++cell) {
+            const int& curcell=cptr[cell];
+            if (curcell < 1 || curcell > totalcells) {
+                throw std::runtime_error("cell indices are out of range");
+            }
+
             // Storing the values to be shuffled in a separate array.
-            cell_exprs=eptr + ng * (start + cell);
+            cell_exprs=eptr + ng * (curcell - 1);
             for (gene=0; gene<nused; ++gene) { current_exprs[gene]=cell_exprs[uptr[gene]]; }
                 
             curscore=get_proportion<T>(current_exprs, npairs, minp, m1_ptr, m2_ptr);

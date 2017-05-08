@@ -7,9 +7,10 @@
 \description{Compute the gene-specific overlap in expression profiles between two groups of cells.}
 
 \usage{
-\S4method{overlapExprs}{matrix}(x, groups, design=NULL, residuals=FALSE, tol=1e-8, subset.row=NULL)
+\S4method{overlapExprs}{matrix}(x, groups, design=NULL, residuals=FALSE, tol=1e-8, 
+    BPPARAM=SerialParam(), subset.row=NULL, lower.bound=NULL)
 
-\S4method{overlapExprs}{SCESet}(x, ..., subset.row=NULL, assay="exprs", get.spikes=FALSE) 
+\S4method{overlapExprs}{SCESet}(x, ..., subset.row=NULL, lower.bound=NULL, assay="exprs", get.spikes=FALSE) 
 }
 
 \arguments{
@@ -23,7 +24,9 @@ A vector of group assignments for all cells.
 \item{design}{A numeric matrix containing blocking terms, i.e., uninteresting factors driving expression across cells.}
 \item{residuals}{A logical scalar indicating whether overlaps should be computed between residuals of a linear model.} 
 \item{tol}{A numeric scalar specifying the tolerance with which ties are considered.}
+\item{BPPARAM}{A BiocParallelParam object to use in \code{bplapply} for parallel processing.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
+\item{lower.bound}{A numeric scalar specifying the theoretical lower bound of values in \code{x}, only used when \code{residuals=TRUE}.}
 \item{...}{Additional arguments to pass to the matrix method.}
 \item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
 \item{get.spikes}{A logical scalar specifying whether decomposition should be performed for spike-ins.}
@@ -58,9 +61,9 @@ In particular, it avoids problems with breaking of ties when counts or expressio
 However, it also makes less use of information, e.g., we ignore any blocks containing cells from only one group.
 \code{NA} proportions may be observed for a pair of groups if there is no block that contains cells from that pair.
 
-For designs containing multiple factors or covariates, a linear model is fitted to the (log-normalized) expression values with \code{design}.
-The overlaps are then computed from the residuals of the fitted model.
-This approach is not ideal (see \code{?\link{correlatePairs}} for a related discussion) but is unavoidable for covariates.
+For designs containing multiple factors or covariates, a linear model is fitted to the expression values with \code{design}.
+Overlap proportions are then computed using the residuals of the fitted model.
+This approach is not ideal, requiring log-transformed \code{x} and setting of \code{lower.bound} - see \code{?\link{correlatePairs}} for a related discussion.
 It can also be used for one-way layouts by setting \code{residuals=TRUE}.
 }
 

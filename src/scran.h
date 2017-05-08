@@ -39,7 +39,7 @@ SEXP estimate_variance(SEXP, SEXP, SEXP, SEXP);
 
 SEXP rank_subset(SEXP, SEXP, SEXP, SEXP);
 
-SEXP get_residuals(SEXP, SEXP, SEXP, SEXP);
+SEXP get_residuals(SEXP, SEXP, SEXP, SEXP, SEXP);
 
 SEXP compute_CV2(SEXP, SEXP, SEXP, SEXP);
 

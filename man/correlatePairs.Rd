@@ -11,11 +11,11 @@
 correlateNull(ncells, iters=1e6, design=NULL, residuals=FALSE) 
 
 \S4method{correlatePairs}{matrix}(x, null.dist=NULL, design=NULL, BPPARAM=SerialParam(), 
-    use.names=TRUE, tol=1e-8, iters=1e6, residuals=FALSE, 
-    subset.row=NULL, per.gene=FALSE)
+    tol=1e-8, iters=1e6, residuals=FALSE, use.names=TRUE, 
+    subset.row=NULL, per.gene=FALSE, lower.bound=NULL)
 
-\S4method{correlatePairs}{SCESet}(x, subset.row=NULL, use.names=TRUE, per.gene=FALSE,
-    ..., assay="exprs", get.spikes=FALSE)
+\S4method{correlatePairs}{SCESet}(x, ..., use.names=TRUE, subset.row=NULL, per.gene=FALSE,
+    lower.bound=NULL, assay="exprs", get.spikes=FALSE)
 }
 
 \arguments{
@@ -24,19 +24,20 @@ correlateNull(ncells, iters=1e6, design=NULL, residuals=FALSE)
 \item{design}{A numeric design matrix containing uninteresting factors to be ignored.}
 \item{residuals}{A logical scalar indicating whether correlations should be calculated from residuals when \code{design!=NULL}.}
 \item{x}{
-    A numeric matrix of normalized expression values, where rows are genes and columns are cells.
+    A numeric matrix of log-normalized expression values, where rows are genes and columns are cells.
     Alternatively, a SCESet object containing such a matrix.
 }
 \item{null.dist}{A numeric vector of rho values under the null hypothesis.}
 \item{BPPARAM}{A BiocParallelParam object to use in \code{bplapply} for parallel processing.}
+\item{tol}{A numeric scalar indicating the maximum difference under which two expression values are tied.}
 \item{use.names}{
     A logical scalar specifying whether the row names of \code{exprs} should be used in the output.
     Alternatively, a character vector containing the names to use.
 }
-\item{tol}{A numeric scalar indicating the maximum difference under which two expression values are tied.}
 \item{subset.row}{A logical, integer or character vector indicating the rows of \code{x} to use.
 Alternatively, a list of 2 such vectors, or a integer/character matrix with 2 columns - see below for details.}
 \item{per.gene}{A logical scalar specifying whether statistics should be summarized per gene.}
+\item{lower.bound}{A numeric scalar specifying the theoretical lower bound of values in \code{x}, only used when \code{residuals=TRUE}.}
 \item{...}{Additional arguments to pass to \code{correlatePairs,matrix-method}.}
 \item{assay}{A string specifying which assay values to use.}
 \item{get.spikes}{A logical specifying whether spike-in transcripts should be used.}
@@ -115,13 +116,18 @@ For designs containing multiple factors or covariates, a linear model is fitted 
 The correlation between a pair of genes is then computed from the residuals of the fitted model.
 Similarly, to obtain a null distribution of rho values, normally-distributed random errors are simulated in a fitted model based on \code{design};
     the corresponding residuals are generated from these errors; and the correlation between sets of residuals is computed at each iteration.
-This approach can also be used for one-way layouts by setting \code{residuals=TRUE}.
 
-% Don't use residual effects directly, as they're not robust to outliers.
-
-(The second procedure assumes normality, during both linear modelling and generation of the null distribution.
-This is why it is not used for the simpler one-way layouts by default.
-However, this assumption is largely unavoidable for complex designs, where some quantitative constraints are required to remove nuisance effects.)
+The second model-based approach can also be used for one-way layouts by setting \code{residuals=TRUE}.
+By default, this is not turned on as the second approach involves more work/assumptions:
+\itemize{
+\item It assumes normality, during both linear modelling and generation of the null distribution.
+This assumption is largely unavoidable for complex designs, where some quantitative constraints are required to remove nuisance effects.
+\code{x} should generally be log-transformed here, whereas this is not required for (but does not hurt) the first group-based approach.
+\item Residuals computed from expression values equal to \code{lower.bound} are set to a constant value below all other residuals.
+This preserves ties between zeroes and avoids spurious correlations between genes due to arbitrary tie-breaking.
+The value of \code{lower.bound} should be equal to log-prior count used during the log-transformation.
+It is automatically determined from the \code{logExprsOffset} slot if \code{x} is a SCESet object.
+}
 }
 
 \section{Gene selection}{
@@ -147,12 +153,6 @@ Specifically, untied ranks are randomly assigned to any tied values.
 This means that a common empirical distribution can be used for all gene pairs, rather than having to do new permutations for every pair to account for the different pattern of ties.
 Generally, this modification has little effect on the results for expressed genes (and in any case, differences in library size break ties for normalized expression values).
 Some correlations may end up being spuriously large, but this should be handled by the error control machinery after multiplicity correction.
-
-% Note that counts of zero will have the same normalized log-expression, even if the library sizes are different.
-% This is because the added prior count is scaled by the library size in \code{\link{cpm.default}}, such that the effect of library size cancels out.
-% Thus, all zeroes will have tied ranks (with numerical imprecision handled by \code{tol}) and will not inflate the correlations.
-% For non-zero counts, correlations may be driven by library size differences between cells.
-% This is, perhaps, less problematic, as a gene with the same count in a small and large cell is presumably downregulated in the latter.
 }
 
 \author{

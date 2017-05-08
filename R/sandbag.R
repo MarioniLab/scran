@@ -89,7 +89,7 @@ setMethod("sandbag", "matrix", function(x, phases, gene.names=rownames(x), fract
 
 setMethod("sandbag", "SCESet", function(x, phases, subset.row=NULL, ..., assay="counts", get.spikes=FALSE) {
     if (is.null(subset.row)) { 
-        subset.row <- .spikeSubset(x, get.spikes)
+        subset.row <- .spike_subset(x, get.spikes)
     }
     sandbag(assayDataElement(x, assay), phases=phases, ..., subset.row=subset.row)
 })

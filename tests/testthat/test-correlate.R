@@ -200,11 +200,45 @@ expect_warning(correlatePairs(X[1:5,], design=design, null=nulls, residuals=FALS
 expect_warning(correlatePairs(X[1:5,], design=NULL, null=nulls, residuals=TRUE), "'design' is not the same as that used to generate")
 
 set.seed(100) # Need because of random ranking.
-out <- correlatePairs(X, design=design, null=nulls, residuals=TRUE)
+out <- correlatePairs(X, design=design, null=nulls, residuals=TRUE, lower.bound=NA)
 fit <- lm.fit(x=design, y=t(X))
 exprs <- t(fit$residual)
 set.seed(100)
 ref <- checkCorrelations(out, exprs, null.dist=nulls)
+
+expect_equal(out$rho, ref$rho)
+expect_equal(out$p.value, ref$pvalue)
+expect_equal(out$FDR, ref$FDR)
+
+# Deeper test of the residual calculator.
+
+QR <- qr(design, LAPACK=TRUE)
+ref.resid <- t(lm.fit(y=t(X), x=design)$residuals)
+out.resid <- .Call(scran:::cxx_get_residuals, X, QR$qr, QR$qraux, seq_len(nrow(X))-1L, NA_real_) 
+expect_equal(unname(ref.resid), out.resid)
+
+subset.chosen <- sample(nrow(X), 10)
+out.resid <- .Call(scran:::cxx_get_residuals, X, QR$qr, QR$qraux, subset.chosen-1L, NA_real_) 
+expect_equal(unname(ref.resid[subset.chosen,]), out.resid)
+
+# Testing with lower-bounded values and more zeroes.
+
+set.seed(100021)
+X[] <- log(matrix(rpois(Ngenes*Ncells, lambda=1), nrow=Ngenes) + 1) # more zeroes with lambda=1
+expect_true(sum(X==0)>0) # observations at the lower bound.
+
+ref.resid <- t(lm.fit(y=t(X), x=design)$residuals)
+alt.resid <- ref.resid
+is.smaller <- X <= 0 # with bounds
+smallest.per.row <- apply(alt.resid, 1, min) - 1
+alt.resid[is.smaller] <- smallest.per.row[arrayInd(which(is.smaller), dim(is.smaller))[,1]]
+out.resid <- .Call(scran:::cxx_get_residuals, X, QR$qr, QR$qraux, seq_len(nrow(X))-1L, 0)
+expect_equal(unname(alt.resid), out.resid)
+
+set.seed(100) 
+out <- correlatePairs(X, design=design, null=nulls, residuals=TRUE, lower.bound=0) # Checking what happens with bounds.
+set.seed(100) 
+ref <- checkCorrelations(out, alt.resid, null.dist=nulls)
 
 expect_equal(out$rho, ref$rho)
 expect_equal(out$p.value, ref$pvalue)
@@ -232,14 +266,6 @@ for (x in seq_along(collected.rho)) {
 }
 collected.p <- 2*(collected.p + 1)/(length(nulls)+1)
 expect_equal(out$p.value, collected.p)
-
-QR <- qr(design, LAPACK=TRUE)
-ref.resid <- t(lm.fit(y=t(X), x=design)$residuals)
-out.resid <- .Call(scran:::cxx_get_residuals, X, QR$qr, QR$qraux, seq_len(nrow(X))-1L) # Deeper test of the residual calculator.
-expect_equal(unname(ref.resid), out.resid)
-subset.chosen <- sample(nrow(X), 10)
-out.resid <- .Call(scran:::cxx_get_residuals, X, QR$qr, QR$qraux, subset.chosen-1L) 
-expect_equal(unname(ref.resid[subset.chosen,]), out.resid)
 
 # Checking that it works with different 'subset.row' values.
 # (again, using a normal matrix to avoid ties, for simplicity).

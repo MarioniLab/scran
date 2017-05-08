@@ -10,7 +10,7 @@ correlateNull <- function(ncells, iters=1e6, design=NULL, residuals=FALSE)
             stop("cannot specify both 'ncells' and 'design'")
         }
 
-        groupings <- .isOneWay(design)
+        groupings <- .is_one_way(design)
         if (is.null(groupings) || residuals) { 
             # Using residualsd residual effects if the design matrix is not a one-way layout (or if forced by residuals=TRUE).
             QR <- qr(design, LAPACK=TRUE)

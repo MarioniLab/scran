@@ -1,3 +1,5 @@
+
+
 mnnCorrect <- function(..., k=20, sigma=1, cos.norm=TRUE, svd.dim=20, order=NULL) 
 # Performs correction based on the batches specified in the ellipsis.
 #    
@@ -45,11 +47,16 @@ mnnCorrect <- function(..., k=20, sigma=1, cos.norm=TRUE, svd.dim=20, order=NULL
 
         # Identifying the biological component of the batch correction vector 
         # (i.e., the part that is parallel to the biological subspace) and removing it.
-        bio.span <- cbind(span1, span2)
-        bv <- sets$vect
-        bio.comp <- bv %*% bio.span %*% t(bio.span)
+        #bio.span <- cbind(span1, span2)
+        #bio.span <- pracma::orth(bio.span)
+        
+        #reduce the component in each span from the batch correction vector, span1 span2 order does not matter
+        bv <- sets$vect               
+        bio.comp <- bv %*% span1 %*% t(span1)
         correction <- t(bv) - t(bio.comp) 
-
+        bio.comp <- t(correction) %*% span2 %*% t(span2)
+        correction <- correction - t(bio.comp) 
+        
         # Applying the correction and storing the numbers of nearest neighbors.
         other.batch <- other.batch + correction
         num.mnn[b,] <- c(length(s1), length(s2))
@@ -125,8 +132,11 @@ get.bio.span <- function(exprs, ndim)
 # trivially large and small angles when using find.shared.subspace().
 {
     exprs <- exprs - rowMeans(exprs) 
-    S <- svd(exprs, nu=ndim, nv=0)
-    S$u
+    S <- svd(exprs)#, nu=ndim, nv=0)
+    #S$u
+    used.dim <- seq_len(ndim)
+    S$u[,used.dim,drop=FALSE]
+    
 }
 
 find.shared.subspace <- function(A, B, sin.threshold=0.85, cos.threshold=1/sqrt(2), 

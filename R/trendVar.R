@@ -9,7 +9,7 @@
 # last modified 10 February 2017
 {
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
-    checked <- .makeVarDefaults(x, fit=NULL, design=design)
+    checked <- .make_var_defaults(x, fit=NULL, design=design)
     design <- checked$design
     QR <- qr(design, LAPACK=TRUE)
 
@@ -131,7 +131,7 @@ setMethod("trendVar", "SCESet", function(x, subset.row=NULL, ..., assay="exprs",
                 subset.row <- logical(nrow(x)) # no spikes at all.
             }
         } else {
-            subset.row <- .spikeSubset(x, get.spikes=FALSE)
+            subset.row <- .spike_subset(x, get.spikes=FALSE)
         }
     }
     out <- .trend_var(assayDataElement(x, assay), ..., subset.row=subset.row)

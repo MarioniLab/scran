@@ -20,7 +20,7 @@ setMethod("convertTo", "SCESet", function(x, type=c("edgeR", "DESeq2", "monocle"
 
     # Determining whether spikes should be retained.
     if (is.null(subset.row)) {
-        subset.row <- .spikeSubset(x, get.spikes)
+        subset.row <- .spike_subset(x, get.spikes)
     }
     if (!is.null(subset.row)) {
         subset.row <- .subset_to_index(subset.row, x)

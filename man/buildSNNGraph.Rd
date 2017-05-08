@@ -7,7 +7,7 @@
 \description{Build a shared-nearest-neighbors graph for cells based on their expression profiles.}
 
 \usage{
-\S4method{buildSNNGraph}{matrix}(x, k=10, d=50, subset.row=NULL)
+\S4method{buildSNNGraph}{matrix}(x, k=10, d=50, subset.row=NULL, BPPARAM=SerialParam())
 
 \S4method{buildSNNGraph}{SCESet}(x, ..., subset.row=NULL, assay="exprs", get.spikes=FALSE)
 }
@@ -17,6 +17,7 @@
 \item{k}{An integer scalar specifying the number of nearest neighbors to consider during graph construction.}
 \item{d}{An integer scalar specifying the number of dimensions to use for the k-NN search.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
+\item{BPPARAM}{A BiocParallelParam object to use in \code{bplapply} for parallel processing.}
 \item{...}{Additional arguments to pass to \code{buildSNNGraph,matrix-method}.}
 \item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
 \item{get.spikes}{A logical specifying whether spike-in transcripts should be used.}
