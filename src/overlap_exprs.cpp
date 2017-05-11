@@ -35,7 +35,7 @@ SEXP overlap_exprs_internal(const T* ptr, const matrix_info& MAT, SEXP groups, S
     try {
         SET_VECTOR_ELT(output, 0, allocVector(VECSXP, ngroups));
         SEXP pout=VECTOR_ELT(output, 0);
-        std::deque<double*> pptrs(ngroups*ngroups, NULL);
+        std::deque<double*> pptrs(ngroups*ngroups);
         int counter=0;
         
         for (int i=0; i<ngroups; ++i) {
@@ -53,7 +53,7 @@ SEXP overlap_exprs_internal(const T* ptr, const matrix_info& MAT, SEXP groups, S
         // Calclulating the number of cells for each pair of groups.
         SET_VECTOR_ELT(output, 1, allocVector(VECSXP, ngroups));
         SEXP nout=VECTOR_ELT(output, 1);
-        std::deque<double*> nptrs(ngroups*ngroups, NULL);
+        std::deque<double*> nptrs(ngroups*ngroups);
         counter=0;
 
         double isize, jsize;
@@ -77,7 +77,6 @@ SEXP overlap_exprs_internal(const T* ptr, const matrix_info& MAT, SEXP groups, S
         const T* cur_ptr;
         T left, right;
         int c1, c2_left, c2_right;
-        double total_cells;
 
         // Running through all genes and computing pairwise overlaps.
         for (int s=0; s<slen; ++s) {
