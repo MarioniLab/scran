@@ -2,12 +2,14 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.5.1}{\itemize{
+\section{Version 1.5.3}{\itemize{
 \item Parallelized buildSNNGraph(), overlapExprs() with BPPARAM options.
 
 \item Forced zero-derived residuals to a constant value in correlatePairs(), overlapExprs().
 
 \item Allowed findMarkers() to return IUT p-values, to identify uniquely expressed genes in each cluster.
+
+\item Fixed bug in correlatePairs() when per.gene=TRUE and no spike-ins are available. 
 }}
 
 \section{Version 1.4.0}{\itemize{

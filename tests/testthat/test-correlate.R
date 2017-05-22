@@ -377,6 +377,14 @@ X2 <- newSCESet(exprsData=data.frame(X), logExprsOffset=1, lowerDetectionLimit=0
 out <- correlatePairs(X2, null.dist=nulls)
 expect_equal(out, ref)
 
+# With per.gene=TRUE.
+
+set.seed(100)
+ref <- correlatePairs(exprs(X2), null.dist=nulls, per.gene=TRUE)
+set.seed(100)
+out <- correlatePairs(X2, null.dist=nulls, per.gene=TRUE)
+expect_equal(out, ref)
+
 # With spikes.
 
 is_exprs(X2) <- matrix(1L, Ngenes, Ncells)
