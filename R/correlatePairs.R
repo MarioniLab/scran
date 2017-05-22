@@ -213,7 +213,7 @@ setMethod("correlatePairs", "SCESet", function(x, ..., use.names=TRUE, subset.ro
     by.spikes <- FALSE
     if (is.null(subset.row)) {
         subset.row <- .spike_subset(x, get.spikes)
-        by.spikes <- TRUE
+        by.spikes <- !is.null(subset.row)
     }
     lower.bound <- .guess_lower_bound(x, assay, lower.bound)
 
