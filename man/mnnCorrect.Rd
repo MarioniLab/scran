@@ -5,13 +5,18 @@
 \description{Correct for batch effects in single-cell expression data using the mutual nearest neighbors method.}
 
 \usage{
-mnnCorrect(..., k=20, sigma=1, cos.norm=TRUE, svd.dim=20, order=NULL) 
+mnnCorrect(..., inquiry.genes=NULL, hvg.genes=NULL, k=20, sigma=0.1, 
+    cos.norm=TRUE, svd.dim=2, order=NULL) 
 }
 
 \arguments{
 \item{...}{Two or more expression matrices where genes correspond to rows and cells correspond to columns.
 Each matrix should contain cells from the same batch; multiple matrices represent separate batches of cells.
-Each matrix should contain the same number and identity of rows.}
+Each matrix should contain the same number of rows, corresponding to the same genes (in the same order).}
+\item{inquiry.genes}{A vector specifying the genes in all batches on which the correction is to be performed. 
+All genes are used by default.}
+\item{hvg.genes}{A vector specifying the genes in all batches with which to identify the mutual nearest neighbours. 
+All genes are used by default.}
 \item{k}{An integer scalar specifying the number of nearest neighbors to consider when identifying mutual nearest neighbors.}
 \item{sigma}{A numeric scalar specifying the bandwidth of the Gaussian smoothing kernel used to compute the correction vector for each cell.}
 \item{cos.norm}{A logical scalar indicating whether cosine normalization should be performed.}

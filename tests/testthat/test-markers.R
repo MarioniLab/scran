@@ -1,5 +1,4 @@
 # This tests the findMarkers function.
-
 # require(scran); require(testthat); source("test-markers.R")
 
 set.seed(70000)
@@ -15,7 +14,7 @@ X <- normalize(X)
 
 # Setting up a reference function.
 library(limma)
-REFFUN <- function(y, design, clust.vals, output, pval.type="any") { 
+REFFUN <- function(y, design, clust.vals, output, pval.type="any", direction="any") { 
     lfit <- lmFit(y, design)
     for (host in clust.vals) {
         collected.lfc <- collected.p <- list()
@@ -28,6 +27,16 @@ REFFUN <- function(y, design, clust.vals, output, pval.type="any") {
             fit2 <- contrasts.fit(lfit, con)
             fit2 <- eBayes(fit2, trend=TRUE, robust=TRUE)
             res <- topTable(fit2, n=Inf, sort.by="none")
+
+            if (direction=="up") {
+                is.up <- res$logFC > 0
+                res$P.Value[is.up] <- res$P.Value[is.up]/2
+                res$P.Value[!is.up] <- 1-res$P.Value[!is.up]/2
+            } else if (direction=="down") {
+                is.down <- res$logFC < 0
+                res$P.Value[is.down] <- res$P.Value[is.down]/2
+                res$P.Value[!is.down] <- 1-res$P.Value[!is.down]/2
+            }
             
             collected.lfc[[paste0("logFC.", target)]] <- res$logFC
             collected.p[[target]] <- res$P.Value
@@ -72,6 +81,14 @@ REFFUN(exprs(X), design, levels(clusters), out)
 
 out <- findMarkers(X, clusters=clust$cluster, pval.type="all")
 REFFUN(exprs(X), design, levels(clusters), out, pval.type="all")
+
+# Checking that the directional calculations are correct.
+
+out <- findMarkers(X, clusters=clust$cluster, direction="up")
+REFFUN(exprs(X), design, levels(clusters), out, direction="up")
+
+out <- findMarkers(X, clusters=clust$cluster, direction="down")
+REFFUN(exprs(X), design, levels(clusters), out, direction="down")
 
 # Checking how it behaves with a design matrix.
 

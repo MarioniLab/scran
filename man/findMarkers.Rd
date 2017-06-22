@@ -7,7 +7,8 @@
 \description{Find candidate marker genes for clusters of cells, by testing for differential expression between clusters.}
 
 \usage{
-\S4method{findMarkers}{matrix}(x, clusters, design=NULL, pval.type=c("any", "all"), subset.row=NULL)
+\S4method{findMarkers}{matrix}(x, clusters, design=NULL, pval.type=c("any", "all"), 
+    direction=c("any", "up", "down"), subset.row=NULL)
 
 \S4method{findMarkers}{SCESet}(x, ..., subset.row=NULL, assay="exprs", get.spikes=FALSE) 
 }
@@ -22,6 +23,7 @@ A vector of cluster identities for all cells.
 }
 \item{design}{A numeric matrix containing blocking terms, i.e., uninteresting factors driving expression across cells.}
 \item{pval.type}{A string specifying the type of combined p-value to be computed, i.e., Simes' or IUT.}
+\item{direction}{A string specifying the direction of log-fold changes to be considered for each cluster.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to the matrix method.}
 \item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
@@ -43,18 +45,24 @@ By default, the null hypothesis is that the gene is not DE in any of the contras
 In both cases, the reported value is intended only as a rough measure of significance.
 Properly correcting for multiple testing is not generally possible when \code{clusters} is determined from the same \code{x} used for DE testing.
 
+By default, spike-in transcripts are ignored in \code{findMarkers,SCESet-method} with \code{get.spikes=FALSE}.
+This is overridden by any non-\code{NULL} value of \code{subset.row}.
+}
+
+\section{Tuning the p-value calculations}{
 Genes that are uniquely expressed in a cluster are not explicitly favoured by default.
 Such a strategy is often too stringent, especially in cases involving overclustering or cell types defined by combinatorial gene expression.
 However, if \code{pval.type="all"}, the null hypothesis is that the gene is not DE in all contrasts, and the IUT p-value is computed for each gene.
 This can be used to re-rank the genes based on the resulting FDR values.
 
+If \code{direction="any"}, genes will only be ranked based on their p-values, regardless of the direction of the log-fold change.
+Otherwise, one-sided tests in the specified direction will be used to compute p-values for each gene in each pairwise comparison.
+This can be used to focus on genes that are upregulated in each cluster of interest, which is often easier to interpret.
+
 The application of \pkg{limma} uses the \dQuote{trend} approach on the normalized log-expression values, as described by Law et al. (2015).
 This is fast and avoids putting too much weight on outliers or cells with large library sizes.
 Uninteresting factors of variation (e.g., preparation time, sequencing batch) will be blocked if they are stored in \code{design}.
 Note that the presence of factors that are confounded with \code{clusters} will raise a warning about unestimable coefficients.
-
-By default, spike-in transcripts are ignored in \code{findMarkers,SCESet-method} with \code{get.spikes=FALSE}.
-This is overridden by any non-\code{NULL} value of \code{subset.row}.
 }
 
 \value{

@@ -1,4 +1,4 @@
-.findMarkers <- function(x, clusters, design=NULL, pval.type=c("any", "all"), subset.row=NULL)
+.findMarkers <- function(x, clusters, design=NULL, pval.type=c("any", "all"), direction=c("any", "up", "down"), subset.row=NULL)
 # Uses limma to find the markers that are differentially expressed between clusters,
 # given a log-expression matrix and some blocking factors in 'design'.
 #
@@ -22,6 +22,7 @@
     }
    
     pval.type <- match.arg(pval.type) 
+    direction <- match.arg(direction)
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     lfit <- lmFit(x[subset.row,,drop=FALSE], full.design)
     output <- vector("list", length(clust.vals))
@@ -44,7 +45,15 @@
         
         for (target in targets) { 
             res <- topTable(fit2, number=Inf, sort.by="none", coef=target)
-            all.p[[target]] <- res$P.Value
+            pvals <- res$P.Value
+
+            if (direction=="up") {
+                pvals <- ifelse(res$logFC > 0, pvals/2, 1-pvals/2)                
+            } else if (direction=="down") {
+                pvals <- ifelse(res$logFC < 0, pvals/2, 1-pvals/2)                
+            }
+
+            all.p[[target]] <- pvals
             all.lfc[[target]] <- res$logFC
         }
             
