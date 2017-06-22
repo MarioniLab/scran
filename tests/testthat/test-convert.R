@@ -106,7 +106,7 @@ expect_identical(mcols(y)$SYMBOL, fData(X)$SYMBOL[!is.spike])
 # Converting to a CellDataSet.
 
 catch_warning <- function(...) {
-    expect_warning(..., "None of your featureData columns are named 'gene_short_name'")
+    expect_warning(..., "gene_short_name")
 }
 
 to.comp <- t(t(counts(X))/sizeFactors(X))
