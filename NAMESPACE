@@ -22,7 +22,7 @@ exportMethods(
 importFrom("Biobase", assayDataElement, "assayDataElement<-", fData, exprs, featureData, phenoData, pData)
 
 importFrom("dynamicTreeCut", cutreeDynamic)
-importFrom("Matrix", sparseMatrix, qr, qr.coef, qr.qty)
+importFrom("Matrix", sparseMatrix, qr, qr.coef, qr.qty, t, which)
 
 importFrom("edgeR", DGEList, "[.DGEList", designAsFactor, scaleOffset.DGEList)
 importFrom("limma", fitFDistRobustly, lmFit, eBayes, contrasts.fit, topTable)
