@@ -9,8 +9,7 @@ mnnCorrect <- function(..., inquiry.genes=NULL, hvg.genes=NULL, k=20, sigma=0.1,
     batches <- batches0 <- list(...) 
     nbatches <- length(batches) 
     if (nbatches < 2L) { stop("at least two batches must be specified") }
-    if (cos.norm) { batches <- lapply(batches, cosine.norm) } 
-
+   
     # Checking for identical number of rows (and rownames).
     first <- batches[[1]]
     ref.nrow <- nrow(first)
@@ -35,6 +34,9 @@ mnnCorrect <- function(..., inquiry.genes=NULL, hvg.genes=NULL, k=20, sigma=0.1,
     hvg.genes <- .subset_to_index(hvg.genes, first, byrow=TRUE)
     inquiry.in.hvg <- inquiry.genes %in% hvg.genes 
 
+    # Applying cosine normalization for MNN identification. 
+    if (cos.norm) { batches <- lapply(batches, cosine.norm) }
+
     # Setting up the order.
     if (is.null(order)) {
         order <- seq_len(nbatches)
@@ -51,9 +53,6 @@ mnnCorrect <- function(..., inquiry.genes=NULL, hvg.genes=NULL, k=20, sigma=0.1,
     ref.batch0 <- batches0[[ref]]
     
     num.mnn <- matrix(NA_integer_, nbatches, 2)
-    #output <- vector("list", nbatches)
-    #output[[ref]] <- ref.batch
-
     output0 <- vector("list", nbatches)
     output0[[ref]] <- ref.batch0
     
@@ -77,11 +76,6 @@ mnnCorrect <- function(..., inquiry.genes=NULL, hvg.genes=NULL, k=20, sigma=0.1,
             #nshared <- find.shared.subspace(span1, span2, assume.orthonormal=TRUE, get.angle=FALSE)$nshared
             #if (nshared==0L) { warning("batches not sufficiently related") }
     
-            # Identifying the biological component of the batch correction vector 
-            # (i.e., the part that is parallel to the biological subspace) and removing it.
-            #library(pracma)
-            #bio.span<-orth(bio.span)
-            
             #reduce the component in each span from the batch correction vector, span1 span2 order does not matter
             bv <- sets$vect
             bv0 <- sets$vect0      
@@ -91,7 +85,7 @@ mnnCorrect <- function(..., inquiry.genes=NULL, hvg.genes=NULL, k=20, sigma=0.1,
             correction0 <- correction0 - t(bio.comp)
             
             correction <- t(sets$vect)
-        } #else
+        } 
         
         # Applying the correction and storing the numbers of nearest neighbors.
         other.batch <- other.batch + correction
@@ -110,7 +104,7 @@ mnnCorrect <- function(..., inquiry.genes=NULL, hvg.genes=NULL, k=20, sigma=0.1,
     list(corrected=output0, num.mnn=num.mnn)
 }
 
-find.mutual.nn <- function(exprs1, exprs2, exprs10, exprs20, k1, k2, sigma=1)
+find.mutual.nn <- function(exprs1, exprs2, exprs10, exprs20, k1, k2, sigma=0.1)
 # Finds mutal neighbors between data1 and data2.
 # Computes the batch correction vector for each cell in data2.
 {
@@ -123,20 +117,12 @@ find.mutual.nn <- function(exprs1, exprs2, exprs10, exprs20, k1, k2, sigma=1)
     n1 <- nrow(data1)
     n2 <- nrow(data2)
     n.total <- n1 + n2
-    W <- matrix(0, n.total, n.total)
-
-    
+   
     W21 <- FNN::get.knnx(data2, query=data1, k=k1)
-    js1 <- matrix(seq_len(n1), n1, k1)
-    is1 <- n1 + W21$nn.index
-    indices1 <- cbind(as.vector(js1), as.vector(is1))
-    W[indices1] <- 1
-
     W12 <- FNN::get.knnx(data1, query=data2, k=k2)
-    js2 <- matrix(n1 + seq_len(n2), n2, k2)
-    is2 <- W12$nn.index
-    indices2 <- cbind(as.vector(js2), as.vector(is2))
-    W[indices2] <- 1
+    W <- sparseMatrix(i=c(rep(seq_len(n1), k1), rep(n1 + seq_len(n2), k2)),
+                      j=c(n1 + W21$nn.index, W12$nn.index),
+                      x=rep(1, n1*k1 + n2*k2), dims=c(n.total, n.total))
 
     W <- W * t(W) # elementwise multiplication to keep mutual nns only
     A <- which(W>0, arr.ind=TRUE) # row/col indices of mutual NNs
@@ -173,6 +159,7 @@ find.mutual.nn <- function(exprs1, exprs2, exprs10, exprs20, k1, k2, sigma=1)
     norm.dens <- t(G/(D*nA2))[,A2,drop=FALSE] # density normalized to avoid domination from dense parts
     batchvect <- norm.dens %*% vect 
     partitionf <- rowSums(norm.dens)
+    partitionf[partitionf==0]<-1  # to avoid nans (instead get 0s)
     batchvect <- batchvect/partitionf
 
     batchvect0 <- norm.dens %*% vect0 
@@ -192,11 +179,8 @@ get.bio.span <- function(exprs, inquiry.in.hvg, ndim)
     keeph[inquiry.in.hvg] <- 1
     exprs <- exprs * keeph
     exprs <- exprs - rowMeans(exprs) 
-    S <- svd(exprs)#, nu=ndim, nv=0)
-    #S$u
-    used.dim <- seq_len(ndim)
-    S$u[,used.dim,drop=FALSE]
-    
+    S <- svd(exprs, nu=ndim, nv=0)
+    S$u   
 }
 
 find.shared.subspace <- function(A, B, sin.threshold=0.85, cos.threshold=1/sqrt(2), 
