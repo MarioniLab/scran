@@ -1,392 +1,417 @@
 #include "scran.h"
+#include "run_dormqr.h"
 
 double rho_mult (double Ncells) {
     return 6/(Ncells*(Ncells*Ncells-1));
 }
 
 /*** Null distribution estimation without a design matrix. ***/
-SEXP get_null_rho (SEXP cells, SEXP iters) try {
-    if (!isInteger(cells) || LENGTH(cells)!=1)  {
+
+SEXP get_null_rho (SEXP cells, SEXP iters) {
+    BEGIN_RCPP
+
+    // Pulling out input values.
+    Rcpp::IntegerVector NC(cells);
+    if (NC.size()!=1) { 
         throw std::runtime_error("number of cells should be an integer scalar"); 
     }
-    const int Ncells=asInteger(cells);
+    const int Ncells=NC[0];
     if (Ncells <= 1) { throw std::runtime_error("number of cells should be greater than 2"); }
-    if (!isInteger(iters) || LENGTH(iters)!=1)  {
+
+    Rcpp::IntegerVector Iters(iters);
+    if (Iters.size()!=1)  {
         throw std::runtime_error("number of iterations should be an integer scalar"); 
     }
-    const int Niters=asInteger(iters);
+    const int Niters=Iters[0];
     if (Niters <= 0) { throw std::runtime_error("number of iterations should be positive"); }
 
-    int* rankings=(int*)R_alloc(Ncells, sizeof(int));
-    int cell;
-    for (cell=0; cell<Ncells; ++cell) { rankings[cell]=cell; }    
+    // Filling rank vector.
+    std::vector<int> rankings(Ncells);
+    std::iota(rankings.begin(), rankings.end(), 0);
 
-    SEXP output=PROTECT(allocVector(REALSXP, Niters));
-    try {
-        double* optr=REAL(output);
-        Rx_random_seed myseed;
-        double tmp, tmpdiff;
-        const double mult=rho_mult(Ncells);
+    Rcpp::NumericVector output(Niters);
+    Rcpp::RNGScope rng;
+    const double mult=rho_mult(Ncells);
 
-        for (int it=0; it<Niters; ++it) {
-            Rx_shuffle(rankings, rankings + Ncells);
-            tmp=0;
-            for (cell=0; cell<Ncells; ++cell) {
-                tmpdiff=rankings[cell]-cell;
-                tmp+=tmpdiff*tmpdiff;
-            }
-            tmp*=mult;
-            optr[it]=1-tmp;            
+    for (int it=0; it<Niters; ++it) {
+        Rx_shuffle(rankings.begin(), rankings.end());
+        double tmp=0;
+        for (int cell=0; cell<Ncells; ++cell) {
+            const double tmpdiff=rankings[cell]-cell;
+            tmp+=tmpdiff*tmpdiff;
         }
-    } catch (std::exception& e) {
-        UNPROTECT(1);
-        throw;
+        tmp*=mult;
+        output[it]=1-tmp;            
     }
 
-    UNPROTECT(1);
     return output;
-} catch (std::exception& e) {
-    return mkString(e.what());
+    END_RCPP
 }
 
 /*** Null distribution estimation with a design matrix. ***/
-SEXP get_null_rho_design(SEXP qr, SEXP qraux, SEXP iters) try {
-    matrix_info QR=check_matrix(qr);
-    if (QR.is_integer) {
-        throw std::runtime_error("Q matrix must be double-precision");
+
+SEXP get_null_rho_design(SEXP qr, SEXP qraux, SEXP iters) {
+    BEGIN_RCPP
+    Rcpp::IntegerVector Iters(iters);
+    if (Iters.size()!=1)  {
+        throw std::runtime_error("number of iterations should be an integer scalar"); 
     }
-    if (!isReal(qraux) || size_t(LENGTH(qraux))!=QR.ncol) {
-        throw std::runtime_error("QR auxiliary vector should be double-precision and of length 'ncol(Q)'");
-    }
-    const double* qrxptr=REAL(qraux);
-    if (!isInteger(iters) || LENGTH(iters)!=1) {
-        throw std::runtime_error("number of iterations should be an integer scalar");
-    }
-    const int Niters=asInteger(iters);
+    const int Niters=Iters[0];
     if (Niters <= 0) { throw std::runtime_error("number of iterations should be positive"); }
-    
+
     // Setting up to multiply by the Q matrix.
-    run_dormqr multQ(QR.nrow, QR.ncol, QR.dptr, qrxptr, 'N');
-    const int& Nobs=QR.nrow;
-    const int& Ncoef=QR.ncol;
-    double* effects=multQ.rhs;
+    run_dormqr multQ(qr, qraux, 'N');
+    const int Nobs=multQ.get_nobs();
+    const int Ncoef=multQ.get_ncoefs();
 
-    SEXP output=PROTECT(allocVector(REALSXP, Niters));
-    try {
-        double* optr=REAL(output);
-        Rx_random_seed myseed;
-    
-        std::deque<std::pair<double, int> > collected1(Nobs), collected2(Nobs);
-        std::deque<int> rank1(Nobs), rank2(Nobs);
-        const double mult=rho_mult(Nobs);
+    Rcpp::NumericVector output(Niters);
+    Rcpp::RNGScope rng;
 
-        // Simulating residuals, using the Q-matrix to do it.
-        // We set the main effects to zero (hence, starting from "Ncoefs") and simulate normals for the residual effects.
-        // We then use this to reconstruct the residuals themselves, and then compute correlations between them.
-        int mode, row, col;
-        double tmpdiff;
+    std::deque<std::pair<double, int> > collected1(Nobs), collected2(Nobs);
+    std::deque<int> rank1(Nobs), rank2(Nobs);
+    const double mult=rho_mult(Nobs);
 
-        for (int it=0; it<Niters; ++it) {
-            for (mode=0; mode<2; ++mode) {
-                for (col=0; col<Ncoef; ++col) {
-                    effects[col]=0;
-                }
-                for (col=Ncoef; col<Nobs; ++col) {
-                    effects[col]=norm_rand();
-                }
-
-                // Computing the residuals.
-                multQ.run();
-
-                // Sorting.
-                std::deque<std::pair<double, int> >& current=(mode ? collected1 : collected2);
-                for (row=0; row<Nobs; ++row) {
-                    current[row].first=effects[row];
-                    current[row].second=row;
-                }
-                std::sort(current.begin(), current.end());
-                std::deque<int>& rank=(mode ? rank1 : rank2);
-                for (row=0; row<Nobs; ++row) {
-                    rank[current[row].second]=row;
-                }
+    /* Simulating residuals, using the Q-matrix to do it. We set the main effects to zero 
+     * (hence, starting from "Ncoefs") and simulate normals for the residual effects.
+     * We then use this to reconstruct the residuals themselves - twice - and then compute 
+     * correlations between the two reconstructions.
+     */
+    for (int it=0; it<Niters; ++it) {
+        for (int mode=0; mode<2; ++mode) {
+            std::fill(multQ.rhs.begin(), multQ.rhs.begin()+Ncoef, 0);
+            for (int col=Ncoef; col<Nobs; ++col) {
+                multQ.rhs[col]=norm_rand();
             }
 
-            // Computing the squared difference in the ranks.
-            double& rho=(optr[it]=0);
-            for (row=0; row<Nobs; ++row) {
-                tmpdiff=rank1[row]-rank2[row];
-                rho+=tmpdiff*tmpdiff;
+            // Computing the residuals.
+            multQ.run();
+
+            // Sorting.
+            std::deque<std::pair<double, int> >& current=(mode ? collected1 : collected2);
+            for (int row=0; row<Nobs; ++row) {
+                current[row].first=multQ.rhs[row];
+                current[row].second=row;
             }
-            rho*=mult;
-            rho=1-rho;
+            std::sort(current.begin(), current.end());
+            std::deque<int>& rank=(mode ? rank1 : rank2);
+            for (int row=0; row<Nobs; ++row) {
+                rank[current[row].second]=row;
+            }
         }
-    } catch (std::exception& e) {
-        UNPROTECT(1);
-        throw;
+
+        // Computing the squared difference in the ranks.
+        double& rho=(output[it]=0);
+        for (int row=0; row<Nobs; ++row) {
+            const double tmpdiff=rank1[row]-rank2[row];
+            rho+=tmpdiff*tmpdiff;
+        }
+        rho*=mult;
+        rho=1-rho;
     }
 
-    UNPROTECT(1);
     return output;    
-} catch (std::exception& e) {
-    return mkString(e.what());
+    END_RCPP
 }
 
 /*** This function computes error-tolerant ranks for a subset of genes in a subset of cells. ***/
-struct data_holder {
-    data_holder(int nvals) : nobs(nvals) {
-        holder1=PROTECT(allocVector(REALSXP, nobs));
-        holder2=PROTECT(allocVector(REALSXP, nobs));
-        arg1=REAL(holder1);
-        arg2=REAL(holder2);
-        index=(int*)R_alloc(nobs, sizeof(int));
-        return;
-    };
 
-    ~data_holder() {
-        UNPROTECT(2);
-        return;
-    }
-
-    const int nobs;
-    int* index; 
-    SEXP holder1, holder2;
-    double* arg1, *arg2;
-};
-
-template <typename T>
-SEXP rank_subset_internal (const T* ptr, const matrix_info& MAT, SEXP subset_row, SEXP subset_col, SEXP tol) {
-    if (!isReal(tol) || LENGTH(tol)!=1) {
-        throw std::runtime_error("tolerance must be a double-precision scalar");
-    }
-    const T tolerance=asReal(tol);
-    subset_values rsubout=check_subset_vector(subset_row, MAT.nrow);
-    const int rslen=rsubout.first;
-    const int* rsptr=rsubout.second;
-    subset_values csubout=check_subset_vector(subset_col, MAT.ncol);
-    const int cslen=csubout.first;
-    const int* csptr=csubout.second;
+template <typename T, class V, class M>
+SEXP rank_subset_internal(const M mat, SEXP intype, SEXP subset_row, SEXP subset_col, const T tol) {
+    // Checking subset vectors.
+    auto rsubout=check_subset_vector(subset_row, mat->get_nrow());
+    const size_t rslen=rsubout.size();
+    auto csubout=check_subset_vector(subset_col, mat->get_ncol());
+    const size_t cslen=csubout.size();
     
-    // Setting up some pointers to the matrix.
-    const T** ptrs=(const T**)R_alloc(MAT.ncol, sizeof(const T*));
-    if (MAT.ncol) {
-        ptrs[0]=ptr;
-        for (size_t c=1; c<MAT.ncol; ++c) {
-            ptrs[c]=ptrs[c-1]+MAT.nrow;
-        }
+    // Setting up the output matrix.
+    const size_t ncells=mat->get_ncol();
+    beachmat::output_param oparam(intype, true, false);
+    oparam.set_chunk_dim(cslen, 1); // Column chunks (tranposed, so each column is a gene now).
+    auto omat=beachmat::create_integer_output(cslen, rslen, oparam);
+    if (!cslen) { 
+        return omat->yield();
     }
 
-    SEXP output=PROTECT(allocMatrix(INTSXP, cslen, rslen));
-    try {
-        if (!cslen || !rslen) {
-            UNPROTECT(1);
-            return output;
+    std::vector<int> indices(cslen);
+    V incoming(ncells), subsetted(cslen);
+    Rcpp::NumericVector breaker(cslen);
+    Rcpp::IntegerVector ranks(cslen);
+    Rcpp::RNGScope rng;
+
+    auto rsIt=rsubout.begin();
+    for (size_t rs=0; rs<rslen; ++rs, ++rsIt) {
+        mat->get_row(*rsIt, incoming.begin());
+        std::iota(indices.begin(), indices.end(), 0);
+        auto sIt=subsetted.begin();
+        for (auto csIt=csubout.begin(); csIt!=csubout.end(); ++csIt, ++sIt) {
+            (*sIt)=incoming[*csIt];
         }
-        int* optr=INTEGER(output);
-        data_holder dh(cslen);
-        Rx_random_seed myseed;
 
-        int cs;
-        double last_unique;
-        for (int rs=0; rs<rslen; ++rs) {
-            for (cs=0; cs<cslen; ++cs) {
-                dh.index[cs]=cs;
-                dh.arg1[cs]=ptrs[csptr[cs]][rsptr[rs]];
+        // First stage sorting and equalization of effective ties.
+        R_orderVector1(indices.data(), cslen, SEXP(subsetted), FALSE, FALSE);
+        T last_unique=subsetted[indices.front()]; // Should be okay, we've removed cases where cslen=0.
+        for (auto iIt=indices.begin(); iIt!=indices.end(); ++iIt) { 
+            T& val=subsetted[*iIt];
+            if (val - last_unique <= tol) {
+                val=last_unique;
+            } else {
+                last_unique=val;
             }
-
-            // First stage sorting and equalization of effective ties.
-            R_orderVector1(dh.index, dh.nobs, dh.holder1, FALSE, FALSE);
-            last_unique=dh.arg1[dh.index[0]]; // Should be okay, as we remove cases where cslen=0.
-            for (cs=1; cs<cslen; ++cs) {
-                double& val=dh.arg1[dh.index[cs]];
-                if (val - last_unique <= tolerance) {
-                    val=last_unique;
-                } else {
-                    last_unique=val;
-                }
-            }
-
-            // Second stage sorting with broken ties.
-            for (cs=0; cs<cslen; ++cs) {
-                dh.index[cs]=cs;
-                dh.arg2[cs]=unif_rand();
-            }
-            R_orderVector(dh.index, dh.nobs, Rf_lang2(dh.holder1, dh.holder2), FALSE, FALSE);
-
-            // Filling the output matrix.
-            for (cs=0; cs<cslen; ++cs){ 
-                optr[dh.index[cs]]=cs+1;
-            }
-            optr+=cslen;
         }
-    } catch (std::exception& e) {
-        UNPROTECT(1);
-        throw;
+
+        // Second stage sorting with broken ties. This is done in two steps, as equalization needs to be done first.
+        std::iota(indices.begin(), indices.end(), 0);
+        for (auto bIt=breaker.begin(); bIt!=breaker.end(); ++bIt) { 
+            (*bIt)=unif_rand();
+        }
+        R_orderVector(indices.data(), cslen, Rf_lang2(SEXP(subsetted), SEXP(breaker)), FALSE, FALSE);
+
+        // Filling the output matrix.
+        auto iIt=indices.begin();
+        for (int cs=0; cs<cslen; ++cs, ++iIt){ 
+            ranks[*iIt]=cs+1;
+        }
+        omat->set_col(rs, ranks.begin());
     }
 
-    UNPROTECT(1);
-    return output;
+    return omat->yield();
 }
 
-SEXP rank_subset(SEXP exprs, SEXP subset_row, SEXP subset_col, SEXP tol) try {
-    const matrix_info MAT=check_matrix(exprs);
-    if (MAT.is_integer) {
-        return rank_subset_internal<int>(MAT.iptr, MAT, subset_row, subset_col, tol);
+SEXP rank_subset(SEXP exprs, SEXP subset_row, SEXP subset_col, SEXP tol) {
+    BEGIN_RCPP
+    int rtype=beachmat::find_sexp_type(exprs);
+
+    if (rtype==INTSXP) { 
+        auto mat=beachmat::create_integer_matrix(exprs);
+        Rcpp::IntegerVector tolerance(tol);
+        if (tolerance.size()!=1) { 
+            throw std::runtime_error("tolerance should be an integer scalar");
+        }
+        return rank_subset_internal<int, Rcpp::IntegerVector>(mat.get(), exprs, subset_row, subset_col, tolerance[0]);
+
     } else {
-        return rank_subset_internal<double>(MAT.dptr, MAT, subset_row, subset_col, tol);
+        auto mat=beachmat::create_numeric_matrix(exprs);
+        Rcpp::NumericVector tolerance(tol);
+        if (tolerance.size()!=1) { 
+            throw std::runtime_error("tolerance should be an double-precision scalar");
+        }
+        return rank_subset_internal<double, Rcpp::NumericVector>(mat.get(), exprs, subset_row, subset_col, tolerance[0]);
     }
-} catch (std::exception& e) {
-    return mkString(e.what());
+    END_RCPP
 }
 
 /*** Estimating correlations (without expanding into a matrix to do so via 'cor'). ***/
-SEXP compute_rho(SEXP g1, SEXP g2, SEXP rankings) try {
-    const matrix_info rmat=check_matrix(rankings);
-    if (!rmat.is_integer) {
-        throw std::runtime_error("rankings must be integer");
-    }
-    const int* rptr=rmat.iptr;
-    const int& Ncells=rmat.nrow;
-    if (Ncells <= 1) { throw std::runtime_error("number of cells should be greater than 2"); }
-    const int& Ngenes=rmat.ncol;
 
-    if (!isInteger(g1) || !isInteger(g2)) { 
-        throw std::runtime_error("gene indices must be integer vectors");
-    }
-    const int Npairs=LENGTH(g1);
-    if (Npairs!=LENGTH(g2)) { 
+SEXP compute_rho(SEXP g1, SEXP g2, SEXP rankings, SEXP block_size) {
+    BEGIN_RCPP
+
+    // Checking inputs.
+    auto rmat=beachmat::create_integer_matrix(rankings);
+    const size_t& Ncells=rmat->get_nrow();
+    if (Ncells <= 1) { throw std::runtime_error("number of cells should be greater than 2"); }
+    const size_t& Ngenes=rmat->get_ncol();
+
+    Rcpp::IntegerVector first(g1), second(g2);
+    const size_t Npairs=first.size();
+    if (Npairs!=second.size()) { 
         throw std::runtime_error("gene index vectors must be of the same length"); 
     }
-    const int *g1ptr=INTEGER(g1), *g2ptr=INTEGER(g2);
     
-    SEXP output=PROTECT(allocVector(REALSXP, Npairs));
-    try {
-        double* orptr=REAL(output);
-        
-        const int* r1ptr, * r2ptr;
-        int cell, tmp;
-        double working; // avoid numerical overspill.
-        const double mult=rho_mult(Ncells); 
+    Rcpp::IntegerVector bsize(block_size);
+    if (bsize.size()!=1) { 
+        throw std::runtime_error("block size should be an integer scalar");
+    }
+    const int BLOCK=bsize[0];
+    
+    /* Setting up the cache, to avoid repeatedly copying/reading from file with rmat->get_col().
+     * We round up the number of genes to a multiple of BLOCK to make things easier when using
+     * std::fill to indicate that particular genes are no longer in memory.
+     */
+    Rcpp::IntegerVector cache1(BLOCK*Ncells), cache2(BLOCK*Ncells);
+    const int roundedNgenes=BLOCK*int(Ngenes/BLOCK + 1); 
+    std::deque<bool> filled1(roundedNgenes, false), filled2(roundedNgenes, false);
+    std::vector<Rcpp::IntegerVector::const_iterator> locations1(roundedNgenes), locations2(roundedNgenes); 
+    Rcpp::IntegerVector::iterator b1It=cache1.begin(), b2It=cache2.begin();
+    int current_block1=0, current_block2=0;
 
-        for (int p=0; p<Npairs; ++p) {
-            const int& g1x=g1ptr[p];
-            const int& g2x=g2ptr[p];
-            if (g1x < 0 || g1x >= Ngenes) {
-                throw std::runtime_error("first gene index is out of range");
-            }
-            if (g2x < 0 || g2x >= Ngenes) {
-                throw std::runtime_error("second gene index is out of range");
-            }
-            r1ptr=rptr+g1x*Ncells;
-            r2ptr=rptr+g2x*Ncells;
+    const double mult=rho_mult(Ncells); 
+    Rcpp::NumericVector output(Npairs);
 
-            // Computing the correlation.
-            working=0;
-            for (cell=0; cell<Ncells; ++cell) {
-                tmp=r1ptr[cell] - r2ptr[cell];
-                working+=tmp*tmp;
+    auto fIt=first.begin(), sIt=second.begin();
+    for (auto oIt=output.begin(); oIt!=output.end(); ++oIt, ++fIt, ++sIt) { 
+        const int& g1x=(*fIt);
+        const int& g2x=(*sIt);
+        if (g1x < 0 || g1x >= Ngenes) {
+            throw std::runtime_error("first gene index is out of range");
+        }
+        if (g2x < 0 || g2x >= Ngenes) {
+            throw std::runtime_error("second gene index is out of range");
+        }
+
+        // Figuring out whether we need to update the blocks stored in the cache, starting with the first block.
+        const int block1=int(g1x/BLOCK);
+        const bool updated1=(block1!=current_block1);
+        if (updated1) {
+            if (block1 < current_block1) { 
+                throw std::runtime_error("pairs should be arranged in increasing block order");
             }
-            orptr[p]=1 - working*mult;
-        }       
-    } catch (std::exception& e) { 
-        UNPROTECT(1);
-        throw;
+            auto old_filled=filled1.begin()+current_block1*BLOCK;
+            std::fill(old_filled, old_filled+BLOCK, false); 
+            current_block1=block1;
+            b1It=cache1.begin();          
+        }
+        auto& start1=locations1[g1x]; 
+        if (!filled1[g1x]) {
+            if (b1It==cache1.end()) { 
+                throw std::runtime_error("first block cache exceeded");
+            }
+            start1=rmat->get_const_col(g1x, b1It);
+            b1It+=Ncells;
+            filled1[g1x]=true;
+        }
+
+        // Repeating for the second block. If this is the same as the first block, we just update that instead.
+        const int block2=int(g2x/BLOCK);
+        Rcpp::IntegerVector::const_iterator start2_copy;
+        if (block2==block1) { 
+            if (updated1) { 
+                /* No need to discard the existing cache1, this would have already been done above. 
+                 * We do, however, have to update current_block2 and discard cache2 (we can't do this
+                 * later as old_start would no longer be correct with an updated current_block2).
+                 */
+                auto old_start=filled2.begin()+current_block2*BLOCK;
+                std::fill(old_start, old_start+BLOCK, false);
+                current_block2=block2;
+                b2It=cache2.begin();
+            }
+            auto& restart1=locations1[g2x]; 
+            if (!filled1[g2x]) {
+                if (b1It==cache1.end()) { 
+                    throw std::runtime_error("first block cache exceeded");
+                }
+                restart1=rmat->get_const_col(g2x, b1It);
+                b1It+=Ncells;
+                filled1[g2x]=true;
+            }
+            start2_copy=restart1;
+        } else {
+            if (block2!=current_block2) {
+                if (!updated1 && block2 < current_block2) { 
+                    throw std::runtime_error("pairs should be arranged in increasing block order");
+                }
+                auto old_start=filled2.begin()+current_block2*BLOCK;
+                std::fill(old_start, old_start+BLOCK, false);
+                current_block2=block2;
+                b2It=cache2.begin();          
+            } 
+            auto& start2=locations2[g2x]; 
+            if (!filled2[g2x]) { 
+                if (b2It==cache2.end()) { 
+                    throw std::runtime_error("second block cache exceeded");
+                }
+                start2=rmat->get_const_col(g2x, b2It);
+                b2It+=Ncells;
+                filled2[g2x]=true;
+            }
+            start2_copy=start2;
+        }
+
+        // Computing the correlation.
+        double working=0;
+        auto start1_copy=start1;
+        for (size_t c=0; c<Ncells; ++c, ++start1_copy, ++start2_copy) { 
+            const double tmp=(*start1_copy) - (*start2_copy);
+            working+=tmp*tmp;
+        }
+        (*oIt)=1 - working*mult;
     }
 
-    UNPROTECT(1);
     return output;
-} catch (std::exception& e) {
-    return mkString(e.what());
+    END_RCPP
 }
 
 /*** Combining correlated p-values for each gene into a single combined p-value. ***/
-SEXP combine_corP (SEXP ng, SEXP g1, SEXP g2, SEXP rho, SEXP pval, SEXP limited, SEXP order) try {
+
+SEXP combine_corP (SEXP ng, SEXP g1, SEXP g2, SEXP rho, SEXP pval, SEXP limited, SEXP order) {
+    BEGIN_RCPP
+
     // Checking inputs.
-    if (!isInteger(ng) || LENGTH(ng)!=1) {
+    Rcpp::IntegerVector NG(ng);
+    if (NG.size()!=1) { 
         throw std::runtime_error("number of genes must be an integer scalar");
     }
-    const int Ngenes=asInteger(ng);
+    const int Ngenes=NG[0];
     if (Ngenes < 0) { throw std::runtime_error("number of genes should be non-zero"); }
 
-    if (!isInteger(g1) || !isInteger(g2)) { 
-        throw std::runtime_error("gene indices must be integer vectors");
-    }
-    const int Npairs=LENGTH(g1);
-    if (Npairs!=LENGTH(g2)) { 
+    Rcpp::IntegerVector first(g1), second(g2);
+    const size_t Npairs=first.size();
+    if (Npairs!=second.size()) { 
         throw std::runtime_error("gene index vectors must be of the same length"); 
     }
-    const int *g1ptr=INTEGER(g1), *g2ptr=INTEGER(g2);
 
-    if (!isReal(rho) || LENGTH(rho)!=Npairs) {
+    Rcpp::NumericVector Rho(rho);
+    if (Rho.size()!=Npairs) { 
         throw std::runtime_error("'rho' must be a double precision vector of length equal to the number of pairs");
     }
-    const double* rptr=REAL(rho);
 
-    if (!isReal(pval) || LENGTH(pval)!=Npairs) {
+    Rcpp::NumericVector Pval(pval);
+    if (Pval.size()!=Npairs) {
         throw std::runtime_error("'pval' must be a double precision vector of length equal to the number of pairs");
     }
-    const double* pptr=REAL(pval);
 
-    if (!isLogical(limited) || LENGTH(limited)!=Npairs) {
+    Rcpp::LogicalVector Limited(limited);
+    if (Limited.size()!=Npairs) { 
         throw std::runtime_error("'limited' must be a logical vector of length equal to the number of pairs");
     }
-    const int* lptr=LOGICAL(limited);
 
-    if (!isInteger(order) || LENGTH(order)!=Npairs) {
+    Rcpp::IntegerVector Order(order);
+    if (Order.size()!=Npairs) { 
         throw std::runtime_error("'order' must be an integer vector of length equal to the number of pairs");
     }
-    const int* optr=INTEGER(order);
    
     // Going through and computing the combined p-value for each gene. 
-    SEXP output=PROTECT(allocVector(VECSXP, 3));
-    try {
-        SET_VECTOR_ELT(output, 0, allocVector(REALSXP, Ngenes));
-        double* opptr=REAL(VECTOR_ELT(output, 0));
-        SET_VECTOR_ELT(output, 1, allocVector(REALSXP, Ngenes));
-        double* orptr=REAL(VECTOR_ELT(output, 1));
-        SET_VECTOR_ELT(output, 2, allocVector(LGLSXP, Ngenes));
-        int* olptr=LOGICAL(VECTOR_ELT(output, 2));
-        int* sofar=(int*)R_alloc(Ngenes, sizeof(int));
-        std::fill(sofar, sofar+Ngenes, 0);
+    Rcpp::NumericVector pout(Ngenes), rout(Ngenes);
+    Rcpp::LogicalVector lout(Ngenes);
+    std::vector<int> sofar(Ngenes);
 
-        double temp_combined, temp_abs_rho;
-        for (int o=0; o<Npairs; ++o) {
-            const int& curp=optr[o];
-            const double& currho=rptr[curp];
-            const double& curpval=pptr[curp];
-            const int& curlimit=lptr[curp];
+    for (auto oIt=Order.begin(); oIt!=Order.end(); ++oIt) {
+        const int& curp=*oIt;
+        if (curp < 0 || curp >= int(Npairs)) { 
+            throw std::runtime_error("order indices out of range");
+        }
+        const double& currho=Rho[curp];
+        const double& curpval=Pval[curp];
+        const int& curlimit=Limited[curp];
 
-            for (int i=0; i<2; ++i) {
-                const int& gx=(i==0 ? g1ptr[curp] : g2ptr[curp]);
-                if (gx < 0 || gx >= Ngenes) {
-                    throw std::runtime_error("supplied gene index is out of range");
-                }
-                
-                // Checking if this is smaller than what is there, or if nothing is there yet.
-                int& already_there=sofar[gx];
-                ++already_there;
-                temp_combined=curpval/already_there;
-                double& combined_pval=opptr[gx];
-                if (already_there==1 || temp_combined < combined_pval) {
-                    combined_pval=temp_combined;
-                    olptr[gx]=curlimit; // is the combined p-value computed from a limited p-value?
-                }
-                double& max_rho=orptr[gx];
-                if (already_there==1 || std::abs(max_rho) < std::abs(currho)) {
-                    max_rho=currho;
-                }
+        for (int i=0; i<2; ++i) {
+            const int& gx=(i==0 ? first[curp] : second[curp]);
+            if (gx < 0 || gx >= Ngenes) {
+                throw std::runtime_error("supplied gene index is out of range");
+            }
+
+            // Checking if this is smaller than what is there, or if nothing is there yet.
+            int& already_there=sofar[gx];
+            ++already_there;
+            const double temp_combined=curpval/already_there;
+            double& combined_pval=pout[gx];
+            if (already_there==1 || temp_combined < combined_pval) {
+                combined_pval=temp_combined;
+                lout[gx]=curlimit; // is the combined p-value computed from a limited p-value?
+            }
+            double& max_rho=rout[gx];
+            if (already_there==1 || std::abs(max_rho) < std::abs(currho)) {
+                max_rho=currho;
             }
         }
-        
-        // Multiplying by the total number of tests for each gene.        
-        for (int g=0; g<Ngenes; ++g) { opptr[g]*=sofar[g]; }
-    } catch (std::exception& e) { 
-        UNPROTECT(1);
-        throw;
+    }
+    
+    // Multiplying by the total number of tests for each gene.       
+    auto sfIt=sofar.begin();
+    for (auto poIt=pout.begin(); poIt!=pout.end(); ++poIt, ++sfIt) { 
+        (*poIt)*=(*sfIt); 
     }
 
-    UNPROTECT(1);       
-    return(output);
-} catch (std::exception& e) {
-    return mkString(e.what());
+    return Rcpp::List::create(pout, rout, lout);
+    END_RCPP
 }
 

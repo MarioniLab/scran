@@ -26,6 +26,11 @@ normed <- t(t(counts[chosen,])/sf)
 expect_equal(stuff[[1]], rowMeans(normed))
 expect_equal(stuff[[2]], apply(normed, 1, var))
 
+prior.count <- 1
+logged <- log2(t(t(counts)/sf) + prior.count) # Testing its ability to antilog.
+restuff <- .Call(scran:::cxx_compute_CV2, logged, chosen - 1L, NULL, prior.count)
+expect_equal(stuff, restuff)
+
 # Comparing the SCESet and non-SCESet methods.
 rownames(counts) <- paste0("X", seq_len(ngenes))
 colnames(counts) <- paste0("Y", seq_len(nsamples))

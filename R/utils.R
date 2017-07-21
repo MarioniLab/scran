@@ -103,9 +103,11 @@
     ncores <- bpworkers(BPPARAM)
     starting <- as.integer(seq(from=1, to=njobs+1, length.out=ncores+1))
     jobsize <- diff(starting)
-    starting <- head(starting, -1) - 1L
+    starting <- starting[-length(starting)] - 1L
     return(mapply("+", starting, lapply(jobsize, seq_len), SIMPLIFY=FALSE))
 }
+
+#################################################
 
 .is_one_way <- function(design) 
 # Checks if design matrix is a one-way layout.
@@ -123,6 +125,19 @@
     return(NULL)
 }
 
+.ranksafe_qr <- function(design, tol=1e-7) 
+# Rank-checking QR decomposition of a design matrix. Throws an
+# error if the design matrix is not of full rank, which simplifies
+# downstream processes as full rank can always be assumed.
+{
+    out <- qr(design, LAPACK=TRUE)
+    d <- diag(out$qr)
+    if (!all(abs(d) > tol)) { 
+        stop("design matrix is not of full rank")
+    }
+    return(out)
+}
+
 #################################################
 
 .calc_residuals_wt_zeroes <- function(x, design, QR, subset.row, lower.bound) 
@@ -132,19 +147,19 @@
 # 
 {
     if (!missing(design)) {
-        QR <- qr(design, LAPACK=TRUE)
+        QR <- .ranksafe_qr(design)
     }
     if (is.null(lower.bound)) { 
         stop("lower bound must be supplied or NA when computing residuals")
     }
-    use.x <- .Call(cxx_get_residuals, x, QR$qr, QR$qraux, subset.row - 1L, as.double(lower.bound))
-    if (is.character(use.x)) { 
-        stop(use.x) 
-    }
-    return(use.x)
+    .Call(cxx_get_residuals, x, QR$qr, QR$qraux, subset.row - 1L, as.double(lower.bound))
 }
 
-.guess_lower_bound <- function(x, assay, lower.bound) { 
+.guess_lower_bound <- function(x, assay, lower.bound) 
+# Getting the lower bound on the expression values for a given assay, if not supplied.
+# We bump it up a little to make sure that expression values at the lower bound will 
+# actually be detected as being "<= lower.bound".
+{ 
     if (is.null(lower.bound)) { 
         if (assay=="exprs") {
             lower.bound <- log2(x@logExprsOffset) + 1e-8

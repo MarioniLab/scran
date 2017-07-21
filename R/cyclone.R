@@ -1,13 +1,13 @@
 setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
 
-setMethod("cyclone", "matrix", function(x, pairs, gene.names=rownames(x), iter=1000, min.iter=100, min.pairs=50, 
-                                        BPPARAM=SerialParam(), verbose=FALSE, subset.row=NULL)
+.cyclone <- function(x, pairs, gene.names=rownames(x), iter=1000, min.iter=100, min.pairs=50, 
+                     BPPARAM=SerialParam(), verbose=FALSE, subset.row=NULL)
 # Takes trained pairs and test data, and predicts the cell cycle phase from that. 
 #
 # written by Antonio Scialdone
 # with modifications by Aaron Lun
 # created 22 January 2016    
-# last modified 16 December 2016
+# last modified 6 June 2017
 { 
     if (length(gene.names)!=nrow(x)) {
         stop("length of 'gene.names' must be equal to 'x' nrows")
@@ -40,7 +40,7 @@ setMethod("cyclone", "matrix", function(x, pairs, gene.names=rownames(x), iter=1
 
     if (verbose) { 
         for (cl in names(pairs)) { 
-            cat(sprintf("Number of %s pairs: %d\n", cl, length(pairs[[cl]][[1]])))
+            message(sprintf("Number of %s pairs: %d", cl, length(pairs[[cl]][[1]])))
         }
     }
   
@@ -63,16 +63,16 @@ setMethod("cyclone", "matrix", function(x, pairs, gene.names=rownames(x), iter=1
     phases[scores$G1 < 0.5 & scores$G2M < 0.5] <- "S"
 
     return(list(phases=phases, scores=scores, normalized.scores=scores.normalised))  
-})
+}
 
 .get_phase_score <- function(to.use, exprs, pairings, iter, min.iter, min.pairs) 
 # Pass all arguments explicitly rather than via function environment
 # (avoid duplication of memory in bplapply).
 {
-    out <- .Call(cxx_shuffle_scores, to.use, exprs, pairings$first, pairings$second, pairings$index, iter, min.iter, min.pairs) 
-    if (is.character(out)) { stop(out) }
-    return(out)
+    .Call(cxx_shuffle_scores, to.use, exprs, pairings$first, pairings$second, pairings$index, iter, min.iter, min.pairs) 
 }
+
+setMethod("cyclone", "ANY", .cyclone)
 
 setMethod("cyclone", "SCESet", function(x, pairs, subset.row=NULL, ..., assay="counts", get.spikes=FALSE) {
     if (is.null(subset.row)) {

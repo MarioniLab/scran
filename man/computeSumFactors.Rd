@@ -1,28 +1,29 @@
 \name{Deconvolution Methods}
 \alias{computeSumFactors}
-\alias{computeSumFactors,matrix-method}
+\alias{computeSumFactors,ANY-method}
 \alias{computeSumFactors,SCESet-method}
 
 \title{Normalization by deconvolution}
 \description{Methods to normalize single-cell RNA-seq data by deconvolving size factors from cell pools.}
 
 \usage{
-\S4method{computeSumFactors}{matrix}(x, sizes=seq(20, 100, 5), clusters=NULL, 
+\S4method{computeSumFactors}{ANY}(x, sizes=seq(20, 100, 5), clusters=NULL, 
     ref.clust=NULL, positive=FALSE, errors=FALSE, subset.row=NULL)
+
 \S4method{computeSumFactors}{SCESet}(x, subset.row=NULL, ..., assay="counts", 
     get.spikes=FALSE, sf.out=FALSE)
 }
 
 \arguments{
 \item{x}{
-    A numeric count matrix where rows are genes and columns are cells.
+    A numeric matrix-like object of counts, where rows are genes and columns are cells.
     Alternatively, a SCESet object containing such a matrix.
 }
 \item{sizes}{A numeric vector of pool sizes, i.e., number of cells per pool.}
 \item{clusters}{An optional factor specifying which cells belong to which cluster, for deconvolution within clusters.}
 \item{ref.clust}{A level of \code{clusters} to be used as the reference cluster for inter-cluster normalization.}
 \item{positive}{A logical scalar indicating whether linear inverse models should be used to enforce positive estimates.}
-\item{errors}{A logical scalar indicating whether the standard error should be returned.}
+\item{errors}{A logical scalar indicating whether the standard error should be returned. This option is deprecated, see below.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to \code{computeSumFactors,matrix-method}.}
 \item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
@@ -112,13 +113,19 @@ This results in zero or negative size factor estimates for many cells.
 Filtering ensures that this is not the case, e.g., by removing genes with average counts below 1.
 }
 
+\section{Obtaining standard errors}{
+Previous versions of \code{computeSumFactors} would return the standard error for each size factor when \code{errors=TRUE}.
+This is no longer the case, as standard error estimation from the linear model is not reliable.
+Errors are likely underestimated due to correlations between pool-based size factors when they are computed from a shared set of underlying counts.
+Users wishing to obtain a measure of uncertainty are advised to perform simulations instead, using the original size factor estimates to scale the mean counts for each cell.
+Standard errors can then be calculated as the standard deviation of the size factor estimates across simulation iterations.
+}
+
 \value{
 For \code{computeSumFactors,matrix-method}, a numeric vector of size factors for all cells in \code{x} is returned.
 
 For \code{computeSumFactors,SCESet-method}, an object of class \code{x} is returned containing the vector of size factors in \code{sizeFactors(x)}, if \code{sf.out=FALSE}.
 Otherwise, the vector of size factors is returned directly.
-
-If \code{errors=TRUE}, the standard errors of the size factor estimates are stored as the \code{"standard.error"} field of the attributes of the returned vector.
 }
 
 \author{

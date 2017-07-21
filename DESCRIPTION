@@ -1,6 +1,6 @@
 Package: scran
-Version: 1.5.5
-Date: 2017-07-17
+Version: 1.5.6
+Date: 2017-07-21
 Title: Methods for Single-Cell RNA-Seq Data Analysis
 Authors@R: c(person("Aaron", "Lun", role = c("aut", "cre"), email =
         "alun@wehi.edu.au"), person("Karsten", "Bach", role = "aut"),
@@ -11,7 +11,7 @@ Maintainer: Aaron Lun <alun@wehi.edu.au>
 Depends: R (>= 3.4), BiocParallel, scater
 Imports: Biobase, stats, methods, utils, graphics, grDevices, Matrix, 
         edgeR, limma, dynamicTreeCut, FNN, igraph, shiny, zoo, statmod, 
-        splines, ggplot2, MASS, DT, viridis
+        splines, ggplot2, MASS, DT, viridis, Rcpp
 Suggests: testthat, knitr, BiocStyle, limSolve, org.Mm.eg.db, DESeq2, 
         monocle, S4Vectors, Rtsne, pracma
 biocViews: Normalization, Sequencing, RNASeq, Software, GeneExpression,
@@ -23,5 +23,7 @@ Description: Implements a variety of low-level analyses of single-cell
 License: GPL-3
 NeedsCompilation: yes
 VignetteBuilder: knitr
+SystemRequirements: C++11
+LinkingTo: beachmat, Rcpp, Rhdf5lib
 Author: Aaron Lun [aut, cre], Karsten Bach [aut], Jong Kyoung Kim [ctb],
         Antonio Scialdone [ctb], Laleh Haghverdi [ctb]

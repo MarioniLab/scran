@@ -1,12 +1,12 @@
 setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
 
 .correlate_pairs <- function(x, null.dist=NULL, design=NULL, BPPARAM=SerialParam(), tol=1e-8, iters=1e6, residuals=FALSE, 
-                             use.names=TRUE, subset.row=NULL, per.gene=FALSE, lower.bound=NULL)
+                             use.names=TRUE, subset.row=NULL, per.gene=FALSE, lower.bound=NULL, block.size=100L)
 # This calculates a (modified) Spearman's rho for each pair of genes.
 #
 # written by Aaron Lun
 # created 10 February 2016
-# last modified 27 April 2017
+# last modified 7 June 2017
 {
     compute.residuals <- FALSE
     if (!is.null(design)) { 
@@ -40,8 +40,8 @@ setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
     }
 
     # Checking the subsetting and tolerance
-    tol <- as.double(tol)
-    pairings <- .construct_pair_indices(subset.row=subset.row, x=x)
+    block.size <- as.integer(block.size)
+    pairings <- .construct_pair_indices(subset.row=subset.row, x=x, block.size=block.size)
     subset.row <- pairings$subset.row
     gene1 <- pairings$gene1
     gene2 <- pairings$gene2
@@ -57,31 +57,23 @@ setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
         use.subset.row <- subset.row - 1L
     }
 
-    # Splitting up gene pairs into jobs for multicore execution.
+    # Splitting up gene pairs into jobs for multicore execution, converting to 0-based indices.
     wout <- .worker_assign(length(gene1), BPPARAM)
     sgene1 <- sgene2 <- vector("list", length(wout))
     for (i in seq_along(wout)) {
-        sgene1[[i]] <- gene1[wout[[i]]] - 1L
+        sgene1[[i]] <- gene1[wout[[i]]] - 1L 
         sgene2[[i]] <- gene2[wout[[i]]] - 1L
     }
 
     # Iterating through all blocking levels (for one-way layouts; otherwise, this is a loop of length 1).
-    all.rho <- 0L
+    # Computing correlations between gene pairs, and adding a weighted value to the final average.
+    all.rho <- numeric(length(gene1))
     for (subset.col in blocks) { 
-
-        # Ranking the expressions across cells for each gene.
-        ranked.exprs <- .Call(cxx_rank_subset, use.x, use.subset.row, subset.col - 1L, tol)
-        if (is.character(ranked.exprs)) {
-            stop(ranked.exprs)
-        }
-
-        # Computing correlations between gene pairs.
+        ranked.exprs <- .Call(cxx_rank_subset, use.x, use.subset.row, subset.col - 1L, as.double(tol))
         out <- bpmapply(FUN=.get_correlation, gene1=sgene1, gene2=sgene2, 
-                        MoreArgs=list(ranked.exprs=ranked.exprs), BPPARAM=BPPARAM)
+                        MoreArgs=list(ranked.exprs=ranked.exprs, block.size=block.size), BPPARAM=BPPARAM)
         current.rho <- unlist(out)
-
-        # Adding a weighted value to the final.
-        all.rho <- all.rho + current.rho * (length(subset.col)/ncol(x))
+        all.rho <- all.rho + current.rho * length(subset.col)/ncol(x)
     }
 
     # Estimating the p-values (need to shift values to break ties conservatively by increasing the p-value).
@@ -118,11 +110,13 @@ setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
     return(out)
 }
 
-.construct_pair_indices <- function(subset.row, x) {
+.construct_pair_indices <- function(subset.row, x, block.size=100) {
     is.ordered <- FALSE 
     if (is.matrix(subset.row)) {
         # If matrix, we're using pre-specified pairs.
-        if (!is.numeric(subset.row) || ncol(subset.row)!=2L) { stop("'subset.row' should be a numeric matrix with 2 columns") }
+        if ((!is.numeric(subset.row) && !is.character(subset.row)) || ncol(subset.row)!=2L) { 
+            stop("'subset.row' should be a numeric/character matrix with 2 columns") 
+        }
         s1 <- .subset_to_index(subset.row[,1], x, byrow=TRUE)
         s2 <- .subset_to_index(subset.row[,2], x, byrow=TRUE)
 
@@ -169,16 +163,19 @@ setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
         gene2 <- all.pairs[2,]
     }
 
+    # Ordering by blocksize. This will be used to reduce the number of reads from the matrix in C++,
+    # by caching the expression profile of a number of genes rather than re-reading them per pair.
+    block.order <- order(floor((gene1-1L)/block.size), floor((gene2-1L)/block.size))
+    gene1 <- gene1[block.order]
+    gene2 <- gene2[block.order]
     return(list(subset.row=subset.row, gene1=gene1, gene2=gene2, reorder=!is.ordered))
 }
 
-.get_correlation <- function(gene1, gene2, ranked.exprs) 
+.get_correlation <- function(gene1, gene2, ranked.exprs, block.size) 
 # Pass all arguments explicitly rather than through the function environments
 # (avoid duplicating memory in bplapply).
 {
-    out <- .Call(cxx_compute_rho, gene1, gene2, ranked.exprs)
-    if (is.character(out)) { stop(out) }
-    return(out)         
+    .Call(cxx_compute_rho, gene1, gene2, ranked.exprs, block.size)
 }
 
 .choose_gene_names <- function(subset.row, x, use.names) {
@@ -206,7 +203,7 @@ setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
     invisible(NULL)
 }
 
-setMethod("correlatePairs", "matrix", .correlate_pairs)
+setMethod("correlatePairs", "ANY", .correlate_pairs)
 
 setMethod("correlatePairs", "SCESet", function(x, ..., use.names=TRUE, subset.row=NULL, per.gene=FALSE, lower.bound=NULL, 
                                                assay="exprs", get.spikes=FALSE) {

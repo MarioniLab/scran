@@ -1,5 +1,4 @@
 # This checks the correlateNull function.
-
 # require(scran); require(testthat); source("test-correlate.R")
 
 refnull <- function(niters, ncells, resort=TRUE) {
@@ -267,6 +266,30 @@ for (x in seq_along(collected.rho)) {
 collected.p <- 2*(collected.p + 1)/(length(nulls)+1)
 expect_equal(out$p.value, collected.p)
 
+# With a different block size, to check proper caching.
+# (previous examples all have block.size=100, so no problems with caching).
+
+set.seed(100041)
+nulls <- sort(runif(1e6, -1, 1))
+X[] <- rnorm(length(X))
+
+set.seed(100)
+out <- correlatePairs(X, null.dist=nulls)
+
+set.seed(100)
+out1 <- correlatePairs(X, null.dist=nulls, block.size=5)
+expect_equal(out$rho, out1$rho)
+expect_equal(out$p.value, out1$p.value)
+expect_equal(out$FDR, out1$FDR)
+
+set.seed(100)
+out2 <- correlatePairs(X, null.dist=nulls, block.size=2)
+expect_equal(out$rho, out2$rho)
+expect_equal(out$p.value, out2$p.value)
+expect_equal(out$FDR, out2$FDR)
+
+####################################################################################################
+
 # Checking that it works with different 'subset.row' values.
 # (again, using a normal matrix to avoid ties, for simplicity).
 
@@ -281,13 +304,17 @@ nulls <- correlateNull(ncells=ncol(X), iter=1e3, residuals=TRUE)
 ref <- correlatePairs(X, nulls)
 ref.names <- paste0(ref$gene1, ".", ref$gene2)
 
-subgenes <- 1:10
+# Vanilla subsetting of number of genes.
+
+subgenes <- 1:10 
 subbed <- correlatePairs(X, nulls, subset.row=subgenes)
 expect_true(!is.unsorted(subbed$p.value))
 subref <- ref[ref$gene1 %in% rownames(X)[subgenes] & ref$gene2 %in% rownames(X)[subgenes],]
 subref$FDR <- p.adjust(subref$p.value, method="BH")
 rownames(subref) <- NULL
 expect_equal(subref, subbed)
+
+# Subsetting two pools from which pairs can be drawn.
 
 for (attempt in 1:2) {
     if (attempt==1L) {
@@ -313,18 +340,31 @@ for (attempt in 1:2) {
 expect_error(correlatePairs(X, nulls, subset.row=list()), "'subset.row' as a list should have length 2")
 expect_error(correlatePairs(X, nulls, subset.row=list(1,2,3)), "'subset.row' as a list should have length 2")
 
-subgenes <- cbind(1:10, 2:11)
-msubbed <- correlatePairs(X, nulls, subset.row=subgenes)
-expect_identical(rownames(X)[subgenes[,1]], msubbed$gene1)
-expect_identical(rownames(X)[subgenes[,2]], msubbed$gene2)
-msub.names <- paste0(msubbed$gene1, ".", msubbed$gene2)
-msub.ref <- ref[match(msub.names, ref.names),]
-msub.ref$FDR <- p.adjust(msub.ref$p.value, method="BH")
-rownames(msub.ref) <- NULL
-expect_equal(msub.ref, msubbed)
-expect_error(correlatePairs(X, nulls, subset.row=matrix(0, 0, 0)), "'subset.row' should be a numeric matrix with 2 columns")
-expect_error(correlatePairs(X, nulls, subset.row=cbind(1,2,3)), "'subset.row' should be a numeric matrix with 2 columns")
-expect_error(correlatePairs(X, nulls, subset.row=cbind(TRUE, FALSE)), "'subset.row' should be a numeric matrix with 2 columns")
+# Subsetting to specify matrix of specific pairs.
+
+test_that("correlatePairs with pairs matrix works as expected", {
+    subgenes <- cbind(1:10, 2:11)
+    msubbed <- correlatePairs(X, nulls, subset.row=subgenes)
+    expect_identical(rownames(X)[subgenes[,1]], msubbed$gene1)
+    expect_identical(rownames(X)[subgenes[,2]], msubbed$gene2)
+
+    msub.names <- paste0(msubbed$gene1, ".", msubbed$gene2)
+    msub.ref <- ref[match(msub.names, ref.names),]
+    msub.ref$FDR <- p.adjust(msub.ref$p.value, method="BH")
+    rownames(msub.ref) <- NULL
+    expect_equal(msub.ref, msubbed)
+
+    subgenes2 <- rownames(X)[subgenes]
+    dim(subgenes2) <- dim(subgenes)
+    msubbed2 <- correlatePairs(X, nulls, subset.row=subgenes2)
+    expect_equal(msubbed, msubbed2)
+
+    expect_error(correlatePairs(X, nulls, subset.row=matrix(0, 0, 0)), "'subset.row' should be a numeric/character matrix with 2 columns")
+    expect_error(correlatePairs(X, nulls, subset.row=cbind(1,2,3)), "'subset.row' should be a numeric/character matrix with 2 columns")
+    expect_error(correlatePairs(X, nulls, subset.row=cbind(TRUE, FALSE)), "'subset.row' should be a numeric/character matrix with 2 columns")
+})
+
+####################################################################################################
 
 # Checking that it works with 'per.gene=TRUE'.
 

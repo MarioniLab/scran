@@ -4,98 +4,83 @@
  * Unless log_prior is specified, in which case the values in 'ptr' are assumed to be log-expressed.
  * These are converted back to the raw scale without any size factor calculations.
  */
-template <typename T>
-SEXP compute_CV2_internal(const T* ptr, const matrix_info& MAT, SEXP subset_row, SEXP size_factors, SEXP log_prior) {
-    subset_values rsubout=check_subset_vector(subset_row, MAT.nrow);
-    const int rslen=rsubout.first;
-    const int* rsptr=rsubout.second;
+template <class M>
+SEXP compute_CV2_internal(const M mat, SEXP subset_row, SEXP size_factors, SEXP log_prior) {
 
-    const size_t& ncells=MAT.ncol;
+    auto rsubout=check_subset_vector(subset_row, mat->get_nrow());
+    const size_t rslen=rsubout.size();
+    const size_t& ncells=mat->get_ncol();
     if (ncells < 2) {
         throw std::runtime_error("need two or more cells to compute variances");
     }
 
+    // Checking the mode with which we will process the data.    
     const bool to_unlog=(log_prior!=R_NilValue);
-    const double* sfptr=NULL;
+    Rcpp::NumericVector sizefacs;
     double lp=0;
     if (to_unlog) { 
-        if (!isReal(log_prior) || LENGTH(log_prior)!=1) {
+        Rcpp::NumericVector logp(log_prior);
+        if (logp.size()!=1) {
             throw std::runtime_error("prior count should be a double-precision scalar");
         }
-        lp=asReal(log_prior);
+        lp=logp[0];
         if (size_factors!=R_NilValue){ 
             throw std::runtime_error("size factors cannot be specified for log-expression input");
         }
     } else {
-        if (!isReal(size_factors)) {
-            throw std::runtime_error("size factors should be double-precision");
-        } else  if (LENGTH(size_factors)!=int(ncells)) {
+        sizefacs=size_factors;
+        if (sizefacs.size()!=ncells) { 
             throw std::runtime_error("number of size factors is not equal to number of cells");
         }
-        sfptr=REAL(size_factors);
     } 
 
-    // Temporaries.
-    double* tmp=(double*)R_alloc(MAT.ncol, sizeof(double));
-    size_t col;
-    const T* ptr_cpy;
-    double diff;
+    Rcpp::NumericVector means(rslen), vars(rslen);
+    Rcpp::NumericVector tmp(ncells);
+    auto mIt=means.begin(), vIt=vars.begin();
     
-    SEXP output=PROTECT(allocVector(VECSXP, 2));
-    try {
-        SET_VECTOR_ELT(output, 0, allocVector(REALSXP, rslen));
-        double* omptr=REAL(VECTOR_ELT(output, 0));
-        SET_VECTOR_ELT(output, 1, allocVector(REALSXP, rslen));
-        double* ovptr=REAL(VECTOR_ELT(output, 1));
-   
-        for (int ri=0; ri<rslen; ++ri) {
-            ptr_cpy=ptr+rsptr[ri];
+    for (auto rsIt=rsubout.begin(); rsIt!=rsubout.end(); ++rsIt, ++mIt, ++vIt) {
+        mat->get_row(*rsIt, tmp.begin());
 
-            if (!to_unlog) { 
-                for (col=0; col<ncells; ++col) {
-                    tmp[col]=ptr_cpy[col*MAT.nrow]/sfptr[col];
-                }
-            } else {
-                for (col=0; col<ncells; ++col) {
-                    double& current=(tmp[col]=std::pow(2, ptr_cpy[col*MAT.nrow]));
-                    current-=lp;
-                    if (current < 0) { current=0; }
-                }
+        if (!to_unlog) { 
+            auto szIt=sizefacs.begin();
+            for (auto tIt=tmp.begin(); tIt!=tmp.end(); ++tIt, ++szIt) { 
+                (*tIt)/=(*szIt);
             }
-
-            // Computing the mean.
-            double& curmean=(omptr[ri]=0);
-            for (col=0; col<ncells; ++col) {
-                curmean+=tmp[col];                    
+        } else {
+            for (auto tIt=tmp.begin(); tIt!=tmp.end(); ++tIt) { 
+                double& current=((*tIt)=std::pow(2, *tIt));
+                current-=lp;
+                if (current < 0) { current=0; }
             }
-            curmean/=ncells;
-            
-            // Computing the variance.
-            double& curvar=(ovptr[ri]=0);
-            for (col=0; col<ncells; ++col) {
-                diff=tmp[col]-curmean;
-                curvar+=diff*diff;
-            }
-            curvar/=(ncells-1);
         }
-    } catch (std::exception& e) {
-        UNPROTECT(1);
-        throw;
+
+        // Computing the mean and variance.
+        double& curmean=((*mIt)=std::accumulate(tmp.begin(), tmp.end(), 0.0)/ncells);
+        double& curvar=((*vIt)=0);
+        for (auto tIt=tmp.begin(); tIt!=tmp.end(); ++tIt) {
+            double diff=*tIt-curmean;
+            curvar+=diff*diff;
+        }
+        curvar/=(ncells-1);
     }
 
-    UNPROTECT(1);
+    Rcpp::List output(2);
+    output[0]=means;
+    output[1]=vars;
     return output;    
 }
 
-SEXP compute_CV2(SEXP exprs, SEXP subset_row, SEXP size_factors, SEXP log_prior) try {
-    const matrix_info MAT=check_matrix(exprs);
-    if (MAT.is_integer) {
-        return compute_CV2_internal<int>(MAT.iptr, MAT, subset_row, size_factors, log_prior);
+SEXP compute_CV2(SEXP exprs, SEXP subset_row, SEXP size_factors, SEXP log_prior) {
+    BEGIN_RCPP
+    int rtype=beachmat::find_sexp_type(exprs);
+    if (rtype==INTSXP) {
+        auto mat=beachmat::create_integer_matrix(exprs);
+        return compute_CV2_internal(mat.get(), subset_row, size_factors, log_prior);
     } else {
-        return compute_CV2_internal<double>(MAT.dptr, MAT, subset_row, size_factors, log_prior);
+        auto mat=beachmat::create_numeric_matrix(exprs);
+        return compute_CV2_internal(mat.get(), subset_row, size_factors, log_prior);
     }
-} catch (std::exception& e) {
-    return mkString(e.what());
+    END_RCPP
 }
 
 

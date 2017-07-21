@@ -4,7 +4,7 @@
 #
 # written by Aaron Lun
 # created 9 February 2017
-# last modified 13 April 2017
+# last modified 6 June 2017
 {
     # Figuring out what rows to fit to.
     all.genes <- seq_len(nrow(x))
@@ -24,9 +24,7 @@
         sf.spike <- rep(sf.spike, length.out=ncol(x))
 
         spike.stats <- .Call(cxx_compute_CV2, x, is.spike-1L, sf.spike, NULL)
-        if (is.character(spike.stats)) stop(spike.stats)
         cell.stats <- .Call(cxx_compute_CV2, x, is.cell-1L, sf.cell, NULL)
-        if (is.character(cell.stats)) stop(cell.stats)
 
         means <- vars <- numeric(nrow(x))
         means[is.cell] <- cell.stats[[1]]
@@ -36,7 +34,6 @@
     } else {
         log.prior <- as.numeric(log.prior)
         all.stats <- .Call(cxx_compute_CV2, x, all.genes-1L, NULL, log.prior)
-        if (is.character(all.stats)) stop(all.stats) 
         means <- all.stats[[1]]
         vars <- all.stats[[2]]
     }

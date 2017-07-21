@@ -2,8 +2,8 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.5.3}{\itemize{
-\item Parallelized buildSNNGraph(), overlapExprs() with BPPARAM options.
+\section{Version 1.5.6}{\itemize{
+\item Supported parallelization in buildSNNGraph(), overlapExprs() with BPPARAM options.
 
 \item Forced zero-derived residuals to a constant value in correlatePairs(), overlapExprs().
 
@@ -11,6 +11,24 @@
 Added options to specify the direction of the log-fold changes, to focus on upregulated genes in each cluster.
 
 \item Fixed bug in correlatePairs() when per.gene=TRUE and no spike-ins are available. 
+Added block.size argument to control caching.
+
+\item Switched all C++ code to use the beachmat API.
+Modified several functions to accept ANY matrix-like object, rather than only base matrix objects.
+
+\item quickCluster() with method="igraph" will now merge based on modularity to satisfy min.size requirements.
+
+\item Updated the trendVar() interface with parametric, method arguments.
+Deprecated the trend="semiloess" option in favour of parametric=TRUE and method="loess".
+Modified the NLS equation to guarantee non-negative coefficients of the parametric trend.
+Slightly modified the estimation of NLS starting parameters.
+Second d.f. of the fitted F-distribution is now reported as df2 in the output.
+
+\item Modified decomposeVar() to automatically use the second d.f. when test="f".
+
+\item Added option in denoisePCA() to return the number of components or the low-rank approximation.
+
+\item Fixed a variety of bugs in mnnCorrect().
 }}
 
 \section{Version 1.4.0}{\itemize{

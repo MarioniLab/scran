@@ -1,13 +1,13 @@
 \name{cyclone}
 \alias{cyclone}
-\alias{cyclone,matrix-method}
+\alias{cyclone,ANY-method}
 \alias{cyclone,SCESet-method}
 
 \title{Cell cycle phase classification}
 \description{Classify single cells into their cell cycle phases based on gene expression data.}
 
 \usage{
-\S4method{cyclone}{matrix}(x, pairs, gene.names=rownames(x), iter=1000, min.iter=100, min.pairs=50, 
+\S4method{cyclone}{ANY}(x, pairs, gene.names=rownames(x), iter=1000, min.iter=100, min.pairs=50, 
     BPPARAM=SerialParam(), verbose=FALSE, subset.row=NULL)
 
 \S4method{cyclone}{SCESet}(x, pairs, subset.row=NULL, ..., assay="counts", get.spikes=FALSE)
@@ -15,7 +15,7 @@
 
 \arguments{
 \item{x}{
-    A numeric matrix of gene expression values where rows are genes and columns are cells.
+    A numeric matrix-like object of gene expression values where rows are genes and columns are cells.
     Alternatively, a SCESet object containing such a matrix.
 }
 \item{pairs}{A list of data.frames produced by \code{\link{sandbag}}, containing pairs of marker genes.}

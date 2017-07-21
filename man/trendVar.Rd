@@ -1,27 +1,32 @@
 \name{trendVar}
 \alias{trendVar}
-\alias{trendVar,matrix-method}
+\alias{trendVar,ANY-method}
 \alias{trendVar,SCESet-method}
 
 \title{Fit a variance trend}
 \description{Fit a mean-dependent trend to the gene-specific variances in single-cell RNA-seq data.}
 
 \usage{
-\S4method{trendVar}{matrix}(x, trend=c("loess", "semiloess"), span=0.3, 
-    family="symmetric", degree=1, start=NULL, design=NULL, subset.row=NULL)
+\S4method{trendVar}{ANY}(x, method=c("loess", "spline", "semiloess"), 
+    span=0.3, family="symmetric", degree=1, df=4,
+    parametric=FALSE, start=NULL, min.mean=0.1,
+    design=NULL, subset.row=NULL) 
 
 \S4method{trendVar}{SCESet}(x, subset.row=NULL, ..., assay="exprs", use.spikes=TRUE)
 }
 
 \arguments{
 \item{x}{
-    A numeric matrix of normalized expression values, where each column corresponds to a cell and each row corresponds to a spike-in transcript.
+    A numeric matrix-like object of normalized log-expression values, where each column corresponds to a cell and each row corresponds to a spike-in transcript.
     Alternatively, a SCESet object that contains such values.
 }
-\item{trend}{A string indicating whether the trend should be fully loess-based, or a mixture of loess and parametric fitting.}
+\item{method}{A string specifying the algorithm to use for smooth trend fitting.}
 \item{span, family, degree}{Arguments to pass to \code{\link{loess}}.}
+\item{df}{Arguments to pass to \code{\link[splines]{ns}}.}
+\item{parametric}{A logical scalar indicating whether a parametric curve should be fitted prior to smoothing.}
 \item{start}{A named list of numeric scalars, containing starting values for parametric fitting with \code{\link{nls}}. 
 This is automatically generated with the most suitable values if set to \code{NULL}.}
+\item{min.mean}{A numeric scalar specifying the threshold on the mean of log-expression values to be used for trend fitting.}
 \item{design}{A numeric matrix describing the uninteresting factors contributing to expression in each cell.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to \code{trendVar,matrix-method}.}
@@ -30,7 +35,7 @@ This is automatically generated with the most suitable values if set to \code{NU
 }
 
 \details{
-The strategy is to fit an abundance-dependent trend to the variance of the log-normalized expression for the spike-in transcripts, using \code{trendVar}.
+This function fits an abundance-dependent trend to the variance of the log-normalized expression for the spike-in transcripts.
 For SCESet objects, these expression values can be computed by \code{\link{normalize}} after setting the size factors, e.g., with \code{\link{computeSpikeFactors}}.
 Log-transformed values are used as these are more robust to genes/transcripts with strong expression in only one or two outlier cells.
 
@@ -46,21 +51,32 @@ Otherwise, it will default to an all-ones matrix, effectively treating all cells
 }
 
 \section{Trend fitting options}{
-By default, a robust loess curve is used for trend fitting via \code{\link{loess}}.
-This protects against genes with very large or very small variances.
-Some experimentation with \code{span}, \code{degree} or \code{family} may be required to obtain satisfactory results.
-The fit is also dependent on the quality of the spike-ins -- the fit will obviously be poor if the coverage of all spike-ins is low.
+If \code{parametric=FALSE}, smoothing is performed directly on the log-variances.
+This is the default as it provides the most stable performance on arbitrary mean-variance relationships.
 
-Alternatively, when \code{trend="semiloess"}, a non-linear curve of the form
+If \code{parametric=TRUE}, wa non-linear curve of the form
 \deqn{y = \frac{ax}{x^n + b}}{y = ax/(x^n + b)}
-is fitted to the variances against the means using \code{\link{nls}}, and a loess curve is then fitted to the log-ratios of the observed to fitted values.
-The parametric curve reduces the sharpness of the trend for easier loess fitting.
-Conversely, the parametric form is not exact, so the loess curve models any remaining trends in the residuals.
+is fitted to the variances against the means using \code{\link{nls}}.
+The specified smoothing algorihtm is applied to the log-ratios of the variance to the fitted value.
+The aim is to use the parametric curve to reduce the sharpness of the expected mean-variance relationship[for easier smoothing.
+Conversely, the parametric form is not exact, so the smoothers will model any remaining trends in the residuals.
 
-In general, the semi-loess setting tends to give smoother curves than loess alone.
-It is more robust to the uneven distribution of spike-in transcripts across the covariate range.
-However, it tends to be susceptible to convergence issues, and may require some fiddling with the start values to converge properly.
-Reasonably good starting values for \code{a}, \code{n} and \code{b} are chosen automatically but these can be set manually with \code{start}.
+The \code{method} argument specifies the smoothing algorithm to be applied on the log-ratios/variances.
+By default, a robust loess curve is used for trend fitting via \code{\link{loess}}.
+This provides a fairly flexible fit while protecting against genes with very large or very small variances.
+Some experimentation with \code{span}, \code{degree} or \code{family} may be required to obtain satisfactory results.
+If \code{method="spline"}, a natural spline of degree \code{df} will be used instead.
+This is constructed using the \code{\link[splines]{ns}} function and is fitted robustly using the \code{\link[MASS]{rlm}} function.
+
+All genes with means below \code{min.mean} are ignored during trend fitting.
+This preserves the sensitivity of span-based smoothers at moderate-to-high abundances, by removing the bulk of lowly expressed genes.
+It also protects against discreteness, which can interfere with estimation of the variability of the variance estimates and accurate scaling of the trend.
+
+The \code{trendVar} function will produce an output \code{trend} function with which fitted values can be computed.
+When extrapolating to values below \code{min.mean} or the smallest observed mean, the output function will approach zero.
+When extrapolating to values above the largest observed mean, the output function will be set to the fitted value of the trend at the largest mean.
+
+Note that \code{method="semiloess"} is the same as \code{parametric=TRUE} with \code{method="loess"}.
 }
 
 \section{Additional notes on row selection}{
@@ -74,6 +90,9 @@ This assumes that most genes exhibit technical variation and little biological v
 If \code{use.spikes=NA}, every row will be used for trend fitting, regardless of whether it corresponds to a spike-in transcript or endogenous gene.
 Users can also directly specify which rows to use with \code{subset.row}.
 This will override any setting of \code{use.spikes}.
+
+Obviously, the usefulness of the trend is dependent on the quality of the features to which it is fitted.
+For example, the trend will not provide accurate estimates of the technical component if the coverage of all spike-ins is lower than that of endogenous genes.
 }
 
 \section{Warning on size factor centring}{ 
@@ -108,6 +127,7 @@ A named list is returned, containing:
 \item{\code{var}:}{A numeric vector of the variances of log-CPMs for all spike-in transcripts.}
 \item{\code{trend}:}{A function that returns the fitted value of the trend at any mean log-CPM.}
 \item{\code{design}:}{A numeric matrix, containing the design matrix that was used.}
+\item{\code{df2}:}{A numeric scalar, specifying the second degrees of freedom for a scaled F-distribution describing the variability of variance estimates around the trend.}
 }
 }
 

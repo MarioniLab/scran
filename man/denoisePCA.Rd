@@ -7,9 +7,11 @@
 \description{Denoise log-expression data by removing principal components corresponding to technical noise.}
 
 \usage{
-\S4method{denoisePCA}{matrix}(x, technical, design=NULL, subset.row=NULL)
+\S4method{denoisePCA}{matrix}(x, technical, design=NULL, subset.row=NULL,
+    value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100)
 
-\S4method{denoisePCA}{SCESet}(x, ..., subset.row=NULL, assay="exprs", get.spikes=FALSE)
+\S4method{denoisePCA}{SCESet}(x, ..., subset.row=NULL, 
+    value=c("pca", "n", "lowrank"), assay="exprs", get.spikes=FALSE)
 }
 
 \arguments{
@@ -21,6 +23,8 @@ Alternatively, a function that accepts the average log-expression and returns th
 If \code{NULL}, all cells are assumed to belong to a single group.}
 \item{subset.row}{A logical, integer or character vector indicating the rows of \code{x} to use.
 All genes are used by default.}
+\item{value}{A string specifying the type of value to return; the PCs, the number of retained components, or a low-rank approximation.}
+\item{min.rank, max.rank}{Integer scalars specifying the minimum and maximum number of PCs to retain.}
 \item{...}{Further arguments to pass to \code{denoisePCA,matrix-method}.}
 \item{assay}{A string specifying which assay values to use.}
 \item{get.spikes}{A logical specifying whether spike-in transcripts should be used.
@@ -28,13 +32,21 @@ This is ignored if \code{subset.row} is specified.}
 }
 
 \value{
-For \code{denoisePCA,matrix-method}, a numeric matrix is returned containing the selected PCs (columns) for all cells (rows).
+For \code{denoisePCA,matrix-method}, a numeric matrix is returned containing the selected PCs (columns) for all cells (rows) if \code{value="pca"}.
+If \code{value="n"}, it will return an integer scalar specifying the number of retained components.
+If \code{value="lowrank"}, it will return a low-rank approximation of \code{x} with the same dimensions.
 
-For \code{denoisePCA,SCESet-method}, a SCESet object is returned containing the PCs in the \code{reducedDimension} slot.
+For \code{denoisePCA,SCESet-method}, a SCESet object is returned containing the PCs in the \code{reducedDimension} slot if \code{value="pca"}.
+If \code{value="lowrank"}, it will return a low-rank approximation in \code{assays} slot, named \code{"lowrank"}.
+Currently, \code{value="n"} will return the object without modification.
+
+Note that the output changes slightly between the matrix and SCESet methods when \code{subset.row} is not \code{NULL} and \code{value="lowrank"}.
+In the matrix method, the output will be subsetted to retain only the selected rows,
+whereas in the SCESet method, the unselected rows will be set to all-zero values in the \code{"lowrank"} assay matrix.
 }
 
 \details{
-The aim of this function is to perform a principal components analysis to reduce random technical noise in the data.
+This function performs a principal components analysis to reduce random technical noise in the data.
 Random noise is uncorrelated across genes and should be captured by later PCs, as the variance in the data explained by any single gene is low.
 In contrast, biological substructure should be correlated and captured by earlier PCs, as this explains more variance for sets of genes.
 The idea is to discard later PCs to remove technical noise and improve the resolution of substructure.
@@ -44,10 +56,16 @@ This either uses the trend function obtained from \code{\link{trendVar}} or the 
 (Obviously, the log-expression values used in those functions should be the same as those used here.)
 The total technical variance is estimated by summing the values across genes.
 
-PCs are discarded in order of increasing variance, stopping before the discarded variance is greater than the total technical variance. 
-This eliminates the last PCs that should contain only uncorrelated noise.
-In this manner, it is possible to make a justified choice for the number of PCs to retain.
-The retained PCs should now be enriched for biological signal (both variance and substructure).
+The function works by assuming that the first X PCs contain all of the biological signal, while the remainder contains technical noise.
+For a given value of X, a prediction for the total technical variance is calculated, based on the variance explained by the later PCs.
+(It also accounts for a non-zero technical component in the variance explained by first X PCs.)
+A value of X is found such that the predicted technical variance equals the estimated technical variance.
+Note that X will be coerced to lie between \code{min.rank} and \code{max.rank}.
+
+Only the first X PCs are reported if \code{value="pca"}.
+If \code{value="n"}, the value of X is directly reported, which avoids computing the PCs if only the rank is desired.
+If \code{value="lowrank"}, a low-rank approximation of the original matrix is computed using only the first X components.
+This is useful for denoising prior to downstream applications that expect gene-wise expression profiles.
 
 If \code{design} is specified, the residuals of a linear model fitted to each gene are computed.
 Because variances computed from residuals are usually underestimated, the residuals are scaled up so that their variance is equal to the residual variance of the model fit.

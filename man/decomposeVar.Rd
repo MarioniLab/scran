@@ -1,20 +1,20 @@
 \name{decomposeVar}
 \alias{decomposeVar}
-\alias{decomposeVar,matrix,list-method}
+\alias{decomposeVar,ANY,list-method}
 \alias{decomposeVar,SCESet,list-method}
 
 \title{Decompose the gene-level variance}
 \description{Decompose the gene-specific variance into biological and technical components for single-cell RNA-seq data.}
 
 \usage{
-\S4method{decomposeVar}{matrix,list}(x, fit, design=NA, subset.row=NULL, ...)
+\S4method{decomposeVar}{ANY,list}(x, fit, design=NA, subset.row=NULL, ...)
 
 \S4method{decomposeVar}{SCESet,list}(x, fit, subset.row=NULL, ..., assay="exprs", get.spikes=FALSE)
 }
 
 \arguments{
 \item{x}{
-    A numeric matrix of normalized log-expression values, where each column corresponds to a cell and each row corresponds to an endogenous gene.
+    A numeric matrix-like object of normalized log-expression values, where each column corresponds to a cell and each row corresponds to an endogenous gene.
     Alternatively, a SCESet object containing such a matrix.
 }
 \item{fit}{

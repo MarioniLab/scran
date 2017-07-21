@@ -1,31 +1,40 @@
-#include "scran.h"
+#include "run_dormqr.h"
+#include "R_ext/BLAS.h"
+#include "R_ext/Lapack.h"
 
-run_dormqr::run_dormqr(const int no, const int nc, const double* qrptr, const double* qrxptr, const char tr) :
-        qr(qrptr), qrx(qrxptr), 
-        nobs(no), ncoef(nc), ncol(1), 
-        side('L'), trans(tr), 
-        info(0), lwork(-1) {
+run_dormqr::run_dormqr(SEXP qr, SEXP qraux, const char tr) :
+        QR(qr), AUX(qraux), qrptr(NULL), qxptr(NULL), 
+        nobs(QR.nrow()), ncoef(QR.ncol()), ncol(1), 
+        side('L'), trans(tr), info(0), lwork(-1) {
 
-    // Setting up the right hand side vector.
-    rhs=(double*)R_alloc(nobs, sizeof(double));
-
+    if (AUX.size()!=ncoef) { 
+        throw std::runtime_error("QR auxiliary vector should be of length 'ncol(Q)'"); 
+    }
+    if (QR.size()) { 
+        qrptr=&(QR[0]);
+    }
+    if (AUX.size()) { 
+        qxptr=&(AUX[0]);
+    }
+    rhs.resize(nobs);
+    
     // Workspace query.            
     double tmpwork=0;
     F77_CALL(dormqr)(&side, &trans, &nobs, &ncol, &ncoef,
-            qr, &nobs, qrx, rhs, &nobs,
+            qrptr, &nobs, qxptr, rhs.data(), &nobs,
             &tmpwork, &lwork, &info); 
     if (info) { 
         throw std::runtime_error("workspace query failed for 'dormqr'");
     }
     lwork=int(tmpwork+0.5);
-    work=(double*)R_alloc(lwork, sizeof(double));
+    work.resize(lwork);
     return;
 } 
        
 void run_dormqr::run(double* stuff) {
     F77_CALL(dormqr)(&side, &trans, &nobs, &ncol, &ncoef,
-            qr, &nobs, qrx, stuff, &nobs,
-            work, &lwork, &info); 
+            qrptr, &nobs, qxptr, stuff, &nobs,
+            work.data(), &lwork, &info); 
     if (info) { 
         throw std::runtime_error("residual calculations failed for 'dormqr'");
     }
@@ -33,8 +42,15 @@ void run_dormqr::run(double* stuff) {
 }
 
 void run_dormqr::run() {
-    run(rhs);
+    run(rhs.data());
     return;
 }
 
+int run_dormqr::get_nobs() const {
+    return nobs;
+}
+
+int run_dormqr::get_ncoefs() const { 
+    return ncoef;
+}
 

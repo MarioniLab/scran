@@ -1,4 +1,8 @@
 #include "scran.h"
+
+#include "R_ext/Rdynload.h"
+#include "R_ext/Visibility.h"
+
 #define REGISTER(x, i) {#x, (DL_FUNC) &x, i}
 
 extern "C" {
@@ -8,13 +12,13 @@ static const R_CallMethodDef all_call_entries[] = {
     REGISTER(shuffle_scores, 8),
     REGISTER(get_null_rho, 2),
     REGISTER(get_null_rho_design, 3),
-    REGISTER(compute_rho, 3),
+    REGISTER(rank_subset, 4),
+    REGISTER(compute_rho, 4),
     REGISTER(combine_corP, 7),
     REGISTER(auto_shuffle, 2),
-    REGISTER(compute_cordist, 3),
     REGISTER(subset_and_divide, 3),
     REGISTER(estimate_variance, 4),
-    REGISTER(rank_subset, 4),
+    REGISTER(get_scaled_ranks, 3),
     REGISTER(get_residuals, 5),
     REGISTER(compute_CV2, 4),
     REGISTER(build_snn, 1),

@@ -1,6 +1,5 @@
 # This tests out the normalization methods in scran - specifically, compute*Factors and normalize().
-
-require(scran); require(testthat)
+# require(scran); require(testthat); source("test-normalize.R")
 
 set.seed(20000)
 ncells <- 200
@@ -27,49 +26,6 @@ dummy[is.de,] <- rnbinom(ncells*length(is.de), mu=100, size=1)
 out <- computeSumFactors(dummy)
 expect_equal(out, count.sizes/mean(count.sizes))
 
-# Trying it out with other options.
-
-if (.Platform$OS.type!="windows") { # Because limSolve doesn't build on Windows, apparently.
-outx <- computeSumFactors(dummy, positive=TRUE)
-expect_true(all(abs(outx -  out) < 1e-3)) # need to be a bit generous here, the solution code is different.
-}
-outx <- computeSumFactors(dummy, errors=TRUE)
-expect_equal(as.numeric(outx), out)
-
-expect_identical(names(attributes(outx)), "standard.error") # Checking that the standard errors are equal.
-sphere <- scran:::.generateSphere(colSums(dummy))
-sizes <- c(20, 40, 60, 80, 100)
-use.ave.cell <- rowMeans(dummy)
-collected <- scran:::.create_linear_system(dummy, sphere, as.integer(sizes), use.ave.cell)
-sqw <- rep(c(1, sqrt(scran:::LOWWEIGHT)), c(ncells*length(sizes), ncells))
-fit <- limma::lmFit(design=as.matrix(collected[[1]])/sqw, object=collected[[2]]/sqw, weight=sqw^2) # Checking to limma's value.
-expect_equal(unname(attributes(outx)$standard.error), unname(fit$sigma * fit$coefficients[1,]/as.numeric(outx)))
-
-## obs.sf <- rnorm(200, mean=5) # True size factors for all cells (not quite realistic, as we shouldn't get negative values)..
-## pooled <- as.matrix(collected[[1]]) %*% obs.sf
-## pooled <- pooled + rnorm(length(pooled), sd=0.5) # estimation error in each pool (not quite realistic, as error scales with the mean; but oh well).
-## fit <- limma::lmFit(design=as.matrix(collected[[1]]), object=t(pooled))
-## fit$sigma # Should be the estimation error, equal to 0.5.
-## head(as.numeric(fit$sigma  * fit$stdev.unscaled)) # NOT the estimation error as it is huge.
-
-# Trying it out on a SCESet object.
-
-count.sizes <- rnbinom(ncells, mu=100, size=5)
-dummy <- matrix(count.sizes, ncol=ncells, nrow=ngenes, byrow=TRUE)
-rownames(dummy) <- paste0("X", seq_len(ngenes))
-X <- newSCESet(countData=data.frame(dummy))
-out <- computeSumFactors(X)
-expect_equal(unname(sizeFactors(out)), computeSumFactors(dummy))
-
-# Throwing in some silly inputs.
-
-expect_error(computeSumFactors(dummy[,0,drop=FALSE]), "not enough cells in each cluster")
-expect_error(computeSumFactors(dummy[0,,drop=FALSE]), "cells should have non-zero library sizes")
-expect_error(computeSumFactors(dummy, sizes=c(10, 10, 20)), "'sizes' is not unique")
-expect_error(computeSumFactors(dummy, clusters=integer(0)), "'x' ncols is not equal to 'clusters' length")
-
-####################################################################################################
-
 # Checking the ring construction.
 
 lib.sizes <- runif(100)
@@ -86,145 +42,139 @@ expect_identical(r[out][1:51], 1:51*2-1L) # All odd ranks
 expect_identical(r[out][52:101], 50:1*2) # All even ranks
 expect_identical(r[out][1:101], r[out][102:202]) # Repeated for easy windowing
 
-# Checking the matrix construction.
+# Creating an R-only implementation for comparison.
 
-cur.exprs <- matrix(1, nrow=ngenes, ncol=ncells)
-subsphere <- sample(ncells)
-sphere <- c(subsphere, subsphere)
-sizes <- c(20, 51)
-use.ave.cell <- rep(1, ngenes)
-out <- scran:::.create_linear_system(cur.exprs, sphere, as.integer(sizes), use.ave.cell)
+sumInR <- function(x, sizes, center=TRUE) {
+    lib.sizes <- colSums(x)
+    x <- t(t(x)/lib.sizes)
+    ref <- rowMeans(x)
 
-out$design <- as.matrix(out$design)
-size <- sizes[1]
-for (i in seq_len(ncells)) { 
-    used <- sphere[i:(i+size-1)]
-    expect_equal(out[[1]][i, used], rep(1, size))
-    expect_equal(out[[1]][i, -used], rep(0, ncells-size))
+    keep <- ref > 0
+    ref <- ref[keep]
+    x <- x[keep,,drop=FALSE]
+
+    ncells <- length(lib.sizes)
+    o <- scran:::.generateSphere(lib.sizes)
+    all.mat <- all.vals <- vector("list", sum(sizes)*ncells) 
+    i <- 1L
+
+    for (s in sizes) {
+        for (w in seq_len(ncells)) {
+            chosen <- o[w+seq_len(s)-1L]
+
+            current <- integer(ncells)
+            current[chosen] <- 1L
+            all.mat[[i]] <- current
+
+            ratios <- rowSums(x[,chosen,drop=FALSE])/ref
+            all.vals[[i]] <- median(ratios)
+            i <- i+1L
+        }
+    }
+
+    # Adding the low weight additional equations.
+    extra.mat <- diag(ncells)*sqrt(scran:::LOWWEIGHT)
+    extra.val <- apply(x/ref, 2, median)*sqrt(scran:::LOWWEIGHT)
+    final.mat <- rbind(do.call(rbind, all.mat), extra.mat)
+    final.val <- c(unlist(all.vals), extra.val)
+
+    nf <- solve(qr(final.mat), final.val)
+    sf <- nf * lib.sizes
+    if (center) {
+        sf <- sf/mean(sf)
+    }
+    return(sf)
 }
-size <- sizes[2]
-for (i in seq_len(ncells)) { 
-    used <- sphere[i:(i+size-1)]
-    expect_equal(out[[1]][i + ncells, used], rep(1, size))
-    expect_equal(out[[1]][i + ncells, -used], rep(0, ncells-size))
-}
-for (i in seq_len(ncells)) { 
-    used <- sphere[i]
-    expect_equal(out[[1]][i + ncells*2, used], sqrt(scran:::LOWWEIGHT))
-    expect_equal(out[[1]][i + ncells*2, -used], rep(0, ncells-1L))
-}
 
-expect_identical(nrow(out$design), as.integer(ncells*(length(sizes)+1L)))
-expect_identical(ncol(out$design), as.integer(ncells))
-expect_equal(out[[2]], rep(c(sizes, sqrt(scran:::LOWWEIGHT)), each=ncells))
+ngenes2 <- 200
+x <- matrix(rpois(ngenes2*ncells, lambda=10), nrow=ngenes2, ncol=ncells)
+sizes <- seq(20, 100, 5)
+ref <- sumInR(x, sizes)
+obs <- computeSumFactors(x, sizes=sizes)
+expect_equal(ref, obs)
 
-# Checking some other internals.
+x <- matrix(rpois(ncells*ngenes2, lambda=10), nrow=ngenes2, ncol=ncells)
+x[sample(nrow(x), 100),] <- 0L # Throwing in some zeroes.
+ref <- sumInR(x, sizes)
+obs <- computeSumFactors(x, sizes=sizes)
+expect_equal(ref, obs)
 
-x <- matrix(rpois(20000, lambda=10), nrow=200, ncol=100)
-subset.row <- sample(nrow(x), 50)
-subset.col <- sample(ncol(x), 50)
-cur.out <- .Call(scran:::cxx_subset_and_divide, x, subset.row-1L, subset.col-1L)
-expect_equal(cur.out[[1]], colSums(x[subset.row,subset.col]))
-expect_equal(cur.out[[2]], t(t(x[subset.row,subset.col])/cur.out[[1]]))
+x <- matrix(rpois(ncells*ngenes2, lambda=10), nrow=ngenes2, ncol=ncells)
+subset.row <- sample(nrow(x), 100)
+ref <- sumInR(x[subset.row,,drop=FALSE], sizes)
+obs <- computeSumFactors(x, subset.row=subset.row, sizes=sizes)
+expect_equal(ref, obs)
 
 ####################################################################################################
 
-# Checking out what happens with clustering.
+# Trying it out with other options.
 
-require(scran);require(testthat)
-set.seed(20001)
-ncells <- 700
-ngenes <- 1000
-count.sizes <- rnbinom(ncells, mu=100, size=5)
-multiplier <- seq_len(ngenes)/100
-dummy <- outer(multiplier, count.sizes)
+dummy <- matrix(rpois(ncells*ngenes, lambda=10), nrow=ngenes, ncol=ncells)
+out <- computeSumFactors(dummy)
+if (.Platform$OS.type!="windows") { # Because limSolve doesn't build on Windows, apparently.
+outx <- computeSumFactors(dummy, positive=TRUE)
+expect_true(all(abs(outx -  out) < 1e-3)) # need to be a bit generous here, the solution code is different.
+}
+expect_warning(outx <- computeSumFactors(dummy, errors=TRUE), "errors=TRUE is no longer supported")
+expect_equal(as.numeric(outx), out)
 
-known.clusters <- sample(3, ncells, replace=TRUE)
-dummy[1:300,known.clusters==1L] <- 0
-dummy[301:600,known.clusters==2L] <- 0  
-dummy[601:900,known.clusters==3L] <- 0
+# Checking the the clustering works as expected.
 
-emp.clusters <- quickCluster(dummy)
-expect_true(length(unique(paste0(known.clusters, emp.clusters)))==3L)
-shuffled <- c(1:50, 301:350, 601:650)
-expect_identical(quickCluster(dummy, subset.row=shuffled), emp.clusters)
+clusters <- rep(1:2, 100)
+sizes <- seq(20, 100, 5)
+obs <- computeSumFactors(dummy, sizes=sizes, cluster=clusters)
+ref1 <- sumInR(dummy[,clusters==1], sizes, center=FALSE) # Avoid centering, as this destroys relative information.
+ref2 <- sumInR(dummy[,clusters==2], sizes, center=FALSE)
 
-# Checking out the ranks.
+adj <- t(t(dummy)/colSums(dummy))
+pseudo1 <- rowMeans(adj[,clusters==1])
+pseudo2 <- rowMeans(adj[,clusters==2])
+ref2 <- ref2*median(pseudo2/pseudo1)
 
-emp.ranks <- quickCluster(dummy, get.ranks=TRUE)
-ref <- apply(dummy, 2, FUN=function(y) {
-    r <- rank(y)
-    r <- r - mean(r)
-    r/sqrt(sum(r^2))/2
+ref <- numeric(ncells)
+ref[clusters==1] <- ref1
+ref[clusters==2] <- ref2
+ref <- ref/mean(ref)
+expect_equal(ref, obs)
+
+# Trying with not-quite-enough cells in one cluster.
+
+test_that("computeSumFactors correctly subsets 'sizes' for small clusters", {
+    clusters <- rep(1:2, c(80, 120))
+    sizes <- seq(20, 100, 5)
+    expect_warning(obs <- computeSumFactors(dummy[,clusters==1], sizes=sizes), "not enough cells in at least one cluster")
+    ref1 <- sumInR(dummy[,clusters==1], sizes[sizes<=80], center=FALSE) 
+    expect_equal(ref1/mean(ref1), obs)
+    
+    expect_warning(obs <- computeSumFactors(dummy, sizes=sizes, cluster=clusters), "not enough cells in at least one cluster")
+    ref2 <- sumInR(dummy[,clusters==2], sizes, center=FALSE) # Ensure that second cluster isn't affected by subsetting of sizes.
+    adj <- t(t(dummy)/colSums(dummy))
+    pseudo1 <- rowMeans(adj[,clusters==1])
+    pseudo2 <- rowMeans(adj[,clusters==2])
+    ref2 <- ref2 * median(pseudo2/pseudo1)
+    
+    ref <- numeric(ncells)
+    ref[clusters==1] <- ref1
+    ref[clusters==2] <- ref2
+    ref <- ref/mean(ref)
+    expect_equal(ref, obs)
 })
-expect_equal(emp.ranks, ref)
-
-emp.ranks <- quickCluster(dummy, get.ranks=TRUE, subset.row=shuffled)
-ref <- apply(dummy, 2, FUN=function(y) {
-    r <- rank(y[shuffled])
-    r <- r - mean(r)
-    r/sqrt(sum(r^2))/2
-})
-expect_equal(emp.ranks, ref)
-
-# Checking out deeper internals.
-
-set.seed(200011)
-mat <- matrix(rpois(10000, lambda=5), nrow=20)
-
-subset.row <- seq_len(nrow(mat))
-distM <- .Call(scran:::cxx_compute_cordist, mat, subset.row - 1L, FALSE)
-refM <- sqrt(0.5*(1 - cor(mat, method="spearman")))
-expect_equal(distM, refM)
-
-subset.row <- 15:1 # With subsetting
-distM <- .Call(scran:::cxx_compute_cordist, mat, subset.row - 1L, FALSE)
-refM <- sqrt(0.5*(1 - cor(mat[subset.row,], method="spearman")))
-expect_equal(distM, refM)
-
-suppressWarnings(expect_false(identical(quickCluster(mat), quickCluster(mat[subset.row,])))) # Checking that subsetting gets different results.
-suppressWarnings(expect_identical(quickCluster(mat, subset.row=subset.row), quickCluster(mat[subset.row,]))) # Checking that subset.row works.
-
-# Checking out what happens with silly inputs.
-
-expect_error(quickCluster(dummy[0,]), "need at least 2 observations to compute correlations")
-expect_error(quickCluster(dummy[,0]), "fewer cells than the minimum cluster size")
-
-leftovers <- 100
-expect_warning(forced <- quickCluster(dummy[,c(which(known.clusters==1), which(known.clusters==2), which(known.clusters==3)[1:leftovers])]), 
-               sprintf("%i cells were not assigned to any cluster", leftovers))
-expect_identical(as.character(tail(forced, leftovers)), rep("0", leftovers))
-
-# Seeing how it interacts with the normalization method.
-
-out <- computeSumFactors(dummy, cluster=known.clusters)
-expect_equal(out, count.sizes/mean(count.sizes)) # Even though there is a majority of DE, each pair of clusters is still okay.
-
-out1 <- computeSumFactors(dummy, cluster=known.clusters, ref=1)
-expect_equal(out, out1)
-out2 <- computeSumFactors(dummy, cluster=known.clusters, ref=2)
-expect_equal(out, out2)
-out3 <- computeSumFactors(dummy, cluster=known.clusters, ref=3)
-expect_equal(out, out3)
-
-expect_error(computeSumFactors(dummy, cluster=known.clusters, ref=0), "'ref.clust' value not in 'clusters'")
 
 # Trying it out on a SCESet object.
 
-set.seed(20002)
 count.sizes <- rnbinom(ncells, mu=100, size=5)
-multiplier <- sample(seq_len(ngenes)/100)
-dummy <- outer(multiplier, count.sizes)
-
-known.clusters <- sample(3, ncells, replace=TRUE)
-dummy[1:300,known.clusters==1L] <- 0
-dummy[301:600,known.clusters==2L] <- 0  
-dummy[601:900,known.clusters==3L] <- 0
-
+dummy <- matrix(count.sizes, ncol=ncells, nrow=ngenes, byrow=TRUE)
 rownames(dummy) <- paste0("X", seq_len(ngenes))
 X <- newSCESet(countData=data.frame(dummy))
-emp.clusters <- quickCluster(X)
-expect_true(length(unique(paste0(known.clusters, emp.clusters)))==3L)
+out <- computeSumFactors(X)
+expect_equal(unname(sizeFactors(out)), computeSumFactors(dummy))
+
+# Throwing in some silly inputs.
+
+expect_error(computeSumFactors(dummy[,0,drop=FALSE]), "not enough cells in at least one cluster")
+expect_error(computeSumFactors(dummy[0,,drop=FALSE]), "cells should have non-zero library sizes")
+expect_error(computeSumFactors(dummy, sizes=c(10, 10, 20)), "'sizes' is not unique")
+expect_error(computeSumFactors(dummy, clusters=integer(0)), "'x' ncols is not equal to 'clusters' length")
 
 ####################################################################################################
 

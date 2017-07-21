@@ -43,8 +43,8 @@ For simplicity, though, we'll just simulate some counts here from a negative bin
 ```{r}
 ngenes <- 10000
 ncells <- 200
-mu <- 2^runif(ngenes, 3, 10)
-gene.counts <- matrix(rnbinom(ngenes*ncells, mu=mu, size=2), nrow=ngenes)
+mu <- 2^runif(ngenes, -1, 5)
+gene.counts <- matrix(rnbinom(ngenes*ncells, mu=mu, size=10), nrow=ngenes)
 ```
 
 We add some arbitrary Ensembl gene IDs to give the impression that this is real (mouse) data.
@@ -62,8 +62,8 @@ In practice, the reads should have been mapped to the spike-in transcipts by inc
 ```{r}
 nspikes <- 100
 ncells <- 200
-mu <- 2^runif(nspikes, 3, 10)
-spike.counts <- matrix(rnbinom(nspikes*ncells, mu=mu, size=2), nrow=nspikes)
+mu <- 2^runif(nspikes, -1, 5)
+spike.counts <- matrix(rnbinom(nspikes*ncells, mu=mu, size=10), nrow=nspikes)
 rownames(spike.counts) <- paste0("ERCC-", seq_len(nspikes))
 all.counts <- rbind(gene.counts, spike.counts)
 ```
@@ -183,7 +183,7 @@ First, we fit a mean-variance trend to the normalized log-expression values with
 By default, this done using only the spike-in transcripts, as these should only exhibit technical noise.
 
 ```{r}
-fit <- trendVar(sce)
+fit <- trendVar(sce, parametric=TRUE)
 ```
 
 The fitted value of the trend is used as an estimate of the technical component.
@@ -199,7 +199,7 @@ head(decomp[top.hvgs,])
 We examined this in more detail by constructing a mean-variance plot.
 Here, the black points represent the endogenous genes; the red points represent spike-in transcripts; and the red line represents the mean-variance trend fitted to the spike-ins.
 
-```{r}
+```{r, fig.cap=""}
 plot(decomp$mean, decomp$total, xlab="Mean log-expression", ylab="Variance")
 o <- order(decomp$mean)
 lines(decomp$mean[o], decomp$tech[o], col="red", lwd=2)

@@ -87,9 +87,7 @@
 # Pass all arguments explicitly rather than via function environment
 # (avoid duplication of memory in bplapply).
 {
-    out <- .Call(cxx_overlap_exprs, x, subset.row, by.group, tol)
-    if (is.character(out)) { stop(out) }
-    return(out)
+    .Call(cxx_overlap_exprs, x, subset.row, by.group, tol)
 }
 
 setGeneric("overlapExprs", function(x, ...) standardGeneric("overlapExprs"))

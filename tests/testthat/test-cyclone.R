@@ -21,7 +21,7 @@ random.success <- function(cell, markers, N, Nmin, Nmin.couples) {
     test<-classif.single(cell,markers,Nmin.couples) 
     if(is.na(test)){ return(NA) } 
     
-    return(length(success[success<test])/length(success))
+    return(sum(success<test)/length(success))
 }
 
 refFUN <- function(x, pairs) {
