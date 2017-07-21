@@ -12,8 +12,8 @@ Depends: R (>= 3.4), BiocParallel, scater
 Imports: Biobase, stats, methods, utils, graphics, grDevices, Matrix, 
         edgeR, limma, dynamicTreeCut, FNN, igraph, shiny, zoo, statmod, 
         splines, ggplot2, MASS, DT, viridis, Rcpp
-Suggests: testthat, knitr, BiocStyle, limSolve, org.Mm.eg.db, DESeq2, 
-        monocle, S4Vectors, Rtsne, pracma
+Suggests: testthat, knitr, beachmat, BiocStyle, limSolve, org.Mm.eg.db, 
+        DESeq2, monocle, S4Vectors, Rtsne, pracma
 biocViews: Normalization, Sequencing, RNASeq, Software, GeneExpression,
         Transcriptomics, SingleCell, Visualization, BatchEffect
 Description: Implements a variety of low-level analyses of single-cell 
