@@ -10,6 +10,8 @@ public:
     run_dormqr(SEXP, SEXP, const char);
     void run();
     void run(double*);
+    void solve();
+    void solve(double*);
 
     int get_nobs() const;
     int get_ncoefs() const;

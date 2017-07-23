@@ -94,15 +94,29 @@ expect_equal(ref, alt)
 
 # Checking PCA was working.
 
-dummy <- matrix(rnorm(ngenes*ncells), ncol=ncells, nrow=ngenes)
-pc <- prcomp(t(dummy))
-ref <- buildSNNGraph(t(pc$x[,1:20]), k=10, d=NA)
-alt <- buildSNNGraph(dummy, k=10, d=20)
-are_graphs_same(ref, alt)
+test_that("buildSNNGRaph with PCA works correctly", {
+    dummy <- matrix(rnorm(ngenes*ncells), ncol=ncells, nrow=ngenes)
+    pc <- prcomp(t(dummy))
+    ref <- buildSNNGraph(t(pc$x[,1:20]), k=10, d=NA)
+    alt <- buildSNNGraph(dummy, k=10, d=20)
+    are_graphs_same(ref, alt)
+    
+    ref <- buildSNNGraph(t(pc$x[,1:50]), k=10, d=NA)
+    alt <- buildSNNGraph(dummy, k=10, d=50)
+    are_graphs_same(ref, alt)
 
-ref <- buildSNNGraph(t(pc$x[,1:50]), k=10, d=NA)
-alt <- buildSNNGraph(dummy, k=10, d=50)
-are_graphs_same(ref, alt)
+    # Checking that it correctly extracts stuff from the reducedDimension slot.
+    X <- suppressWarnings(newSCESet(dummy))
+    reducedDimension(X) <- pc$x[,1:50]
+    alt <- buildSNNGraph(X, use.dimred=TRUE)
+    are_graphs_same(ref, alt)
+
+    # Ignores spike-in and subset.row specifications (correctly).
+    X <- calculateQCMetrics(X, feature_controls=list(ERCC=selected))
+    setSpike(X) <- "ERCC"
+    alt <- buildSNNGraph(X, use.dimred=TRUE)
+    are_graphs_same(ref, alt)
+})
 
 # Silly inputs.
 

@@ -17,7 +17,7 @@ static const R_CallMethodDef all_call_entries[] = {
     REGISTER(combine_corP, 7),
     REGISTER(auto_shuffle, 2),
     REGISTER(subset_and_divide, 3),
-    REGISTER(estimate_variance, 4),
+    REGISTER(fit_linear_model, 5),
     REGISTER(get_scaled_ranks, 3),
     REGISTER(get_residuals, 5),
     REGISTER(compute_CV2, 4),

@@ -1,4 +1,5 @@
-.buildSNNGraph <- function(x, k=10, d=50, subset.row=NULL, BPPARAM=SerialParam())
+.buildSNNGraph <- function(x, k=10, d=50, transposed=FALSE,
+                           subset.row=NULL, BPPARAM=SerialParam())
 # Builds a shared nearest-neighbor graph, where edges are present between each 
 # cell and its 'k' nearest neighbours. Edges are weighted based on the ranks of 
 # the shared nearest neighbours of the two cells, as described in the SNN-Cliq paper.
@@ -13,7 +14,9 @@
     }
     
     # Reducing dimensions, if 'd' is less than the number of genes.
-    x <- t(x)
+    if (!transposed) {
+        x <- t(x)
+    }
     if (!is.na(d) && d < ncol(x)) {
         pc <- prcomp(x, rank.=d)
         x <- pc$x
@@ -34,7 +37,7 @@
 }
 
 .find_knn <- function(incoming, k, BPPARAM, ..., force=FALSE) {
-    # Some checks to avoid segfauls in get.knn(x).
+    # Some checks to avoid segfaults in get.knn(x).
     ncells <- nrow(incoming)
     if (ncol(incoming)==0L || ncells==0L) { 
         return(list(nn.index=matrix(0L, ncells, 0), nn.dist=matrix(0, ncells, 0)))
@@ -83,9 +86,17 @@ setGeneric("buildSNNGraph", function(x, ...) standardGeneric("buildSNNGraph"))
 
 setMethod("buildSNNGraph", "matrix", .buildSNNGraph)
 
-setMethod("buildSNNGraph", "SCESet", function(x, ..., subset.row=NULL, assay="exprs", get.spikes=FALSE) {
+setMethod("buildSNNGraph", "SCESet", function(x, ..., subset.row=NULL, assay="exprs", 
+                                              get.spikes=FALSE, use.dimred=FALSE) {
     if (is.null(subset.row)) { 
         subset.row <- .spike_subset(x, get.spikes)
     }
-    .buildSNNGraph(assayDataElement(x, assay), ..., subset.row=subset.row)
+    if (use.dimred) {
+        out <- .buildSNNGraph(reducedDimension(x), d=NA, transposed=TRUE,
+                              ..., subset.row=NULL)
+    } else {
+        out <- .buildSNNGraph(assayDataElement(x, assay), transposed=FALSE,
+                              ..., subset.row=subset.row)
+    }
+    return(out)
 })

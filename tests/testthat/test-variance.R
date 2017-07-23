@@ -28,13 +28,17 @@ test_that("trendVar works on a basic scenario", {
     expect_equal(out$design, as.matrix(rep(1, ncells)))
 })
 
-test_that("trendVar is robust to zero-variance genes", {
+test_that("trendVar is robust to zero-variance and low-abundance genes", {
     # Checking that genes with no variance don't break the results, but still get reported in the output.
     dz <- rbind(1, d, 0)
     outz <- trendVar(dz)
     expect_equal(outz$mean, c(1, out$mean, 0))
     expect_equal(outz$var, c(0, out$var, 0))
     expect_equal(out$trend(outz$mean), outz$trend(outz$mean))
+
+    # Checking that it throws up properly with low-abundance genes.
+    d2 <- d / min(out$mean) * 0.099
+    expect_warning(trendVar(d2), "low-abundance")
 })
 
 test_that("trendVar behaves correctly with subsetting", {
@@ -79,8 +83,17 @@ test_that("trendVar works correctly on SCESet objects", {
     expect_equal(out3$var, out3b$var)
     expect_equal(out3$trend, out3b$trend)
     expect_equal(out3$design, out3b$design)
-    
-    dummy2 <- rbind(dummy, 0) # Checking what happens if all but one feature is a spike-in.
+   
+    # Checking for proper interaction between use.spike and subset.row.
+    out3c <- trendVar(X, use.spikes=FALSE, subset.row=1:500)
+    expect_equal(out3c, trendVar(exprs(X)[setdiff(1:500, which(isSpike(X))),]))
+    out3d <- trendVar(X, use.spikes=TRUE, subset.row=1:500)
+    expect_equal(out3d, trendVar(exprs(X)[intersect(1:500, which(isSpike(X))),]))
+    out3e <- trendVar(X, use.spikes=NA, subset.row=1:500)
+    expect_equal(out3e, trendVar(exprs(X)[1:500,]))
+
+    # Checking what happens if all but one feature is a spike-in.
+    dummy2 <- rbind(dummy, 0) 
     rownames(dummy2) <- paste0("X", seq_len(nrow(dummy2)))
     X2 <- newSCESet(countData=data.frame(dummy2))
     X2 <- calculateQCMetrics(X2, list(Chosen=rep(c(TRUE, FALSE), c(ngenes, 1))))
@@ -101,7 +114,7 @@ test_that("trendVar checks size factor centering", {
     subX <- X[,1:10] # Checking that it raises a warning upon subsetting (where the size factors are no longer centered).
     expect_warning(trendVar(subX), "size factors not centred")
     suppressWarnings(rnorm <- normalize(subX))
-    expect_warning(trendVar(rnorm), NA)
+    expect_warning(trendVar(rnorm, mean.warn=FALSE), NA)
 })
 
 test_that("trendVar works with other trend functions",  {
@@ -282,7 +295,7 @@ test_that("testVar's F-test works as expected", {
     
     rat <- (fit$var/fit$trend(fit$mean))
     df1 <- nrow(fit$design)-ncol(fit$design)
-    ffit <- limma::fitFDistRobustly(rat[fit$var > 0 & fit$mean > 0.1], df=df1) # filtering out zero-variance/low-abundance genes.
+    ffit <- limma::fitFDistRobustly(rat[fit$var > 0], df=df1) # filtering out zero-variance genes.
     expect_equal(pvals, pf(rat/ffit$scale, df1=df1, df2=ffit$df2, lower.tail=FALSE))
     
     expect_error(testVar(fit$var, fit$trend(fit$mean), df=ncells-1, test='f'),

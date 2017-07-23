@@ -27,11 +27,11 @@ importFrom("dynamicTreeCut", cutreeDynamic)
 importFrom("Matrix", sparseMatrix, qr, qr.coef, qr.qty, t, which)
 
 importFrom("edgeR", DGEList, "[.DGEList", designAsFactor, scaleOffset.DGEList)
-importFrom("limma", fitFDistRobustly, lmFit, eBayes, contrasts.fit, topTable)
+importFrom("limma", fitFDistRobustly, lmFit, contrasts.fit, squeezeVar)
 
 importFrom("utils", combn)
 importFrom("stats", approx, as.dist, cor, fitted, hclust, loess, median, p.adjust, pchisq, pf, dist,
-           predict, quantile, coefficients, nls, nls.control, lm, pnorm, coef, var, prcomp, model.matrix)
+           predict, quantile, coefficients, nls, nls.control, lm, pnorm, coef, var, prcomp, model.matrix, pt)
 
 importFrom("zoo", zoo, rollapply, index)
 importFrom("statmod", glmgam.fit)

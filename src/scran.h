@@ -31,7 +31,7 @@ SEXP get_scaled_ranks(SEXP, SEXP, SEXP);
 
 SEXP subset_and_divide(SEXP, SEXP, SEXP); 
 
-SEXP estimate_variance(SEXP, SEXP, SEXP, SEXP);
+SEXP fit_linear_model(SEXP, SEXP, SEXP, SEXP, SEXP);
 
 SEXP rank_subset(SEXP, SEXP, SEXP, SEXP);
 

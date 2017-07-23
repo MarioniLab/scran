@@ -7,8 +7,8 @@
 \description{Methods to normalize single-cell RNA-seq data by deconvolving size factors from cell pools.}
 
 \usage{
-\S4method{computeSumFactors}{ANY}(x, sizes=seq(20, 100, 5), clusters=NULL, 
-    ref.clust=NULL, positive=FALSE, errors=FALSE, subset.row=NULL)
+\S4method{computeSumFactors}{ANY}(x, sizes=seq(20, 100, 5), clusters=NULL, ref.clust=NULL,
+    positive=FALSE, errors=FALSE, mean.warn=TRUE, subset.row=NULL)
 
 \S4method{computeSumFactors}{SCESet}(x, subset.row=NULL, ..., assay="counts", 
     get.spikes=FALSE, sf.out=FALSE)
@@ -24,6 +24,7 @@
 \item{ref.clust}{A level of \code{clusters} to be used as the reference cluster for inter-cluster normalization.}
 \item{positive}{A logical scalar indicating whether linear inverse models should be used to enforce positive estimates.}
 \item{errors}{A logical scalar indicating whether the standard error should be returned. This option is deprecated, see below.}
+\item{mean.warn}{A logical scalar indicating whether a warning should be raised upon detecting low-abundance genes.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to \code{computeSumFactors,matrix-method}.}
 \item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
@@ -89,8 +90,8 @@ Such cells are difficult to normalize reliably under any approach, and can be re
 \item If many negative size factors are present, it is probably due to insufficient filtering of low-abundance genes.
 This results in many zero counts and pooled size factors of zero, and can be fixed by filtering out more genes.
 }
-A complementary approach is to increase in the number of \code{sizes} to improve the precision of the estimates.
-This reduces the chance of obtaining negative size factors due to estimation error for cells with near-zero true size factors.
+Another approach is to increase in the number of \code{sizes} to improve the precision of the estimates.
+This reduces the chance of obtaining negative size factors due to estimation error, for cells where the true size factors are very small.
 
 As a last resort, some protection can be provided by setting \code{positive=TRUE}, which will use linear inverse models to solve the system.
 This ensures that non-negative values for the size factors will always be obtained.
@@ -105,12 +106,17 @@ Users wanting to perform spike-in normalization should see \code{\link{computeSp
 
 Users can also set \code{subset.row} to specify which rows of \code{x} are to be used to calculate correlations.
 This is equivalent to but more efficient than subsetting \code{x} directly, as it avoids constructing a (potentially large) temporary matrix.
-If this is specified, it will overwrite any setting of \code{get.spikes}.
+If \code{subset.row} is specified and \code{get.spikes=FALSE}, only the non-spike-in entries of \code{subset.row} will be used in deconvolution. 
 
 Note that pooling does not eliminate the need to filter out low-abundance genes.
 As mentioned above, if too many genes have consistently low counts across all cells, even the pool-based size factors will be zero.
 This results in zero or negative size factor estimates for many cells.
 Filtering ensures that this is not the case, e.g., by removing genes with average counts below 1.
+
+In general, genes with average counts below 1 (for read count data) or 0.1 (for UMI data) should be filtered out prior to using this function. 
+If \code{mean.warn=TRUE}, a warning will be raised if any genes are detected with library size-adjusted average counts below 0.1.
+This is intended as a reminder that filtering is required, and can be ignored if the genes have already been filtered.
+(For various reasons, a warning may be raised even after filtering, and can be silenced with \code{mean.warn=FALSE}.)
 }
 
 \section{Obtaining standard errors}{

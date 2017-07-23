@@ -128,7 +128,8 @@ This computes size factors that are used to scale the counts in each cell.
 The assumption is that most genes are not differentially expressed (DE) between cells, such that any differences in expression across the majority of genes represents some technical bias that should be removed.
 
 ```{r}
-sce <- computeSumFactors(sce)
+high.ab <- calcAverage(sce) > 1
+sce <- computeSumFactors(sce, subset.row=high.ab)
 summary(sizeFactors(sce))
 ```
 
@@ -138,9 +139,13 @@ This reduces the risk of violating the above assumption when many genes are DE b
 
 ```{r}
 larger.sce <- newSCESet(countData=data.frame(cbind(all.counts, all.counts, all.counts)))
-clusters <- quickCluster(larger.sce)
-larger.sce <- computeSumFactors(larger.sce, cluster=clusters)
+clusters <- quickCluster(larger.sce, subset.row=high.ab)
+larger.sce <- computeSumFactors(larger.sce, cluster=clusters, subset.row=high.ab)
 ```
+
+Note the use of `high.ab` to only use high-abundance genes during normalization.
+This provides some protection against zero or negative size factor estimates.
+We also assume that quality control on the cells has already been performed, as low-quality cells with few expressed genes can often have negative size factor estimates.
 
 ## Based on the spike-in counts
 

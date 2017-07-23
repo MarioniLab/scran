@@ -14,8 +14,11 @@ X <- normalize(X)
 
 # Setting up a reference function.
 library(limma)
-REFFUN <- function(y, design, clust.vals, output, pval.type="any", direction="any") { 
+REFFUN <- function(y, design, clust.vals, output, pval.type="any", direction="any", min.mean=0.1) { 
     lfit <- lmFit(y, design)
+    all.means <- rowMeans(y)
+    do.solo <- is.null(min.mean) || all(all.means >= min.mean) || !any(all.means >= min.mean)
+
     for (host in clust.vals) {
         collected.lfc <- collected.p <- list()
         
@@ -25,8 +28,21 @@ REFFUN <- function(y, design, clust.vals, output, pval.type="any", direction="an
             con[[target]] <- -1
             
             fit2 <- contrasts.fit(lfit, con)
-            fit2 <- eBayes(fit2, trend=TRUE, robust=TRUE)
-            res <- topTable(fit2, n=Inf, sort.by="none")
+            if (do.solo) {
+                fit2 <- eBayes(fit2, trend=TRUE, robust=TRUE)
+                res <- topTable(fit2, n=Inf, sort.by="none")
+            } else {
+                higher <- all.means >= min.mean
+                fit2a <- fit2[higher,]
+                fit2b <- fit2[!higher,]
+                fit2a <- eBayes(fit2a, trend=TRUE, robust=TRUE)
+                fit2b <- eBayes(fit2b, trend=TRUE, robust=TRUE)
+
+                resa <- topTable(fit2a, n=Inf, sort.by="none")
+                resb <- topTable(fit2b, n=Inf, sort.by="none")
+                res <- rbind(resa, resb)
+                res <- res[order(c(which(higher), which(!higher))),]                
+            }
 
             if (direction=="up") {
                 is.up <- res$logFC > 0
@@ -49,7 +65,9 @@ REFFUN <- function(y, design, clust.vals, output, pval.type="any", direction="an
             current <- rownames(X)[unique(unlist(lapply(all.ranks, FUN=function(x) { which(x <= i) })))]
             expect_identical(sort(current), sort(cur.out$Gene[cur.out$Top <= i]))
         }
-        reordered <- order(do.call(pmin, all.ranks))
+       
+        reordered <- order(do.call(pmin, all.ranks), do.call(pmin, collected.p))
+        expect_identical(cur.out$Gene, rownames(y)[reordered])
         
         # Checking the log-fold changes.
         for (target in names(collected.lfc)) {
@@ -117,8 +135,52 @@ out <- findMarkers(X, clusters=clust$cluster)
 out2 <- findMarkers(exprs(X)[-(1:100),], clusters=clust$cluster)
 expect_identical(out, out2)
 
+# Repeating with non-infinite d.f. to check shrinkage.
+
+set.seed(700001)
+test_that("findMarkers works with non-infinite prior d.f.", {
+    s2 <- 10/rchisq(1000, df=10)
+    y <- matrix(rnorm(1000*200, sd=sqrt(s2)), nrow=1000)
+    rownames(y) <- paste0("X", seq_len(1000))
+    clusters <- factor(sample(4, 200, replace=TRUE))
+    out <- findMarkers(y, clusters=clusters)
+    
+    design <- model.matrix(~0 + clusters)
+    colnames(design) <- levels(clusters)
+    REFFUN(y, design, levels(clusters), out)
+
+    # Trying again with fewer prior d.f.    
+    s2 <- 5/rchisq(1000, df=5)
+    y <- matrix(rnorm(1000*100, sd=sqrt(s2)), nrow=1000)
+    rownames(y) <- paste0("X", seq_len(1000))
+    clusters <- factor(sample(5, 100, replace=TRUE))
+    out <- findMarkers(y, clusters=clusters)
+    
+    design <- model.matrix(~0 + clusters)
+    colnames(design) <- levels(clusters)
+    REFFUN(y, design, levels(clusters), out)
+})
+
+# Testing the min.mean setting.
+
+set.seed(700002)
+test_that("findMarkers works with a variety of minimum means", {
+    s2 <- 10/rchisq(1000, df=10)
+    y <- matrix(rnorm(1000*200, sd=sqrt(s2)), nrow=1000)
+    rownames(y) <- paste0("X", seq_len(1000))
+    clusters <- factor(sample(3, 200, replace=TRUE))
+    
+    design <- model.matrix(~0 + clusters)
+    colnames(design) <- levels(clusters)
+    out <- findMarkers(y, clusters=clusters, min.mean=0)
+    REFFUN(y, design, levels(clusters), out, min.mean=0)
+
+    out <- findMarkers(y, clusters=clusters, min.mean=NULL)
+    REFFUN(y, design, levels(clusters), out, min.mean=NULL)
+})
+
 # Checking consistency upon silly inputs.
 
-expect_error(findMarkers(exprs(X)[0,], clusters=clust$cluster), "incorrect number of subscripts on matrix")
+expect_error(findMarkers(exprs(X)[0,], clusters=clust$cluster), "var is empty")
 expect_error(findMarkers(exprs(X)[,0], clusters=integer(0)), "contrasts can be applied only to factors with 2 or more levels")
 

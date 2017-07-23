@@ -1,4 +1,5 @@
-.computeSumFactors <- function(x, sizes=seq(20, 100, 5), clusters=NULL, ref.clust=NULL, positive=FALSE, errors=FALSE, subset.row=NULL) 
+.computeSumFactors <- function(x, sizes=seq(20, 100, 5), clusters=NULL, ref.clust=NULL, 
+                               positive=FALSE, errors=FALSE, mean.warn=TRUE, subset.row=NULL) 
 # This contains the function that performs normalization on the summed counts.
 # It also provides support for normalization within clusters, and then between
 # clusters to make things comparable. It can also switch to linear inverse models
@@ -6,7 +7,7 @@
 #
 # written by Aaron Lun
 # created 23 November 2015
-# last modified 21 June 2017 
+# last modified 23 June 2017 
 {
     ncells <- ncol(x)
     if (!is.null(clusters)) {
@@ -22,7 +23,7 @@
     # Checking sizes.
     sizes <- sort(as.integer(sizes))
     if (anyDuplicated(sizes)) { 
-        stop("'sizes' is not unique") 
+        stop("'sizes' are not unique") 
     }
 
     # Checking the subsetting.
@@ -32,6 +33,7 @@
     nclusters <- length(indices)
     clust.nf <- clust.profile <- clust.libsizes <- clust.meanlib <- clust.se <- vector("list", nclusters)
     warned.neg <- FALSE
+    all.lib <- all.profile <- 0
 
     # Computing normalization factors within each cluster first.
     for (clust in seq_len(nclusters)) { 
@@ -69,10 +71,9 @@
             QR <- qr(design)
             final.nf <- qr.coef(QR, output)
             if (any(final.nf < 0)) { 
-                if (!warned.neg) { warning("encountered negative factor estimates") }
+                if (!warned.neg) { warning("encountered negative size factor estimates") }
                 warned.neg <- TRUE
             }
-
             if (errors) {
                 warning("errors=TRUE is no longer supported")
             }
@@ -83,6 +84,20 @@
         clust.profile[[clust]] <- ave.cell
         clust.libsizes[[clust]] <- cur.libs
         clust.meanlib[[clust]] <- mean(cur.libs)
+        
+        # Storing things to get the average count for warning.
+        all.lib <- all.lib + sum(cur.libs)
+        all.profile <- all.profile + ave.cell * length(cur.libs)
+    }
+
+    # Printing a warning if we see low-abundance genes.
+    # This mimics the calcAverage calculation, after adjusting for the mean library size.
+    if (mean.warn) {
+        mean.profile <- all.profile/ncells 
+        mean.lib <- all.lib/ncells
+        if (any(mean.profile*mean.lib < 0.1)) {
+            warning("low-abundance genes (library size-adjusted average counts below 0.1) detected")
+        }
     }
 
     # Adjusting size factors between clusters (using the cluster with the
@@ -162,10 +177,19 @@ setGeneric("computeSumFactors", function(x, ...) standardGeneric("computeSumFact
 setMethod("computeSumFactors", "ANY", .computeSumFactors)
 
 setMethod("computeSumFactors", "SCESet", function(x, subset.row=NULL, ..., assay="counts", get.spikes=FALSE, sf.out=FALSE) { 
+    mat <- assayDataElement(x, assay)
+    despiked <- .spike_subset(x, get.spikes)
+    
     if (is.null(subset.row)) { 
-        subset.row <- .spike_subset(x, get.spikes)
+        subset.row <- despiked 
+    } else {
+        subset.row <- .subset_to_index(subset.row, mat, byrow=TRUE)
+        if (!is.null(despiked)) { 
+            subset.row <- intersect(subset.row, which(despiked))
+        }
     }
-    sf <- .computeSumFactors(assayDataElement(x, assay), subset.row=subset.row, ...) 
+
+    sf <- .computeSumFactors(mat, subset.row=subset.row, ...) 
     if (sf.out) { 
         return(sf) 
     }

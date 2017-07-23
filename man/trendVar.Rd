@@ -9,7 +9,7 @@
 \usage{
 \S4method{trendVar}{ANY}(x, method=c("loess", "spline", "semiloess"), 
     span=0.3, family="symmetric", degree=1, df=4,
-    parametric=FALSE, start=NULL, min.mean=0.1,
+    parametric=FALSE, start=NULL, mean.warn=TRUE,
     design=NULL, subset.row=NULL) 
 
 \S4method{trendVar}{SCESet}(x, subset.row=NULL, ..., assay="exprs", use.spikes=TRUE)
@@ -26,7 +26,7 @@
 \item{parametric}{A logical scalar indicating whether a parametric curve should be fitted prior to smoothing.}
 \item{start}{A named list of numeric scalars, containing starting values for parametric fitting with \code{\link{nls}}. 
 This is automatically generated with the most suitable values if set to \code{NULL}.}
-\item{min.mean}{A numeric scalar specifying the threshold on the mean of log-expression values to be used for trend fitting.}
+\item{mean.warn}{A logical scalar indicating whether a warning should be raised if low-abundance genes are detected.}
 \item{design}{A numeric matrix describing the uninteresting factors contributing to expression in each cell.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to \code{trendVar,matrix-method}.}
@@ -68,12 +68,8 @@ Some experimentation with \code{span}, \code{degree} or \code{family} may be req
 If \code{method="spline"}, a natural spline of degree \code{df} will be used instead.
 This is constructed using the \code{\link[splines]{ns}} function and is fitted robustly using the \code{\link[MASS]{rlm}} function.
 
-All genes with means below \code{min.mean} are ignored during trend fitting.
-This preserves the sensitivity of span-based smoothers at moderate-to-high abundances, by removing the bulk of lowly expressed genes.
-It also protects against discreteness, which can interfere with estimation of the variability of the variance estimates and accurate scaling of the trend.
-
 The \code{trendVar} function will produce an output \code{trend} function with which fitted values can be computed.
-When extrapolating to values below \code{min.mean} or the smallest observed mean, the output function will approach zero.
+When extrapolating to values below the smallest observed mean, the output function will approach zero.
 When extrapolating to values above the largest observed mean, the output function will be set to the fitted value of the trend at the largest mean.
 
 Note that \code{method="semiloess"} is the same as \code{parametric=TRUE} with \code{method="loess"}.
@@ -81,15 +77,24 @@ Note that \code{method="semiloess"} is the same as \code{parametric=TRUE} with \
 
 \section{Additional notes on row selection}{
 Spike-in transcripts can be selected in \code{trendVar,SCESet-method} using the \code{use.spikes} method. 
-By default, \code{use.spikes=TRUE} which means that only rows labelled as spike-ins with \code{isSpike(x)} will be used.
+\itemize{
+\item By default, \code{use.spikes=TRUE} which means that only rows labelled as spike-ins with \code{isSpike(x)} will be used.
+\item If \code{use.spikes=FALSE}, only the rows \emph{not} labelled as spike-ins will be used.
+\item If \code{use.spikes=NA}, every row will be used for trend fitting, regardless of whether it corresponds to a spike-in transcript or not.
+}
 
-When spike-ins are not available, \code{trendVar} can also be applied directly to the counts for endogenous genes by setting \code{use.spikes=FALSE} 
-    (or by manually supplying a matrix of normalized expression for endogenous genes, for \code{trendVar,matrix-method}).
+If \code{use.spikes=FALSE}, this implies that \code{trendVar} will be applied to the endogenous genes in the SCESet object.
+For \code{trendVar,matrix-method}, it is equivalent to manually supplying a matrix of normalized expression for endogenous genes.
 This assumes that most genes exhibit technical variation and little biological variation, e.g., in a homogeneous population.
 
-If \code{use.spikes=NA}, every row will be used for trend fitting, regardless of whether it corresponds to a spike-in transcript or endogenous gene.
-Users can also directly specify which rows to use with \code{subset.row}.
-This will override any setting of \code{use.spikes}.
+Users can also directly specify which rows to use with \code{subset.row}, which will interact as expected with any non-\code{NA} value of \code{use.spikes}.
+If \code{subset.row} is specified and \code{use.spikes=TRUE}, only the spike-in transcripts in \code{subset.row} are used.
+Otherwise, if \code{use.spikes=FALSE}, only the non-spike in transcripts in \code{subset.row} are used.
+
+If \code{mean.warn=TRUE}, the function will raise a warning if any genes are detected with average log-expression values below 0.1.
+These genes should be prior to trend fitting to preserve the sensitivity of span-based smoothers at moderate-to-high abundances.
+It also protects against discreteness, which can interfere with estimation of the variability of the variance estimates and accurate scaling of the trend.
+For droplet data, a lower threshold of 0.001-0.01 can be used, and the warning can be silenced with \code{mean.warn=FALSE}.
 
 Obviously, the usefulness of the trend is dependent on the quality of the features to which it is fitted.
 For example, the trend will not provide accurate estimates of the technical component if the coverage of all spike-ins is lower than that of endogenous genes.

@@ -1,6 +1,6 @@
 .trend_var <- function(x, method=c("loess", "spline", "semiloess"), 
                        span=0.3, family="symmetric", degree=1, df=4,
-                       parametric=FALSE, start=NULL, min.mean=0.1,
+                       parametric=FALSE, start=NULL, mean.warn=TRUE,
                        design=NULL, subset.row=NULL)
 # Fits a polynomial trend to the technical variability of the log-CPMs,
 # against their abundance (i.e., average log-CPM).
@@ -14,15 +14,18 @@
     design <- checked$design
     QR <- .ranksafe_qr(design)
 
-    lout <- .Call(cxx_estimate_variance, QR$qr, QR$qraux, x, subset.row - 1L)
+    lout <- .Call(cxx_fit_linear_model, QR$qr, QR$qraux, x, subset.row - 1L, FALSE)
     means <- lout[[1]]
     vars <- lout[[2]]
     names(means) <- names(vars) <- rownames(x)[subset.row]
 
     # Filtering out zero-variance and low-abundance genes.
-    is.okay <- vars > 1e-8 & means >= min.mean
+    is.okay <- vars > 1e-8 
     kept.vars <- vars[is.okay]
     kept.means <- means[is.okay]
+    if (mean.warn & any(means < 0.1)) {
+        warning("low-abundance genes (mean log-expression below 0.1) detected") 
+    }
 
     method <- match.arg(method) 
     if (method=="semiloess") {
@@ -135,19 +138,23 @@ setMethod("trendVar", "ANY", .trend_var)
 
 setMethod("trendVar", "SCESet", function(x, subset.row=NULL, ..., assay="exprs", use.spikes=TRUE) {
     .check_centered_SF(x, assay=assay)
-    if (is.null(subset.row)) {
-        if (is.na(use.spikes)) {   
-            subset.row <- NULL
-        } else if (use.spikes) {
-            subset.row <- isSpike(x, warning=FALSE)
-            if (is.null(subset.row)) { 
-                subset.row <- logical(nrow(x)) # no spikes at all.
-            }
+    mat <- assayDataElement(x, assay)
+    subset.row <- .subset_to_index(subset.row, mat, byrow=TRUE)
+
+    if (!is.na(use.spikes)) {
+        is.spike <- isSpike(x, warning=FALSE)
+        if (is.null(is.spike)) {
+            is.spike <- logical(nrow(x))
+        }
+        is.spike <- which(is.spike)
+        if (use.spikes) {
+            subset.row <- intersect(subset.row, is.spike)                
         } else {
-            subset.row <- .spike_subset(x, get.spikes=FALSE)
+            subset.row <- setdiff(subset.row, is.spike)
         }
     }
-    out <- .trend_var(assayDataElement(x, assay), ..., subset.row=subset.row)
+
+    out <- .trend_var(mat, ..., subset.row=subset.row)
     return(out)
 })
 

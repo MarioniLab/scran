@@ -8,7 +8,7 @@
 
 \usage{
 \S4method{findMarkers}{matrix}(x, clusters, design=NULL, pval.type=c("any", "all"), 
-    direction=c("any", "up", "down"), subset.row=NULL)
+    direction=c("any", "up", "down"), min.mean=0.1, subset.row=NULL)
 
 \S4method{findMarkers}{SCESet}(x, ..., subset.row=NULL, assay="exprs", get.spikes=FALSE) 
 }
@@ -24,6 +24,7 @@ A vector of cluster identities for all cells.
 \item{design}{A numeric matrix containing blocking terms, i.e., uninteresting factors driving expression across cells.}
 \item{pval.type}{A string specifying the type of combined p-value to be computed, i.e., Simes' or IUT.}
 \item{direction}{A string specifying the direction of log-fold changes to be considered for each cluster.}
+\item{min.mean}{A numeric scalar specifying the mean threshold for computing empirical Bayes parameters.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to the matrix method.}
 \item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
@@ -61,6 +62,9 @@ This can be used to focus on genes that are upregulated in each cluster of inter
 
 The application of \pkg{limma} uses the \dQuote{trend} approach on the normalized log-expression values, as described by Law et al. (2015).
 This is fast and avoids putting too much weight on outliers or cells with large library sizes.
+Empirical Bayes shrinkage is performed separately for genes with means greater or less than \code{min.mean}.
+This ensures that discreteness of variances at low counts does not affect other genes, while avoiding the need to discard low-abundance genes entirely.
+
 Uninteresting factors of variation (e.g., preparation time, sequencing batch) will be blocked if they are stored in \code{design}.
 Note that the presence of factors that are confounded with \code{clusters} will raise a warning about unestimable coefficients.
 }

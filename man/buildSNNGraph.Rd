@@ -7,20 +7,25 @@
 \description{Build a shared-nearest-neighbors graph for cells based on their expression profiles.}
 
 \usage{
-\S4method{buildSNNGraph}{matrix}(x, k=10, d=50, subset.row=NULL, BPPARAM=SerialParam())
+\S4method{buildSNNGraph}{matrix}(x, k=10, d=50, transposed=FALSE,
+    subset.row=NULL, BPPARAM=SerialParam())
 
-\S4method{buildSNNGraph}{SCESet}(x, ..., subset.row=NULL, assay="exprs", get.spikes=FALSE)
+\S4method{buildSNNGraph}{SCESet}(x, ..., subset.row=NULL, assay="exprs", 
+    get.spikes=FALSE, use.dimred=FALSE)
 }
 
 \arguments{
-\item{x}{A SCESet object, or a matrix containing expression values for each gene (row) in each cell (column).}
+\item{x}{A SCESet object, or a matrix containing expression values for each gene (row) in each cell (column).
+If it is matrix, it can also be transposed.}
 \item{k}{An integer scalar specifying the number of nearest neighbors to consider during graph construction.}
 \item{d}{An integer scalar specifying the number of dimensions to use for the k-NN search.}
+\item{transposed}{A logical scalar indicating whether \code{x} is transposed (i.e., rows are cells).}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{BPPARAM}{A BiocParallelParam object to use in \code{bplapply} for parallel processing.}
 \item{...}{Additional arguments to pass to \code{buildSNNGraph,matrix-method}.}
 \item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
-\item{get.spikes}{A logical specifying whether spike-in transcripts should be used.}
+\item{get.spikes}{A logical scalar specifying whether spike-in transcripts should be used.}
+\item{use.dimred}{A logical scalar specifying whether existing PCs in \code{x} should be used.}
 }
 
 \details{
@@ -39,12 +44,14 @@ This is necessary in order to perform the k-NN search (done using the \code{\lin
 By default, the first 50 components are chosen, which should retain most of the substructure in the data set.
 If \code{d} is \code{NA} or less than the number of cells, no dimensionality reduction is performed.
 
-Expression values should typically be on the log-scale, e.g., log-transformed counts.
+Expression values in \code{x} should typically be on the log-scale, e.g., log-transformed counts.
 Ranks can also be used for greater robustness, e.g., from \code{\link{quickCluster}} with \code{get.ranks=TRUE}.
 (Dimensionality reduction is still okay when ranks are provided - running PCA on ranks is equivalent to running MDS on the distance matrix derived from Spearman's rho.)
+If the input matrix is already transposed, \code{transposed=TRUE} avoids an unnecessary internal transposition. 
 
 By default, spike-in transcripts are removed from the expression matrix in \code{buildSNNGraph,SCESet-method}.
 However, any non-\code{NULL} setting of \code{subset.row} will override \code{get.spikes}.
+If \code{use.dimred=TRUE}, existing PCs are used and any setting of \code{d}, \code{subset.row} and \code{get.spikes} are ignored.
 
 Note that the setting of \code{k} here is slightly different from that used in SNN-Cliq.
 The original implementation considers each cell to be its first nearest neighbor that contributes to \code{k}.

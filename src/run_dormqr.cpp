@@ -46,6 +46,21 @@ void run_dormqr::run() {
     return;
 }
 
+void run_dormqr::solve(double* stuff) {
+    const char uplo='U', xtrans='N', diag='N';
+    F77_CALL(dtrtrs)(&uplo, &xtrans, &diag,
+            &ncoef, &ncol, qrptr, &nobs, 
+            stuff, &nobs, &info);
+    if (info) { 
+        throw std::runtime_error("coefficient calculations failed for 'dtrtrs'");
+    }
+    return;
+}
+
+void run_dormqr::solve() {
+    solve(rhs.data());
+}
+
 int run_dormqr::get_nobs() const {
     return nobs;
 }

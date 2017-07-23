@@ -96,7 +96,7 @@ expect_equal(ref, obs)
 x <- matrix(rpois(ncells*ngenes2, lambda=10), nrow=ngenes2, ncol=ncells)
 x[sample(nrow(x), 100),] <- 0L # Throwing in some zeroes.
 ref <- sumInR(x, sizes)
-obs <- computeSumFactors(x, sizes=sizes)
+obs <- computeSumFactors(x, sizes=sizes, mean.warn=FALSE) # shutting up the warnings here.
 expect_equal(ref, obs)
 
 x <- matrix(rpois(ncells*ngenes2, lambda=10), nrow=ngenes2, ncol=ncells)
@@ -162,18 +162,48 @@ test_that("computeSumFactors correctly subsets 'sizes' for small clusters", {
 
 # Trying it out on a SCESet object.
 
-count.sizes <- rnbinom(ncells, mu=100, size=5)
-dummy <- matrix(count.sizes, ncol=ncells, nrow=ngenes, byrow=TRUE)
-rownames(dummy) <- paste0("X", seq_len(ngenes))
-X <- newSCESet(countData=data.frame(dummy))
-out <- computeSumFactors(X)
-expect_equal(unname(sizeFactors(out)), computeSumFactors(dummy))
+set.seed(20001)
+test_that("computeSumFactors works on SCESest objects", {
+    dummy <- matrix(rpois(ngenes*ncells, lambda=10), nrow=ngenes, ncol=ncells)
+    rownames(dummy) <- paste0("X", seq_len(ngenes))
+    X <- newSCESet(countData=data.frame(dummy))
+    out <- computeSumFactors(X)
+    expect_equal(unname(sizeFactors(out)), computeSumFactors(dummy))
+
+    # Trying with and without spike-ins.
+    is.spike <- sample(ngenes, 100)
+    X <- calculateQCMetrics(X, feature_controls=list(Spike=is.spike))
+    setSpike(X) <- "Spike"
+    out2 <- computeSumFactors(X)
+    expect_equal(unname(sizeFactors(out2)), computeSumFactors(dummy[-is.spike,]))
+
+    out3 <- computeSumFactors(X, get.spikes=TRUE)
+    expect_equal(sizeFactors(out3), sizeFactors(out))
+
+    # Combined with subsetting.
+    out4 <- computeSumFactors(X, get.spikes=FALSE, subset.row=1:500)
+    expect_equal(unname(sizeFactors(out4)), computeSumFactors(dummy[setdiff(1:500, is.spike),]))
+
+    out5 <- computeSumFactors(X, get.spikes=TRUE, subset.row=1:500)
+    expect_equal(unname(sizeFactors(out5)), computeSumFactors(dummy[1:500,]))
+})
+
+# Testing that the minimum mean warnings work.
+
+set.seed(20002)
+test_that("computeSumFactors correctly detects low-abundance genes", {
+    dummy <- matrix(rpois(ngenes*ncells, lambda=0.1), nrow=ngenes, ncol=ncells)
+    expect_warning(computeSumFactors(dummy), "low-abundance genes")
+    expect_warning(computeSumFactors(dummy, mean.warn=FALSE), NA)
+    keep <- scater::calcAverage(dummy) > 0.11 # slightly higher, as library sizes change after filtering.
+    expect_warning(computeSumFactors(dummy, subset.row=keep), NA)
+})
 
 # Throwing in some silly inputs.
 
 expect_error(computeSumFactors(dummy[,0,drop=FALSE]), "not enough cells in at least one cluster")
 expect_error(computeSumFactors(dummy[0,,drop=FALSE]), "cells should have non-zero library sizes")
-expect_error(computeSumFactors(dummy, sizes=c(10, 10, 20)), "'sizes' is not unique")
+expect_error(computeSumFactors(dummy, sizes=c(10, 10, 20)), "'sizes' are not unique")
 expect_error(computeSumFactors(dummy, clusters=integer(0)), "'x' ncols is not equal to 'clusters' length")
 
 ####################################################################################################

@@ -22,7 +22,7 @@
 
         # Rescaling residuals so that the variance is unbiased.
         # This is necessary because variance of residuals is underestimated.
-        xout <- .Call(cxx_estimate_variance, QR$qr, QR$qraux, x, subset.row - 1L)
+        xout <- .Call(cxx_fit_linear_model, QR$qr, QR$qraux, x, subset.row - 1L, FALSE)
         xvar <- xout[[2]]
         rvar <- apply(rx, 1, var)
        
