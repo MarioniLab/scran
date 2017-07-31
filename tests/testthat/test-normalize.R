@@ -195,7 +195,11 @@ test_that("computeSumFactors correctly detects low-abundance genes", {
     dummy <- matrix(rpois(ngenes*ncells, lambda=0.1), nrow=ngenes, ncol=ncells)
     expect_warning(computeSumFactors(dummy), "low-abundance genes")
     expect_warning(computeSumFactors(dummy, mean.warn=FALSE), NA)
-    keep <- scater::calcAverage(dummy) > 0.11 # slightly higher, as library sizes change after filtering.
+
+    sf <- colSums(dummy)
+    sf <- sf/mean(sf)
+    corrected.counts <- t(t(dummy)/sf)
+    keep <- rowMeans(corrected.counts) > 0.11 # slightly higher, as library sizes change after filtering.
     expect_warning(computeSumFactors(dummy, subset.row=keep), NA)
 })
 
