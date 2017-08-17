@@ -14,7 +14,7 @@ Imports: SummarizedExperiment, S4Vectors, BiocGenerics, Rcpp, stats,
         limma, dynamicTreeCut, FNN, igraph, shiny, zoo, statmod, 
         splines, ggplot2, MASS, DT, viridis
 Suggests: testthat, BiocStyle, knitr, beachmat, HDF5Array, limSolve, 
-        org.Mm.eg.db, DESeq2, monocle, Rtsne, pracma, Biobase
+        org.Mm.eg.db, DESeq2, monocle, Rtsne, pracma, Biobase, irlba
 biocViews: Normalization, Sequencing, RNASeq, Software, GeneExpression,
         Transcriptomics, SingleCell, Visualization, BatchEffect
 Description: Implements a variety of low-level analyses of single-cell 

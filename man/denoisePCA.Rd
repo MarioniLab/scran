@@ -8,7 +8,8 @@
 
 \usage{
 \S4method{denoisePCA}{ANY}(x, technical, design=NULL, subset.row=NULL,
-    value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100, preserve.dim=FALSE)
+    value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100, 
+    preserve.dim=FALSE, approximate=FALSE)
 
 \S4method{denoisePCA}{SingleCellExperiment}(x, ..., subset.row=NULL, 
     value=c("pca", "n", "lowrank"), assay.type="exprs", get.spikes=FALSE)
@@ -26,6 +27,7 @@ All genes are used by default.}
 \item{value}{A string specifying the type of value to return; the PCs, the number of retained components, or a low-rank approximation.}
 \item{min.rank, max.rank}{Integer scalars specifying the minimum and maximum number of PCs to retain.}
 \item{preserve.dim}{A logical scalar indicating whether the dimensions should be preserved when \code{subset.row} is not \code{NULL}.}
+\item{approximate}{A logical scalar indicating whether approximate SVD should be performed via \code{\link[irlba]{irlba}}.}
 \item{...}{Further arguments to pass to \code{denoisePCA,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use.}
 \item{get.spikes}{A logical specifying whether spike-in transcripts should be used.

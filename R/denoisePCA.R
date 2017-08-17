@@ -1,12 +1,12 @@
 .denoisePCA <- function(x, technical, design=NULL, subset.row=NULL,
                         value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100, 
-                        preserve.dim=FALSE)
+                        preserve.dim=FALSE, approximate=FALSE)
 # Performs PCA and chooses the number of PCs to keep based on the technical noise.
 # This is done on the residuals if a design matrix is supplied.
 #
 # written by Aaron Lun
 # created 13 March 2017    
-# last modified 15 July 2017
+# last modified 17 August 2017
 {
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     checked <- .make_var_defaults(x, fit=NULL, design=design)
@@ -37,18 +37,50 @@
         # see http://math.stackexchange.com/questions/494181/ for a good explanation).
         y <- rx * sqrt(all.var/rvar)
     } else {
-        y <- x[use.rows,,drop=FALSE] - all.means
+        y <- x[use.rows,,drop=FALSE] - all.means 
+    }
+
+    # Checking various other arguments.
+    value <- match.arg(value)
+    min.rank <- max(1L, min.rank)
+    ncells <- ncol(x)
+    max.rank <- min(ncells, max.rank)
+    y <- t(y)
+
+    # Switching to IRLBA if an approximation is requested.
+    if (approximate){
+        max.rank <- min(dim(y)-1L, max.rank)
+        nu <- ifelse(value=="lowrank", max.rank, 0L)
+        out <- irlba::irlba(y, nu=nu, nv=max.rank) # center= seems to be broken.
+        var.exp <- out$d^2/(ncells - 1)
+        
+        # Assuming all non-computed components were technical, and discarding them for further consideration.
+        leftovers <- sum(all.var) - sum(var.exp)
+        technical <- max(0, technical - leftovers)
+        to.keep <- .get_npcs_to_keep(var.exp, technical)
+        to.keep <- min(max(to.keep, min.rank), max.rank)
+        
+        # Figuring out what value to return; the number of PCs, the PCs themselves, or a denoised low-rank matrix.
+        if (value=="n") {
+            return(to.keep)
+        } else if (value=="pca") {
+            pc.out <- irlba::prcomp_irlba(y, n=to.keep, center=TRUE, scale.=FALSE)
+            return(pc.out$x)
+        } else if (value=="lowrank") {
+            ix <- seq_len(to.keep)
+            denoised <- out$u[,ix,drop=FALSE] %*% (out$d[ix] * t(out$v[,ix,drop=FALSE])) 
+            denoised <- t(denoised) + all.means
+            return(.restore_dimensions(x, denoised, use.rows, subset.row, preserve.dim=preserve.dim))
+        }
     }
 
     # Performing SVD to get the variance of each PC, and choosing the number of PCs to keep.
-    y <- t(y)
     svd.out <- svd(y, nu=0, nv=0)
-    var.exp <- svd.out$d^2/(ncol(x) - 1)
+    var.exp <- svd.out$d^2/(ncells - 1)
     to.keep <- .get_npcs_to_keep(var.exp, technical)
     to.keep <- min(max(to.keep, min.rank), max.rank)
     
     # Figuring out what value to return; the number of PCs, the PCs themselves, or a denoised low-rank matrix.
-    value <- match.arg(value)
     if (value=="n") {
         return(to.keep)
     } else if (value=="pca") {
@@ -58,18 +90,7 @@
         more.svd <- La.svd(y, nu=to.keep, nv=to.keep)
         denoised <- more.svd$u %*% (more.svd$d[seq_len(to.keep)] * more.svd$vt) 
         denoised <- t(denoised) + all.means
-
-        # Returning as a the full matrix (or that subsetted with subset.row)
-        # where the discarded genes are set to zero.
-        output <- x
-        output[] <- 0
-        if (preserve.dim) { 
-            output[use.rows,] <- denoised
-        } else {
-            output <- output[subset.row,,drop=FALSE]
-            output[match(use.rows, subset.row),] <- denoised
-        }
-        return(output)
+        return(.restore_dimensions(x, denoised, use.rows, subset.row, preserve.dim=preserve.dim))
     }
 } 
 
@@ -90,6 +111,21 @@
         to.keep <- npcs
     }
     return(to.keep)
+}
+
+.restore_dimensions <- function(original, denoised, use.rows, subset.row, preserve.dim=FALSE)
+# Returning as a the full matrix (or that subsetted with subset.row)
+# where the discarded genes are set to zero.
+{
+    output <- matrix(0, nrow=nrow(original), ncol=ncol(original))
+    dimnames(output) <- dimnames(original)
+    if (preserve.dim) { 
+        output[use.rows,] <- denoised
+    } else {
+        output <- output[subset.row,,drop=FALSE]
+        output[match(use.rows, subset.row),] <- denoised
+    }
+    return(output)
 }
 
 setGeneric("denoisePCA", function(x, ...) standardGeneric("denoisePCA"))

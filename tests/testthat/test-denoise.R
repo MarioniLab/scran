@@ -1,11 +1,11 @@
 # This checks the denoisePCA function.
 # require(scran); require(testthat); source("test-denoise.R")
 
-are_PCs_equal <- function(first, second) {
+are_PCs_equal <- function(first, second, tol=1e-8) {
     expect_identical(dim(first), dim(second))
     relative <- first/second
-    diffs <- abs(colSums(relative))
-    expect_true(all(abs(diffs - nrow(first)) < 1e-8))
+    expect_true(all(colSums(relative > 0) %in% c(0, nrow(first))))
+    expect_true(all(abs(abs(relative)-1) < tol))
 }
 
 # Mocking up some data with subpopulations of cells.
@@ -135,6 +135,40 @@ test_that("denoisePCA works with design matrices", {
     keep <- true.var > dfit$trend(rowMeans(lcounts))
     alt.pc <- prcomp(new.x[,keep])
     are_PCs_equal(alt.pc$x[,seq_len(ncol(pcs)),drop=FALSE], pcs)
+})
+
+test_that("denoisePCA works with IRLBA", {
+    # Checking choice of number of PCs.
+    keep <- dec$bio > 0
+    posbio <- lcounts[keep,]
+    df0 <- ncol(posbio)-1
+    current <- t(posbio - rowMeans(posbio))
+    
+    set.seed(100)
+    npcs <- suppressWarnings(denoisePCA(lcounts, technical=fit$trend, value="n", approximate=TRUE))
+    set.seed(100)
+    e1 <- suppressWarnings(irlba::irlba(current, nu=0, nv=df0))
+    expect_equal(npcs, scran:::.get_npcs_to_keep(e1$d^2/df0, sum(dec$tech[keep])))
+    
+    # Checking the actual PCs themselves.
+    set.seed(200)
+    pca <- suppressWarnings(denoisePCA(lcounts, technical=fit$trend, value="pca", approximate=TRUE))
+    set.seed(200)
+    e1 <- suppressWarnings(irlba::irlba(current, nu=0, nv=df0)) # need this to adjust the seed properly!
+    epc <- suppressWarnings(irlba::prcomp_irlba(current, n=npcs, center=TRUE, scale.=FALSE))
+    are_PCs_equal(pca, epc$x, tol=1e-5) # some unaccounted random component; not clear where this comes from.
+    
+    # Checking the low-rank approximations.
+    set.seed(300)
+    lr <- suppressWarnings(denoisePCA(lcounts, technical=fit$trend, value="lowrank", approximate=TRUE))
+    set.seed(300)
+    e2 <- suppressWarnings(irlba::irlba(current, nu=df0, nv=df0)) 
+    lowrank <- e2$u[,1:npcs] %*% (e2$d[1:npcs] * t(e2$v[,1:npcs]))
+    
+    unnamed.lr <- lr
+    dimnames(unnamed.lr) <- NULL
+    expect_equivalent(unnamed.lr[keep,], t(lowrank) + unname(rowMeans(posbio)))
+    expect_true(all(unnamed.lr[!keep,]==0))
 })
 
 test_that("denoisePCA throws errors correctly", {
