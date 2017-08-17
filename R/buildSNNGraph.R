@@ -1,4 +1,4 @@
-.buildSNNGraph <- function(x, k=10, d=50, transposed=FALSE,
+.buildSNNGraph <- function(x, k=10, d=50, transposed=FALSE, pc.approx=FALSE,
                            subset.row=NULL, BPPARAM=SerialParam())
 # Builds a shared nearest-neighbor graph, where edges are present between each 
 # cell and its 'k' nearest neighbours. Edges are weighted based on the ranks of 
@@ -6,7 +6,7 @@
 #
 # written by Aaron Lun
 # created 3 April 2017
-# last modified 22 July 2017    
+# last modified 17 August 2017    
 { 
     ncells <- ncol(x)
     if (!is.null(subset.row)) {
@@ -18,7 +18,11 @@
         x <- t(x)
     }
     if (!is.na(d) && d < ncol(x)) {
-        pc <- prcomp(x, rank.=d)
+        if (pc.approx) {
+            pc <- irlba::prcomp_irlba(x, n=d, scale.=FALSE, center=TRUE)
+        } else {
+            pc <- prcomp(x, rank.=d, scale.=FALSE, center=TRUE)
+        }
         x <- pc$x
     }
 

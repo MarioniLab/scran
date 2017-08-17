@@ -106,6 +106,21 @@ test_that("buildSNNGRaph with PCA works correctly", {
     alt <- buildSNNGraph(dummy, k=10, d=50)
     are_graphs_same(ref, alt)
 
+    # Testing with IRLBA.
+    set.seed(100)
+    ipc <- irlba::prcomp_irlba(t(dummy), n=10)
+    refi <- buildSNNGraph(t(ipc$x), k=10, d=NA)
+    set.seed(100)
+    alti <- buildSNNGraph(t(ipc$x), k=10, d=10, pc.approx=TRUE)
+    are_graphs_same(refi, alti)
+
+    set.seed(200)
+    ipc <- irlba::prcomp_irlba(t(dummy), n=20)
+    refi <- buildSNNGraph(t(ipc$x), k=10, d=NA)
+    set.seed(200)
+    alti <- buildSNNGraph(t(ipc$x), k=10, d=20, pc.approx=TRUE)
+    are_graphs_same(refi, alti)
+
     # Checking that it correctly extracts stuff from the reducedDimension slot.
     X <- SingleCellExperiment(list(exprs=dummy))
     reducedDim(X, "PCA") <- pc$x[,1:50]
@@ -116,6 +131,7 @@ test_that("buildSNNGRaph with PCA works correctly", {
     isSpike(X, "ERCC") <- selected
     alt <- buildSNNGraph(X, use.dimred="PCA")
     are_graphs_same(ref, alt)
+
 })
 
 # Silly inputs.

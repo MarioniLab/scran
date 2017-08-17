@@ -7,7 +7,7 @@
 \description{Build a shared-nearest-neighbors graph for cells based on their expression profiles.}
 
 \usage{
-\S4method{buildSNNGraph}{ANY}(x, k=10, d=50, transposed=FALSE,
+\S4method{buildSNNGraph}{ANY}(x, k=10, d=50, transposed=FALSE, pc.approx=FALSE,
     subset.row=NULL, BPPARAM=SerialParam())
 
 \S4method{buildSNNGraph}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="exprs", 
@@ -20,6 +20,7 @@ If it is matrix, it can also be transposed.}
 \item{k}{An integer scalar specifying the number of nearest neighbors to consider during graph construction.}
 \item{d}{An integer scalar specifying the number of dimensions to use for the k-NN search.}
 \item{transposed}{A logical scalar indicating whether \code{x} is transposed (i.e., rows are cells).}
+\item{pc.approx}{A logical scalar indicating whether approximate PCA should be performed.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{BPPARAM}{A BiocParallelParam object to use in \code{bplapply} for parallel processing.}
 \item{...}{Additional arguments to pass to \code{buildSNNGraph,ANY-method}.}
@@ -43,6 +44,7 @@ In practice, PCA is performed on \code{x} to obtain the first \code{d} principal
 This is necessary in order to perform the k-NN search (done using the \code{\link[FNN]{get.knn}} function) in reasonable time.
 By default, the first 50 components are chosen, which should retain most of the substructure in the data set.
 If \code{d} is \code{NA} or less than the number of cells, no dimensionality reduction is performed.
+If \code{pc.approx=TRUE}, \code{\link[irlba]{prcomp_irlba}} will be used to quickly obtain the first \code{d} PCs.
 
 Expression values in \code{x} should typically be on the log-scale, e.g., log-transformed counts.
 Ranks can also be used for greater robustness, e.g., from \code{\link{quickCluster}} with \code{get.ranks=TRUE}.

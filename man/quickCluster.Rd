@@ -8,7 +8,7 @@
 
 \usage{
 \S4method{quickCluster}{ANY}(x, min.size=200, subset.row=NULL, get.ranks=FALSE, 
-    method=c("hclust", "igraph"), ...)
+    method=c("hclust", "igraph"), pc.approx=TRUE, ...)
 
 \S4method{quickCluster}{SingleCellExperiment}(x, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE)
 }
@@ -22,6 +22,7 @@
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{get.ranks}{A logical scalar specifying whether a matrix of adjusted ranks should be returned.}
 \item{method}{A string specifying the clustering method to use.}
+\item{pc.approx}{Argument passed to \code{\link{buildSNNGraph}} when \code{method="igraph"}, otherwise ignored.}
 \item{...}{
     For \code{quickCluster,ANY-method}, additional arguments to be passed to \code{\link{cutreeDynamic}} for \code{method="hclust"}, 
         or \code{\link{buildSNNGraph}} for \code{method="igraph"}.

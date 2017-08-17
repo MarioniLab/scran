@@ -82,3 +82,18 @@ test_that("correlatePairs runs properly", {
     alt <- correlatePairs(Y[20:50,], null=null, block.size=13)
     expect_equal(ref, alt)
 })
+
+test_that("buildSNNGraph with irlba runs properly on sparse matrices", {
+    set.seed(1000)
+    g1 <- suppressWarnings(buildSNNGraph(X, pc.approx=TRUE))
+    set.seed(1000)
+    g2 <- suppressWarnings(buildSNNGraph(X_, pc.approx=TRUE))
+    expect_identical(g1[], g2[])
+
+    set.seed(100)
+    g1 <- suppressWarnings(buildSNNGraph(X, d=10, pc.approx=TRUE))
+    set.seed(100)
+    g2 <- suppressWarnings(buildSNNGraph(X_, d=10, pc.approx=TRUE))
+    expect_identical(g1[], g2[])
+
+})
