@@ -1,17 +1,18 @@
 \name{Spike-in normalization}
 \alias{computeSpikeFactors}
-\alias{computeSpikeFactors,SCESet-method}
+\alias{computeSpikeFactors,SingleCellExperiment-method}
 
 \title{Normalization with spike-in counts}
 \description{Compute size factors based on the coverage of spike-in transcripts.}
 
 \usage{
-\S4method{computeSpikeFactors}{SCESet}(x, type=NULL, sf.out=FALSE, general.use=TRUE)
+\S4method{computeSpikeFactors}{SingleCellExperiment}(x, type=NULL, assay.type="counts", sf.out=FALSE, general.use=TRUE)
 }
 
 \arguments{
-\item{x}{A SCESet object containing rows corresponding spike-in transcripts.}
+\item{x}{A SingleCellExperiment object with rows corresponding spike-in transcripts.}
 \item{type}{A character vector specifying which spike-in sets to use.}
+\item{assay.type}{A string indicating which assay contains the counts.}
 \item{sf.out}{A logical scalar indicating whether only size factors should be returned.}
 \item{general.use}{A logical scalar indicating whether the size factors should be stored for general use by all genes.}
 }
@@ -64,9 +65,8 @@ cell.data <- matrix(rnbinom(ngenes*ncells, mu=cell.means, size=1/cell.disp), nco
 combined <- rbind(cell.data, spike.data)
 colnames(combined) <- seq_len(ncells)
 rownames(combined) <- seq_len(nrow(combined))
-y <- newSCESet(countData=combined)
-y <- calculateQCMetrics(y, list(Spike=rep(c(FALSE, TRUE), c(ngenes, nspikes))))
-setSpike(y) <- "Spike"
+y <- SingleCellExperiment(list(counts=combined))
+isSpike(y, "Spike") <- ngenes + seq_len(nspikes)
 
 ################
 # Computing and storing spike-in size factors. 

@@ -86,24 +86,26 @@ sumInR <- function(x, sizes, center=TRUE) {
     return(sf)
 }
 
-ngenes2 <- 200
-x <- matrix(rpois(ngenes2*ncells, lambda=10), nrow=ngenes2, ncol=ncells)
-sizes <- seq(20, 100, 5)
-ref <- sumInR(x, sizes)
-obs <- computeSumFactors(x, sizes=sizes)
-expect_equal(ref, obs)
-
-x <- matrix(rpois(ncells*ngenes2, lambda=10), nrow=ngenes2, ncol=ncells)
-x[sample(nrow(x), 100),] <- 0L # Throwing in some zeroes.
-ref <- sumInR(x, sizes)
-obs <- computeSumFactors(x, sizes=sizes, mean.warn=FALSE) # shutting up the warnings here.
-expect_equal(ref, obs)
-
-x <- matrix(rpois(ncells*ngenes2, lambda=10), nrow=ngenes2, ncol=ncells)
-subset.row <- sample(nrow(x), 100)
-ref <- sumInR(x[subset.row,,drop=FALSE], sizes)
-obs <- computeSumFactors(x, subset.row=subset.row, sizes=sizes)
-expect_equal(ref, obs)
+test_that("computeSumFactors agrees with a reference implementation", {
+    ngenes2 <- 200
+    x <- matrix(rpois(ngenes2*ncells, lambda=10), nrow=ngenes2, ncol=ncells)
+    sizes <- seq(20, 100, 5)
+    ref <- sumInR(x, sizes)
+    obs <- computeSumFactors(x, sizes=sizes)
+    expect_equal(ref, obs)
+    
+    x <- matrix(rpois(ncells*ngenes2, lambda=10), nrow=ngenes2, ncol=ncells)
+    x[sample(nrow(x), 100),] <- 0L # Throwing in some zeroes.
+    ref <- sumInR(x, sizes)
+    obs <- computeSumFactors(x, sizes=sizes, min.mean=0) # Avoiding the filtering here, to test within-cluster filters.
+    expect_equal(ref, obs)
+    
+    x <- matrix(rpois(ncells*ngenes2, lambda=10), nrow=ngenes2, ncol=ncells)
+    subset.row <- sample(nrow(x), 100)
+    ref <- sumInR(x[subset.row,,drop=FALSE], sizes)
+    obs <- computeSumFactors(x, subset.row=subset.row, sizes=sizes)
+    expect_equal(ref, obs)
+})
 
 ####################################################################################################
 
@@ -160,20 +162,19 @@ test_that("computeSumFactors correctly subsets 'sizes' for small clusters", {
     expect_equal(ref, obs)
 })
 
-# Trying it out on a SCESet object.
+# Trying it out on a SCE object.
 
 set.seed(20001)
 test_that("computeSumFactors works on SCESest objects", {
     dummy <- matrix(rpois(ngenes*ncells, lambda=10), nrow=ngenes, ncol=ncells)
     rownames(dummy) <- paste0("X", seq_len(ngenes))
-    X <- newSCESet(countData=data.frame(dummy))
+    X <- SingleCellExperiment(list(counts=dummy))
     out <- computeSumFactors(X)
     expect_equal(unname(sizeFactors(out)), computeSumFactors(dummy))
 
     # Trying with and without spike-ins.
     is.spike <- sample(ngenes, 100)
-    X <- calculateQCMetrics(X, feature_controls=list(Spike=is.spike))
-    setSpike(X) <- "Spike"
+    isSpike(X, "Spike") <- is.spike
     out2 <- computeSumFactors(X)
     expect_equal(unname(sizeFactors(out2)), computeSumFactors(dummy[-is.spike,]))
 
@@ -192,15 +193,11 @@ test_that("computeSumFactors works on SCESest objects", {
 
 set.seed(20002)
 test_that("computeSumFactors correctly detects low-abundance genes", {
-    dummy <- matrix(rpois(ngenes*ncells, lambda=0.1), nrow=ngenes, ncol=ncells)
-    expect_warning(computeSumFactors(dummy), "low-abundance genes")
-    expect_warning(computeSumFactors(dummy, mean.warn=FALSE), NA)
-
-    sf <- colSums(dummy)
-    sf <- sf/mean(sf)
-    corrected.counts <- t(t(dummy)/sf)
-    keep <- rowMeans(corrected.counts) > 0.11 # slightly higher, as library sizes change after filtering.
-    expect_warning(computeSumFactors(dummy, subset.row=keep), NA)
+    dummy <- matrix(rpois(ngenes*ncells, lambda=1), nrow=ngenes, ncol=ncells)
+    keep <- scater::calcAverage(dummy) >= 1
+    expect_equal(computeSumFactors(dummy), computeSumFactors(dummy[keep,], min.mean=NULL))
+    expect_equal(computeSumFactors(dummy, subset.row=1:500),
+                 computeSumFactors(dummy[intersect(1:500, which(keep)),], min.mean=NULL))
 })
 
 # Throwing in some silly inputs.
@@ -217,52 +214,59 @@ expect_error(computeSumFactors(dummy, clusters=integer(0)), "'x' ncols is not eq
 set.seed(20003)
 ncells <- 200
 ngenes <- 1000
+
 dummy <- matrix(rnbinom(ncells*ngenes, mu=100, size=5), ncol=ncells, nrow=ngenes, byrow=TRUE)
 is.spike <- rbinom(ngenes, 1, 0.7)==0L
 dummy[is.spike,] <- matrix(rnbinom(sum(is.spike)*ncells, mu=20, size=5), ncol=ncells, nrow=sum(is.spike), byrow=TRUE)
-
 rownames(dummy) <- paste0("X", seq_len(ngenes))
-X <- newSCESet(countData=data.frame(dummy))
-X <- calculateQCMetrics(X, list(MySpike=is.spike))
-setSpike(X) <- "MySpike"
-out <- computeSpikeFactors(X)
-ref <- colSums(dummy[is.spike,])
-expect_equal(unname(sizeFactors(out)), ref/mean(ref))
-expect_equal(sizeFactors(out), sizeFactors(out, type="MySpike"))
 
-# Checking out what happens when you have multiple spike-ins supplied.
-X2 <- newSCESet(countData=data.frame(dummy))
-subset <- split(which(is.spike), rep(1:2, length.out=sum(is.spike)))
-X2 <- calculateQCMetrics(X2, list(MySpike=subset[[1]], SecondSpike=subset[[2]]))
-setSpike(X2) <- c("MySpike", "SecondSpike")
+X <- SingleCellExperiment(list(counts=dummy))
+isSpike(X, "MySpike") <- is.spike
 
-out.sub <- computeSpikeFactors(X2, type="MySpike") # Sanity check, to make sure that it's calculating it differently for each spike-in.
-subref <- colSums(dummy[subset[[1]],])
-expect_equal(unname(sizeFactors(out.sub)), subref/mean(subref))
-expect_equal(sizeFactors(out.sub), sizeFactors(out.sub, type="MySpike"))
-expect_warning(sizeFactors(out.sub, type="SecondSpike"), "'sizeFactors' have not been set for 'SecondSpike'")
+test_that("computeSpikeFactors calculates spike-based size factors correctly", {
+    out <- computeSpikeFactors(X)
+    ref <- colSums(dummy[is.spike,])
+    expect_equal(unname(sizeFactors(out)), ref/mean(ref))
+    expect_equal(sizeFactors(out), sizeFactors(out, type="MySpike"))
+})
 
-out2 <- computeSpikeFactors(X2)
-expect_equal(sizeFactors(out), sizeFactors(out2))
-expect_equal(sizeFactors(out), sizeFactors(out2, type="MySpike"))
-expect_equal(sizeFactors(out), sizeFactors(out2, type="SecondSpike"))
+test_that("computeSpikeFactors works with multiple spike-in sets", {
+    subset <- split(which(is.spike), rep(1:2, length.out=sum(is.spike)))
+    isSpike(X, "MySpike") <- subset[[1]]
+    isSpike(X, "SecondSpike") <- subset[[2]]
+    out <- computeSpikeFactors(X)
 
-out2 <- computeSpikeFactors(X2, type=c("MySpike", "SecondSpike"))
-expect_equal(sizeFactors(out), sizeFactors(out2))
-expect_equal(sizeFactors(out), sizeFactors(out2, type="MySpike"))
-expect_equal(sizeFactors(out), sizeFactors(out2, type="SecondSpike"))
+    out.sub <- computeSpikeFactors(X, type="MySpike") # Sanity check, to make sure that it's calculating it differently for each spike-in.
+    subref <- colSums(dummy[subset[[1]],])
+    expect_equal(unname(sizeFactors(out.sub)), subref/mean(subref))
+    expect_equal(sizeFactors(out.sub), sizeFactors(out.sub, type="MySpike"))
+    expect_identical(sizeFactors(out.sub, type="SecondSpike"), NULL)
+    
+    out2 <- computeSpikeFactors(X)
+    expect_equal(sizeFactors(out), sizeFactors(out2))
+    expect_equal(sizeFactors(out), sizeFactors(out2, type="MySpike"))
+    expect_equal(sizeFactors(out), sizeFactors(out2, type="SecondSpike"))
+    
+    out2 <- computeSpikeFactors(X, type=c("MySpike", "SecondSpike"))
+    expect_equal(sizeFactors(out), sizeFactors(out2))
+    expect_equal(sizeFactors(out), sizeFactors(out2, type="MySpike"))
+    expect_equal(sizeFactors(out), sizeFactors(out2, type="SecondSpike"))
+})
 
-# Checking out the general use function.
-sizeFactors(X) <- 1
-out <- computeSpikeFactors(X, general.use=FALSE)
-expect_equal(unname(sizeFactors(out)), rep(1, ncells))
-expect_equal(unname(sizeFactors(out, type="MySpike")), ref/mean(ref))
+test_that("computeSpikeFactors responds correctly to general.use", {
+    sizeFactors(X) <- 1
+    out <- computeSpikeFactors(X, general.use=FALSE)
+    expect_equal(unname(sizeFactors(out)), rep(1, ncells))
+    ref <- colSums(dummy[is.spike,])
+    expect_equal(unname(sizeFactors(out, type="MySpike")), ref/mean(ref))
+})
 
-# Breaks if you try to feed it silly inputs.
-expect_warning(out <- computeSpikeFactors(X[0,]), "zero spike-in counts during spike-in normalization")
-expect_identical(unname(sizeFactors(out)), rep(NaN, ncol(out)))
-out <- computeSpikeFactors(X[,0])
-expect_identical(unname(sizeFactors(out)), numeric(0))
+test_that("computeSpikeFactors fails correctly on silly inputs", {
+    expect_warning(out <- computeSpikeFactors(X[0,]), "zero spike-in counts during spike-in normalization")
+    expect_identical(unname(sizeFactors(out)), rep(NaN, ncol(out)))
+    out <- computeSpikeFactors(X[,0])
+    expect_identical(unname(sizeFactors(out)), numeric(0))
+})
 
 ####################################################################################################
 
@@ -274,52 +278,56 @@ ngenes <- 1000
 dummy <- matrix(rnbinom(ncells*ngenes, mu=100, size=5), ncol=ncells, nrow=ngenes, byrow=TRUE)
 rownames(dummy) <- paste0("X", seq_len(ngenes))
 colnames(dummy) <- paste0("Y", seq_len(ncells))
-X <- newSCESet(countData=dummy)
 
+X <- SingleCellExperiment(list(counts=dummy))
 ref <- colSums(dummy)
 sizeFactors(X) <- ref
-out <- normalize(X)
-sf <- ref/mean(ref)
-expect_equivalent(exprs(out), log2(t(t(dummy)/sf)+1))
-out <- normalize(X, logExprsOffset=3)
-expect_equivalent(exprs(out), log2(t(t(dummy)/sf)+3))
 
-ref <- runif(ncells, 10, 20)
-sizeFactors(X) <- ref
-out <- normalize(X)
-sf <- ref/mean(ref)
-expect_equivalent(exprs(out), log2(t(t(dummy)/sf)+1)) 
+test_that("normalize() from scater works on endogenous genes", {
+    out <- normalize(X)
+    sf <- ref/mean(ref)
+    expect_equivalent(exprs(out), log2(t(t(dummy)/sf)+1))
+    out <- normalize(X, log_exprs_offset=3)
+    expect_equivalent(exprs(out), log2(t(t(dummy)/sf)+3))
+    
+    # Repeating with different set of size factors.
+    ref <- runif(ncells, 10, 20)
+    sizeFactors(X) <- ref
+    out <- normalize(X)
+    sf <- ref/mean(ref)
+    expect_equivalent(exprs(out), log2(t(t(dummy)/sf)+1)) 
 
-expect_equivalent(sf, sizeFactors(out))
-Xb <- X
-sizeFactors(Xb) <- ref
-outb <- normalize(Xb, centre_size_factors=FALSE)
-expect_equivalent(ref, sizeFactors(outb))
-expect_equivalent(exprs(out), exprs(outb))
+    # Checking that size factor centering works properly.    
+    expect_equivalent(sf, sizeFactors(out))
+    Xb <- X
+    sizeFactors(Xb) <- ref
+    outb <- normalize(Xb, centre_size_factors=FALSE)
+    expect_equivalent(ref, sizeFactors(outb))
+    expect_equivalent(exprs(out), exprs(outb))
+})
 
 # Now adding some controls.
 
-chosen <- rbinom(ngenes, 1, 0.7)==0L
-X <- calculateQCMetrics(X, feature_controls=list(whee=chosen))
-X3 <- normalize(X)
-expect_equal(exprs(out), exprs(X3))
+test_that("normalize from scater works on spike-in genes", {
+    out <- normalize(X)
+    chosen <- rbinom(ngenes, 1, 0.7)==0L
+    isSpike(X, "whee") <- chosen
+    expect_warning(X3 <- normalize(X), "spike-in transcripts in 'whee'")
+    expect_equal(exprs(out), exprs(X3))
 
-Xb <- X
-setSpike(Xb) <- "whee"
-expect_warning(X3b <- normalize(Xb), "spike-in transcripts in 'whee'")
-expect_equal(exprs(X3b), exprs(X3))
-
-sizeFactors(X, type="whee") <- colSums(counts(X)[chosen,])
-expect_warning(X4 <- normalize(X), NA) # i.e., no warning.
-expect_equivalent(exprs(out)[!chosen,], exprs(X4)[!chosen,])
-ref <- sizeFactors(X, type="whee")
-sf <- ref/mean(ref)
-expect_equivalent(exprs(X4)[chosen,], log2(t(t(dummy[chosen,])/sf)+1))
-
-expect_equivalent(sizeFactors(X4, type="whee"), sf)
-X4b <- normalize(X, centre_size_factors=FALSE)
-expect_equivalent(sizeFactors(X4b, type="whee"), sizeFactors(X, type="whee"))
-expect_equivalent(exprs(X4), exprs(X4b))
+    # Checking that it correctly uses the spike-in size factors.    
+    sizeFactors(X, type="whee") <- colSums(counts(X)[chosen,])
+    expect_warning(X4 <- normalize(X), NA) # i.e., no warning.
+    expect_equivalent(exprs(out)[!chosen,], exprs(X4)[!chosen,])
+    ref <- sizeFactors(X, type="whee")
+    sf <- ref/mean(ref)
+    expect_equivalent(exprs(X4)[chosen,], log2(t(t(dummy[chosen,])/sf)+1))
+    
+    expect_equivalent(sizeFactors(X4, type="whee"), sf)
+    X4b <- normalize(X, centre_size_factors=FALSE)
+    expect_equivalent(sizeFactors(X4b, type="whee"), sizeFactors(X, type="whee"))
+    expect_equivalent(exprs(X4), exprs(X4b))
+})
 
 # Checking out silly inputs.
 

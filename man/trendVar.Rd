@@ -1,7 +1,7 @@
 \name{trendVar}
 \alias{trendVar}
 \alias{trendVar,ANY-method}
-\alias{trendVar,SCESet-method}
+\alias{trendVar,SingleCellExperiment-method}
 
 \title{Fit a variance trend}
 \description{Fit a mean-dependent trend to the gene-specific variances in single-cell RNA-seq data.}
@@ -9,16 +9,16 @@
 \usage{
 \S4method{trendVar}{ANY}(x, method=c("loess", "spline", "semiloess"), 
     span=0.3, family="symmetric", degree=1, df=4,
-    parametric=FALSE, start=NULL, mean.warn=TRUE,
+    parametric=FALSE, start=NULL, min.mean=0.1,
     design=NULL, subset.row=NULL) 
 
-\S4method{trendVar}{SCESet}(x, subset.row=NULL, ..., assay="exprs", use.spikes=TRUE)
+\S4method{trendVar}{SingleCellExperiment}(x, subset.row=NULL, ..., assay.type="exprs", use.spikes=TRUE)
 }
 
 \arguments{
 \item{x}{
     A numeric matrix-like object of normalized log-expression values, where each column corresponds to a cell and each row corresponds to a spike-in transcript.
-    Alternatively, a SCESet object that contains such values.
+    Alternatively, a SingleCellExperiment object that contains such values.
 }
 \item{method}{A string specifying the algorithm to use for smooth trend fitting.}
 \item{span, family, degree}{Arguments to pass to \code{\link{loess}}.}
@@ -26,17 +26,17 @@
 \item{parametric}{A logical scalar indicating whether a parametric curve should be fitted prior to smoothing.}
 \item{start}{A named list of numeric scalars, containing starting values for parametric fitting with \code{\link{nls}}. 
 This is automatically generated with the most suitable values if set to \code{NULL}.}
-\item{mean.warn}{A logical scalar indicating whether a warning should be raised if low-abundance genes are detected.}
+\item{min.mean}{A numeric scalar specifying the minimum mean log-expression in order for a gene to be used for trend fitting.}
 \item{design}{A numeric matrix describing the uninteresting factors contributing to expression in each cell.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
-\item{...}{Additional arguments to pass to \code{trendVar,matrix-method}.}
-\item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
+\item{...}{Additional arguments to pass to \code{trendVar,ANY-method}.}
+\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
 \item{use.spikes}{A logical scalar specifying whether the trend should be fitted to variances for spike-in transcripts or endogenous genes.}
 }
 
 \details{
 This function fits an abundance-dependent trend to the variance of the log-normalized expression for the spike-in transcripts.
-For SCESet objects, these expression values can be computed by \code{\link{normalize}} after setting the size factors, e.g., with \code{\link{computeSpikeFactors}}.
+For SingleCellExperiment objects, these expression values can be computed by \code{\link{normalize}} after setting the size factors, e.g., with \code{\link{computeSpikeFactors}}.
 Log-transformed values are used as these are more robust to genes/transcripts with strong expression in only one or two outlier cells.
 
 The mean and variance of the normalized log-counts is calculated for each spike-in transcript, and a trend is fitted to the variance against the mean for all transcripts.
@@ -76,38 +76,38 @@ Note that \code{method="semiloess"} is the same as \code{parametric=TRUE} with \
 }
 
 \section{Additional notes on row selection}{
-Spike-in transcripts can be selected in \code{trendVar,SCESet-method} using the \code{use.spikes} method. 
+Spike-in transcripts can be selected in \code{trendVar,SingleCellExperiment-method} using the \code{use.spikes} method. 
 \itemize{
 \item By default, \code{use.spikes=TRUE} which means that only rows labelled as spike-ins with \code{isSpike(x)} will be used.
 \item If \code{use.spikes=FALSE}, only the rows \emph{not} labelled as spike-ins will be used.
 \item If \code{use.spikes=NA}, every row will be used for trend fitting, regardless of whether it corresponds to a spike-in transcript or not.
 }
 
-If \code{use.spikes=FALSE}, this implies that \code{trendVar} will be applied to the endogenous genes in the SCESet object.
-For \code{trendVar,matrix-method}, it is equivalent to manually supplying a matrix of normalized expression for endogenous genes.
+If \code{use.spikes=FALSE}, this implies that \code{trendVar} will be applied to the endogenous genes in the SingleCellExperiment object.
+For \code{trendVar,ANY-method}, it is equivalent to manually supplying a matrix of normalized expression for endogenous genes.
 This assumes that most genes exhibit technical variation and little biological variation, e.g., in a homogeneous population.
 
 Users can also directly specify which rows to use with \code{subset.row}, which will interact as expected with any non-\code{NA} value of \code{use.spikes}.
 If \code{subset.row} is specified and \code{use.spikes=TRUE}, only the spike-in transcripts in \code{subset.row} are used.
 Otherwise, if \code{use.spikes=FALSE}, only the non-spike in transcripts in \code{subset.row} are used.
 
-If \code{mean.warn=TRUE}, the function will raise a warning if any genes are detected with average log-expression values below 0.1.
-These genes should be prior to trend fitting to preserve the sensitivity of span-based smoothers at moderate-to-high abundances.
+Low-abundance genes with mean log-expression below \code{min.mean} are not used in trend fitting, to preserve the sensitivity of span-based smoothers at moderate-to-high abundances.
 It also protects against discreteness, which can interfere with estimation of the variability of the variance estimates and accurate scaling of the trend.
-For droplet data, a lower threshold of 0.001-0.01 can be used, and the warning can be silenced with \code{mean.warn=FALSE}.
+The default threshold is chosen based on the point at which discreteness is observed in variance estimates from Poisson-distributed counts.
+For heterogeneous droplet data, a lower threshold of 0.001-0.01 should be used.
 
 Obviously, the usefulness of the trend is dependent on the quality of the features to which it is fitted.
 For example, the trend will not provide accurate estimates of the technical component if the coverage of all spike-ins is lower than that of endogenous genes.
 }
 
 \section{Warning on size factor centring}{ 
-If \code{assay="exprs"}, \code{trendVar,SCESet-method} will attempt to determine if the expression values were computed from counts via \code{\link[scater]{normalize}}.
+If \code{assay.type="exprs"}, \code{trendVar,SingleCellExperiment-method} will attempt to determine if the expression values were computed from counts via \code{\link[scater]{normalize}}.
 If so, a warning will be issued if the size factors are not centred at unity.
 This is because different size factors are typically used for endogenous genes and spike-in transcripts.
 If these size factor sets are not centred at the same value, there will be systematic differences in abundance between these features.
 This precludes the use of a spike-in fitted trend with abundances for endogenous genes in \code{\link{decomposeVar}}.
 
-For other expression values and in \code{trendVar,matrix-method}, the onus is on the user to ensure that normalization preserves differences in abundance.
+For other expression values and in \code{trendVar,ANY-method}, the onus is on the user to ensure that normalization preserves differences in abundance.
 In other words, the scaling factors used to normalize each feature should have the same mean.
 This ensures that spurious differences in abundance are not introduced by the normalization process.
 
@@ -121,7 +121,7 @@ This ensures that spurious differences in abundance are not introduced by the no
 % - false negatives when counts are removed from "x" after computing "exprs" (this is pretty stupid)
 % - false negatives when size factors are modified by centring but "exprs" is not re-computed (arguably a problem for the entire workflow)
 %
-% The other options would involve enforcing validity checks on "exprs" within the SCESet object itself.
+% The other options would involve enforcing validity checks on "exprs" within the SingleCellExperiment object itself.
 % However, this is probably too obtrusive for little gain; only this function requires consistency in the absolute values of the size factors.
 }
 

@@ -1,7 +1,7 @@
 \name{decomposeVar}
 \alias{decomposeVar}
 \alias{decomposeVar,ANY,list-method}
-\alias{decomposeVar,SCESet,list-method}
+\alias{decomposeVar,SingleCellExperiment,list-method}
 
 \title{Decompose the gene-level variance}
 \description{Decompose the gene-specific variance into biological and technical components for single-cell RNA-seq data.}
@@ -9,13 +9,13 @@
 \usage{
 \S4method{decomposeVar}{ANY,list}(x, fit, design=NA, subset.row=NULL, ...)
 
-\S4method{decomposeVar}{SCESet,list}(x, fit, subset.row=NULL, ..., assay="exprs", get.spikes=FALSE)
+\S4method{decomposeVar}{SingleCellExperiment,list}(x, fit, subset.row=NULL, ..., assay.type="exprs", get.spikes=FALSE)
 }
 
 \arguments{
 \item{x}{
     A numeric matrix-like object of normalized log-expression values, where each column corresponds to a cell and each row corresponds to an endogenous gene.
-    Alternatively, a SCESet object containing such a matrix.
+    Alternatively, a SingleCellExperiment object containing such a matrix.
 }
 \item{fit}{
     A list containing the output of \code{\link{trendVar}}, run on log-expression values for spike-in genes.
@@ -24,9 +24,9 @@
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{
 For \code{decomposeVar,matrix,list-method}, additional arguments to pass to \code{\link{testVar}}.
-For \code{decomposeVar,SCESet,list-method}, additional arguments to pass to the matrix method.
+For \code{decomposeVar,SingleCellExperiment,list-method}, additional arguments to pass to the matrix method.
 }
-\item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
+\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
 \item{get.spikes}{A logical scalar specifying whether decomposition should be performed for spike-ins.}
 }
 
@@ -48,7 +48,7 @@ If \code{NA}, it will be extracted from \code{fit$design}, assuming that the sam
 Users can also directly specify which rows to use with \code{subset.row}.
 This is equivalent to running \code{decomposeVar} on \code{x[subset.row,]}, but is more efficient as it avoids the construction of large temporary matrices.
 
-If \code{assay="exprs"} and the size factors are not centred at unity, a warning will be raised - see \code{?\link{trendVar}} for details.
+If \code{assay.type="exprs"} and the size factors are not centred at unity, a warning will be raised - see \code{?\link{trendVar}} for details.
 }
 
 \value{

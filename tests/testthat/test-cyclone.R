@@ -1,7 +1,5 @@
-# This tests the performance of the cyclone method, by comparing it to
-# a slow R-based implementation.
-
-# require(scran); require(testthat)
+# This checks the cyclone implementation against a reference R-based implementation.
+# require(scran); require(testthat); source("test-cyclone.R")
 
 classif.single <- function(cell, markers,Nmin.couples) { 
     test<-unlist(cell[markers[,1]]-cell[markers[,2]])
@@ -151,23 +149,20 @@ expect_equal(reference$normalized.scores, observed$normalized.scores)
 set.seed(1004)
 X <- matrix(rpois(Ngenes*Ncells, lambda=100), ncol=Ncells)
 rownames(X) <- all.names
-X2 <- newSCESet(countData=as.data.frame(X))
 
-set.seed(100)
-reference <- refFUN(X, markers)
-
-set.seed(100)
-observed1 <- cyclone(X, markers)
-
-set.seed(100)
-observed2 <- cyclone(X2, markers, assay="counts")
-
-expect_identical(reference$phases, observed2$phases)
-expect_identical(observed1$phases, observed2$phases)
-expect_equal(reference$scores, observed2$scores)
-expect_equal(observed1$scores, observed2$scores)
-expect_equal(reference$normalized.scores, observed2$normalized.scores)
-expect_equal(observed1$normalized.scores, observed2$normalized.scores)
+test_that("Cyclone also works on SingleCellExperiment objects", {
+    X2 <- SingleCellExperiment(list(counts=X))
+    set.seed(100)
+    reference <- refFUN(X, markers)
+    
+    set.seed(100)
+    observed1 <- cyclone(X, markers)
+    expect_equal(reference, observed1)
+    
+    set.seed(100)
+    observed2 <- cyclone(X2, markers, assay.type="counts")
+    expect_equal(reference, observed2)
+})
 
 # Odd behaviour with no cells.
 

@@ -1,7 +1,7 @@
 \name{cyclone}
 \alias{cyclone}
 \alias{cyclone,ANY-method}
-\alias{cyclone,SCESet-method}
+\alias{cyclone,SingleCellExperiment-method}
 
 \title{Cell cycle phase classification}
 \description{Classify single cells into their cell cycle phases based on gene expression data.}
@@ -10,13 +10,13 @@
 \S4method{cyclone}{ANY}(x, pairs, gene.names=rownames(x), iter=1000, min.iter=100, min.pairs=50, 
     BPPARAM=SerialParam(), verbose=FALSE, subset.row=NULL)
 
-\S4method{cyclone}{SCESet}(x, pairs, subset.row=NULL, ..., assay="counts", get.spikes=FALSE)
+\S4method{cyclone}{SingleCellExperiment}(x, pairs, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE)
 }
 
 \arguments{
 \item{x}{
     A numeric matrix-like object of gene expression values where rows are genes and columns are cells.
-    Alternatively, a SCESet object containing such a matrix.
+    Alternatively, a SingleCellExperiment object containing such a matrix.
 }
 \item{pairs}{A list of data.frames produced by \code{\link{sandbag}}, containing pairs of marker genes.}
 \item{gene.names}{A character vector of gene names.}
@@ -26,8 +26,8 @@
 \item{BPPARAM}{A BiocParallelParam object to use in \code{bplapply} for parallel processing.}
 \item{verbose}{A logical scalar specifying whether diagnostics should be printed to screen.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
-\item{...}{Additional arguments to pass to \code{cyclone,matrix-method}.}
-\item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
+\item{...}{Additional arguments to pass to \code{cyclone,ANY-method}.}
+\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
 \item{get.spikes}{A logical specifying whether spike-in transcripts should be used.}
 }
 
@@ -46,7 +46,7 @@ Cells with G1 or G2M scores above 0.5 are assigned to the G1 or G2M phases, resp
 (If both are above 0.5, the higher score is used for assignment.)
 Cells can be assigned to S phase based on the S score, but a more reliable approach is to define S phase cells as those with G1 and G2M scores below 0.5.
 
-For \code{cyclone,SCESet-method}, the matrix of counts is used but can be replaced with expression values by setting \code{assay}.
+For \code{cyclone,SingleCellExperiment-method}, the matrix of counts is used but can be replaced with expression values by setting \code{assay.type}.
 By default, \code{get.spikes=FALSE} which means that any rows corresponding to spike-in transcripts will not be considered for score calculation.
 This is for the same reasons as described in \code{?\link{sandbag}}.
 

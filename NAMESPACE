@@ -15,13 +15,12 @@ exportMethods(
     correlatePairs,
     denoisePCA,
     findMarkers, overlapExprs,
-    "isSpike<-", 
     convertTo
 )
 
 importFrom("Rcpp", sourceCpp)
 
-importFrom("Biobase", assayDataElement, "assayDataElement<-", fData, exprs, featureData, phenoData, pData)
+importFrom("scater", calcAverage, areSizeFactorsCentred)
 
 importFrom("dynamicTreeCut", cutreeDynamic)
 importFrom("Matrix", sparseMatrix, qr, qr.coef, qr.qty, t, which)
@@ -41,16 +40,22 @@ importFrom("FNN", get.knn, get.knnx)
 importFrom("igraph", make_graph, simplify, E, "E<-", cluster_fast_greedy, modularity)
 
 # Graphical stuff:
+
 importFrom("shiny", actionButton, brushOpts, brushedPoints, column, fluidPage, fluidRow, observeEvent, 
            plotOutput, renderPlot, shinyApp, stopApp, runApp, hr, titlePanel, sidebarLayout, sidebarPanel,
            inputPanel, selectInput, mainPanel, tabsetPanel, splitLayout, tabPanel)
 import(ggplot2)
 importFrom("DT", datatable, renderDataTable, dataTableOutput) 
+
 importFrom("viridis", scale_color_viridis)
 importFrom("grDevices", grey.colors)
-importFrom("graphics", text)
+importFrom("graphics", plot, text)
+
+importFrom("SummarizedExperiment", assay, "assay<-", assayNames)
+importFrom("S4Vectors", mcols, "mcols<-", metadata, "metadata<-")
+importFrom("BiocGenerics", as.data.frame, sizeFactors, "sizeFactors<-", counts)
+import(methods)
 
 # packages in "Depends":
 import(BiocParallel)
-import(scater)
-import(methods)
+import(SingleCellExperiment)

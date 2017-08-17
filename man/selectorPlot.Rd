@@ -58,10 +58,11 @@ Aaron Lun
 }
 
 \examples{
-example(newSCESet)
-pca <- plotPCA(example_sceset)
-x <- pca$data$PC1
-y <- pca$data$PC2
+# Setting up PCs.
+example(SingleCellExperiment)
+pcs <- reducedDim(sce, "PCA")
+x <- pcs[,1]
+y <- pcs[,2]
 
 # Creating the app object.
 app <- selectorPlot(x, y, run=FALSE)

@@ -1,6 +1,6 @@
 .spike_subset <- function(x, get.spikes) {
     if (!get.spikes) {
-        nokeep <- isSpike(x, warning=FALSE)
+        nokeep <- isSpike(x)
         if (!is.null(nokeep) && any(nokeep)) {
             return(!nokeep)
         }
@@ -27,6 +27,19 @@
     return(out)
 }
 
+.SCE_subset_genes <- function(subset.row, x, get.spikes) {
+    despiked <- .spike_subset(x, get.spikes)
+    if (is.null(subset.row)) { 
+        subset.row <- despiked
+    } else {
+        subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
+        if (!is.null(despiked)) { 
+            subset.row <- intersect(subset.row, which(despiked))
+        }
+    }
+    return(subset.row)
+}
+
 #################################################
 
 .make_var_defaults <- function(x, fit, design) 
@@ -40,12 +53,12 @@
     return(list(design=design))
 }
 
-.check_centered_SF <- function(x, assay) 
+.check_centered_SF <- function(x, assay.type) 
 # Checks if 'exprs' was requested, and if it could have been computed from counts,
 # If so, then it checks if the size factors are centered.
 {
-    if (assay=="exprs" && 
-        !is.null(suppressWarnings(get_exprs(x, "counts", warning=TRUE))) && 
+    if (assay.type=="exprs" && 
+        "counts" %in% assayNames(x) && 
         !areSizeFactorsCentred(x)) {
         warning("size factors not centred, run 'normalize()' first")
     }
@@ -58,10 +71,9 @@
 {
     sf.cell <- sizeFactors(x)
     if (is.null(spike.type) || !is.na(spike.type)) { 
-        is.spike <- isSpike(x, type=spike.type)
         if (is.null(spike.type)) { 
             # Get all spikes.
-            spike.type <- whichSpike(x)            
+            spike.type <- spikeNames(x)            
         }
         if (!length(spike.type)) { 
             stop("no spike-in sets specified from 'x'")
@@ -70,8 +82,11 @@
         # Collecting the size factors for the requested spike-in sets.
         # Check that all spike-in factors are either NULL or identical.
         collected <- NULL
+        is.spike <- logical(nrow(x))
         for (st in seq_along(spike.type)) {
-            cur.sf <- suppressWarnings(sizeFactors(x, type=spike.type[st]))
+            cur.type <- spike.type[st]
+            is.spike <- is.spike | isSpike(x, type=cur.type)
+            cur.sf <- sizeFactors(x, type=cur.type)
             if (st==1L) {
                 collected <- cur.sf
             } else if (!isTRUE(all.equal(collected, cur.sf))) {
@@ -155,17 +170,23 @@
     .Call(cxx_get_residuals, x, QR$qr, QR$qraux, subset.row - 1L, as.double(lower.bound))
 }
 
-.guess_lower_bound <- function(x, assay, lower.bound) 
+.guess_lower_bound <- function(x, assay.type, lower.bound) 
 # Getting the lower bound on the expression values for a given assay, if not supplied.
 # We bump it up a little to make sure that expression values at the lower bound will 
 # actually be detected as being "<= lower.bound".
 { 
     if (is.null(lower.bound)) { 
-        if (assay=="exprs") {
-            lower.bound <- log2(x@logExprsOffset) + 1e-8
-        } else if (assay=="counts") {
+        if (assay.type=="exprs") {
+            lower.bound <- log2(.get_log_offset(x)) + 1e-8
+        } else if (assay.type=="counts") {
             lower.bound <- 1e-8
         }
     }
     return(lower.bound)
+}
+
+.get_log_offset <- function(x) 
+# Helper function to get the log-offset value.
+{
+    metadata(x)$log.exprs.offset
 }

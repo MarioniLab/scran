@@ -76,24 +76,25 @@
 
 setGeneric("improvedCV2", function(x, ...) standardGeneric("improvedCV2"))
 
-setMethod("improvedCV2", "matrix", .improvedCV2)
+setMethod("improvedCV2", "ANY", .improvedCV2)
 
-setMethod("improvedCV2", "SCESet", function(x, spike.type=NULL, ..., assay="exprs", logged=NULL) {
-    prep <- .prepare_cv2_data(x, spike.type=spike.type)
-    
+setMethod("improvedCV2", "SingleCellExperiment", 
+          function(x, spike.type=NULL, ..., assay.type="exprs", logged=NULL) {
+
     log.prior <- NULL
     if (!is.null(logged)) {
-        if (logged) log.prior <- x@logExprsOffset
+        if (logged) log.prior <- .get_log_offset(x)
     } else {
-        if (assay=="exprs") {
-            log.prior <- x@logExprsOffset
-        } else if (assay!="counts") {
+        if (assay.type=="exprs") {
+            log.prior <- .get_log_offset(x)
+        } else if (assay.type!="counts") {
             stop("cannot determine if values are logged or counts")
         }
     }
-
-    .improvedCV2(assayDataElement(x, assay), is.spike=prep$is.spike, 
-                  sf.cell=prep$sf.cell, sf.spike=prep$sf.spike, log.prior=log.prior, ...)          
+    
+    prep <- .prepare_cv2_data(x, spike.type=spike.type)
+    .improvedCV2(assay(x, i=assay.type), is.spike=prep$is.spike, 
+                 sf.cell=prep$sf.cell, sf.spike=prep$sf.spike, log.prior=log.prior, ...)          
 })
 
 # library(scran); library(MASS); library(splines)

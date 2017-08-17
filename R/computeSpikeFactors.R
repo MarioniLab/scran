@@ -1,13 +1,28 @@
 setGeneric("computeSpikeFactors", function(x, ...) { standardGeneric("computeSpikeFactors") })
 
-setMethod("computeSpikeFactors", "SCESet", function(x, type=NULL, sf.out=FALSE, general.use=TRUE) 
+setMethod("computeSpikeFactors", "SingleCellExperiment", 
+          function(x, type=NULL, assay.type="counts", sf.out=FALSE, general.use=TRUE) 
 # Uses the mean-centred total of spike-in transcripts as the size factor.
 #
 # written by Aaron Lun
 # created 17 February 2016
-# last modified 28 May 2016
+# last modified 24 July 2017
 {
-    out <- colSums(spikes(x, type=type))
+    if (is.null(type)) { 
+        is.spike <- isSpike(x)
+    } else {
+        is.spike <- logical(nrow(x))
+        for (tset in type) {
+            current <- isSpike(x, type=tset)
+            if (!is.null(current)) { is.spike <- is.spike | current }
+        }
+    }
+    if (!any(is.spike)) {
+        is.spike <- logical(0)
+    }
+
+    # Computing spike-in size factors.
+    out <- .Call(cxx_sum_spikes, assay(x, i=assay.type), which(is.spike)-1L)
     if (any(out < 1e-8)) { 
         warning("zero spike-in counts during spike-in normalization")
     } 
@@ -23,21 +38,11 @@ setMethod("computeSpikeFactors", "SCESet", function(x, type=NULL, sf.out=FALSE, 
         sizeFactors(x) <- sf
     } 
     if (is.null(type)) {
-        type <- whichSpike(x)
+        type <- spikeNames(x)
     }
     for (f in type) {
         sizeFactors(x, type=f) <- sf
     }        
     x
 })
-
-# Deprecated, to avoid confusion about character-in and logical-out.
-setGeneric("isSpike<-", function(x, value) standardGeneric("isSpike<-"))
-
-setReplaceMethod("isSpike", signature(x="SCESet"), function(x, value) {
-    .Deprecated("setSpike<-", old="isSpike<-")
-    setSpike(x) <- value
-    return(x)
-})
-
 

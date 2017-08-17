@@ -129,17 +129,19 @@ expect_identical(as.character(tail(forced, leftovers)), rep("0", leftovers))
 # Trying it out on a SCESet object.
 
 set.seed(20002)
-count.sizes <- rnbinom(ncells, mu=100, size=5)
-multiplier <- sample(seq_len(ngenes)/100)
-dummy <- outer(multiplier, count.sizes)
+test_that("quickCluster works on SingleCellExperiment objects", {
+    dummy <- matrix(rpois(50000, lambda=5), nrow=50)
+    rownames(dummy) <- paste0("X", seq_len(nrow(dummy)))
+    X <- SingleCellExperiment(list(counts=dummy))
+    emp.clusters <- quickCluster(X)
+    expect_identical(emp.clusters, quickCluster(counts(X)))
 
-known.clusters <- sample(3, ncells, replace=TRUE)
-dummy[1:300,known.clusters==1L] <- 0
-dummy[301:600,known.clusters==2L] <- 0  
-dummy[601:900,known.clusters==3L] <- 0
-
-rownames(dummy) <- paste0("X", seq_len(ngenes))
-X <- newSCESet(countData=data.frame(dummy))
-emp.clusters <- quickCluster(X)
-expect_true(length(unique(paste0(known.clusters, emp.clusters)))==3L)
-
+    # Checking correct interplay between spike-ins and subset.row.
+    isSpike(X, "ERCC") <- 1:20
+    expect_identical(quickCluster(X), quickCluster(counts(X)[-(1:20),]))
+    subset.row <- 1:25*2
+    expect_identical(quickCluster(X, subset.row=subset.row), 
+                     quickCluster(counts(X)[setdiff(subset.row, 1:20),]))
+    expect_identical(quickCluster(X, subset.row=subset.row, get.spikes=TRUE), 
+                     quickCluster(counts(X)[subset.row,]))   
+})

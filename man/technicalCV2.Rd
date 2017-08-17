@@ -1,22 +1,22 @@
 \name{technicalCV2}
 \alias{technicalCV2}
-\alias{technicalCV2,matrix-method}
-\alias{technicalCV2,SCESet-method}
+\alias{technicalCV2,ANY-method}
+\alias{technicalCV2,SingleCellExperiment-method}
 
 \title{Model the technical coefficient of variation}
 \description{Model the technical coefficient of variation as a function of the mean, and determine the significance of highly variable genes.}
 
 \usage{
-\S4method{technicalCV2}{matrix}(x, is.spike, sf.cell=NULL, sf.spike=NULL, 
+\S4method{technicalCV2}{ANY}(x, is.spike, sf.cell=NULL, sf.spike=NULL, 
     cv2.limit=0.3, cv2.tol=0.8, min.bio.disp=0.25) 
 
-\S4method{technicalCV2}{SCESet}(x, spike.type=NULL, ..., assay="counts")
+\S4method{technicalCV2}{SingleCellExperiment}(x, spike.type=NULL, ..., assay.type="counts")
 }
 
 \arguments{
 \item{x}{
     A numeric matrix of counts, where each column corresponds to a cell and each row corresponds to a spike-in transcript.
-    Alternatively, a SCESet object that contains such values.
+    Alternatively, a SingleCellExperiment object that contains such values.
 }
 \item{is.spike}{A vector indicating which rows of \code{x} correspond to spike-in transcripts.}
 \item{sf.cell}{A numeric vector containing size factors for endogenous genes.}
@@ -24,8 +24,8 @@
 \item{cv2.limit, cv2.tol}{Numeric scalars that determine the minimum mean abundance for the spike-in transcripts to be used for trend fitting.}
 \item{min.bio.disp}{A numeric scalar specifying the minimum biological dispersion.}
 \item{spike.type}{A character vector containing the names of the spike-in sets to use.}
-\item{...}{Additional arguments to pass to \code{technicalCV2,matrix-method}.}
-\item{assay}{A string specifying which assay values to use.}
+\item{...}{Additional arguments to pass to \code{technicalCV2,ANY-method}.}
+\item{assay.type}{A string specifying which assay values to use.}
 }
 
 \details{
@@ -45,17 +45,17 @@ The additional \code{min.bio.disp} is necessary for a ratio-based test, as other
 % However, this is probably academic as they're both fairly bad (4-fold for log, 20-fold for row over the type I error rate for a chi-squared test).
 % This would be compounded by instability in the curve fitting with limited numbers of spike-ins.
 
-For \code{technicalCV2,matrix-method}, the rows corresponding to spike-in transcripts are specified with \code{is.spike}.
+For \code{technicalCV2,ANY-method}, the rows corresponding to spike-in transcripts are specified with \code{is.spike}.
 These rows will be used for trend fitting, while all other rows are treated as endogenous genes.
 If either \code{sf.cell} or \code{sf.spike} are not specified, the \code{\link[DESeq2]{estimateSizeFactorsForMatrix}} function is applied to compute size factors.
 
-For \code{technicalCV2,SCESet-method}, transcripts from spike-in sets named in \code{spike.type} will be used for trend fitting.
+For \code{technicalCV2,SingleCellExperiment-method}, transcripts from spike-in sets named in \code{spike.type} will be used for trend fitting.
 If \code{spike.type=NULL}, all spike-in sets listed in \code{x} will be used.
 Size factors for the endogenous genes are automatically extracted via \code{\link{sizeFactors}}.
 Spike-in-specific size factors for \code{spike.type} are extracted from \code{x}, if available; otherwise they are set to the size factors for the endogenous genes.
 Note that the spike-in-specific factors must be the same for each set in \code{spike.type}.
 
-Users can also set \code{is.spike} to \code{NA} in \code{technicalCV2,matrix-method}; or \code{spike.type} to \code{NA} in \code{technicalCV2,SCESet-method}.
+Users can also set \code{is.spike} to \code{NA} in \code{technicalCV2,ANY-method}; or \code{spike.type} to \code{NA} in \code{technicalCV2,SingleCellExperiment-method}.
 In such cases, all rows will be used for trend fitting, and (adjusted) p-values will be reported for all rows.
 This should be used in cases where there are no spike-ins.
 Here, the assumption is that most endogenous genes do not exhibit high biological variability and thus can be used to model technical variation. 
@@ -101,12 +101,11 @@ head(out)
 plot(out$mean, out$cv2, log="xy")
 points(out$mean, out$trend, col="red", pch=16, cex=0.5)
 
-# Same again with an SCESet.
+# Same again with an SingleCellExperiment.
 rownames(counts) <- paste0("X", seq_len(ngenes))
 colnames(counts) <- paste0("Y", seq_len(nsamples))
-X <- newSCESet(countData=counts)
-X <- calculateQCMetrics(X, list(Spikes=is.spike))
-setSpike(X) <- "Spikes"
+X <- SingleCellExperiment(list(counts=counts))
+isSpike(X, "Spikes") <- is.spike
 
 # Dummying up some size factors (for convenience only, use computeSumFactors() instead).
 sizeFactors(X) <- 1

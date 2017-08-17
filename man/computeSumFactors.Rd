@@ -1,33 +1,33 @@
 \name{Deconvolution Methods}
 \alias{computeSumFactors}
 \alias{computeSumFactors,ANY-method}
-\alias{computeSumFactors,SCESet-method}
+\alias{computeSumFactors,SingleCellExperiment-method}
 
 \title{Normalization by deconvolution}
 \description{Methods to normalize single-cell RNA-seq data by deconvolving size factors from cell pools.}
 
 \usage{
 \S4method{computeSumFactors}{ANY}(x, sizes=seq(20, 100, 5), clusters=NULL, ref.clust=NULL,
-    positive=FALSE, errors=FALSE, mean.warn=TRUE, subset.row=NULL)
+    positive=FALSE, errors=FALSE, min.mean=1, subset.row=NULL)
 
-\S4method{computeSumFactors}{SCESet}(x, subset.row=NULL, ..., assay="counts", 
+\S4method{computeSumFactors}{SingleCellExperiment}(x, subset.row=NULL, ..., assay.type="counts", 
     get.spikes=FALSE, sf.out=FALSE)
 }
 
 \arguments{
 \item{x}{
     A numeric matrix-like object of counts, where rows are genes and columns are cells.
-    Alternatively, a SCESet object containing such a matrix.
+    Alternatively, a SingleCellExperiment object containing such a matrix.
 }
 \item{sizes}{A numeric vector of pool sizes, i.e., number of cells per pool.}
 \item{clusters}{An optional factor specifying which cells belong to which cluster, for deconvolution within clusters.}
 \item{ref.clust}{A level of \code{clusters} to be used as the reference cluster for inter-cluster normalization.}
 \item{positive}{A logical scalar indicating whether linear inverse models should be used to enforce positive estimates.}
 \item{errors}{A logical scalar indicating whether the standard error should be returned. This option is deprecated, see below.}
-\item{mean.warn}{A logical scalar indicating whether a warning should be raised upon detecting low-abundance genes.}
+\item{min.mean}{A numeric scalar specifying the minimum (library size-adjusted) average count of genes to be used for normalization.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
-\item{...}{Additional arguments to pass to \code{computeSumFactors,matrix-method}.}
-\item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
+\item{...}{Additional arguments to pass to \code{computeSumFactors,ANY-method}.}
+\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
 \item{get.spikes}{A logical scalar specifying whether spike-in transcripts should be used.}
 \item{sf.out}{A logical scalar indicating whether only size factors should be returned.}
 }
@@ -100,7 +100,7 @@ Such occurrences are unavoidable -- rather, the aim is to prevent negative value
 }
 
 \section{Gene selection}{
-By default, \code{get.spikes=FALSE} in \code{quickCluster,SCESet-method} which means that spike-in transcripts are not included in the set of genes used for deconvolution.
+By default, \code{get.spikes=FALSE} in \code{quickCluster,SingleCellExperiment-method} which means that spike-in transcripts are not included in the set of genes used for deconvolution.
 This is because they can behave differently from the endogenous genes. 
 Users wanting to perform spike-in normalization should see \code{\link{computeSpikeFactors}} instead.
 
@@ -113,10 +113,9 @@ As mentioned above, if too many genes have consistently low counts across all ce
 This results in zero or negative size factor estimates for many cells.
 Filtering ensures that this is not the case, e.g., by removing genes with average counts below 1.
 
-In general, genes with average counts below 1 (for read count data) or 0.1 (for UMI data) should be filtered out prior to using this function. 
-If \code{mean.warn=TRUE}, a warning will be raised if any genes are detected with library size-adjusted average counts below 0.1.
-This is intended as a reminder that filtering is required, and can be ignored if the genes have already been filtered.
-(For various reasons, a warning may be raised even after filtering, and can be silenced with \code{mean.warn=FALSE}.)
+In general, genes with average counts below 1 (for read count data) or 0.1 (for UMI data) should not be used for normalization.
+Such genes will automatically be filtered out by applying a minimum threshold \code{min.mean} on the library size-adjusted average counts from \code{\link[scater]{calcAverage}}.
+If \code{subset.row} is specified, only the genes selected by \code{subset.row} and with average counts above \code{min.mean} will be used.
 }
 
 \section{Obtaining standard errors}{
@@ -128,9 +127,9 @@ Standard errors can then be calculated as the standard deviation of the size fac
 }
 
 \value{
-For \code{computeSumFactors,matrix-method}, a numeric vector of size factors for all cells in \code{x} is returned.
+For \code{computeSumFactors,ANY-method}, a numeric vector of size factors for all cells in \code{x} is returned.
 
-For \code{computeSumFactors,SCESet-method}, an object of class \code{x} is returned containing the vector of size factors in \code{sizeFactors(x)}, if \code{sf.out=FALSE}.
+For \code{computeSumFactors,SingleCellExperiment-method}, an object of class \code{x} is returned containing the vector of size factors in \code{sizeFactors(x)}, if \code{sf.out=FALSE}.
 Otherwise, the vector of size factors is returned directly.
 }
 

@@ -1,22 +1,23 @@
 \name{overlapExprs}
 \alias{overlapExprs}
-\alias{overlapExprs,matrix-method}
-\alias{overlapExprs,SCESet-method}
+\alias{overlapExprs,ANY-method}
+\alias{overlapExprs,SingleCellExperiment-method}
 
 \title{Overlap expression profiles}
 \description{Compute the gene-specific overlap in expression profiles between two groups of cells.}
 
 \usage{
-\S4method{overlapExprs}{matrix}(x, groups, design=NULL, residuals=FALSE, tol=1e-8, 
+\S4method{overlapExprs}{ANY}(x, groups, design=NULL, residuals=FALSE, tol=1e-8, 
     BPPARAM=SerialParam(), subset.row=NULL, lower.bound=NULL)
 
-\S4method{overlapExprs}{SCESet}(x, ..., subset.row=NULL, lower.bound=NULL, assay="exprs", get.spikes=FALSE) 
+\S4method{overlapExprs}{SingleCellExperiment}(x, ..., subset.row=NULL, lower.bound=NULL, 
+    assay.type="exprs", get.spikes=FALSE) 
 }
 
 \arguments{
 \item{x}{
     A numeric matrix of expression values, where each column corresponds to a cell and each row corresponds to an endogenous gene.
-    Alternatively, a SCESet object containing such a matrix.
+    Alternatively, a SingleCellExperiment object containing such a matrix.
 }
 \item{groups}{
 A vector of group assignments for all cells.
@@ -28,7 +29,7 @@ A vector of group assignments for all cells.
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{lower.bound}{A numeric scalar specifying the theoretical lower bound of values in \code{x}, only used when \code{residuals=TRUE}.}
 \item{...}{Additional arguments to pass to the matrix method.}
-\item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
+\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
 \item{get.spikes}{A logical scalar specifying whether decomposition should be performed for spike-ins.}
 }
 
@@ -46,7 +47,7 @@ Expression values that are tied between groups are considered to be 50\% likely 
 Thus, if all values were tied, the overlap proportion would be 0.5.
 The tolerance with which ties are considered can be set by changing \code{tol}.
 
-By default, spike-in transcripts are ignored in \code{overlapExprs,SCESet-method} with \code{get.spikes=FALSE}.
+By default, spike-in transcripts are ignored in \code{overlapExprs,SingleCellExperiment-method} with \code{get.spikes=FALSE}.
 This is overridden by any non-\code{NULL} value of \code{subset.row}.
 }
 
@@ -83,7 +84,9 @@ Aaron Lun
 }
 
 \examples{
-example(computeSpikeFactors) # Using the mocked-up data 'y' from this example.
-groups <- sample(3, ncol(y), replace=TRUE)
-out <- overlapExprs(y, groups, subset.row=1:10)
+# Using the mocked-up data 'y2' from this example.
+example(computeSpikeFactors) 
+y2 <- normalize(y2)
+groups <- sample(3, ncol(y2), replace=TRUE)
+out <- overlapExprs(y2, groups, subset.row=1:10)
 }

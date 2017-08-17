@@ -8,7 +8,7 @@ means <- 2^runif(ngenes, -1, 5)
 dummy <- matrix(rnbinom(ngenes*ncells, mu=means, size=5), ncol=ncells, nrow=ngenes)
 
 rownames(dummy) <- paste0("X", seq_len(ngenes))
-X <- newSCESet(countData=data.frame(dummy))
+X <- SingleCellExperiment(list(counts=dummy))
 sizeFactors(X) <- colSums(dummy)
 X <- normalize(X)
 
@@ -87,53 +87,51 @@ REFFUN <- function(y, design, clust.vals, output, pval.type="any", direction="an
     return(TRUE)
 }
 
-clust <- kmeans(t(exprs(X)), centers=3)
-out <- findMarkers(X, clusters=clust$cluster)
+test_that("findMarkers works as expected", {
+    clust <- kmeans(t(exprs(X)), centers=3)
+    out <- findMarkers(X, clusters=clust$cluster)
+    out2 <- findMarkers(exprs(X), clusters=clust$cluster)
+    expect_identical(out, out2)
 
-clusters <- as.factor(clust$cluster)
-design <- model.matrix(~0 + clusters)
-colnames(design) <- levels(clusters)
-REFFUN(exprs(X), design, levels(clusters), out)
+    clusters <- as.factor(clust$cluster)
+    design <- model.matrix(~0 + clusters)
+    colnames(design) <- levels(clusters)
+    REFFUN(exprs(X), design, levels(clusters), out)
 
-# Checking that the IUT calculation is correct.
+    # Checking that the IUT calculation is correct.
+    out <- findMarkers(X, clusters=clust$cluster, pval.type="all")
+    REFFUN(exprs(X), design, levels(clusters), out, pval.type="all")
 
-out <- findMarkers(X, clusters=clust$cluster, pval.type="all")
-REFFUN(exprs(X), design, levels(clusters), out, pval.type="all")
+    # Checking that the directional calculations are correct.
+    out <- findMarkers(X, clusters=clust$cluster, direction="up")
+    REFFUN(exprs(X), design, levels(clusters), out, direction="up")
+    
+    out <- findMarkers(X, clusters=clust$cluster, direction="down")
+    REFFUN(exprs(X), design, levels(clusters), out, direction="down")
+})
 
-# Checking that the directional calculations are correct.
+test_that("findMarkers works properly with a design matrix", {
+    clust <- kmeans(t(exprs(X)), centers=3)
+    block <- factor(sample(2, ncol(X), replace=TRUE))
+    out.des <- findMarkers(X, clusters=clust$cluster, design=model.matrix(~block))
+    
+    clusters <- as.factor(clust$cluster)
+    design <- model.matrix(~0 + clusters + block)
+    colnames(design) <- c(levels(clusters), "block2")
+    REFFUN(exprs(X), design, levels(clusters), out.des)
+})
 
-out <- findMarkers(X, clusters=clust$cluster, direction="up")
-REFFUN(exprs(X), design, levels(clusters), out, direction="up")
-
-out <- findMarkers(X, clusters=clust$cluster, direction="down")
-REFFUN(exprs(X), design, levels(clusters), out, direction="down")
-
-# Checking how it behaves with a design matrix.
-
-clust <- kmeans(t(exprs(X)), centers=3)
-block <- factor(sample(2, ncol(X), replace=TRUE))
-out.des <- findMarkers(X, clusters=clust$cluster, design=model.matrix(~block))
-
-clusters <- as.factor(clust$cluster)
-design <- model.matrix(~0 + clusters + block)
-colnames(design) <- c(levels(clusters), "block2")
-REFFUN(exprs(X), design, levels(clusters), out.des)
-
-# Checking that the results are the same regardless of how I provide inputs.
-
-out <- findMarkers(X, clusters=clust$cluster)
-out2 <- findMarkers(exprs(X), clusters=clust$cluster)
-expect_identical(out, out2)
-
-out <- findMarkers(X, clusters=clust$cluster, subset.row=100:1)
-out2 <- findMarkers(X[100:1,], clusters=clust$cluster)
-expect_identical(out, out2)
-
-X <- calculateQCMetrics(X, feature_controls=list(ERCC=1:100))
-setSpike(X) <- "ERCC"
-out <- findMarkers(X, clusters=clust$cluster)
-out2 <- findMarkers(exprs(X)[-(1:100),], clusters=clust$cluster)
-expect_identical(out, out2)
+test_that("findMarkers works correctly with subsetting and spikes", {   
+    clust <- kmeans(t(exprs(X)), centers=3)
+    out <- findMarkers(X, clusters=clust$cluster, subset.row=100:1)
+    out2 <- findMarkers(X[100:1,], clusters=clust$cluster)
+    expect_identical(out, out2)
+    
+    isSpike(X, "ERCC") <- 1:100
+    out <- findMarkers(X, clusters=clust$cluster)
+    out2 <- findMarkers(exprs(X)[-(1:100),], clusters=clust$cluster)
+    expect_identical(out, out2)
+})
 
 # Repeating with non-infinite d.f. to check shrinkage.
 
@@ -181,6 +179,8 @@ test_that("findMarkers works with a variety of minimum means", {
 
 # Checking consistency upon silly inputs.
 
-expect_error(findMarkers(exprs(X)[0,], clusters=clust$cluster), "var is empty")
-expect_error(findMarkers(exprs(X)[,0], clusters=integer(0)), "contrasts can be applied only to factors with 2 or more levels")
+test_that("findMarkers behaves sensibly with silly inputs", {
+    expect_error(findMarkers(exprs(X)[0,], clusters=rep(1:3, length.out=ncol(X))), "var is empty")
+    expect_error(findMarkers(exprs(X)[,0], clusters=integer(0)), "contrasts can be applied only to factors with 2 or more levels")
+})
 

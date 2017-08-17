@@ -289,7 +289,6 @@ expect_equal(out$p.value, out2$p.value)
 expect_equal(out$FDR, out2$FDR)
 
 ####################################################################################################
-
 # Checking that it works with different 'subset.row' values.
 # (again, using a normal matrix to avoid ties, for simplicity).
 
@@ -304,49 +303,62 @@ nulls <- correlateNull(ncells=ncol(X), iter=1e3, residuals=TRUE)
 ref <- correlatePairs(X, nulls)
 ref.names <- paste0(ref$gene1, ".", ref$gene2)
 
-# Vanilla subsetting of number of genes.
+test_that("correlatePairs works with subset.row values", {
+    # Vanilla subsetting of genes; taking the correlations between all pairs of subsetted genes. 
+    subgenes <- 1:10 
+    subbed <- correlatePairs(X, nulls, subset.row=subgenes)
+    expected <- correlatePairs(X[subgenes,], nulls)
+    expect_equal(subbed, expected)
 
-subgenes <- 1:10 
-subbed <- correlatePairs(X, nulls, subset.row=subgenes)
-expect_true(!is.unsorted(subbed$p.value))
-subref <- ref[ref$gene1 %in% rownames(X)[subgenes] & ref$gene2 %in% rownames(X)[subgenes],]
-subref$FDR <- p.adjust(subref$p.value, method="BH")
-rownames(subref) <- NULL
-expect_equal(subref, subbed)
+    # More rigorous check relative to the reference.
+    expect_true(!is.unsorted(subbed$p.value))
+    subref <- ref[ref$gene1 %in% rownames(X)[subgenes] & ref$gene2 %in% rownames(X)[subgenes],]
+    subref$FDR <- p.adjust(subref$p.value, method="BH")
+    rownames(subref) <- NULL
+    expect_equal(subref, subbed)
+})
 
-# Subsetting two pools from which pairs can be drawn.
+test_that("correlatePairs works with list-based pairing", {
+    for (attempt in 1:2) {
+        if (attempt==1L) {
+            pairs <- list(1:10, 5:15)
+        } else {
+            pairs <- list(1:10, 11:20)
+        }
+    
+        lsubbed <- correlatePairs(X, nulls, pairings=pairs)
+        expect_true(!is.unsorted(lsubbed$p.value))
+        expect_true(all(lsubbed$gene1!=lsubbed$gene2) && all(lsubbed$gene1 %in% rownames(X)[pairs[[1]]])
+                    && all(lsubbed$gene2 %in% rownames(X)[pairs[[2]]]))
+        overlap <- length(intersect(pairs[[1]], pairs[[2]]))
+        expect_true(nrow(lsubbed) == length(pairs[[1]]) * length(pairs[[2]]) - overlap * (overlap + 1L)/2L)
+    
+        lsub.names <- paste0(lsubbed$gene1, ".", lsubbed$gene2)
+        expect_true(!any(duplicated(lsub.names)))
+        lsub.ref <- ref[match(lsub.names, ref.names),]
+        lsub.ref$FDR <- p.adjust(lsub.ref$p.value, method="BH")
+        rownames(lsub.ref) <- NULL
+        expect_equal(lsub.ref, lsubbed)
 
-for (attempt in 1:2) {
-    if (attempt==1L) {
-        subgenes <- list(1:10, 5:15)
-    } else {
-        subgenes <- list(1:10, 11:20)
+        # Checking for proper interaction with subset.row
+        keep <- rep(c(TRUE, FALSE), length.out=nrow(X))
+        lsub2 <- correlatePairs(X, nulls, pairings=pairs, subset.row=keep)
+        repairs <- list(intersect(pairs[[1]], which(keep)), intersect(pairs[[2]], which(keep)))
+        lexpected <- correlatePairs(X, nulls, pairings=repairs)
+        expect_equal(lexpected, lsub2)
     }
 
-    lsubbed <- correlatePairs(X, nulls, subset.row=subgenes)
-    expect_true(!is.unsorted(lsubbed$p.value))
-    expect_true(all(lsubbed$gene1!=lsubbed$gene2) && all(lsubbed$gene1 %in% rownames(X)[subgenes[[1]]])
-                && all(lsubbed$gene2 %in% rownames(X)[subgenes[[2]]]))
-    overlap <- length(intersect(subgenes[[1]], subgenes[[2]]))
-    expect_true(nrow(lsubbed) == length(subgenes[[1]]) * length(subgenes[[2]]) - overlap * (overlap + 1L)/2L)
-
-    lsub.names <- paste0(lsubbed$gene1, ".", lsubbed$gene2)
-    expect_true(!any(duplicated(lsub.names)))
-    lsub.ref <- ref[match(lsub.names, ref.names),]
-    lsub.ref$FDR <- p.adjust(lsub.ref$p.value, method="BH")
-    rownames(lsub.ref) <- NULL
-    expect_equal(lsub.ref, lsubbed)
-}
-expect_error(correlatePairs(X, nulls, subset.row=list()), "'subset.row' as a list should have length 2")
-expect_error(correlatePairs(X, nulls, subset.row=list(1,2,3)), "'subset.row' as a list should have length 2")
+    expect_error(correlatePairs(X, nulls, pairings=list()), "'pairings' as a list should have length 2")
+    expect_error(correlatePairs(X, nulls, pairings=list(1,2,3)), "'pairings' as a list should have length 2")
+})
 
 # Subsetting to specify matrix of specific pairs.
 
 test_that("correlatePairs with pairs matrix works as expected", {
-    subgenes <- cbind(1:10, 2:11)
-    msubbed <- correlatePairs(X, nulls, subset.row=subgenes)
-    expect_identical(rownames(X)[subgenes[,1]], msubbed$gene1)
-    expect_identical(rownames(X)[subgenes[,2]], msubbed$gene2)
+    pairs <- cbind(1:10, 2:11)
+    msubbed <- correlatePairs(X, nulls, pairings=pairs)
+    expect_identical(rownames(X)[pairs[,1]], msubbed$gene1)
+    expect_identical(rownames(X)[pairs[,2]], msubbed$gene2)
 
     msub.names <- paste0(msubbed$gene1, ".", msubbed$gene2)
     msub.ref <- ref[match(msub.names, ref.names),]
@@ -354,14 +366,21 @@ test_that("correlatePairs with pairs matrix works as expected", {
     rownames(msub.ref) <- NULL
     expect_equal(msub.ref, msubbed)
 
-    subgenes2 <- rownames(X)[subgenes]
-    dim(subgenes2) <- dim(subgenes)
-    msubbed2 <- correlatePairs(X, nulls, subset.row=subgenes2)
+    pairs2 <- rownames(X)[pairs]
+    dim(pairs2) <- dim(pairs)
+    msubbed2 <- correlatePairs(X, nulls, pairings=pairs2)
     expect_equal(msubbed, msubbed2)
 
-    expect_error(correlatePairs(X, nulls, subset.row=matrix(0, 0, 0)), "'subset.row' should be a numeric/character matrix with 2 columns")
-    expect_error(correlatePairs(X, nulls, subset.row=cbind(1,2,3)), "'subset.row' should be a numeric/character matrix with 2 columns")
-    expect_error(correlatePairs(X, nulls, subset.row=cbind(TRUE, FALSE)), "'subset.row' should be a numeric/character matrix with 2 columns")
+    # Checking for proper interaction with subset.row
+    keep <- 1:5
+    lsub2 <- correlatePairs(X, nulls, pairings=pairs, subset.row=keep)
+    repairs <- pairs[pairs[,1] %in% keep & pairs[,2] %in% keep,]
+    lexpected <- correlatePairs(X, nulls, pairings=repairs)
+    expect_equal(lexpected, lsub2)
+
+    expect_error(correlatePairs(X, nulls, pairings=matrix(0, 0, 0)), "'pairings' should be a numeric/character matrix with 2 columns")
+    expect_error(correlatePairs(X, nulls, pairings=cbind(1,2,3)), "'pairings' should be a numeric/character matrix with 2 columns")
+    expect_error(correlatePairs(X, nulls, pairings=cbind(TRUE, FALSE)), "'pairings' should be a numeric/character matrix with 2 columns")
 })
 
 ####################################################################################################
@@ -410,46 +429,37 @@ X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes) + 1)
 rownames(X) <- paste0("X", seq_len(Ngenes))
 nulls <- sort(runif(1e6, -1, 1))
 
-set.seed(100)
-ref <- correlatePairs(X, null.dist=nulls)
-set.seed(100)
-X2 <- newSCESet(exprsData=data.frame(X), logExprsOffset=1, lowerDetectionLimit=0)
-out <- correlatePairs(X2, null.dist=nulls)
-expect_equal(out, ref)
-
-# With per.gene=TRUE.
-
-set.seed(100)
-ref <- correlatePairs(exprs(X2), null.dist=nulls, per.gene=TRUE)
-set.seed(100)
-out <- correlatePairs(X2, null.dist=nulls, per.gene=TRUE)
-expect_equal(out, ref)
-
-# With spikes.
-
-is_exprs(X2) <- matrix(1L, Ngenes, Ncells)
-X2 <- calculateQCMetrics(X2, list(MySpike=rbinom(Ngenes, 1, 0.6)==0L))
-setSpike(X2) <- "MySpike"
-set.seed(100)
-ref <- correlatePairs(exprs(X2)[!isSpike(X2),,drop=FALSE], null.dist=nulls)
-set.seed(100)
-out <- correlatePairs(X2, null.dist=nulls)
-expect_equal(out, ref)
-
-# With spikes and per.gene=TRUE.
-
-set.seed(100)
-out <- correlatePairs(X2, null.dist=nulls, per.gene=TRUE)
-expect_identical(out$gene, rownames(X2))
-expect_true(all(is.na(out$rho[isSpike(X2)])))
-expect_true(all(is.na(out$p.value[isSpike(X2)])))
-
-leftovers <- !isSpike(X2)
-set.seed(100)
-ref <- correlatePairs(exprs(X2)[leftovers,], null.dist=nulls, per.gene=TRUE)
-gene.out <- out[leftovers,]
-rownames(gene.out) <- NULL
-expect_equal(gene.out, ref)
+test_that("correlatePairs works correctly with SingleCellExperiment objects", {
+    set.seed(100)
+    ref <- correlatePairs(X, null.dist=nulls)
+    set.seed(100)
+    X2 <- SingleCellExperiment(list(exprs=X))
+    metadata(X2)$log.exprs.offset <- 1
+    out <- correlatePairs(X2, null.dist=nulls)
+    expect_equal(out, ref)
+    
+    # With per.gene=TRUE.
+    set.seed(100)
+    ref <- correlatePairs(exprs(X2), null.dist=nulls, per.gene=TRUE)
+    set.seed(100)
+    out <- correlatePairs(X2, null.dist=nulls, per.gene=TRUE)
+    expect_equal(out, ref)
+    
+    # With spikes.
+    isSpike(X2, "MySpike") <- rbinom(Ngenes, 1, 0.6)==0L
+    set.seed(100)
+    ref <- correlatePairs(exprs(X2)[!isSpike(X2),,drop=FALSE], null.dist=nulls)
+    set.seed(100)
+    out <- correlatePairs(X2, null.dist=nulls)
+    expect_equal(out, ref)
+    
+    # With spikes and per.gene=TRUE.
+    set.seed(100)
+    out <- correlatePairs(X2, null.dist=nulls, per.gene=TRUE)
+    set.seed(100)
+    ref <- correlatePairs(exprs(X2)[!isSpike(X2),,drop=FALSE], null.dist=nulls, per.gene=TRUE)
+    expect_equal(out, ref)   
+})
 
 # Checking nonsense inputs.
 

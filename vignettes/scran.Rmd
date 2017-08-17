@@ -78,11 +78,8 @@ This information can be easily extracted later on using the `isSpike`, `spikes` 
 
 ```{r}
 library(scran)
-sce <- newSCESet(countData=data.frame(all.counts))
-sce <- calculateQCMetrics(sce, feature_controls=list(
-    MySpikes=rep(c(FALSE, TRUE), c(ngenes, nspikes))
-))
-setSpike(sce) <- "MySpikes"
+sce <- SingleCellExperiment(list(counts=all.counts))
+isSpike(sce, "MySpike") <- grep("^ERCC", rownames(sce))
 ```
 
 This is simulated data, so we assume that quality control has already been applied to remove low-quality cells or low-abundance genes.
@@ -128,8 +125,7 @@ This computes size factors that are used to scale the counts in each cell.
 The assumption is that most genes are not differentially expressed (DE) between cells, such that any differences in expression across the majority of genes represents some technical bias that should be removed.
 
 ```{r}
-high.ab <- calcAverage(sce) > 1
-sce <- computeSumFactors(sce, subset.row=high.ab)
+sce <- computeSumFactors(sce)
 summary(sizeFactors(sce))
 ```
 
@@ -138,13 +134,12 @@ Briefly, cells are grouped into clusters of similar expression; normalization is
 This reduces the risk of violating the above assumption when many genes are DE between clusters in a heterogeneous population.
 
 ```{r}
-larger.sce <- newSCESet(countData=data.frame(cbind(all.counts, all.counts, all.counts)))
-clusters <- quickCluster(larger.sce, subset.row=high.ab)
-larger.sce <- computeSumFactors(larger.sce, cluster=clusters, subset.row=high.ab)
+larger.sce <- SingleCellExperiment(list(counts=cbind(all.counts, all.counts, all.counts)))
+clusters <- quickCluster(larger.sce)
+larger.sce <- computeSumFactors(larger.sce, cluster=clusters)
 ```
 
-Note the use of `high.ab` to only use high-abundance genes during normalization.
-This provides some protection against zero or negative size factor estimates.
+Note that `computeSumFactors` will automatically remove low-abundance genes, which provides some protection against zero or negative size factor estimates.
 We also assume that quality control on the cells has already been performed, as low-quality cells with few expressed genes can often have negative size factor estimates.
 
 ## Based on the spike-in counts
@@ -246,7 +241,7 @@ Testing is performed against the null hypothesis of independent genes, using a p
 ```{r}
 null.dist <- correlateNull(ncol(sce))
 # Only using the first 200 genes as a demonstration.
-cor.pairs <- correlatePairs(sce[top.hvgs[1:200],], null.dist=null.dist)
+cor.pairs <- correlatePairs(sce, subset.row=top.hvgs[1:200], null.dist=null.dist)
 head(cor.pairs)
 ```
 
@@ -254,7 +249,8 @@ As with variance estimation, if uninteresting substructure is present, this shou
 
 ```{r}
 null.dist2 <- correlateNull(design=design, iter=1e5) # fewer iterations, to speed it up.
-cor.pairs2 <- correlatePairs(sce[top.hvgs[1:200],], null.dist=null.dist2, design=design)
+cor.pairs2 <- correlatePairs(sce, subset.row=top.hvgs[1:200], 
+    null.dist=null.dist2, design=design)
 ```
 
 The pairs can be used for choosing marker genes in experimental validation, and to construct gene-gene association networks.
@@ -263,7 +259,8 @@ This is often the case if we are to select a set of correlated HVGs for use in d
 To do so, we set `per.gene=TRUE` to compute a single set of statistics for each gene, rather than for each pair.
 
 ```{r}
-cor.genes <- correlatePairs(sce[top.hvgs[1:200],], null.dist=null.dist, per.gene=TRUE)
+cor.genes <- correlatePairs(sce, subset.row=top.hvgs[1:200], 
+    null.dist=null.dist, per.gene=TRUE)
 ```
 
 Significant correlations are defined at a false discovery rate (FDR) threshold of, e.g., 5%.

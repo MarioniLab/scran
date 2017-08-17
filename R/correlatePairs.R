@@ -1,7 +1,7 @@
-setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
-
-.correlate_pairs <- function(x, null.dist=NULL, design=NULL, BPPARAM=SerialParam(), tol=1e-8, iters=1e6, residuals=FALSE, 
-                             use.names=TRUE, subset.row=NULL, per.gene=FALSE, lower.bound=NULL, block.size=100L)
+.correlate_pairs <- function(x, null.dist=NULL, tol=1e-8, iters=1e6, 
+                             design=NULL, residuals=FALSE, lower.bound=NULL, 
+                             use.names=TRUE, subset.row=NULL, pairings=NULL, per.gene=FALSE, 
+                             block.size=100L, BPPARAM=SerialParam())
 # This calculates a (modified) Spearman's rho for each pair of genes.
 #
 # written by Aaron Lun
@@ -41,11 +41,11 @@ setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
 
     # Checking the subsetting and tolerance
     block.size <- as.integer(block.size)
-    pairings <- .construct_pair_indices(subset.row=subset.row, x=x, block.size=block.size)
-    subset.row <- pairings$subset.row
-    gene1 <- pairings$gene1
-    gene2 <- pairings$gene2
-    reorder <- pairings$reorder
+    pair.out <- .construct_pair_indices(subset.row=subset.row, x=x, pairings=pairings, block.size=block.size)
+    subset.row <- pair.out$subset.row
+    gene1 <- pair.out$gene1
+    gene2 <- pair.out$gene2
+    reorder <- pair.out$reorder
     final.names <- .choose_gene_names(subset.row=subset.row, x=x, use.names=use.names)
 
     # Computing residuals; also replacing the subset vector, as it'll already be subsetted.
@@ -110,15 +110,26 @@ setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
     return(out)
 }
 
-.construct_pair_indices <- function(subset.row, x, block.size=100) {
+.construct_pair_indices <- function(subset.row, x, pairings, block.size=100) 
+# This returns a new subset-by-row vector, along with the pairs of elements
+# indexed along that vector (i.e., "1" refers to the first element of subset.row,
+# rather than the first element of "x").
+{
     is.ordered <- FALSE 
-    if (is.matrix(subset.row)) {
+    subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
+
+    if (is.matrix(pairings)) {
         # If matrix, we're using pre-specified pairs.
-        if ((!is.numeric(subset.row) && !is.character(subset.row)) || ncol(subset.row)!=2L) { 
-            stop("'subset.row' should be a numeric/character matrix with 2 columns") 
+        if ((!is.numeric(pairings) && !is.character(pairings)) || ncol(pairings)!=2L) { 
+            stop("'pairings' should be a numeric/character matrix with 2 columns") 
         }
-        s1 <- .subset_to_index(subset.row[,1], x, byrow=TRUE)
-        s2 <- .subset_to_index(subset.row[,2], x, byrow=TRUE)
+        s1 <- .subset_to_index(pairings[,1], x, byrow=TRUE)
+        s2 <- .subset_to_index(pairings[,2], x, byrow=TRUE)
+
+        # Discarding elements not in subset.row.
+        keep <- s1 %in% subset.row & s2 %in% subset.row
+        s1 <- s1[keep]
+        s2 <- s2[keep]
 
         subset.row <- sort(unique(c(s1, s2)))
         m1 <- match(s1, subset.row)
@@ -127,12 +138,18 @@ setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
         gene2 <- pmax(m1, m2)
         is.ordered <- TRUE
 
-    } else if (is.list(subset.row)) {
+    } else if (is.list(pairings)) {
         # If list, we're correlating between one gene selected from each of two pools.
-        if (length(subset.row)!=2L) { stop("'subset.row' as a list should have length 2") }
-        converted <- lapply(subset.row, FUN=.subset_to_index, x=x, byrow=TRUE)
-        converted <- lapply(converted, FUN=unique)
-        if (any(lengths(converted)==0L)) { stop("need at least one gene in each set to compute correlations") }
+        if (length(pairings)!=2L) { 
+            stop("'pairings' as a list should have length 2") 
+        }
+        converted <- lapply(pairings, FUN=function(gene.set) {
+            gene.set <- .subset_to_index(gene.set, x=x, byrow=TRUE)
+            intersect(gene.set, subset.row) # automatically gets rid of duplicates.
+        })
+        if (any(lengths(converted)==0L)) { 
+            stop("need at least one gene in each set to compute correlations") 
+        }
 
         subset.row <- sort(unique(unlist(converted)))
         m1 <- match(converted[[1]], subset.row)
@@ -151,16 +168,20 @@ setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
             gene2 <- gene2[keep]
         }
 
-    } else {
+    } else if (is.null(pairings)) {
         # Otherwise, it's assumed to be a single pool, and we're just correlating between pairs within it.
-        subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
         ngenes <- length(subset.row)
-        if (ngenes < 2L) { stop("need at least two genes to compute correlations") }
+        if (ngenes < 2L) { 
+            stop("need at least two genes to compute correlations") 
+        }
        
         # Generating all pairs of genes within the subset.
         all.pairs <- combn(ngenes, 2L)
         gene1 <- all.pairs[1,]
         gene2 <- all.pairs[2,]
+
+    } else {
+        stop("pairings should be a list, matrix or NULL")
     }
 
     # Ordering by blocksize. This will be used to reduce the number of reads from the matrix in C++,
@@ -203,29 +224,17 @@ setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
     invisible(NULL)
 }
 
+setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
+
 setMethod("correlatePairs", "ANY", .correlate_pairs)
 
-setMethod("correlatePairs", "SCESet", function(x, ..., use.names=TRUE, subset.row=NULL, per.gene=FALSE, lower.bound=NULL, 
-                                               assay="exprs", get.spikes=FALSE) {
-    by.spikes <- FALSE
-    if (is.null(subset.row)) {
-        subset.row <- .spike_subset(x, get.spikes)
-        by.spikes <- !is.null(subset.row)
-    }
-    lower.bound <- .guess_lower_bound(x, assay, lower.bound)
+setMethod("correlatePairs", "SingleCellExperiment", 
+          function(x, ..., use.names=TRUE, subset.row=NULL, per.gene=FALSE, 
+                   lower.bound=NULL, assay.type="exprs", get.spikes=FALSE) {
 
-    out <- .correlate_pairs(assayDataElement(x, assay), subset.row=subset.row, per.gene=per.gene, 
-                            use.names=use.names, lower.bound=lower.bound, ...)
-
-    # Returning a row for all elements, even if it is NA.
-    if (per.gene && by.spikes) {
-        expanded <- rep(NA_integer_, nrow(x))
-        expanded[subset.row] <- seq_len(nrow(out))
-        out <- out[expanded,]
-        out$gene <- .choose_gene_names(seq_len(nrow(x)), x, use.names)
-        rownames(out) <- NULL
-    }
-
-    return(out)
+    subset.row <- .SCE_subset_genes(subset.row, x=x, get.spikes=get.spikes)              
+    lower.bound <- .guess_lower_bound(x, assay.type, lower.bound)
+    .correlate_pairs(assay(x, i=assay.type), subset.row=subset.row, per.gene=per.gene, 
+                     use.names=use.names, lower.bound=lower.bound, ...)
 })
 

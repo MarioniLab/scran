@@ -1,7 +1,7 @@
 \name{correlatePairs}
 \alias{correlatePairs}
 \alias{correlatePairs,ANY-method}
-\alias{correlatePairs,SCESet-method}
+\alias{correlatePairs,SingleCellExperiment-method}
 \alias{correlateNull}
 
 \title{Test for significant correlations}
@@ -10,12 +10,13 @@
 \usage{
 correlateNull(ncells, iters=1e6, design=NULL, residuals=FALSE) 
 
-\S4method{correlatePairs}{ANY}(x, null.dist=NULL, design=NULL, BPPARAM=SerialParam(), 
-    tol=1e-8, iters=1e6, residuals=FALSE, use.names=TRUE, 
-    subset.row=NULL, per.gene=FALSE, lower.bound=NULL, block.size=100L)
+\S4method{correlatePairs}{ANY}(x, null.dist=NULL, tol=1e-8, iters=1e6, 
+    design=NULL, residuals=FALSE, lower.bound=NULL,
+    use.names=TRUE, subset.row=NULL, pairings=NULL, per.gene=FALSE,  
+    block.size=100L, BPPARAM=SerialParam())
 
-\S4method{correlatePairs}{SCESet}(x, ..., use.names=TRUE, subset.row=NULL, per.gene=FALSE,
-    lower.bound=NULL, assay="exprs", get.spikes=FALSE)
+\S4method{correlatePairs}{SingleCellExperiment}(x, ..., use.names=TRUE, subset.row=NULL, per.gene=FALSE,
+    lower.bound=NULL, assay.type="exprs", get.spikes=FALSE)
 }
 
 \arguments{
@@ -25,7 +26,7 @@ correlateNull(ncells, iters=1e6, design=NULL, residuals=FALSE)
 \item{residuals}{A logical scalar indicating whether correlations should be calculated from residuals when \code{design!=NULL}.}
 \item{x}{
     A numeric matrix-like object of log-normalized expression values, where rows are genes and columns are cells.
-    Alternatively, a SCESet object containing such a matrix.
+    Alternatively, a SingleCellExperiment object containing such a matrix.
 }
 \item{null.dist}{A numeric vector of rho values under the null hypothesis.}
 \item{BPPARAM}{A BiocParallelParam object to use in \code{bplapply} for parallel processing.}
@@ -34,14 +35,16 @@ correlateNull(ncells, iters=1e6, design=NULL, residuals=FALSE)
     A logical scalar specifying whether the row names of \code{exprs} should be used in the output.
     Alternatively, a character vector containing the names to use.
 }
-\item{subset.row}{A logical, integer or character vector indicating the rows of \code{x} to use.
-Alternatively, a list of 2 such vectors, or a integer/character matrix with 2 columns - see below for details.}
+\item{subset.row}{A logical, integer or character vector indicating the rows of \code{x} to use to compute correlations.}
+\item{pairings}{A \code{NULL} value indicating that all pairwise correlations should be computed;
+or a list of 2 vectors of genes between which correlations are to be computed;
+or a integer/character matrix with 2 columns of specific gene pairs - see below for details.}
 \item{per.gene}{A logical scalar specifying whether statistics should be summarized per gene.}
 \item{lower.bound}{A numeric scalar specifying the theoretical lower bound of values in \code{x}, only used when \code{residuals=TRUE}.}
 \item{block.size}{An integer scalar specifying the number of cells for which ranked expression values are stored in memory.
 Smaller values can be used in machines with less memory, at the cost of processing speed.}
-\item{...}{Additional arguments to pass to \code{correlatePairs,matrix-method}.}
-\item{assay}{A string specifying which assay values to use.}
+\item{...}{Additional arguments to pass to \code{correlatePairs,ANY-method}.}
+\item{assay.type}{A string specifying which assay values to use.}
 \item{get.spikes}{A logical specifying whether spike-in transcripts should be used.}
 }
 
@@ -65,14 +68,12 @@ Correction for multiple testing is done using the BH method.
 
 For \code{correlatePairs}, a pre-computed empirical distribution can be supplied as \code{null.dist} if available.
 Otherwise, it will be automatically constructed via \code{correlateNull} with \code{ncells} set to the number of columns in \code{exprs}.
+For \code{correlatePairs,SingleCellExperiment-method}, correlations should be computed for normalized expression values in the specified \code{assay.type}. 
+
+The lower bound of the p-values is determined by the value of \code{iters}.
 If the \code{limited} field is \code{TRUE} in the returned dataframe, it may be possible to obtain lower p-values by increasing \code{iters}.
 This should be examined for non-significant pairs, in case some correlations are overlooked due to computational limitations.
 The function will automatically raise a warning if any genes are limited in their significance at a FDR of 5\%.
-
-For \code{correlatePairs,SCESet-method}, correlations should be computed for normalized expression values in the specified \code{assay}. 
-By default, rows corresponding to spike-in transcripts are removed with \code{get.spikes=FALSE}. 
-This avoids picking up strong technical correlations between pairs of spike-in transcripts.
-Users can also set \code{subset.row} to specify which genes to test, which will override any setting of \code{get.spikes}.
 
 If \code{per.gene=TRUE}, results are summarized on a per-gene basis.
 For each gene, all of its pairs are identified, and the corresponding p-values are combined using Simes' method.
@@ -100,8 +101,6 @@ The exception is if \code{subset.row} is a matrix, in which case each row in the
 For \code{correlatePairs} with \code{per.gene=TRUE}, a dataframe is returned with one row per gene.
 For each row, the \code{rho} field contains the correlation with the largest magnitude across all gene pairs involving the corresponding gene.
 The \code{p.value} field contains the Simes p-value, and the \code{FDR} field contains the corresponding adjusted p-value.
-No sorting is performed, so if \code{subset.row=NULL}, each row of the returned dataframe corresponds to a row of \code{x}.
-For the \code{SCESet} method, if \code{get.spikes=FALSE}, rows corresponding to spike-in features will have \code{NA} entries for most fields.
 }
 
 \section{Accounting for uninteresting variation}{
@@ -128,25 +127,31 @@ This assumption is largely unavoidable for complex designs, where some quantitat
 \item Residuals computed from expression values equal to \code{lower.bound} are set to a constant value below all other residuals.
 This preserves ties between zeroes and avoids spurious correlations between genes due to arbitrary tie-breaking.
 The value of \code{lower.bound} should be equal to log-prior count used during the log-transformation.
-It is automatically determined from the \code{logExprsOffset} slot if \code{x} is a SCESet object.
+It is automatically taken from \code{metadata(x)$log.exprs.offset} if \code{x} is a SingleCellExperiment object.
 }
 }
 
 \section{Gene selection}{
-We recommend setting  \code{subset.row} to contain only the subset of highly variable genes (HVGs).
-This will focus on genes contributing to cell-to-cell heterogeneity (and thus more likely to be involved in driving substructure).
+By default, correlations will be computed between all genes with \code{pairings=NULL}.
+If \code{pairings} is a list of two vectors, correlations will be computed between one gene in the first vector and another gene in the second vector.
+This improves efficiency if the only correlations of interest are those between two pre-defined sets of genes.
+Alternatively, if \code{pairings} is an integer/character matrix of two columns, each row is assumed to specify a gene pair.
+Correlations will then be computed for only those gene pairs, and the returned dataframe will \emph{not} be sorted by p-value.
+
+If \code{subset.row} is not \code{NULL}, only the genes in the selected subset are used to compute correlations.
+This will iteract properly with \code{pairings}, such that genes in \code{pairings} and not in \code{subset.row} will be ignored.
+With \code{correlatePairs,SingleCellExperiment-method}, rows corresponding to spike-in transcripts are also removed by default with \code{get.spikes=FALSE}.
+This avoids picking up strong technical correlations between pairs of spike-in transcripts.
+
+We recommend setting  \code{subset.row} to contain only the subset of genes of interest.
+This reduces computational time by only testing correlations of interest.
+For example, we could select only HVGs to focus on genes contributing to cell-to-cell heterogeneity (and thus more likely to be involved in driving substructure).
 There is no need to account for HVG pre-selection in multiple testing, because rank correlations are unaffected by the variance.
-For more genes, set \code{BPPARAM} to use more workers and reduce computational time.
 
 Lowly-expressed genes can also cause problems when \code{design} is non-\code{NULL} and \code{residuals=TRUE}.
 Tied counts, and zeroes in particular, may not result in tied residuals after fitting of the linear model. 
 Model fitting may break ties in a consistent manner across genes, yielding large correlations between genes with many zero counts.
 Focusing on HVGs should mitigate the detection of these uninteresting correlations, as genes dominated by zeroes will usually have low variance.
-
-If \code{subset.row} is a list of two vectors, correlations will be computed between one gene in the first vector and another gene in the second vector.
-This improves efficiency if the only correlations of interest are those between two pre-defined sets of genes.
-Alternatively, if \code{subset.row} is an integer/character matrix of two columns, each row is assumed to specify a gene pair.
-Correlations will then be computed for only those gene pairs, and the returned dataframe will \emph{not} be sorted by p-value.
 }
 
 \section{Approximating Spearman's rho with tied values}{

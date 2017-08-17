@@ -61,7 +61,7 @@ exploreData <- function(x, cell.data, gene.data, red.dim, run=TRUE)
     server <- function(input, output) {
         # Load the gene level data
         output$table <- renderDataTable({
-            datatable(gene.data, filter="top", selection=list(mode="single", selected=1))
+            datatable(as.data.frame(gene.data), filter="top", selection=list(mode="single", selected=1))
         })
 
         # tSNE plot colored by covariates

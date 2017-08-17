@@ -1,6 +1,6 @@
 .trend_var <- function(x, method=c("loess", "spline", "semiloess"), 
                        span=0.3, family="symmetric", degree=1, df=4,
-                       parametric=FALSE, start=NULL, mean.warn=TRUE,
+                       parametric=FALSE, start=NULL, min.mean=0.1,
                        design=NULL, subset.row=NULL)
 # Fits a polynomial trend to the technical variability of the log-CPMs,
 # against their abundance (i.e., average log-CPM).
@@ -20,12 +20,9 @@
     names(means) <- names(vars) <- rownames(x)[subset.row]
 
     # Filtering out zero-variance and low-abundance genes.
-    is.okay <- vars > 1e-8 
+    is.okay <- vars > 1e-8 & means >= min.mean
     kept.vars <- vars[is.okay]
     kept.means <- means[is.okay]
-    if (mean.warn & any(means < 0.1)) {
-        warning("low-abundance genes (mean log-expression below 0.1) detected") 
-    }
 
     method <- match.arg(method) 
     if (method=="semiloess") {
@@ -136,13 +133,13 @@ setGeneric("trendVar", function(x, ...) standardGeneric("trendVar"))
 
 setMethod("trendVar", "ANY", .trend_var)
 
-setMethod("trendVar", "SCESet", function(x, subset.row=NULL, ..., assay="exprs", use.spikes=TRUE) {
-    .check_centered_SF(x, assay=assay)
-    mat <- assayDataElement(x, assay)
-    subset.row <- .subset_to_index(subset.row, mat, byrow=TRUE)
+setMethod("trendVar", "SingleCellExperiment", function(x, subset.row=NULL, ..., assay.type="exprs", use.spikes=TRUE) {
+    .check_centered_SF(x, assay.type=assay.type)
+    subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
 
+    # Can use only spikes, everything but spikes, or everything. 
     if (!is.na(use.spikes)) {
-        is.spike <- isSpike(x, warning=FALSE)
+        is.spike <- isSpike(x)
         if (is.null(is.spike)) {
             is.spike <- logical(nrow(x))
         }
@@ -154,7 +151,7 @@ setMethod("trendVar", "SCESet", function(x, subset.row=NULL, ..., assay="exprs",
         }
     }
 
-    out <- .trend_var(mat, ..., subset.row=subset.row)
+    out <- .trend_var(assay(x, i=assay.type), ..., subset.row=subset.row)
     return(out)
 })
 

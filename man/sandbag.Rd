@@ -1,31 +1,31 @@
 \name{sandbag}
 \alias{sandbag}
-\alias{sandbag,matrix-method}
-\alias{sandbag,SCESet-method}
+\alias{sandbag,ANY-method}
+\alias{sandbag,SingleCellExperiment-method}
 
 \title{Cell cycle phase training}
 \description{Use gene expression data to train a classifier for cell cycle phase.}
 
 \usage{
-\S4method{sandbag}{matrix}(x, phases, gene.names=rownames(x), 
+\S4method{sandbag}{ANY}(x, phases, gene.names=rownames(x), 
     fraction=0.5, subset.row=NULL)
 
-\S4method{sandbag}{SCESet}(x, phases, subset.row=NULL, ..., 
-    assay="counts", get.spikes=FALSE)
+\S4method{sandbag}{SingleCellExperiment}(x, phases, subset.row=NULL, ..., 
+    assay.type="counts", get.spikes=FALSE)
 }
 
 \arguments{
 \item{x}{
     A numeric matrix of gene expression values where rows are genes and columns are cells.
-    Alternatively, a SCESet object containing such a matrix.
+    Alternatively, a SingleCellExperiment object containing such a matrix.
 }
 \item{phases}{A list of subsetting vectors specifying which cells are in each phase of the cell cycle.
 This should typically be of length 3, with elements named as \code{"G1"}, \code{"S"} and \code{"G2M"}.}
 \item{gene.names}{A character vector of gene names.}
 \item{fraction}{A numeric scalar specifying the minimum fraction to define a marker gene pair.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
-\item{...}{Additional arguments to pass to \code{sandbag,matrix-method}.}
-\item{assay}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
+\item{...}{Additional arguments to pass to \code{sandbag,ANY-method}.}
+\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
 \item{get.spikes}{A logical specifying whether spike-in transcripts should be used.}
 }
 
@@ -43,7 +43,7 @@ Classification from test data can be performed using the \code{\link{cyclone}} f
 For each cell, this involves comparing expression values between genes in each marker pair. 
 The cell is then assigned to the phase that is consistent with the direction of the difference in expression in the majority of pairs.
 
-For \code{sandbag,SCESet-method}, the matrix of counts is used but can be replaced with expression values by setting \code{assays}.
+For \code{sandbag,SingleCellExperiment-method}, the matrix of counts is used but can be replaced with expression values by setting \code{assays}.
 By default, \code{get.spikes=FALSE} which means that any rows corresponding to spike-in transcripts will not be considered when picking markers.
 This is because the amount of spike-in RNA added will vary between experiments and will not be a robust predictor.
 Nonetheless, if all rows are required, users can set \code{get.spikes=TRUE}.

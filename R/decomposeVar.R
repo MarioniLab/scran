@@ -36,19 +36,11 @@ setGeneric("decomposeVar", function(x, fit, ...) standardGeneric("decomposeVar")
 
 setMethod("decomposeVar", c("ANY", "list"), .decompose_var)
 
-setMethod("decomposeVar", c("SCESet", "list"), function(x, fit, subset.row=NULL, ..., assay="exprs", get.spikes=FALSE) {
-    .check_centered_SF(x, assay=assay)
-    out <- decomposeVar(assayDataElement(x, assay), fit, ..., subset.row=subset.row)
-    if (!get.spikes) {
-        nokeep <- isSpike(x, warning=FALSE)
-        if (!is.null(subset.row)) { 
-            nokeep <- nokeep[subset.row]
-        }
-        if (any(nokeep)) { 
-            out$p.value[nokeep] <- NA
-            out$FDR <- p.adjust(out$p.value, method="BH")
-        }
-    }
-    return(out)
+setMethod("decomposeVar", c("SingleCellExperiment", "list"), 
+          function(x, fit, subset.row=NULL, ..., assay.type="exprs", get.spikes=FALSE) {
+
+    subset.row <- .SCE_subset_genes(subset.row, x=x, get.spikes=get.spikes)
+    .check_centered_SF(x, assay.type=assay.type)
+    .decompose_var(assay(x, i=assay.type), fit, ..., subset.row=subset.row)
 })
 

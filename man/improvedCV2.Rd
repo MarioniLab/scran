@@ -1,25 +1,25 @@
 \name{improvedCV2}
 \alias{improvedCV2}
-\alias{improvedCV2,matrix-method}
-\alias{improvedCV2,SCESet-method}
+\alias{improvedCV2,ANY-method}
+\alias{improvedCV2,SingleCellExperiment-method}
 
 \title{Stably model the technical coefficient of variation}
 \description{
-Model the decompose coefficient of variation as a function of the mean, and determine the significance of highly variable genes.
+Model the technical coefficient of variation as a function of the mean, and determine the significance of highly variable genes.
 This is intended to be a more stable version of \code{\link{technicalCV2}}.
 }
 
 \usage{
-\S4method{improvedCV2}{matrix}(x, is.spike, sf.cell=NULL, sf.spike=NULL, 
+\S4method{improvedCV2}{ANY}(x, is.spike, sf.cell=NULL, sf.spike=NULL, 
     log.prior=NULL, df=4, robust=FALSE, use.spikes=FALSE)
 
-\S4method{improvedCV2}{SCESet}(x, spike.type=NULL, ..., assay="exprs", logged=NULL)
+\S4method{improvedCV2}{SingleCellExperiment}(x, spike.type=NULL, ..., assay.type="exprs", logged=NULL)
 }
 
 \arguments{
 \item{x}{
     A numeric matrix of counts or log-expression values, where each column corresponds to a cell and each row corresponds to a spike-in transcript.
-    Alternatively, a SCESet object that contains such values.
+    Alternatively, a SingleCellExperiment object that contains such values.
 }
 \item{is.spike}{A vector indicating which rows of \code{x} correspond to spike-in transcripts.}
 \item{sf.cell}{A numeric vector containing size factors for endogenous genes.}
@@ -30,10 +30,10 @@ If this is set, \code{x} is assumed to contain log-expression values, otherwise 
 \item{robust}{A logical scalar indicating whether robust fitting should be performed with \code{\link[MASS]{rlm}}.}
 \item{use.spikes}{A logical scalar indicating whether p-values should be returned for spike-in transcripts.}
 \item{spike.type}{A character vector containing the names of the spike-in sets to use.}
-\item{...}{Additional arguments to pass to \code{improvedCV2,matrix-method}.}
-\item{assay}{A string specifying which assay values to use.}
-\item{logged}{A logical scalar indicating if \code{assay} contains log-expression values.
-This is automatically determined if \code{assay="counts"} or \code{"exprs"}.}
+\item{...}{Additional arguments to pass to \code{improvedCV2,ANY-method}.}
+\item{assay.type}{A string specifying which assay values to use.}
+\item{logged}{A logical scalar indicating if \code{assay.type} contains log-expression values.
+This is automatically determined if \code{assay.type="counts"} or \code{"exprs"}.}
 }
 
 \details{
@@ -57,18 +57,18 @@ For any given data set, the maximum CV2 that can be achieved is equal to the num
 Genes with CV2 values equal to the maximum are ignored during trend fitting.
 This ensures that the trend is not distorted by the presence of an upper bound on CV2 values, especially at low means. 
 
-For \code{improvedCV2,matrix-method}, the rows corresponding to spike-in transcripts are specified with \code{is.spike}.
+For \code{improvedCV2,ANY-method}, the rows corresponding to spike-in transcripts are specified with \code{is.spike}.
 These rows will be used for trend fitting, while all other rows are treated as endogenous genes.
 By default, p-values are set to \code{NA} for the spike-in transcripts, such that they do not contribute to the multiple testing correction.
 This behaviour can be modified with \code{use.spikes=TRUE}, which will return p-values for all features.
 
-For \code{improvedCV2,SCESet-method}, transcripts from spike-in sets named in \code{spike.type} will be used for trend fitting.
+For \code{improvedCV2,SingleCellExperiment-method}, transcripts from spike-in sets named in \code{spike.type} will be used for trend fitting.
 If \code{spike.type=NULL}, all spike-in sets listed in \code{x} will be used.
 Size factors for endogenous genes are automatically extracted via \code{\link{sizeFactors}}.
 Spike-in-specific size factors for \code{spike.type} are extracted from \code{x}, if available; otherwise they are set to the size factors for the endogenous genes.
 Note that the spike-in-specific factors must be the same for each set in \code{spike.type}.
 
-Users can also set \code{is.spike} to \code{NA} in \code{improvedCV2,matrix-method}; or \code{spike.type} to \code{NA} in \code{decomposeCV2,SCESet-method}.
+Users can also set \code{is.spike} to \code{NA} in \code{improvedCV2,ANY-method}; or \code{spike.type} to \code{NA} in \code{decomposeCV2,SingleCellExperiment-method}.
 In such cases, all rows will be used for trend fitting, and (adjusted) p-values will be reported for all rows.
 This should be used in cases where there are no spike-ins.
 Here, the assumption is that most endogenous genes do not exhibit high biological variability and thus can be used to model decompose variation. 
@@ -113,16 +113,16 @@ head(out)
 plot(out$mean, out$cv2, log="xy")
 points(out$mean, out$trend, col="red", pch=16, cex=0.5)
 
-# Same again with an SCESet.
+# Same again with an SingleCellExperiment.
 rownames(counts) <- paste0("X", seq_len(ngenes))
 colnames(counts) <- paste0("Y", seq_len(nsamples))
-X <- newSCESet(countData=counts)
-X <- calculateQCMetrics(X, list(Spikes=is.spike))
-setSpike(X) <- "Spikes"
+X <- SingleCellExperiment(list(counts=counts))
+isSpike(X, "Spikes") <- is.spike
 
 # Dummying up some size factors (for convenience only, use computeSumFactors() instead).
 sizeFactors(X) <- 1
 X <- computeSpikeFactors(X, general.use=FALSE)
+X <- normalize(X)
 
 # Running it.
 out <- improvedCV2(X, spike.type="Spikes")

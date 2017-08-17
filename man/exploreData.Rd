@@ -52,19 +52,17 @@ Karsten Bach
 
 \examples{
 # Set up example data
-example(newSCESet)
-x <- exprs(example_sceset)
-cell.data <- pData(example_sceset)
-gene.data <- data.frame("meanExp"=rowMeans(x))
-rownames(gene.data) <- rownames(x)
+example(SingleCellExperiment)
+cell.data <- DataFrame(stuff=sample(LETTERS, ncol(sce), replace=TRUE))
+gene.data <- DataFrame(lengths=runif(nrow(sce)))
 
 # Mocking up  some reduced dimensions.
 library(Rtsne)
-tsn <- Rtsne(t(x), perplexity=10)
+tsn <- Rtsne(t(exprs(sce)), perplexity=10)
 red.dim <- tsn$Y[,1:2]
 
 # Creating the app object.
-app <- exploreData(x, cell.data, gene.data, red.dim, run=FALSE)
+app <- exploreData(exprs(sce), cell.data, gene.data, red.dim, run=FALSE)
 if (interactive()) { shiny::runApp(app) }
 
 \dontrun{# Running directly from the function.

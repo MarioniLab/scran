@@ -175,17 +175,21 @@ expect_equal(out, ref)
 #############################
 # Checking for consistent behaviour with SCEsets.
 
-Y <- matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes)+1
-rownames(Y) <- paste0("X", seq_len(Ngenes))
-X2 <- newSCESet(countData=Y, logExprsOffset=1, lowerDetectionLimit=0)
-grouping <- rep(1:4, each=25)
-expect_equal(overlapExprs(exprs(X2), grouping), overlapExprs(X2, grouping)) 
-expect_equal(overlapExprs(counts(X2), grouping), overlapExprs(X2, grouping, assay="counts")) 
+test_that("overlapExprs behaves consistently with SingleCellExperiment objects", {
+    Y <- matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes)+1
+    rownames(Y) <- paste0("X", seq_len(Ngenes))
+    X2 <- SingleCellExperiment(list(counts=Y))
+    sizeFactors(X2) <- colSums(Y)
+    X2 <- normalize(X2)
 
-X2 <- calculateQCMetrics(X2, list(MySpike=rbinom(Ngenes, 1, 0.6)==0L))
-setSpike(X2) <- "MySpike"
-expect_equal(overlapExprs(exprs(X2), grouping, subset.row=!isSpike(X2)), overlapExprs(X2, grouping)) 
-expect_equal(overlapExprs(exprs(X2), grouping), overlapExprs(X2, grouping, get.spikes=TRUE)) 
+    grouping <- rep(1:4, each=25)
+    expect_equal(overlapExprs(exprs(X2), grouping), overlapExprs(X2, grouping)) 
+    expect_equal(overlapExprs(counts(X2), grouping), overlapExprs(X2, grouping, assay.type="counts")) 
+
+    isSpike(X2, "MySpike") <- rbinom(Ngenes, 1, 0.6)==0L
+    expect_equal(overlapExprs(exprs(X2), grouping, subset.row=!isSpike(X2)), overlapExprs(X2, grouping)) 
+    expect_equal(overlapExprs(exprs(X2), grouping), overlapExprs(X2, grouping, get.spikes=TRUE)) 
+})
 
 #############################
 # Silly examples.

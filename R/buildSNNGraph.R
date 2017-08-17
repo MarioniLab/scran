@@ -6,7 +6,7 @@
 #
 # written by Aaron Lun
 # created 3 April 2017
-# last modified 26 June 2017    
+# last modified 22 July 2017    
 { 
     ncells <- ncol(x)
     if (!is.null(subset.row)) {
@@ -84,18 +84,17 @@
 
 setGeneric("buildSNNGraph", function(x, ...) standardGeneric("buildSNNGraph"))
 
-setMethod("buildSNNGraph", "matrix", .buildSNNGraph)
+setMethod("buildSNNGraph", "ANY", .buildSNNGraph)
 
-setMethod("buildSNNGraph", "SCESet", function(x, ..., subset.row=NULL, assay="exprs", 
-                                              get.spikes=FALSE, use.dimred=FALSE) {
-    if (is.null(subset.row)) { 
-        subset.row <- .spike_subset(x, get.spikes)
-    }
-    if (use.dimred) {
-        out <- .buildSNNGraph(reducedDimension(x), d=NA, transposed=TRUE,
+setMethod("buildSNNGraph", "SingleCellExperiment", 
+          function(x, ..., subset.row=NULL, assay.type="exprs", get.spikes=FALSE, use.dimred=NULL) {
+              
+    subset.row <- .SCE_subset_genes(subset.row, x=x, get.spikes=get.spikes)
+    if (!is.null(use.dimred)) {
+        out <- .buildSNNGraph(reducedDim(x, use.dimred), d=NA, transposed=TRUE,
                               ..., subset.row=NULL)
     } else {
-        out <- .buildSNNGraph(assayDataElement(x, assay), transposed=FALSE,
+        out <- .buildSNNGraph(assay(x, i=assay.type), transposed=FALSE,
                               ..., subset.row=subset.row)
     }
     return(out)

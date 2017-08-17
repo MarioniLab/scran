@@ -1,22 +1,22 @@
 \name{Denoise with PCA}
 \alias{denoisePCA}
-\alias{denoisePCA,matrix-method}
-\alias{denoisePCA,SCESet-method}
+\alias{denoisePCA,ANY-method}
+\alias{denoisePCA,SingleCellExperiment-method}
 
 \title{Denoise expression with PCA}
 \description{Denoise log-expression data by removing principal components corresponding to technical noise.}
 
 \usage{
-\S4method{denoisePCA}{matrix}(x, technical, design=NULL, subset.row=NULL,
-    value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100)
+\S4method{denoisePCA}{ANY}(x, technical, design=NULL, subset.row=NULL,
+    value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100, preserve.dim=FALSE)
 
-\S4method{denoisePCA}{SCESet}(x, ..., subset.row=NULL, 
-    value=c("pca", "n", "lowrank"), assay="exprs", get.spikes=FALSE)
+\S4method{denoisePCA}{SingleCellExperiment}(x, ..., subset.row=NULL, 
+    value=c("pca", "n", "lowrank"), assay.type="exprs", get.spikes=FALSE)
 }
 
 \arguments{
-\item{x}{A numeric matrix of log-expression values for \code{denoisePCA,matrix-method}, 
-or a SCESet object containing such values for \code{denoisePCA,SCESet-method}.}
+\item{x}{A numeric matrix of log-expression values for \code{denoisePCA,ANY-method}, 
+or a SingleCellExperiment object containing such values for \code{denoisePCA,SingleCellExperiment-method}.}
 \item{technical}{A named numeric vector containing the technical variance for each gene in \code{x}.
 Alternatively, a function that accepts the average log-expression and returns the technical variance.}
 \item{design}{A numeric matrix containing the experimental design.
@@ -25,24 +25,21 @@ If \code{NULL}, all cells are assumed to belong to a single group.}
 All genes are used by default.}
 \item{value}{A string specifying the type of value to return; the PCs, the number of retained components, or a low-rank approximation.}
 \item{min.rank, max.rank}{Integer scalars specifying the minimum and maximum number of PCs to retain.}
-\item{...}{Further arguments to pass to \code{denoisePCA,matrix-method}.}
-\item{assay}{A string specifying which assay values to use.}
+\item{preserve.dim}{A logical scalar indicating whether the dimensions should be preserved when \code{subset.row} is not \code{NULL}.}
+\item{...}{Further arguments to pass to \code{denoisePCA,ANY-method}.}
+\item{assay.type}{A string specifying which assay values to use.}
 \item{get.spikes}{A logical specifying whether spike-in transcripts should be used.
 This is ignored if \code{subset.row} is specified.}
 }
 
 \value{
-For \code{denoisePCA,matrix-method}, a numeric matrix is returned containing the selected PCs (columns) for all cells (rows) if \code{value="pca"}.
+For \code{denoisePCA,ANY-method}, a numeric matrix is returned containing the selected PCs (columns) for all cells (rows) if \code{value="pca"}.
 If \code{value="n"}, it will return an integer scalar specifying the number of retained components.
 If \code{value="lowrank"}, it will return a low-rank approximation of \code{x} with the same dimensions.
 
-For \code{denoisePCA,SCESet-method}, a SCESet object is returned containing the PCs in the \code{reducedDimension} slot if \code{value="pca"}.
+For \code{denoisePCA,SingleCellExperiment-method}, a SingleCellExperiment object is returned containing the PCs in the \code{reducedDimension} slot if \code{value="pca"}.
 If \code{value="lowrank"}, it will return a low-rank approximation in \code{assays} slot, named \code{"lowrank"}.
 Currently, \code{value="n"} will return the object without modification.
-
-Note that the output changes slightly between the matrix and SCESet methods when \code{subset.row} is not \code{NULL} and \code{value="lowrank"}.
-In the matrix method, the output will be subsetted to retain only the selected rows,
-whereas in the SCESet method, the unselected rows will be set to all-zero values in the \code{"lowrank"} assay matrix.
 }
 
 \details{
@@ -52,9 +49,9 @@ In contrast, biological substructure should be correlated and captured by earlie
 The idea is to discard later PCs to remove technical noise and improve the resolution of substructure.
 
 The choice of the number of PCs to discard is based on the estimates of technical variance in \code{technical}.
-This either uses the trend function obtained from \code{\link{trendVar}} or the technical components from \code{\link{decomposeVar}}.
-(Obviously, the log-expression values used in those functions should be the same as those used here.)
-The total technical variance is estimated by summing the values across genes.
+This uses the trend function obtained from \code{\link{trendVar}} to compute the technical component for each gene, based on its mean abundance.
+The overall technical variance is estimated by summing the values across genes.
+Genes with negative biological components are ignored during downstream analyses to ensure that the total variance is greater than the technical variance.
 
 The function works by assuming that the first X PCs contain all of the biological signal, while the remainder contains technical noise.
 For a given value of X, a prediction for the total technical variance is calculated, based on the variance explained by the later PCs.
@@ -66,6 +63,10 @@ Only the first X PCs are reported if \code{value="pca"}.
 If \code{value="n"}, the value of X is directly reported, which avoids computing the PCs if only the rank is desired.
 If \code{value="lowrank"}, a low-rank approximation of the original matrix is computed using only the first X components.
 This is useful for denoising prior to downstream applications that expect gene-wise expression profiles.
+
+If \code{value="lowrank"}, genes with negative components are still reported but are assigned expression values of zero for all cells.
+If \code{subset.row} is not \code{NULL}, genes that are not in the selected set are removed by default.
+However, if \code{preserve.dim=TRUE}, the unselected genes will still be reported and are assigned all-zero expression profiles.
 
 If \code{design} is specified, the residuals of a linear model fitted to each gene are computed.
 Because variances computed from residuals are usually underestimated, the residuals are scaled up so that their variance is equal to the residual variance of the model fit.
@@ -94,17 +95,11 @@ rownames(counts) <- paste0("Gene", seq_len(ngenes))
 # Fitting a trend.
 lcounts <- log2(counts + 1)
 fit <- trendVar(lcounts, subset.row=is.spike)
-dec <- decomposeVar(lcounts, fit)
 
 # Denoising (not including the spike-ins in the PCA;
-# spike-ins are automatically removed with the SCESet method). 
+# spike-ins are automatically removed with the SingleCellExperiment method). 
 pcs <- denoisePCA(lcounts, technical=fit$trend, subset.row=-is.spike)
 dim(pcs)
-
-# Gets the same result as above, if you don't have the function.
-pcs2 <- denoisePCA(lcounts, technical=setNames(dec$tech, 
-    rownames(dec)), subset.row=-is.spike) # same result
-dim(pcs2)
 
 # With a design matrix.
 design <- model.matrix(~factor(rep(0:1, length.out=nsamples)))

@@ -1,17 +1,12 @@
-setGeneric("quickCluster", function(x, ...) standardGeneric("quickCluster"))
-
-setMethod("quickCluster", "matrix", function(x, min.size=200, subset.row=NULL, get.ranks=FALSE, method=c("hclust", "igraph"), ...)  
+.quick_cluster <- function(x, min.size=200, subset.row=NULL, get.ranks=FALSE, method=c("hclust", "igraph"), ...)  
 # This function generates a cluster vector containing the cluster number assigned to each cell.
 # It takes the counts matrix and a minimum number of Cells per cluster as input.
 # The minimum number should be at least twice as large as the largest group used for summation.
 #
 # written by Karsten Bach, with modifications by Aaron Lun
 # created 1 December 2015
-# last modified 6 June 2017
+# last modified 4 August 2017
 {   
-    if (ncol(x) < min.size){
-        stop('fewer cells than the minimum cluster size')
-    }
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
 
     # Obtaining scaled/centred ranks to compute cosine distances.
@@ -23,6 +18,9 @@ setMethod("quickCluster", "matrix", function(x, min.size=200, subset.row=NULL, g
         return(rkout)
     }
 
+    if (ncol(x) < min.size){
+        stop('fewer cells than the minimum cluster size')
+    }
     if (method=="igraph") { 
         g <- buildSNNGraph(rkout, ...)
         out <- cluster_fast_greedy(g)
@@ -41,7 +39,7 @@ setMethod("quickCluster", "matrix", function(x, min.size=200, subset.row=NULL, g
     }
     clusters <- factor(clusters)
     return(clusters)
-})
+}
 
 .merge_closest_graph <- function(g, clusters, min.size) {
     while (1) {
@@ -78,10 +76,14 @@ setMethod("quickCluster", "matrix", function(x, min.size=200, subset.row=NULL, g
     return(clusters)
 }
 
-setMethod("quickCluster", "SCESet", function(x, subset.row=NULL, ..., assay="counts", get.spikes=FALSE) { 
-    if (is.null(subset.row)) {
-        subset.row <- .spike_subset(x, get.spikes)
-    }
-    quickCluster(assayDataElement(x, assay), subset.row=subset.row, ...)
+setGeneric("quickCluster", function(x, ...) standardGeneric("quickCluster"))
+
+setMethod("quickCluster", "ANY", .quick_cluster)
+
+setMethod("quickCluster", "SingleCellExperiment", 
+          function(x, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE) { 
+
+    subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)          
+    .quick_cluster(assay(x, i=assay.type), subset.row=subset.row, ...)
 })
 

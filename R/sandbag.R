@@ -61,7 +61,7 @@ find.markers <- function(current.data, other.data, gene.names, fraction=0.5)
 
 setGeneric("sandbag", function(x, ...) standardGeneric("sandbag"))
 
-setMethod("sandbag", "matrix", function(x, phases, gene.names=rownames(x), fraction=0.5, subset.row=NULL) 
+setMethod("sandbag", "ANY", function(x, phases, gene.names=rownames(x), fraction=0.5, subset.row=NULL) 
 # Identifies the relevant pairs before running 'cyclone'.
 # Basically runs through all combinations of 'find.markers' for each phase. 
 #
@@ -87,9 +87,9 @@ setMethod("sandbag", "matrix", function(x, phases, gene.names=rownames(x), fract
     return(marker.pairs)
 })
 
-setMethod("sandbag", "SCESet", function(x, phases, subset.row=NULL, ..., assay="counts", get.spikes=FALSE) {
-    if (is.null(subset.row)) { 
-        subset.row <- .spike_subset(x, get.spikes)
-    }
-    sandbag(assayDataElement(x, assay), phases=phases, ..., subset.row=subset.row)
+setMethod("sandbag", "SingleCellExperiment", 
+          function(x, phases, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE) {
+
+    subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
+    sandbag(assay(x, i=assay.type), phases=phases, ..., subset.row=subset.row)
 })
