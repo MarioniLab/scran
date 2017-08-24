@@ -83,8 +83,7 @@ head(sizeFactors(y2, type="Spike"))
 }
 
 \seealso{
-\code{\link[scater]{isSpike}},
-\code{\link[scater]{setSpike}}
+\code{\link[SingleCellExperiment]{isSpike}}
 }
 
 \references{
