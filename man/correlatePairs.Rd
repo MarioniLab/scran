@@ -16,7 +16,7 @@ correlateNull(ncells, iters=1e6, design=NULL, residuals=FALSE)
     block.size=100L, BPPARAM=SerialParam())
 
 \S4method{correlatePairs}{SingleCellExperiment}(x, ..., use.names=TRUE, subset.row=NULL, per.gene=FALSE,
-    lower.bound=NULL, assay.type="exprs", get.spikes=FALSE)
+    lower.bound=NULL, assay.type="logcounts", get.spikes=FALSE)
 }
 
 \arguments{

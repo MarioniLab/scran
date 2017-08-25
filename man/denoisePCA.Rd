@@ -12,7 +12,7 @@
     preserve.dim=FALSE, approximate=FALSE)
 
 \S4method{denoisePCA}{SingleCellExperiment}(x, ..., subset.row=NULL, 
-    value=c("pca", "n", "lowrank"), assay.type="exprs", get.spikes=FALSE)
+    value=c("pca", "n", "lowrank"), assay.type="logcounts", get.spikes=FALSE)
 }
 
 \arguments{

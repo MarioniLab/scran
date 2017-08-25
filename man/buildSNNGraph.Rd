@@ -10,7 +10,7 @@
 \S4method{buildSNNGraph}{ANY}(x, k=10, d=50, transposed=FALSE, pc.approx=FALSE,
     subset.row=NULL, BPPARAM=SerialParam())
 
-\S4method{buildSNNGraph}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="exprs", 
+\S4method{buildSNNGraph}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", 
     get.spikes=FALSE, use.dimred=NULL)
 }
 
@@ -24,7 +24,7 @@ If it is matrix, it can also be transposed.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{BPPARAM}{A BiocParallelParam object to use in \code{bplapply} for parallel processing.}
 \item{...}{Additional arguments to pass to \code{buildSNNGraph,ANY-method}.}
-\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
+\item{assay.type}{A string specifying which assay values to use.}
 \item{get.spikes}{A logical scalar specifying whether spike-in transcripts should be used.}
 \item{use.dimred}{A string specifying whether existing values in \code{reducedDims(x)} should be used.}
 }

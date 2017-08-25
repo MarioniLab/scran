@@ -179,7 +179,7 @@ test_that("denoisePCA throws errors correctly", {
 
 test_that("denoisePCA works with SingleCellExperiment inputs", {
     # Checking for proper behaviour with SCESet.
-    X <- SingleCellExperiment(list(exprs=lcounts))
+    X <- SingleCellExperiment(list(logcounts=lcounts))
     X2 <- denoisePCA(X, technical=fit$trend)
     pcx <- reducedDim(X2, "PCA")
     rownames(pcx) <- NULL

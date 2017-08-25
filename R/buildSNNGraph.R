@@ -91,7 +91,7 @@ setGeneric("buildSNNGraph", function(x, ...) standardGeneric("buildSNNGraph"))
 setMethod("buildSNNGraph", "ANY", .buildSNNGraph)
 
 setMethod("buildSNNGraph", "SingleCellExperiment", 
-          function(x, ..., subset.row=NULL, assay.type="exprs", get.spikes=FALSE, use.dimred=NULL) {
+          function(x, ..., subset.row=NULL, assay.type="logcounts", get.spikes=FALSE, use.dimred=NULL) {
               
     subset.row <- .SCE_subset_genes(subset.row, x=x, get.spikes=get.spikes)
     if (!is.null(use.dimred)) {

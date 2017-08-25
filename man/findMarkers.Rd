@@ -10,7 +10,7 @@
 \S4method{findMarkers}{ANY}(x, clusters, design=NULL, pval.type=c("any", "all"), 
     direction=c("any", "up", "down"), min.mean=0.1, subset.row=NULL)
 
-\S4method{findMarkers}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="exprs", get.spikes=FALSE) 
+\S4method{findMarkers}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", get.spikes=FALSE) 
 }
 
 \arguments{

@@ -12,7 +12,7 @@
     parametric=FALSE, start=NULL, min.mean=0.1,
     design=NULL, subset.row=NULL) 
 
-\S4method{trendVar}{SingleCellExperiment}(x, subset.row=NULL, ..., assay.type="exprs", use.spikes=TRUE)
+\S4method{trendVar}{SingleCellExperiment}(x, subset.row=NULL, ..., assay.type="logcounts", use.spikes=TRUE)
 }
 
 \arguments{
@@ -101,7 +101,7 @@ For example, the trend will not provide accurate estimates of the technical comp
 }
 
 \section{Warning on size factor centring}{ 
-If \code{assay.type="exprs"}, \code{trendVar,SingleCellExperiment-method} will attempt to determine if the expression values were computed from counts via \code{\link[scater]{normalize}}.
+If \code{assay.type="logcounts"}, \code{trendVar,SingleCellExperiment-method} will attempt to determine if the expression values were computed from counts via \code{\link[scater]{normalize}}.
 If so, a warning will be issued if the size factors are not centred at unity.
 This is because different size factors are typically used for endogenous genes and spike-in transcripts.
 If these size factor sets are not centred at the same value, there will be systematic differences in abundance between these features.
@@ -111,17 +111,17 @@ For other expression values and in \code{trendVar,ANY-method}, the onus is on th
 In other words, the scaling factors used to normalize each feature should have the same mean.
 This ensures that spurious differences in abundance are not introduced by the normalization process.
 
-% Forcibly recomputing the "exprs" values within trendVar() is arguably safer, as normalize() enforces centring.
+% Forcibly recomputing the "logcounts" values within trendVar() is arguably safer, as normalize() enforces centring.
 % However, it's slightly expensive, hidden from the user and restricted to this function.
 % Better to request a re-calculation on the user's side, such that the recalculated values are consistently used here and elsewhere.
 %
 % The attempted check should only fail in pathological cases:
-% - false positives when counts are added to "x" after computing "exprs" (fairly unusual to not put them in as raw data first)
+% - false positives when counts are added to "x" after computing "logcounts" (fairly unusual to not put them in as raw data first)
 % - false positives when normalize() is run with centre_size_factors=FALSE (don't know why you would do that)
-% - false negatives when counts are removed from "x" after computing "exprs" (this is pretty stupid)
-% - false negatives when size factors are modified by centring but "exprs" is not re-computed (arguably a problem for the entire workflow)
+% - false negatives when counts are removed from "x" after computing "logcounts" (this is pretty stupid)
+% - false negatives when size factors are modified by centring but "logcounts" is not re-computed (arguably a problem for the entire workflow)
 %
-% The other options would involve enforcing validity checks on "exprs" within the SingleCellExperiment object itself.
+% The other options would involve enforcing validity checks on "logcounts" within the SingleCellExperiment object itself.
 % However, this is probably too obtrusive for little gain; only this function requires consistency in the absolute values of the size factors.
 }
 

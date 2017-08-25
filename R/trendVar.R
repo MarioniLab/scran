@@ -133,7 +133,7 @@ setGeneric("trendVar", function(x, ...) standardGeneric("trendVar"))
 
 setMethod("trendVar", "ANY", .trend_var)
 
-setMethod("trendVar", "SingleCellExperiment", function(x, subset.row=NULL, ..., assay.type="exprs", use.spikes=TRUE) {
+setMethod("trendVar", "SingleCellExperiment", function(x, subset.row=NULL, ..., assay.type="logcounts", use.spikes=TRUE) {
     .check_centered_SF(x, assay.type=assay.type)
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
 

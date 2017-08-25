@@ -37,7 +37,7 @@ setGeneric("decomposeVar", function(x, fit, ...) standardGeneric("decomposeVar")
 setMethod("decomposeVar", c("ANY", "list"), .decompose_var)
 
 setMethod("decomposeVar", c("SingleCellExperiment", "list"), 
-          function(x, fit, subset.row=NULL, ..., assay.type="exprs", get.spikes=FALSE) {
+          function(x, fit, subset.row=NULL, ..., assay.type="logcounts", get.spikes=FALSE) {
 
     subset.row <- .SCE_subset_genes(subset.row, x=x, get.spikes=get.spikes)
     .check_centered_SF(x, assay.type=assay.type)

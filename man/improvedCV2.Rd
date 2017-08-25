@@ -13,7 +13,7 @@ This is intended to be a more stable version of \code{\link{technicalCV2}}.
 \S4method{improvedCV2}{ANY}(x, is.spike, sf.cell=NULL, sf.spike=NULL, 
     log.prior=NULL, df=4, robust=FALSE, use.spikes=FALSE)
 
-\S4method{improvedCV2}{SingleCellExperiment}(x, spike.type=NULL, ..., assay.type="exprs", logged=NULL)
+\S4method{improvedCV2}{SingleCellExperiment}(x, spike.type=NULL, ..., assay.type="logcounts", logged=NULL)
 }
 
 \arguments{
@@ -33,7 +33,7 @@ If this is set, \code{x} is assumed to contain log-expression values, otherwise 
 \item{...}{Additional arguments to pass to \code{improvedCV2,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use.}
 \item{logged}{A logical scalar indicating if \code{assay.type} contains log-expression values.
-This is automatically determined if \code{assay.type="counts"} or \code{"exprs"}.}
+This is automatically determined if \code{assay.type="counts"} or \code{"logcounts"}.}
 }
 
 \details{

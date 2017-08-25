@@ -79,13 +79,13 @@ setGeneric("improvedCV2", function(x, ...) standardGeneric("improvedCV2"))
 setMethod("improvedCV2", "ANY", .improvedCV2)
 
 setMethod("improvedCV2", "SingleCellExperiment", 
-          function(x, spike.type=NULL, ..., assay.type="exprs", logged=NULL) {
+          function(x, spike.type=NULL, ..., assay.type="logcounts", logged=NULL) {
 
     log.prior <- NULL
     if (!is.null(logged)) {
         if (logged) log.prior <- .get_log_offset(x)
     } else {
-        if (assay.type=="exprs") {
+        if (assay.type=="logcounts") {
             log.prior <- .get_log_offset(x)
         } else if (assay.type!="counts") {
             stop("cannot determine if values are logged or counts")

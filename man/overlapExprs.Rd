@@ -11,7 +11,7 @@
     BPPARAM=SerialParam(), subset.row=NULL, lower.bound=NULL)
 
 \S4method{overlapExprs}{SingleCellExperiment}(x, ..., subset.row=NULL, lower.bound=NULL, 
-    assay.type="exprs", get.spikes=FALSE) 
+    assay.type="logcounts", get.spikes=FALSE) 
 }
 
 \arguments{

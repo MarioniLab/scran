@@ -58,9 +58,9 @@ are_graphs_same(g, g2)
 # Checking SCESet construction.
 
 test_that("buildSNNGraph works properly on SingleCellExperiment objects", {
-    sce <- SingleCellExperiment(list(counts=2^dummy, exprs=dummy))
+    sce <- SingleCellExperiment(list(counts=2^dummy, logcounts=dummy))
     g <- buildSNNGraph(sce)
-    g2 <- buildSNNGraph(assay(sce, "exprs"))
+    g2 <- buildSNNGraph(assay(sce, "logcounts"))
     are_graphs_same(g, g2)
     
     g <- buildSNNGraph(sce, assay.type="counts")
@@ -122,7 +122,7 @@ test_that("buildSNNGRaph with PCA works correctly", {
     are_graphs_same(refi, alti)
 
     # Checking that it correctly extracts stuff from the reducedDimension slot.
-    X <- SingleCellExperiment(list(exprs=dummy))
+    X <- SingleCellExperiment(list(logcounts=dummy))
     reducedDim(X, "PCA") <- pc$x[,1:50]
     alt <- buildSNNGraph(X, use.dimred="PCA")
     are_graphs_same(ref, alt)

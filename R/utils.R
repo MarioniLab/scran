@@ -54,10 +54,10 @@
 }
 
 .check_centered_SF <- function(x, assay.type) 
-# Checks if 'exprs' was requested, and if it could have been computed from counts,
+# Checks if 'logcounts' was requested, and if it could have been computed from counts,
 # If so, then it checks if the size factors are centered.
 {
-    if (assay.type=="exprs" && 
+    if (assay.type=="logcounts" && 
         "counts" %in% assayNames(x) && 
         !areSizeFactorsCentred(x)) {
         warning("size factors not centred, run 'normalize()' first")
@@ -176,7 +176,7 @@
 # actually be detected as being "<= lower.bound".
 { 
     if (is.null(lower.bound)) { 
-        if (assay.type=="exprs") {
+        if (assay.type=="logcounts") {
             lower.bound <- log2(.get_log_offset(x)) + 1e-8
         } else if (assay.type=="counts") {
             lower.bound <- 1e-8

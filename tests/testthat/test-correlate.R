@@ -433,7 +433,7 @@ test_that("correlatePairs works correctly with SingleCellExperiment objects", {
     set.seed(100)
     ref <- correlatePairs(X, null.dist=nulls)
     set.seed(100)
-    X2 <- SingleCellExperiment(list(exprs=X))
+    X2 <- SingleCellExperiment(list(logcounts=X))
     metadata(X2)$log.exprs.offset <- 1
     out <- correlatePairs(X2, null.dist=nulls)
     expect_equal(out, ref)

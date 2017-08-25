@@ -230,7 +230,7 @@ setMethod("correlatePairs", "ANY", .correlate_pairs)
 
 setMethod("correlatePairs", "SingleCellExperiment", 
           function(x, ..., use.names=TRUE, subset.row=NULL, per.gene=FALSE, 
-                   lower.bound=NULL, assay.type="exprs", get.spikes=FALSE) {
+                   lower.bound=NULL, assay.type="logcounts", get.spikes=FALSE) {
 
     subset.row <- .SCE_subset_genes(subset.row, x=x, get.spikes=get.spikes)              
     lower.bound <- .guess_lower_bound(x, assay.type, lower.bound)
