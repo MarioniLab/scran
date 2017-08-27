@@ -8,7 +8,7 @@
 
 \usage{
 \S4method{buildSNNGraph}{ANY}(x, k=10, d=50, transposed=FALSE, pc.approx=FALSE,
-    subset.row=NULL, BPPARAM=SerialParam())
+    rand.seed=1000, subset.row=NULL, BPPARAM=SerialParam())
 
 \S4method{buildSNNGraph}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", 
     get.spikes=FALSE, use.dimred=NULL)
@@ -22,6 +22,8 @@ If it is matrix, it can also be transposed.}
 \item{transposed}{A logical scalar indicating whether \code{x} is transposed (i.e., rows are cells).}
 \item{pc.approx}{A logical scalar indicating whether approximate PCA should be performed.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
+\item{rand.seed}{A numeric scalar specifying the seed for approximate PCA when \code{pc.approx=TRUE}.
+This can be set to \code{NA} to use the existing session seed.}
 \item{BPPARAM}{A BiocParallelParam object to use in \code{bplapply} for parallel processing.}
 \item{...}{Additional arguments to pass to \code{buildSNNGraph,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use.}

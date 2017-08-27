@@ -1,6 +1,6 @@
 .denoisePCA <- function(x, technical, design=NULL, subset.row=NULL,
                         value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100, 
-                        preserve.dim=FALSE, approximate=FALSE)
+                        preserve.dim=FALSE, approximate=FALSE, rand.seed=1000)
 # Performs PCA and chooses the number of PCs to keep based on the technical noise.
 # This is done on the residuals if a design matrix is supplied.
 #
@@ -49,6 +49,9 @@
 
     # Switching to IRLBA if an approximation is requested.
     if (approximate){
+        if (!is.na(rand.seed)) { 
+            set.seed(rand.seed)
+        }
         max.rank <- min(dim(y)-1L, max.rank)
         nu <- ifelse(value=="lowrank", max.rank, 0L)
         out <- irlba::irlba(y, nu=nu, nv=max.rank) # center= seems to be broken.
@@ -64,6 +67,7 @@
         if (value=="n") {
             return(to.keep)
         } else if (value=="pca") {
+            set.seed(rand.seed)
             pc.out <- irlba::prcomp_irlba(y, n=to.keep, center=TRUE, scale.=FALSE)
             return(pc.out$x)
         } else if (value=="lowrank") {

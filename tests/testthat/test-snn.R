@@ -110,15 +110,13 @@ test_that("buildSNNGRaph with PCA works correctly", {
     set.seed(100)
     ipc <- irlba::prcomp_irlba(t(dummy), n=10)
     refi <- buildSNNGraph(t(ipc$x), k=10, d=NA)
-    set.seed(100)
-    alti <- buildSNNGraph(t(ipc$x), k=10, d=10, pc.approx=TRUE)
+    alti <- buildSNNGraph(t(ipc$x), k=10, d=10, pc.approx=TRUE, rand.seed=100)
     are_graphs_same(refi, alti)
 
     set.seed(200)
     ipc <- irlba::prcomp_irlba(t(dummy), n=20)
     refi <- buildSNNGraph(t(ipc$x), k=10, d=NA)
-    set.seed(200)
-    alti <- buildSNNGraph(t(ipc$x), k=10, d=20, pc.approx=TRUE)
+    alti <- buildSNNGraph(t(ipc$x), k=10, d=20, pc.approx=TRUE, rand.seed=200)
     are_graphs_same(refi, alti)
 
     # Checking that it correctly extracts stuff from the reducedDimension slot.
