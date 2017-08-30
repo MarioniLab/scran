@@ -53,8 +53,9 @@
             set.seed(rand.seed)
         }
         max.rank <- min(dim(y)-1L, max.rank)
-        nu <- ifelse(value=="lowrank", max.rank, 0L)
-        out <- irlba::irlba(y, nu=nu, nv=max.rank) # center= seems to be broken.
+        nu <- ifelse(value!="n", max.rank, 0L)
+        out <- irlba::irlba(y, nu=nu, nv=max.rank, # center= seems to be broken.
+                            maxit=max(100, max.rank*10)) # allowing more iterations if max.rank is high.
         var.exp <- out$d^2/(ncells - 1)
         
         # Assuming all non-computed components were technical, and discarding them for further consideration.
@@ -67,9 +68,8 @@
         if (value=="n") {
             return(to.keep)
         } else if (value=="pca") {
-            set.seed(rand.seed)
-            pc.out <- irlba::prcomp_irlba(y, n=to.keep, center=TRUE, scale.=FALSE)
-            return(pc.out$x)
+            ix <- seq_len(to.keep)
+            return(sweep(out$u[,ix,drop=FALSE], 2, out$d[ix], FUN="*"))
         } else if (value=="lowrank") {
             ix <- seq_len(to.keep)
             denoised <- out$u[,ix,drop=FALSE] %*% (out$d[ix] * t(out$v[,ix,drop=FALSE])) 

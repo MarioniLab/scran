@@ -152,8 +152,8 @@ test_that("denoisePCA works with IRLBA", {
     # Checking the actual PCs themselves.
     pca <- suppressWarnings(denoisePCA(lcounts, technical=fit$trend, value="pca", approximate=TRUE, rand.seed=200))
     set.seed(200)
-    epc <- suppressWarnings(irlba::prcomp_irlba(current, n=npcs, center=TRUE, scale.=FALSE))
-    are_PCs_equal(pca, epc$x, tol=1e-5) # some unaccounted random component; not clear where this comes from.
+    epc <- suppressWarnings(irlba::prcomp_irlba(current, n=df0, center=FALSE, scale.=FALSE))
+    are_PCs_equal(pca, epc$x[,seq_len(npcs),drop=FALSE]) 
     
     # Checking the low-rank approximations.
     lr <- suppressWarnings(denoisePCA(lcounts, technical=fit$trend, value="lowrank", approximate=TRUE, rand.seed=300))
