@@ -23,7 +23,7 @@ importFrom("Rcpp", sourceCpp)
 importFrom("scater", calcAverage, areSizeFactorsCentred)
 
 importFrom("dynamicTreeCut", cutreeDynamic)
-importFrom("Matrix", sparseMatrix, qr, qr.coef, qr.qty, t, which)
+importFrom("Matrix", sparseMatrix, qr, qr.coef, qr.qty, t, which, colMeans)
 
 importFrom("edgeR", DGEList, "[.DGEList", designAsFactor, scaleOffset.DGEList)
 importFrom("limma", fitFDistRobustly, lmFit, contrasts.fit, squeezeVar)

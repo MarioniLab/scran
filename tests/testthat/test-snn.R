@@ -108,13 +108,13 @@ test_that("buildSNNGRaph with PCA works correctly", {
 
     # Testing with IRLBA.
     set.seed(100)
-    ipc <- irlba::prcomp_irlba(t(dummy), n=10)
+    ipc <- irlba::prcomp_irlba(t(dummy - rowMeans(dummy)), n=10, center=FALSE)
     refi <- buildSNNGraph(t(ipc$x), k=10, d=NA)
     alti <- buildSNNGraph(t(ipc$x), k=10, d=10, pc.approx=TRUE, rand.seed=100)
     are_graphs_same(refi, alti)
 
     set.seed(200)
-    ipc <- irlba::prcomp_irlba(t(dummy), n=20)
+    ipc <- irlba::prcomp_irlba(t(dummy - rowMeans(dummy)), n=20, center=FALSE)
     refi <- buildSNNGraph(t(ipc$x), k=10, d=NA)
     alti <- buildSNNGraph(t(ipc$x), k=10, d=20, pc.approx=TRUE, rand.seed=200)
     are_graphs_same(refi, alti)

@@ -6,7 +6,7 @@
 #
 # written by Aaron Lun
 # created 3 April 2017
-# last modified 17 August 2017    
+# last modified 18 September 2017    
 { 
     ncells <- ncol(x)
     if (!is.null(subset.row)) {
@@ -16,13 +16,15 @@
     # Reducing dimensions, if 'd' is less than the number of genes.
     if (!transposed) {
         x <- t(x)
-    }
+    } 
     if (!is.na(d) && d < ncol(x)) {
         if (pc.approx) {
+            # Manual centering, because native center= support seems buggy ATM.
+            x <- t(t(x) - colMeans(x))
             if (!is.na(rand.seed)) {
                 set.seed(rand.seed)
             }
-            pc <- irlba::prcomp_irlba(x, n=d, scale.=FALSE, center=TRUE)
+            pc <- irlba::prcomp_irlba(as.matrix(x), n=d, scale.=FALSE, center=FALSE) 
         } else {
             pc <- prcomp(x, rank.=d, scale.=FALSE, center=TRUE)
         }

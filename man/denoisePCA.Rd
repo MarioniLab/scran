@@ -19,7 +19,6 @@
 \item{x}{A numeric matrix of log-expression values for \code{denoisePCA,ANY-method}, 
 or a SingleCellExperiment object containing such values for \code{denoisePCA,SingleCellExperiment-method}.}
 \item{technical}{A function that computes the technical component of the variance for a gene with a given mean (log-)expression, see \code{?\link{trendVar}}.}
-Alternatively, a function that accepts the average log-expression and returns the technical variance.}
 \item{design}{A numeric matrix containing the experimental design.
 If \code{NULL}, all cells are assumed to belong to a single group.}
 \item{subset.row}{A logical, integer or character vector indicating the rows of \code{x} to use.
