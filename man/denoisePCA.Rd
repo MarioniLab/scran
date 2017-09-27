@@ -12,7 +12,8 @@
     preserve.dim=FALSE, approximate=FALSE, rand.seed=1000)
 
 \S4method{denoisePCA}{SingleCellExperiment}(x, ..., subset.row=NULL, 
-    value=c("pca", "n", "lowrank"), assay.type="logcounts", get.spikes=FALSE)
+    value=c("pca", "n", "lowrank"), assay.type="logcounts", 
+    get.spikes=FALSE, sce.out=TRUE)
 }
 
 \arguments{
@@ -31,8 +32,9 @@ All genes are used by default.}
 This can be set to \code{NA} to use the existing session seed.}
 \item{...}{Further arguments to pass to \code{denoisePCA,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use.}
-\item{get.spikes}{A logical specifying whether spike-in transcripts should be used.
-This is ignored if \code{subset.row} is specified.}
+\item{get.spikes}{A logical scalar specifying whether spike-in transcripts should be used.
+This will be intersected with \code{subset.row} if the latter is specified.}
+\item{sce.out}{A logical scalar specifying whether a modified SingleCellExperiment object should be returned.}
 }
 
 \value{
@@ -40,9 +42,10 @@ For \code{denoisePCA,ANY-method}, a numeric matrix is returned containing the se
 If \code{value="n"}, it will return an integer scalar specifying the number of retained components.
 If \code{value="lowrank"}, it will return a low-rank approximation of \code{x} with the same dimensions.
 
-For \code{denoisePCA,SingleCellExperiment-method}, a SingleCellExperiment object is returned containing the PCs in the \code{reducedDimension} slot if \code{value="pca"}.
+For \code{denoisePCA,SingleCellExperiment-method}, the return value is the same as \code{denoisePCA,ANY-method} if \code{sce.out=TRUE} or \code{value="n"}.
+Otherwise, a SingleCellExperiment object is returned that is a modified version of \code{x}.
+If \code{value="pca"}, the modified object will contain the PCs as the \code{"PCA"} entry in the \code{reducedDims} slot.
 If \code{value="lowrank"}, it will return a low-rank approximation in \code{assays} slot, named \code{"lowrank"}.
-Currently, \code{value="n"} will return the object without modification.
 }
 
 \details{
