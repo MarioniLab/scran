@@ -112,13 +112,15 @@ test_that("computeSumFactors agrees with a reference implementation", {
 # Trying it out with other options.
 
 dummy <- matrix(rpois(ncells*ngenes, lambda=10), nrow=ngenes, ncol=ncells)
-out <- computeSumFactors(dummy)
-if (.Platform$OS.type!="windows") { # Because limSolve doesn't build on Windows, apparently.
-outx <- computeSumFactors(dummy, positive=TRUE)
-expect_true(all(abs(outx -  out) < 1e-3)) # need to be a bit generous here, the solution code is different.
-}
-expect_warning(outx <- computeSumFactors(dummy, errors=TRUE), "errors=TRUE is no longer supported")
-expect_equal(as.numeric(outx), out)
+test_that("other solving options work properly", {
+    out <- computeSumFactors(dummy)
+    if (.Platform$OS.type!="windows") { # Because limSolve doesn't build on Windows, apparently.
+        outx <- computeSumFactors(dummy, positive=TRUE)
+        expect_true(all(abs(outx -  out) < 1e-3)) # need to be a bit generous here, the solution code is different.
+    }
+    expect_warning(outx <- computeSumFactors(dummy, errors=TRUE), "errors=TRUE is no longer supported")
+    expect_equal(as.numeric(outx), out)
+})
 
 # Checking the the clustering works as expected.
 

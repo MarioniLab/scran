@@ -66,15 +66,18 @@ This can be specified using \code{ref.clust} if there is prior knowledge about w
 Within each cluster (if not specified, all cells are put into a single cluster), cells are sorted by increasing library size and a sliding window is applied to this ordering.
 Each location of the window defines a pool of cells with similar library sizes.
 This avoids inflated estimation errors for very small cells when they are pooled with very large cells.
-Sliding the window will construct an over-determined linear system that can be solved with methods like the QR decomposition.
+Sliding the window will construct an over-determined linear system that can be solved by least-squares methods to obtain cell-specific size factors.
 
 Window sliding is repeated with different window sizes to construct the linear system, as specified by \code{sizes}.
 By default, the number of cells in each window ranges from 20 to 100.
 Using a range of window sizes improves the precision of the estimates, at the cost of increased computational complexity.
-The defaults are chosen to provide a reasonable compromise between these two considerations.
-
+The defaults were chosen to provide a reasonable compromise between these two considerations.
 The smallest window should be large enough so that the pool-based size factors are, on average, non-zero.
 We recommend window sizes no lower than 20 for UMI data, though smaller windows may be possible for read count data.
+
+The linear system is solved using the sparse QR decomposition from the \pkg{Matrix} package.
+However, this has known problems when the linear system becomes too large (see \url{https://stat.ethz.ch/pipermail/r-help/2011-August/285855.html}).
+In such cases, set \code{clusters} to break up the linear system into smaller, more manageable components that can be solved separately.
 }
 
 \section{Dealing with negative size factors}{ 
