@@ -1,5 +1,5 @@
 mnnCorrect <- function(..., k=20, sigma=0.1, cos.norm=TRUE, svd.dim=20, subset.row=NULL,
-                       pc.approx=FALSE, kernel.k=NA, order=NULL) 
+                       pc.approx=FALSE, kernel.k=NA, order=NULL, BPPARAM=SerialParam())
 # Performs correction based on the batches specified in the ellipsis.
 #    
 # written by Laleh Haghverdi
@@ -58,10 +58,12 @@ mnnCorrect <- function(..., k=20, sigma=0.1, cos.norm=TRUE, svd.dim=20, subset.r
         other.batch <- t(batches[[order[b]]])
         
         # Finding pairs of mutual nearest neighbours.
-        sets <- find.mutual.nn(ref.batch, other.batch, k1=k, k2=k)
+        sets <- find.mutual.nn(ref.batch, other.batch, k1=k, k2=k, BPPARAM=BPPARAM)
         s1 <- sets$first
         s2 <- sets$second      
-        kernel <- construct.smoothing.kernel(other.batch, exact=is.na(kernel.k), kk=kernel.k, sigma=sigma, mnn.set=s2)
+
+        kernel <- construct.smoothing.kernel(other.batch, sigma=sigma, exact=is.na(kernel.k), 
+                                             kk=kernel.k, mnn.set=s2, BPPARAM=BPPARAM)
         correction <- compute.correction.vectors(ref.batch, other.batch, s1, s2, kernel)
 
         if (!is.na(svd.dim)){
@@ -91,15 +93,15 @@ mnnCorrect <- function(..., k=20, sigma=0.1, cos.norm=TRUE, svd.dim=20, subset.r
     list(corrected=output, num.mnn=num.mnn)
 }
 
-find.mutual.nn <- function(data1, data2, k1, k2) 
+find.mutual.nn <- function(data1, data2, k1, k2, BPPARAM) 
 # Finds mutal neighbors between data1 and data2.
 {
     n1 <- nrow(data1)
     n2 <- nrow(data2)
     n.total <- n1 + n2
    
-    W21 <- get.knnx(data2, query=data1, k=k1)
-    W12 <- get.knnx(data1, query=data2, k=k2)
+    W21 <- bpl.get.knnx(data2, query=data1, k=k1, BPPARAM=BPPARAM)
+    W12 <- bpl.get.knnx(data1, query=data2, k=k2, BPPARAM=BPPARAM)
     W <- sparseMatrix(i=c(rep(seq_len(n1), k1), rep(n1 + seq_len(n2), k2)),
                       j=c(n1 + W21$nn.index, W12$nn.index),
                       x=rep(1, n1*k1 + n2*k2), dims=c(n.total, n.total))
@@ -114,7 +116,7 @@ find.mutual.nn <- function(data1, data2, k1, k2)
     return(list(first=A1, second=A2))
 }
 
-construct.smoothing.kernel <- function(data, sigma=0.1, exact=TRUE, kk=100, mnn.set) 
+construct.smoothing.kernel <- function(data, sigma=0.1, exact=TRUE, kk=100, mnn.set, BPPARAM) 
 # Constructs a Gaussian smoothing kernel, using all distances or the closest 100 cells.
 { 
     N <- nrow(data)
@@ -125,14 +127,15 @@ construct.smoothing.kernel <- function(data, sigma=0.1, exact=TRUE, kk=100, mnn.
         dd2 <- as.matrix(dist(data))
         G <- exp(-dd2^2/sigma)
     } else {
+        mnn.set <- unique(mnn.set)
         kk <- min(length(mnn.set), kk)
-        W <- get.knnx(data[mnn.set,,drop=FALSE], query=data, k=kk)
-        vals <- exp(-W$nn.dist^2/sigma)
+        W <- bpl.get.knnx(data[mnn.set,,drop=FALSE], query=data, k=kk, BPPARAM=BPPARAM)
+        vals <- as.vector(exp(-W$nn.dist^2/sigma))
         i.dex <- rep(seq_len(N), kk)
-        j.dex <- as.vector(W$nn.index)
-        G <- sparseMatrix(i=i.dex, j=j.dex, x=vals)
+        j.dex <- as.vector(mnn.set[W$nn.index])
+        G <- sparseMatrix(i=i.dex, j=j.dex, x=vals, dims=c(N, N))
     }
-    return((G+t(G))/2)
+    return(as.matrix(G+t(G))/2)
 }
 
 compute.correction.vectors <- function(data1, data2, mnn1, mnn2, kernel) 
@@ -173,10 +176,10 @@ subtract.bio <- function(correction, span1, span2)
 # Note that the order of span1 and span2 does not matter.
 { 
     bio.comp <- correction %*% span1 %*% t(span1)
-    correction <- t(correction) - t(bio.comp)
-    bio.comp <- t(correction) %*% span2 %*% t(span2)
-    correction <- correction - t(bio.comp)
-    return(t(correction))
+    correction <- correction - bio.comp
+    bio.comp <- correction %*% span2 %*% t(span2)
+    correction <- correction - bio.comp
+    return(correction)
 }    
 
 find.shared.subspace <- function(A, B, sin.threshold=0.85, cos.threshold=1/sqrt(2), 
@@ -219,4 +222,22 @@ cosine.norm <- function(X)
 {
     cellnorm <- pmax(1e-8, sqrt(colSums(X^2)))
     X/matrix(cellnorm, nrow(X), ncol(X), byrow=TRUE)
+}
+
+bpl.get.knnx <- function(data, query, k, BPPARAM) 
+# Splits up the query and searches for nearest neighbors in the data.
+{
+    nworkers <- bpworkers(BPPARAM)
+    if (nworkers > 1) {
+        by.core <- vector("list", nworkers)
+        assignments <- cut(seq_len(nrow(query)), nworkers)
+        for (i in seq_len(nworkers)) {
+            by.core[[i]] <- query[assignments==levels(assignments)[i],,drop=FALSE]
+        }
+    } else {
+        by.core <- list(query)
+    }
+
+    to.run <- bplapply(by.core, FUN=get.knnx, data=data, k=k, BPPARAM=BPPARAM)
+    do.call(mapply, c(to.run, FUN=rbind, SIMPLIFY = FALSE))
 }
