@@ -1,5 +1,5 @@
-mnnCorrect <- function(..., k=20, sigma=0.1, cos.norm=TRUE, svd.dim=20, subset.row=NULL,
-                       pc.approx=FALSE, kernel.k=NA, order=NULL, BPPARAM=SerialParam())
+mnnCorrect <- function(..., k=20, sigma=0.1, cos.norm=TRUE, svd.dim=20, subset.row=NULL, order=NULL, 
+                       pc.approx=FALSE, exact.kernel=FALSE, kernel.k=100, BPPARAM=SerialParam())
 # Performs correction based on the batches specified in the ellipsis.
 #    
 # written by Laleh Haghverdi
@@ -62,7 +62,7 @@ mnnCorrect <- function(..., k=20, sigma=0.1, cos.norm=TRUE, svd.dim=20, subset.r
         s1 <- sets$first
         s2 <- sets$second      
 
-        kernel <- construct.smoothing.kernel(other.batch, sigma=sigma, exact=is.na(kernel.k), 
+        kernel <- construct.smoothing.kernel(other.batch, sigma=sigma, exact=exact.kernel,
                                              kk=kernel.k, mnn.set=s2, BPPARAM=BPPARAM)
         correction <- compute.correction.vectors(ref.batch, other.batch, s1, s2, kernel)
 
