@@ -17,6 +17,7 @@ Added block.size argument to control caching.
 Modified several functions to accept ANY matrix-like object, rather than only base matrix objects.
 
 \item quickCluster() with method="igraph" will now merge based on modularity to satisfy min.size requirements.
+Added max.size option to restrict the size of the output clusters.
 
 \item Updated the trendVar() interface with parametric, method arguments.
 Deprecated the trend="semiloess" option in favour of parametric=TRUE and method="loess".

@@ -40,27 +40,43 @@ test_that("quickCluster correctly computes the ranks", {
 # Checking out that clustering is consistent with that based on correlations.
 
 set.seed(300001)
-mat <- matrix(rpois(10000, lambda=5), nrow=20)
-obs <- quickCluster(mat)
+test_that("quickCluster is consistent with clustering on correlations", {
+    mat <- matrix(rpois(10000, lambda=5), nrow=20)
+    obs <- quickCluster(mat)
+    
+    refM <- sqrt(0.5*(1 - cor(mat, method="spearman")))
+    distM <- as.dist(refM) 
+    htree <- hclust(distM, method='ward.D2')
+    clusters <- unname(dynamicTreeCut::cutreeDynamic(htree, minClusterSize=200, distM=refM, verbose=0))
+    expect_identical(clusters, as.integer(obs)) # this can complain if unassigned, as 0 becomes 1 in as.integer().
 
-refM <- sqrt(0.5*(1 - cor(mat, method="spearman")))
-distM <- as.dist(refM) 
-htree <- hclust(distM, method='ward.D2')
-clusters <- unname(dynamicTreeCut::cutreeDynamic(htree, minClusterSize=200, distM=refM, verbose=0))
-expect_identical(clusters, as.integer(obs))
+    # Works with min.size set.
+    obs <- quickCluster(mat, min.size=50)
+    clusters <- unname(dynamicTreeCut::cutreeDynamic(htree, minClusterSize=50, distM=refM, verbose=0))
+    expect_identical(clusters, as.integer(obs))
 
-obs <- quickCluster(mat, min.size=50)
-clusters <- unname(dynamicTreeCut::cutreeDynamic(htree, minClusterSize=50, distM=refM, verbose=0))
-expect_identical(clusters, as.integer(obs))
+    # Works with max.size set.
+    obs <- quickCluster(mat, min.size=20)
+    obs2 <- quickCluster(mat, min.size=20, max.size=40)
+    expect_false(all(table(obs) <= 40))
+    expect_true(all(table(obs2) <= 40))
+    expect_identical(length(unique(paste(obs, obs2, sep="."))), nlevels(obs2)) # obs2 is fully nested in obs.
+})
 
-mat <- matrix(rpois(10000, lambda=5), nrow=20)
-subset.row <- 15:1 # With subsetting
-refM <- sqrt(0.5*(1 - cor(mat[subset.row,], method="spearman")))
-distM <- as.dist(refM) 
-htree <- hclust(distM, method='ward.D2')
-obs <- quickCluster(mat, min.size=50, subset.row=subset.row)
-clusters <- unname(dynamicTreeCut::cutreeDynamic(htree, minClusterSize=50, distM=refM, verbose=0))
-expect_identical(clusters, as.integer(obs))
+test_that("quickCluster functions correctly with subsetting", {
+    # Works properly with subsetting.
+    mat <- matrix(rpois(10000, lambda=5), nrow=20)
+    subset.row <- 15:1 
+    obs <- quickCluster(mat, min.size=50, subset.row=subset.row)
+    expect_identical(obs, quickCluster(mat[subset.row,], min.size=50)) # Checking that it behaves properly.
+    expect_false(identical(quickCluster(mat), obs)) # It should return different results.
+
+    refM <- sqrt(0.5*(1 - cor(mat[subset.row,], method="spearman")))
+    distM <- as.dist(refM) 
+    htree <- hclust(distM, method='ward.D2')
+    clusters <- unname(dynamicTreeCut::cutreeDynamic(htree, minClusterSize=50, distM=refM, verbose=0))
+    expect_identical(clusters, as.integer(obs))
+})
 
 # Checking that we're executing the igraph methods correctly.
 
@@ -68,9 +84,10 @@ set.seed(300002)
 test_that("quickCluster with igraph works with min.size settings", {
     mat <- matrix(rpois(10000, lambda=5), nrow=20)
     obs <- quickCluster(mat, min.size=0, method="igraph")
+    expect_identical(length(obs), ncol(mat))
+
     ref <- quickCluster(mat, get.rank=TRUE)
-    
-    snn <- buildSNNGraph(ref) 
+    snn <- buildSNNGraph(ref, pc.approx=TRUE) 
     library(igraph)
     out <- cluster_fast_greedy(snn)
     expect_identical(factor(out$membership), obs)
@@ -82,13 +99,18 @@ test_that("quickCluster with igraph works with min.size settings", {
 
     combined <- paste0(obs, ".", obs2)
     expect_identical(length(unique(combined)), length(unique(obs))) # Confirm that they are nested.
+
+    # Checking that arguments are passed along.
+    obs <- quickCluster(mat, min.size=0, method="igraph", pc.approx=FALSE)
+    snn <- buildSNNGraph(ref, pc.approx=FALSE) 
+    out <- cluster_fast_greedy(snn)
+    expect_identical(factor(out$membership), obs)
+
+    obs <- quickCluster(mat, min.size=0, method="igraph", d=NA)
+    snn <- buildSNNGraph(ref, d=NA)
+    out <- cluster_fast_greedy(snn)
+    expect_identical(factor(out$membership), obs)
 })
-
-# Other checks
-
-expect_identical(length(quickCluster(mat, method="igraph", d=NA)), ncol(mat)) # Checking that the dimensions are correct for igraph.
-suppressWarnings(expect_false(identical(quickCluster(mat), quickCluster(mat[subset.row,])))) # Checking that subsetting gets different results.
-suppressWarnings(expect_identical(quickCluster(mat, subset.row=subset.row), quickCluster(mat[subset.row,]))) # Checking that subset.row works.
 
 # Seeing how it interacts with the normalization method.
 

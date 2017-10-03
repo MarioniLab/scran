@@ -7,8 +7,8 @@
 \description{Cluster similar cells based on rank correlations in their gene expression profiles.}
 
 \usage{
-\S4method{quickCluster}{ANY}(x, min.size=200, subset.row=NULL, get.ranks=FALSE, 
-    method=c("hclust", "igraph"), pc.approx=TRUE, ...)
+\S4method{quickCluster}{ANY}(x, min.size=200, max.size=NULL, subset.row=NULL, 
+    get.ranks=FALSE, method=c("hclust", "igraph"), pc.approx=TRUE, ...)
 
 \S4method{quickCluster}{SingleCellExperiment}(x, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE)
 }
@@ -18,7 +18,8 @@
     A numeric count matrix where rows are genes and columns are cells.
     Alternatively, a SingleCellExperiment object containing such a matrix.
 }
-\item{min.size}{An integer scalar specifying the minimum size of each cluster for \code{method="hclust"}.}
+\item{min.size}{An integer scalar specifying the minimum size of each cluster.}
+\item{max.size}{An integer scalar specifying the maximum size of each cluster.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{get.ranks}{A logical scalar specifying whether a matrix of adjusted ranks should be returned.}
 \item{method}{A string specifying the clustering method to use.}
@@ -46,19 +47,36 @@ This should be used in situations where there are too many cells to build a dist
 }
 A correlation-based approach is preferred here as it is invariant to scaling normalization.
 This avoids circularity between normalization and clustering, e.g., in \code{\link{computeSumFactors}}.
+}
 
-When using \code{\link{cutreeDynamic}} some cells may not be assigned to any cluster, and are assigned identities of \code{"0"} in the output vector.
+\section{Enforcing cluster sizes}{
+With \code{method="hclust"}, \code{\link{cutreeDynamic}} is used to ensure that all clusters contain a minimum number of cells.
+However, some cells may not be assigned to any cluster and are assigned identities of \code{"0"} in the output vector.
 In most cases, this is because those cells belong in a separate cluster with fewer than \code{min.size} cells.
 The function will not be able to call this as a cluster as the minimum threshold on the number of cells has not been passed.
 Users are advised to check that the unassigned cells do indeed form their own cluster.
-Otherwise, it may be necessary to use a custom clustering algorithm.
+Otherwise, it may be necessary to use a different clustering algorithm.
 
+When using \code{method="igraph"}, clusters are first identified using \code{\link[igraph]{cluster_fast_greedy}}.
+If the smallest cluster contains fewer cells than \code{min.size}, it is merged with the closest neighbouring cluster.
+In particular, the function will attempt to merge the smallest cluster with each other cluster.
+The merge that maximizes the modularity score is selected, and a new merged cluster is formed.
+This process is repeated until all (merged) clusters are larger than \code{min.size}.
+
+If \code{max.size} is specified, clusters that are larger than \code{max.size} will be broken up into partitions of equal size.
+This is done arbitrarily, without any use of cell-cell similarities within each cluster.
+The aim of this parameter is to reduce cluster sizes for easier computational processing (e.g., in \code{\link{computeSumFactors}}), rather than to define meaningful subclusters.
+}
+
+\section{Gene selection for SingleCellExperiment inputs}{
 In \code{quickCluster,SingleCellExperiment-method}, spike-in transcripts are not used by default as they provide little information on the biological similarities between cells.
 This may not be the case if subpopulations differ by total RNA content, in which case setting \code{get.spikes=TRUE} may provide more discriminative power.
 Users can also set \code{subset.row} to specify which rows of \code{x} are to be used to calculate correlations.
 This is equivalent to but more efficient than subsetting \code{x} directly, as it avoids constructing a (potentially large) temporary matrix.
 Note that if \code{subset.row} is specified, it will overwrite any setting of \code{get.spikes}.
+}
 
+\section{Obtaining the scaled and centred ranks}{
 Users can also set \code{get.ranks=TRUE}, in which case a matrix of ranks will be returned.
 Each column contains the ranks for the expression values within a single cell after standardization and mean-centring.
 Computing Euclidean distances between the rank vectors for pairs of cells will yield the same correlation-based distance as that used above.
