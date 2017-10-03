@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.5.6}{\itemize{
+\section{Version 1.5.12}{\itemize{
 \item Supported parallelization in buildSNNGraph(), overlapExprs() with BPPARAM options.
 
 \item Forced zero-derived residuals to a constant value in correlatePairs(), overlapExprs().
