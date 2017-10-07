@@ -1,6 +1,19 @@
 # Checks the application of the mnnCorrect function.
 # require(scran); require(testthat); source("test-mnn.R")
 
+set.seed(10001)
+test_that("Cosine normalization is correct", {
+    X <- matrix(rnorm(10000), ncol=100)
+    cellnorm <- pmax(1e-8, sqrt(colSums(X^2)))
+    ref <- X/matrix(cellnorm, nrow(X), ncol(X), byrow=TRUE)
+    expect_equal(ref, scran:::cosine.norm(X))
+
+    X <- matrix(rpois(20000, lambda=5), ncol=1000)
+    cellnorm <- pmax(1e-8, sqrt(colSums(X^2)))
+    ref <- X/matrix(cellnorm, nrow(X), ncol(X), byrow=TRUE)
+    expect_equal(ref, scran:::cosine.norm(X))
+})
+
 set.seed(10000)
 test_that("Mutual NN detection is correct", {
     # Reference NNs.

@@ -47,6 +47,8 @@ SEXP sum_spikes(SEXP, SEXP);
 
 SEXP find_mutual_nns(SEXP, SEXP);
 
+SEXP cosine_norm(SEXP);
+
 }
 
 #include "utils.h"

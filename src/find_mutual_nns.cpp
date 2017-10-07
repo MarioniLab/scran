@@ -38,3 +38,45 @@ SEXP find_mutual_nns (SEXP left, SEXP right) {
                               Rcpp::IntegerVector(mutualR.begin(), mutualR.end()));
     END_RCPP
 }
+
+/* Performs the cosine normalization in a fairly efficient manner. */
+
+template<class M>
+SEXP cosine_norm_internal (M mat, SEXP original) {
+    const size_t& nrow=mat->get_nrow();
+    const size_t& ncol=mat->get_ncol();
+    auto output=beachmat::create_numeric_output(nrow, ncol, beachmat::output_param(original));
+    
+    Rcpp::NumericVector incoming(nrow);
+    for (size_t c=0; c<ncol; ++c) {
+        mat->get_col(c, incoming.begin());
+
+        double total=0;
+        for (const auto& val : incoming) { 
+            total+=val*val;
+        }
+        total=std::sqrt(total);
+        total=std::max(total, 0.00000001); // avoid division by zero.
+
+        for (auto& val : incoming) { 
+            val/=total;
+        }
+        output->set_col(c, incoming.begin());
+    }
+
+    return output->yield();
+}
+
+SEXP cosine_norm(SEXP incoming) {
+    BEGIN_RCPP
+    int rtype=beachmat::find_sexp_type(incoming);
+    if (rtype==INTSXP) {
+        auto input=beachmat::create_integer_matrix(incoming);
+        return cosine_norm_internal(input.get(), incoming);
+    } else {
+        auto input=beachmat::create_numeric_matrix(incoming);
+        return cosine_norm_internal(input.get(), incoming);
+    }
+    END_RCPP
+}
+

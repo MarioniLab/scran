@@ -207,8 +207,7 @@ find.shared.subspace <- function(A, B, sin.threshold=0.85, cos.threshold=1/sqrt(
 cosine.norm <- function(X)
 # Computes the cosine norm, with some protection from zero-length norms.
 {
-    cellnorm <- pmax(1e-8, sqrt(colSums(X^2)))
-    X/matrix(cellnorm, nrow(X), ncol(X), byrow=TRUE)
+    .Call(cxx_cosine_norm, X)
 }
 
 bpl.get.knnx <- function(data, query, k, BPPARAM) 
