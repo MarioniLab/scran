@@ -96,24 +96,11 @@ mnnCorrect <- function(..., k=20, sigma=0.1, cos.norm=TRUE, svd.dim=20, subset.r
 find.mutual.nn <- function(data1, data2, k1, k2, BPPARAM) 
 # Finds mutal neighbors between data1 and data2.
 {
-    n1 <- nrow(data1)
-    n2 <- nrow(data2)
-    n.total <- n1 + n2
-   
     W21 <- bpl.get.knnx(data2, query=data1, k=k1, BPPARAM=BPPARAM)
     W12 <- bpl.get.knnx(data1, query=data2, k=k2, BPPARAM=BPPARAM)
-    W <- sparseMatrix(i=c(rep(seq_len(n1), k1), rep(n1 + seq_len(n2), k2)),
-                      j=c(n1 + W21$nn.index, W12$nn.index),
-                      x=rep(1, n1*k1 + n2*k2), dims=c(n.total, n.total))
-
-    W <- W * t(W) # elementwise multiplication to keep mutual nns only
-    A <- which(W>0, arr.ind=TRUE) # row/col indices of mutual NNs
-
-    A1 <- A[,1]
-    A1 <- A1[A1 <= n1]
-    A2 <- A[,2] - n1
-    A2 <- A2[A2 > 0]
-    return(list(first=A1, second=A2))
+    out <- .Call(cxx_find_mutual_nns, W21$nn.index, W12$nn.index)
+    names(out) <- c("first", "second")
+    return(out)
 }
 
 construct.smoothing.kernel <- function(data, sigma=0.1, exact=TRUE, kk=100, mnn.set, BPPARAM) 

@@ -24,6 +24,7 @@ static const R_CallMethodDef all_call_entries[] = {
     REGISTER(build_snn, 1),
     REGISTER(overlap_exprs, 4),
     REGISTER(sum_spikes, 2),
+    REGISTER(find_mutual_nns, 2),
     {NULL, NULL, 0}
 };
 
