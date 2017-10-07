@@ -107,10 +107,9 @@ construct.smoothing.kernel <- function(data, sigma=0.1, exact=TRUE, kk=100, mnn.
 # Constructs a Gaussian smoothing kernel, using all distances or the closest 100 cells.
 { 
     N <- nrow(data)
-    if (sigma==0) {
-        return(matrix(1, N, N))
-    } 
-    if (exact) { 
+    if (is.na(sigma)) {
+        G <- matrix(1, N, N)
+    } else if (exact) { 
         dd2 <- as.matrix(dist(data))
         G <- exp(-dd2^2/sigma)
     } else {
@@ -120,9 +119,9 @@ construct.smoothing.kernel <- function(data, sigma=0.1, exact=TRUE, kk=100, mnn.
         vals <- as.vector(exp(-W$nn.dist^2/sigma))
         i.dex <- rep(seq_len(N), kk)
         j.dex <- as.vector(mnn.set[W$nn.index])
-        G <- sparseMatrix(i=i.dex, j=j.dex, x=vals, dims=c(N, N))
+        G <- sparseMatrix(i=i.dex, j=j.dex, x=vals, dims=c(N, N), dimnames=NULL)
     }
-    return(as.matrix(G+t(G))/2)
+    return(G)
 }
 
 compute.correction.vectors <- function(data1, data2, mnn1, mnn2, kernel) 
@@ -133,12 +132,12 @@ compute.correction.vectors <- function(data1, data2, mnn1, mnn2, kernel)
     # Density normalized to avoid domination from dense parts
     D <- rowSums(kernel)
     nA2 <- tabulate(mnn2, nbins=nrow(data2))
-    norm.dens <- t(kernel/(D*nA2))[,mnn2,drop=FALSE] 
+    norm.dens <- t(kernel/(D*nA2))[,mnn2,drop=FALSE]
 
     # Computing normalized batch correction vectors.
     batchvect <- norm.dens %*% vect 
     partitionf <- rowSums(norm.dens)
-    partitionf[partitionf==0]<-1  # to avoid nans (instead get 0s)
+    partitionf[partitionf==0] <- 1  # to avoid nans (instead get 0s)
     return(batchvect/partitionf)
 }
 

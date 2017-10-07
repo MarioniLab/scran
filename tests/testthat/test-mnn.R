@@ -63,3 +63,44 @@ test_that("Mutual NN detection is correct", {
     comparator(REF(A, B, 5, 20), scran:::find.mutual.nn(A, B, 5, 20, SerialParam()))
     comparator(REF(A, B, 20, 5), scran:::find.mutual.nn(A, B, 20, 5, SerialParam()))
 })
+
+set.seed(10002)
+test_that("Smoothing kernel construction is correct", {
+    data <- matrix(rnorm(10000, sd=0.1), ncol=25)
+
+    # Full gaussian kernel.
+    d <- as.matrix(dist(data))
+    s <- 0.1
+    out <- scran:::construct.smoothing.kernel(data, sigma=s)
+    expect_equal(out, exp(-d^2/s))
+    s <- 0.5
+    out <- scran:::construct.smoothing.kernel(data, sigma=s)
+    expect_equal(out, exp(-d^2/s))
+    expect_identical(NULL, scran:::construct.smoothing.kernel(data, sigma=NA))
+
+    # Truncated kernel.
+    REF <- function(data, sigma, kk, mnn.set) {
+        mnn.set <- unique(mnn.set)
+        nn.out <- get.knnx(data[mnn.set,,drop=FALSE], query=data, k=kk)
+        result <- matrix(0, nrow(data), nrow(data))
+        for (i in seq_len(nrow(data))) {
+            result[i,mnn.set[nn.out$nn.index[i,]]] <- exp(-nn.out$nn.dist[i,]^2/sigma)
+        }
+        return(result)
+    }
+
+    mnn.set <- sample(nrow(data), 200)
+    xx <- as.matrix(scran:::construct.smoothing.kernel(data, sigma=0.1, kk=100, mnn.set=mnn.set, exact=FALSE, BPPARAM=SerialParam()))
+    dimnames(xx) <- NULL
+    expect_equal(xx, REF(data, sigma=0.1, kk=100, mnn.set=mnn.set))
+    
+    mnn.set <- c(1:20, 10:50)
+    xx <- as.matrix(scran:::construct.smoothing.kernel(data, sigma=0.1, kk=50, mnn.set=mnn.set, exact=FALSE, BPPARAM=SerialParam()))
+    dimnames(xx) <- NULL
+    expect_equal(xx, REF(data, sigma=0.1, kk=50, mnn.set=mnn.set))
+  
+    mnn.set <- c(100:20, 10:50)
+    xx <- as.matrix(scran:::construct.smoothing.kernel(data, sigma=0.1, kk=25, mnn.set=mnn.set, exact=FALSE, BPPARAM=SerialParam()))
+    dimnames(xx) <- NULL
+    expect_equal(xx, REF(data, sigma=0.1, kk=25, mnn.set=mnn.set)) 
+})
