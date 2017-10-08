@@ -67,6 +67,9 @@ test_that("Mutual NN detection is correct", {
 set.seed(10002)
 test_that("Smoothing kernel construction is correct", {
     data <- matrix(rnorm(10000, sd=0.1), ncol=25)
+    
+    # No kernel.
+    expect_identical(matrix(1, nrow(data), nrow(data)), scran:::construct.smoothing.kernel(data, sigma=NA))
 
     # Full gaussian kernel.
     d <- as.matrix(dist(data))
@@ -76,7 +79,6 @@ test_that("Smoothing kernel construction is correct", {
     s <- 0.5
     out <- scran:::construct.smoothing.kernel(data, sigma=s)
     expect_equal(out, exp(-d^2/s))
-    expect_identical(NULL, scran:::construct.smoothing.kernel(data, sigma=NA))
 
     # Truncated kernel.
     REF <- function(data, sigma, kk, mnn.set) {
@@ -103,4 +105,41 @@ test_that("Smoothing kernel construction is correct", {
     xx <- as.matrix(scran:::construct.smoothing.kernel(data, sigma=0.1, kk=25, mnn.set=mnn.set, exact=FALSE, BPPARAM=SerialParam()))
     dimnames(xx) <- NULL
     expect_equal(xx, REF(data, sigma=0.1, kk=25, mnn.set=mnn.set)) 
+})
+
+set.seed(10003)
+test_that("Batch vectors are correctly calculated", {
+    data1 <- matrix(rnorm(10000, sd=0.1), ncol=25)
+    data2 <- matrix(rnorm(25000, sd=0.1), ncol=25)
+    mnn1 <- 1:10
+    mnn2 <- 30:21
+
+    # Using a full kernel for an easier check.
+    kernel <- matrix(1, nrow(data2), nrow(data2))
+    xx <- scran:::compute.correction.vectors(data1, data2, mnn1, mnn2, kernel)
+    ref <- data1[mnn1,] - data2[mnn2,]
+    vec <- colMeans(ref)
+    expect_equal(xx, matrix(vec, nrow(xx), ncol(xx), byrow=TRUE))
+
+    # Adding redundancies shouldn't change the result.
+    xx <- scran:::compute.correction.vectors(data1, data2, c(1,1,1,1,mnn1), c(30,30,30,30,mnn2), kernel)
+    expect_equal(xx, matrix(vec, nrow(xx), ncol(xx), byrow=TRUE))
+
+    # Scaling the kernel shouldn't change the result.
+    xx <- scran:::compute.correction.vectors(data1, data2, mnn1, mnn2, kernel*2)
+    expect_equal(xx, matrix(vec, nrow(xx), ncol(xx), byrow=TRUE))
+
+    # Trying out a somewhat less trivial kernel.
+    data1 <- matrix(rnorm(10000, sd=0.1), ncol=25)
+    data2 <- matrix(rnorm(25000, sd=0.1), ncol=25)
+    mnn1 <- 10:40
+    mnn2 <- 30:60
+    ref <- data1[mnn1,] - data2[mnn2,]
+
+    kernel <- matrix(runif(nrow(data2)^2), nrow(data2), nrow(data2))
+    norm.kernel <- kernel[,mnn2]
+    norm.kernel <- norm.kernel/rowSums(norm.kernel)
+    vec2 <- norm.kernel %*% ref
+    expect_equal(vec2, scran:::compute.correction.vectors(data1, data2, mnn1, mnn2, kernel))
+    expect_equal(vec2, scran:::compute.correction.vectors(data1, data2, c(10, 10, 10, mnn1), c(30, 30, 30, mnn2), kernel))
 })

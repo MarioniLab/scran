@@ -126,19 +126,20 @@ construct.smoothing.kernel <- function(data, sigma=0.1, exact=TRUE, kk=100, mnn.
 
 compute.correction.vectors <- function(data1, data2, mnn1, mnn2, kernel) 
 # Computes the batch correction vector for each cell in data2.
-{
-    vect <- data1[mnn1,] - data2[mnn2,]    
-       
-    # Density normalized to avoid domination from dense parts
-    D <- rowSums(kernel)
+{      
+    # Avoid over-contribution from cells in multiple MNN pairs.
     nA2 <- tabulate(mnn2, nbins=nrow(data2))
-    norm.dens <- t(kernel/(D*nA2))[,mnn2,drop=FALSE]
+    norm.dens <- t(t(kernel)/nA2)[,mnn2,drop=FALSE]
 
-    # Computing normalized batch correction vectors.
-    batchvect <- norm.dens %*% vect 
+    # Normalizing for the total density for each cell.
     partitionf <- rowSums(norm.dens)
     partitionf[partitionf==0] <- 1  # to avoid nans (instead get 0s)
-    return(batchvect/partitionf)
+    norm.dens <- norm.dens/partitionf
+
+    # Computing normalized batch correction vectors.
+    vect <- data1[mnn1,] - data2[mnn2,]    
+    batchvect <- norm.dens %*% vect 
+    return(batchvect)
 }
 
 get.bio.span <- function(exprs, ndim, pc.approx=FALSE)
