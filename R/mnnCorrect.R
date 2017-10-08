@@ -127,11 +127,14 @@ construct.smoothing.kernel <- function(data, sigma=0.1, exact=TRUE, kk=100, mnn.
 compute.correction.vectors <- function(data1, data2, mnn1, mnn2, kernel) 
 # Computes the batch correction vector for each cell in data2.
 {      
-    # Avoid over-contribution from cells in multiple MNN pairs.
+    # Ensure that "outgoing" weight for each cell involved in any MNN pairs is the same.
+    # This downweights MNN cells in high-density regions, or those in multiple MNN pairs.
+    weight.out <- colSums(kernel)
     nA2 <- tabulate(mnn2, nbins=nrow(data2))
-    norm.dens <- t(t(kernel)/nA2)[,mnn2,drop=FALSE]
+    outgoing <- weight.out * nA2
+    norm.dens <- t(t(kernel)/outgoing)[,mnn2,drop=FALSE]
 
-    # Normalizing for the total density for each cell.
+    # Normalizing for the total incoming density for each cell, to get a weighted average.
     partitionf <- rowSums(norm.dens)
     partitionf[partitionf==0] <- 1  # to avoid nans (instead get 0s)
     norm.dens <- norm.dens/partitionf

@@ -137,8 +137,10 @@ test_that("Batch vectors are correctly calculated", {
     ref <- data1[mnn1,] - data2[mnn2,]
 
     kernel <- matrix(runif(nrow(data2)^2), nrow(data2), nrow(data2))
+    kernel <- t(t(kernel)/colSums(kernel))
     norm.kernel <- kernel[,mnn2]
     norm.kernel <- norm.kernel/rowSums(norm.kernel)
+
     vec2 <- norm.kernel %*% ref
     expect_equal(vec2, scran:::compute.correction.vectors(data1, data2, mnn1, mnn2, kernel))
     expect_equal(vec2, scran:::compute.correction.vectors(data1, data2, c(10, 10, 10, mnn1), c(30, 30, 30, mnn2), kernel))
