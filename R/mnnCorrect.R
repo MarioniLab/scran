@@ -105,17 +105,21 @@ find.mutual.nn <- function(data1, data2, k1, k2, BPPARAM)
 
 construct.smoothing.kernel <- function(data, sigma=0.1, exact=TRUE, kk=100, mnn.set, BPPARAM) 
 # Constructs a Gaussian smoothing kernel, using all distances or the closest 100 cells.
+# It also returns the density of cells involved in a MNN pair, at the position of each cell.
 { 
     N <- nrow(data)
     if (is.na(sigma)) {
         G <- matrix(1, N, N)
+        dens <- rep(1, N)
     } else if (exact) { 
-        dd2 <- as.matrix(dist(data))
-        G <- exp(-dd2^2/sigma)
+        dd <- as.matrix(dist(data))
+        G <- exp(-dd^2/sigma)
     } else {
+        # Calculating distances for nearest 'kk' elements only.
         mnn.set <- unique(mnn.set)
         kk <- min(length(mnn.set), kk)
         W <- bpl.get.knnx(data[mnn.set,,drop=FALSE], query=data, k=kk, BPPARAM=BPPARAM)
+
         vals <- as.vector(exp(-W$nn.dist^2/sigma))
         i.dex <- rep(seq_len(N), kk)
         j.dex <- as.vector(mnn.set[W$nn.index])
@@ -127,21 +131,22 @@ construct.smoothing.kernel <- function(data, sigma=0.1, exact=TRUE, kk=100, mnn.
 compute.correction.vectors <- function(data1, data2, mnn1, mnn2, kernel) 
 # Computes the batch correction vector for each cell in data2.
 {      
-    # Ensure that "outgoing" weight for each cell involved in any MNN pairs is the same.
-    # This downweights MNN cells in high-density regions, or those in multiple MNN pairs.
-    weight.out <- colSums(kernel)
-    nA2 <- tabulate(mnn2, nbins=nrow(data2))
-    outgoing <- weight.out * nA2
-    norm.dens <- t(t(kernel)/outgoing)[,mnn2,drop=FALSE]
+    # Avoid the correction being dominated by high-density regions and/or cells with multiple MNN pairs.
+    # Multiple MNN pairs for a cell are effectively averaged to get a single correction per cell.
+    # MNN cells in high-density regions are downweighted by the effective number of MNN cells at the same position.
+    num.pairs <- tabulate(mnn2, nbins=nrow(data2))
+    num.cells <- rowSums(kernel[,unique(mnn2),drop=FALSE]) # Using the kernel to estimate the effective number of cells.
+    outgoing <- num.pairs * num.cells
+    norm.kernel <- t(t(kernel)/outgoing)[,mnn2,drop=FALSE]
 
     # Normalizing for the total incoming density for each cell, to get a weighted average.
-    partitionf <- rowSums(norm.dens)
+    partitionf <- rowSums(norm.kernel)
     partitionf[partitionf==0] <- 1  # to avoid nans (instead get 0s)
-    norm.dens <- norm.dens/partitionf
+    norm.kernel <- norm.kernel/partitionf
 
     # Computing normalized batch correction vectors.
     vect <- data1[mnn1,] - data2[mnn2,]    
-    batchvect <- norm.dens %*% vect 
+    batchvect <- norm.kernel %*% vect 
     return(batchvect)
 }
 

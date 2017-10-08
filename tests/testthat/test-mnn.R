@@ -137,8 +137,7 @@ test_that("Batch vectors are correctly calculated", {
     ref <- data1[mnn1,] - data2[mnn2,]
 
     kernel <- matrix(runif(nrow(data2)^2), nrow(data2), nrow(data2))
-    kernel <- t(t(kernel)/colSums(kernel))
-    norm.kernel <- kernel[,mnn2]
+    norm.kernel <- t(t(kernel)/rowSums(kernel[,mnn2]))[,mnn2]
     norm.kernel <- norm.kernel/rowSums(norm.kernel)
 
     vec2 <- norm.kernel %*% ref
