@@ -1,5 +1,5 @@
 mnnCorrect <- function(..., k=20, sigma=0.1, cos.norm=TRUE, svd.dim=2, subset.row=NULL, order=NULL, 
-                       pc.approx=FALSE, exact.kernel=TRUE, kernel.k=100, BPPARAM=SerialParam())
+                       pc.approx=FALSE, BPPARAM=SerialParam())
 # Performs correction based on the batches specified in the ellipsis.
 #    
 # written by Laleh Haghverdi

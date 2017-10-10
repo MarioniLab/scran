@@ -5,23 +5,23 @@
 \description{Correct for batch effects in single-cell expression data using the mutual nearest neighbors method.}
 
 \usage{
-mnnCorrect(..., inquiry.genes=NULL, hvg.genes=NULL, k=20, sigma=0.1, 
-    cos.norm=TRUE, svd.dim=2, order=NULL) 
+mnnCorrect(..., k=20, sigma=0.1, cos.norm=TRUE, svd.dim=2, subset.row=NULL, 
+    order=NULL, pc.approx=FALSE, BPPARAM=SerialParam())
 }
 
 \arguments{
 \item{...}{Two or more expression matrices where genes correspond to rows and cells correspond to columns.
 Each matrix should contain cells from the same batch; multiple matrices represent separate batches of cells.
 Each matrix should contain the same number of rows, corresponding to the same genes (in the same order).}
-\item{inquiry.genes}{A vector specifying the genes in all batches on which the correction is to be performed. 
-All genes are used by default.}
-\item{hvg.genes}{A vector specifying the genes in all batches with which to identify the mutual nearest neighbours. 
-All genes are used by default.}
 \item{k}{An integer scalar specifying the number of nearest neighbors to consider when identifying mutual nearest neighbors.}
 \item{sigma}{A numeric scalar specifying the bandwidth of the Gaussian smoothing kernel used to compute the correction vector for each cell.}
 \item{cos.norm}{A logical scalar indicating whether cosine normalization should be performed.}
 \item{svd.dim}{An integer scalar specifying the number of dimensions to use for summarizing biological substructure within each batch.}
+\item{subset.row}{A vector specifying the genes in all batches, with which the correction will be performed.
+All genes are used by default.}
 \item{order}{An integer vector specifying the order in which batches are to be corrected.}
+\item{pc.approx}{A logical scalar indicating whether \code{\link[irlba]{irlba}} should be used to identify the biological subspace.}
+\item{BPPARAM}{A BiocParallelParam object specifying whether the nearest-neighbor searches should be parallelized.}
 }
 
 \value{
@@ -59,16 +59,15 @@ By default, a further cosine normalization step is performed on the supplied exp
 This can be turned off with \code{cos.norm=FALSE}, though we do not advise doing so.
 
 The function depends on a shared biological manifold, i.e., one or more cell types/states being present in multiple batches.
-If this is not true, MNNs may be incorrectly identified.
-We protect against this by raising a warning if there are no shared biological subspaces between batches.
-We also remove components of the correction vectors that are parallel to the biological subspaces in each batch, to avoid over-correction of interesting biology.
-The biological subspace in each batch is identified with SVD, analogous to taking the first several principal components after PCA.
+If this is not true, MNNs may be incorrectly identified, resulting in over-correction and removal of interesting biology.
+Some protection is provided by removing components of the correction vectors that are parallel to the biological subspaces in each batch.
+The biological subspace in each batch is identified with a SVD on the expression matrix, using either \code{\link{svd}} or \code{\link[irlba]{irlba}}.
 The number of dimensions of this subspace can be controlled with \code{svd.dim}.
 
 Users should note that the order in which batches are corrected will affect the final results.
 The first batch in \code{order} is used as the reference batch against which the second batch is corrected.
 Corrected values of the second batch are added to the reference batch, against which the third batch is corrected, and so on.
-This strategy maximizes the chance of detecting sufficient MNN pairs for stable calculation of correction vectors.
+This strategy maximizes the chance of detecting sufficient MNN pairs for stable calculation of correction vectors in subsequent batches.
 We would consider 20 cells involved in MNN pairs to be the minimum number required for batch correction.
 }
 
@@ -79,6 +78,7 @@ with modifications by Aaron Lun
 
 \seealso{
 \code{\link[FNN]{get.knnx}}
+\code{\link[irlba]{irlba}}
 }
 
 \examples{
