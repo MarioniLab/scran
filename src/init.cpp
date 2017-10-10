@@ -26,6 +26,7 @@ static const R_CallMethodDef all_call_entries[] = {
     REGISTER(sum_spikes, 2),
     REGISTER(find_mutual_nns, 2),
     REGISTER(cosine_norm, 1),
+    REGISTER(smooth_gaussian_kernel, 4),
     {NULL, NULL, 0}
 };
 

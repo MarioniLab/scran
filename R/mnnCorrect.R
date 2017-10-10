@@ -1,4 +1,4 @@
-mnnCorrect <- function(..., k=20, sigma=0.1, cos.norm=TRUE, svd.dim=20, subset.row=NULL, order=NULL, 
+mnnCorrect <- function(..., k=20, sigma=0.1, cos.norm=TRUE, svd.dim=2, subset.row=NULL, order=NULL, 
                        pc.approx=FALSE, exact.kernel=TRUE, kernel.k=100, BPPARAM=SerialParam())
 # Performs correction based on the batches specified in the ellipsis.
 #    
@@ -55,22 +55,22 @@ mnnCorrect <- function(..., k=20, sigma=0.1, cos.norm=TRUE, svd.dim=20, subset.r
     output[[ref]] <- batches[[ref]]
     
     for (b in 2:nbatches) { 
-        other.batch <- t(batches[[order[b]]])
+        target <- order[b]
+        other.batch <- t(batches[[target]])
         
         # Finding pairs of mutual nearest neighbours.
         sets <- find.mutual.nn(ref.batch, other.batch, k1=k, k2=k, BPPARAM=BPPARAM)
         s1 <- sets$first
         s2 <- sets$second      
 
-        kernel <- construct.smoothing.kernel(other.batch, sigma=sigma, exact=exact.kernel,
-                                             kk=kernel.k, mnn.set=s2, BPPARAM=BPPARAM)
-        correction <- compute.correction.vectors(ref.batch, other.batch, s1, s2, kernel)
+        # Computing the correction vector.
+        correction <- compute.correction.vectors(ref.batch, other.batch, s1, s2, batches[[target]], sigma)
 
         if (!is.na(svd.dim)){
             # Computing the biological subspace in both batches.
             ndim <- min(c(svd.dim, dim(ref.batch), dim(other.batch)))
-            span1 <- get.bio.span(t(ref.batch[s1,,drop=FALSE]), ndim=min(ndim, length(s1)), pc.approx=pc.approx)
-            span2 <- get.bio.span(t(other.batch[s2,,drop=FALSE]), ndim=min(ndim, length(s2)), pc.approx=pc.approx)
+            span1 <- get.bio.span(t(ref.batch[unique(s1),,drop=FALSE]), ndim=min(ndim, length(s1)), pc.approx=pc.approx)
+            span2 <- get.bio.span(t(other.batch[unique(s2),,drop=FALSE]), ndim=min(ndim, length(s2)), pc.approx=pc.approx)
 
             #nshared <- find.shared.subspace(span1, span2, assume.orthonormal=TRUE, get.angle=FALSE)$nshared
             #if (nshared==0L) { warning("batches not sufficiently related") }
@@ -81,8 +81,8 @@ mnnCorrect <- function(..., k=20, sigma=0.1, cos.norm=TRUE, svd.dim=20, subset.r
         
         # Applying the correction and storing the numbers of nearest neighbors.
         other.batch <- other.batch + correction       
-        num.mnn[b,] <- c(length(s1), length(s2))
-        output[[b]] <- t(other.batch)
+        num.mnn[target,] <- c(length(s1), length(s2))
+        output[[target]] <- t(other.batch)
 
         # Expanding the reference batch to include the new, corrected data.
         ref.batch <- rbind(ref.batch, other.batch)
@@ -103,51 +103,12 @@ find.mutual.nn <- function(data1, data2, k1, k2, BPPARAM)
     return(out)
 }
 
-construct.smoothing.kernel <- function(data, sigma=0.1, exact=TRUE, kk=100, mnn.set, BPPARAM) 
-# Constructs a Gaussian smoothing kernel, using all distances or the closest 100 cells.
-# It also returns the density of cells involved in a MNN pair, at the position of each cell.
-{ 
-    N <- nrow(data)
-    if (is.na(sigma)) {
-        G <- matrix(1, N, N)
-        dens <- rep(1, N)
-    } else if (exact) { 
-        dd <- as.matrix(dist(data))
-        G <- exp(-dd^2/sigma)
-    } else {
-        # Calculating distances for nearest 'kk' elements only.
-        mnn.set <- unique(mnn.set)
-        kk <- min(length(mnn.set), kk)
-        W <- bpl.get.knnx(data[mnn.set,,drop=FALSE], query=data, k=kk, BPPARAM=BPPARAM)
-
-        vals <- as.vector(exp(-W$nn.dist^2/sigma))
-        i.dex <- rep(seq_len(N), kk)
-        j.dex <- as.vector(mnn.set[W$nn.index])
-        G <- sparseMatrix(i=i.dex, j=j.dex, x=vals, dims=c(N, N), dimnames=NULL)
-    }
-    return(G)
-}
-
-compute.correction.vectors <- function(data1, data2, mnn1, mnn2, kernel) 
+compute.correction.vectors <- function(data1, data2, mnn1, mnn2, original, sigma) 
 # Computes the batch correction vector for each cell in data2.
 {      
-    # Avoid the correction being dominated by high-density regions and/or cells with multiple MNN pairs.
-    # Multiple MNN pairs for a cell are effectively averaged to get a single correction per cell.
-    # MNN cells in high-density regions are downweighted by the effective number of MNN cells at the same position.
-    num.pairs <- tabulate(mnn2, nbins=nrow(data2))
-    num.cells <- rowSums(kernel[,unique(mnn2),drop=FALSE]) # Using the kernel to estimate the effective number of cells.
-    outgoing <- num.pairs * num.cells
-    norm.kernel <- t(t(kernel)/outgoing)[,mnn2,drop=FALSE]
-
-    # Normalizing for the total incoming density for each cell, to get a weighted average.
-    partitionf <- rowSums(norm.kernel)
-    partitionf[partitionf==0] <- 1  # to avoid nans (instead get 0s)
-    norm.kernel <- norm.kernel/partitionf
-
-    # Computing normalized batch correction vectors.
-    vect <- data1[mnn1,] - data2[mnn2,]    
-    batchvect <- norm.kernel %*% vect 
-    return(batchvect)
+    vect <- data1[mnn1,,drop=FALSE] - data2[mnn2,,drop=FALSE]    
+    out <- .Call(cxx_smooth_gaussian_kernel, vect, mnn2-1L, original, sigma)
+    return(t(out))
 }
 
 get.bio.span <- function(exprs, ndim, pc.approx=FALSE)

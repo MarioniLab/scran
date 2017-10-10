@@ -64,49 +64,6 @@ test_that("Mutual NN detection is correct", {
     comparator(REF(A, B, 20, 5), scran:::find.mutual.nn(A, B, 20, 5, SerialParam()))
 })
 
-set.seed(10002)
-test_that("Smoothing kernel construction is correct", {
-    data <- matrix(rnorm(10000, sd=0.1), ncol=25)
-    
-    # No kernel.
-    expect_identical(matrix(1, nrow(data), nrow(data)), scran:::construct.smoothing.kernel(data, sigma=NA))
-
-    # Full gaussian kernel.
-    d <- as.matrix(dist(data))
-    s <- 0.1
-    out <- scran:::construct.smoothing.kernel(data, sigma=s)
-    expect_equal(out, exp(-d^2/s))
-    s <- 0.5
-    out <- scran:::construct.smoothing.kernel(data, sigma=s)
-    expect_equal(out, exp(-d^2/s))
-
-    # Truncated kernel.
-    REF <- function(data, sigma, kk, mnn.set) {
-        mnn.set <- unique(mnn.set)
-        nn.out <- get.knnx(data[mnn.set,,drop=FALSE], query=data, k=kk)
-        result <- matrix(0, nrow(data), nrow(data))
-        for (i in seq_len(nrow(data))) {
-            result[i,mnn.set[nn.out$nn.index[i,]]] <- exp(-nn.out$nn.dist[i,]^2/sigma)
-        }
-        return(result)
-    }
-
-    mnn.set <- sample(nrow(data), 200)
-    xx <- as.matrix(scran:::construct.smoothing.kernel(data, sigma=0.1, kk=100, mnn.set=mnn.set, exact=FALSE, BPPARAM=SerialParam()))
-    dimnames(xx) <- NULL
-    expect_equal(xx, REF(data, sigma=0.1, kk=100, mnn.set=mnn.set))
-    
-    mnn.set <- c(1:20, 10:50)
-    xx <- as.matrix(scran:::construct.smoothing.kernel(data, sigma=0.1, kk=50, mnn.set=mnn.set, exact=FALSE, BPPARAM=SerialParam()))
-    dimnames(xx) <- NULL
-    expect_equal(xx, REF(data, sigma=0.1, kk=50, mnn.set=mnn.set))
-  
-    mnn.set <- c(100:20, 10:50)
-    xx <- as.matrix(scran:::construct.smoothing.kernel(data, sigma=0.1, kk=25, mnn.set=mnn.set, exact=FALSE, BPPARAM=SerialParam()))
-    dimnames(xx) <- NULL
-    expect_equal(xx, REF(data, sigma=0.1, kk=25, mnn.set=mnn.set)) 
-})
-
 set.seed(10003)
 test_that("Batch vectors are correctly calculated", {
     data1 <- matrix(rnorm(10000, sd=0.1), ncol=25)
@@ -114,33 +71,46 @@ test_that("Batch vectors are correctly calculated", {
     mnn1 <- 1:10
     mnn2 <- 30:21
 
-    # Using a full kernel for an easier check.
-    kernel <- matrix(1, nrow(data2), nrow(data2))
-    xx <- scran:::compute.correction.vectors(data1, data2, mnn1, mnn2, kernel)
-    ref <- data1[mnn1,] - data2[mnn2,]
-    vec <- colMeans(ref)
-    expect_equal(xx, matrix(vec, nrow(xx), ncol(xx), byrow=TRUE))
+    # Constructing a reference function.
+    REF <- function(data1, data2, mnn1, mnn2, s2) {
+        d <- as.matrix(dist(data2))
+        w <- exp(-d^2/s2)
 
-    # Adding redundancies shouldn't change the result.
-    xx <- scran:::compute.correction.vectors(data1, data2, c(1,1,1,1,mnn1), c(30,30,30,30,mnn2), kernel)
-    expect_equal(xx, matrix(vec, nrow(xx), ncol(xx), byrow=TRUE))
+        mnn.dens <- rowSums(w[,unique(mnn2)])
+        N <- tabulate(mnn2, nbins=nrow(data2))
+        kernel <- t(w/(N*mnn.dens))[,mnn2]
 
-    # Scaling the kernel shouldn't change the result.
-    xx <- scran:::compute.correction.vectors(data1, data2, mnn1, mnn2, kernel*2)
-    expect_equal(xx, matrix(vec, nrow(xx), ncol(xx), byrow=TRUE))
+        kernel <- kernel/rowSums(kernel)
+        vect <- data1[mnn1,] - data2[mnn2,]
+        out <- kernel %*% vect
+        dimnames(out) <- NULL
+        return(out)
+    }
 
-    # Trying out a somewhat less trivial kernel.
-    data1 <- matrix(rnorm(10000, sd=0.1), ncol=25)
-    data2 <- matrix(rnorm(25000, sd=0.1), ncol=25)
-    mnn1 <- 10:40
-    mnn2 <- 30:60
-    ref <- data1[mnn1,] - data2[mnn2,]
 
-    kernel <- matrix(runif(nrow(data2)^2), nrow(data2), nrow(data2))
-    norm.kernel <- t(t(kernel)/rowSums(kernel[,mnn2]))[,mnn2]
-    norm.kernel <- norm.kernel/rowSums(norm.kernel)
+    # Vanilla check
+    s2 <- 0.1
+    xx <- scran:::compute.correction.vectors(data1, data2, mnn1, mnn2, t(data2), s2)
+    ref <- REF(data1, data2, mnn1, mnn2, s2)
+    expect_equal(xx, ref)
 
-    vec2 <- norm.kernel %*% ref
-    expect_equal(vec2, scran:::compute.correction.vectors(data1, data2, mnn1, mnn2, kernel))
-    expect_equal(vec2, scran:::compute.correction.vectors(data1, data2, c(10, 10, 10, mnn1), c(30, 30, 30, mnn2), kernel))
+    # Check with cells in multiple MNN pairs.
+    alt.mnn1 <- c(11, 12, 13, mnn1)
+    alt.mnn2 <- c(30, 30, 30, mnn2)
+    xx <- scran:::compute.correction.vectors(data1, data2, alt.mnn1, alt.mnn2, t(data2), s2)
+    ref <- REF(data1, data2, alt.mnn1, alt.mnn2, s2)
+    expect_equal(xx, ref)
+
+    # Check with more MNN pairs involved.
+    alt.mnn1 <- 1:200
+    alt.mnn2 <- 500:301
+    xx <- scran:::compute.correction.vectors(data1, data2, alt.mnn1, alt.mnn2, t(data2), s2)
+    ref <- REF(data1, data2, alt.mnn1, alt.mnn2, s2)
+    expect_equal(xx, ref)
+
+    # Check with a different bandwidth. 
+    s2 <- 0.5
+    xx <- scran:::compute.correction.vectors(data1, data2, mnn1, mnn2, t(data2), s2)
+    ref <- REF(data1, data2, mnn1, mnn2, s2)
+    expect_equal(xx, ref)
 })
