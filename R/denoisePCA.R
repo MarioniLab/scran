@@ -36,8 +36,10 @@
         # Replacing 'x' with the scaled residuals (these should already have a mean of zero,
         # see http://math.stackexchange.com/questions/494181/ for a good explanation).
         y <- rx * sqrt(all.var/rvar)
+        centering <- numeric(nrow(y))
     } else {
-        y <- x[use.rows,,drop=FALSE] - all.means 
+        y <- x[use.rows,,drop=FALSE] 
+        centering <- all.means # all.means is already subsetted, remember.
     }
 
     # Checking various other arguments.
@@ -45,7 +47,6 @@
     min.rank <- max(1L, min.rank)
     ncells <- ncol(x)
     max.rank <- min(ncells, max.rank)
-    y <- t(y)
 
     # Switching to IRLBA if an approximation is requested.
     if (approximate){
@@ -54,7 +55,7 @@
         }
         max.rank <- min(dim(y)-1L, max.rank)
         nu <- ifelse(value!="n", max.rank, 0L)
-        out <- irlba::irlba(y, nu=nu, nv=max.rank, # center= seems to be broken.
+        out <- irlba::irlba(t(y), nu=nu, nv=max.rank, center=centering,
                             maxit=max(100, max.rank*10)) # allowing more iterations if max.rank is high.
         var.exp <- out$d^2/(ncells - 1)
         
@@ -77,6 +78,10 @@
             return(.restore_dimensions(x, denoised, use.rows, subset.row, preserve.dim=preserve.dim))
         }
     }
+
+    # Centering the matrix and coercing it to a dense representation.
+    y <- t(y - centering)
+    y <- as.matrix(y)
 
     # Performing SVD to get the variance of each PC, and choosing the number of PCs to keep.
     svd.out <- svd(y, nu=0, nv=0)
