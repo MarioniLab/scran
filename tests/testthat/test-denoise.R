@@ -142,23 +142,24 @@ test_that("denoisePCA works with IRLBA", {
     keep <- dec$bio > 0
     posbio <- lcounts[keep,]
     df0 <- ncol(posbio)-1
+    max.cells <- min(df0, formals(scran:::.denoisePCA)$max.rank) # using the upper limit in denoisePCA.
     current <- t(posbio - rowMeans(posbio))
     
     npcs <- suppressWarnings(denoisePCA(lcounts, technical=fit$trend, value="n", approximate=TRUE, rand.seed=100))
     set.seed(100)
-    e1 <- suppressWarnings(irlba::irlba(current, nu=0, nv=df0))
+    e1 <- suppressWarnings(irlba::irlba(current, nu=0, nv=max.cells))
     expect_equal(npcs, scran:::.get_npcs_to_keep(e1$d^2/df0, sum(dec$tech[keep])))
     
     # Checking the actual PCs themselves.
     pca <- suppressWarnings(denoisePCA(lcounts, technical=fit$trend, value="pca", approximate=TRUE, rand.seed=200))
     set.seed(200)
-    epc <- suppressWarnings(irlba::prcomp_irlba(current, n=df0, center=FALSE, scale.=FALSE))
+    epc <- suppressWarnings(irlba::prcomp_irlba(current, n=max.cells, center=FALSE, scale.=FALSE))
     are_PCs_equal(pca, epc$x[,seq_len(npcs),drop=FALSE]) 
     
     # Checking the low-rank approximations.
     lr <- suppressWarnings(denoisePCA(lcounts, technical=fit$trend, value="lowrank", approximate=TRUE, rand.seed=300))
     set.seed(300)
-    e2 <- suppressWarnings(irlba::irlba(current, nu=df0, nv=df0)) 
+    e2 <- suppressWarnings(irlba::irlba(current, nu=max.cells, nv=max.cells)) 
     lowrank <- e2$u[,1:npcs] %*% (e2$d[1:npcs] * t(e2$v[,1:npcs]))
     
     unnamed.lr <- lr
