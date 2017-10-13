@@ -6,7 +6,7 @@
 #
 # written by Aaron Lun
 # created 13 March 2017    
-# last modified 17 August 2017
+# last modified 13 October 2017
 {
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     checked <- .make_var_defaults(x, fit=NULL, design=design)
@@ -67,40 +67,45 @@
         
         # Figuring out what value to return; the number of PCs, the PCs themselves, or a denoised low-rank matrix.
         if (value=="n") {
-            return(to.keep)
+            out.val <- to.keep
         } else if (value=="pca") {
             ix <- seq_len(to.keep)
-            return(sweep(out$u[,ix,drop=FALSE], 2, out$d[ix], FUN="*"))
+            out.val <- sweep(out$u[,ix,drop=FALSE], 2, out$d[ix], FUN="*")
         } else if (value=="lowrank") {
             ix <- seq_len(to.keep)
             denoised <- out$u[,ix,drop=FALSE] %*% (out$d[ix] * t(out$v[,ix,drop=FALSE])) 
             denoised <- t(denoised) + all.means
-            return(.restore_dimensions(x, denoised, use.rows, subset.row, preserve.dim=preserve.dim))
+            out.val <- .restore_dimensions(x, denoised, use.rows, subset.row, preserve.dim=preserve.dim)
+        }
+
+    } else {
+        # Centering the matrix and coercing it to a dense representation.
+        y <- t(y - centering)
+        y <- as.matrix(y)
+    
+        # Performing SVD to get the variance of each PC, and choosing the number of PCs to keep.
+        svd.out <- svd(y, nu=0, nv=0)
+        var.exp <- svd.out$d^2/(ncells - 1)
+        to.keep <- .get_npcs_to_keep(var.exp, technical)
+        to.keep <- min(max(to.keep, min.rank), max.rank)
+        
+        # Figuring out what value to return; the number of PCs, the PCs themselves, or a denoised low-rank matrix.
+        if (value=="n") {
+            out.val <- to.keep
+        } else if (value=="pca") {
+            pc.out <- prcomp(y, rank.=to.keep, scale.=FALSE, center=FALSE)
+            out.val <- pc.out$x
+        } else if (value=="lowrank") {
+            more.svd <- La.svd(y, nu=to.keep, nv=to.keep)
+            denoised <- more.svd$u %*% (more.svd$d[seq_len(to.keep)] * more.svd$vt) 
+            denoised <- t(denoised) + all.means
+            out.val <- .restore_dimensions(x, denoised, use.rows, subset.row, preserve.dim=preserve.dim)
         }
     }
 
-    # Centering the matrix and coercing it to a dense representation.
-    y <- t(y - centering)
-    y <- as.matrix(y)
-
-    # Performing SVD to get the variance of each PC, and choosing the number of PCs to keep.
-    svd.out <- svd(y, nu=0, nv=0)
-    var.exp <- svd.out$d^2/(ncells - 1)
-    to.keep <- .get_npcs_to_keep(var.exp, technical)
-    to.keep <- min(max(to.keep, min.rank), max.rank)
-    
-    # Figuring out what value to return; the number of PCs, the PCs themselves, or a denoised low-rank matrix.
-    if (value=="n") {
-        return(to.keep)
-    } else if (value=="pca") {
-        pc.out <- prcomp(y, rank.=to.keep, scale.=FALSE, center=FALSE)
-        return(pc.out$x)
-    } else if (value=="lowrank") {
-        more.svd <- La.svd(y, nu=to.keep, nv=to.keep)
-        denoised <- more.svd$u %*% (more.svd$d[seq_len(to.keep)] * more.svd$vt) 
-        denoised <- t(denoised) + all.means
-        return(.restore_dimensions(x, denoised, use.rows, subset.row, preserve.dim=preserve.dim))
-    }
+    # Adding the percentage of variance explained.
+    attr(out.val, "percentVar") <- var.exp/sum(all.var)
+    return(out.val)
 } 
 
 .get_npcs_to_keep <- function(var.exp, tech.var) 
