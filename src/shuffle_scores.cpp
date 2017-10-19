@@ -72,7 +72,7 @@ SEXP shuffle_scores_internal (M mat_ptr,
         // Iterations of shuffling to obtain a null distribution for the score.
         int below=0, total=0;
         for (int it=0; it < nit; ++it) {
-            Rx_shuffle(current_exprs.begin(), current_exprs.end());
+            std::shuffle(current_exprs.begin(), current_exprs.end(), R_RNG());
             const double newscore=get_proportion(current_exprs, minp, marker1, marker2);
             if (!ISNA(newscore)) { 
                 if (newscore < curscore) { ++below; }
@@ -117,14 +117,14 @@ SEXP auto_shuffle(SEXP incoming, SEXP nits) {
     const Rcpp::NumericVector invec(incoming);
     const size_t N=invec.size();
     Rcpp::NumericMatrix outmat(N, niters);
-    Rcpp::RNGScope rng; // Place after initialization of all Rcpp objects.
+    Rcpp::RNGScope rng; // Place after initialization of all Rcpp vectors.
 
     Rcpp::NumericVector::const_iterator source=invec.begin();
     Rcpp::NumericVector::iterator oIt=outmat.begin();
     
     for (int i=0; i<niters; ++i) {
         std::copy(source, source+N, oIt);
-        Rx_shuffle(oIt, oIt+N);
+        std::shuffle(oIt, oIt+N, R_RNG());
         source=oIt;
         oIt+=N;
     }

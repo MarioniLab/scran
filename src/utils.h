@@ -1,16 +1,15 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-// Shuffle that mimics C++ shuffle, but using the R random number generator.
+// R random number generator, to pass to C++ random_shuffle.
 
-template <typename Pt>
-void Rx_shuffle (Pt start, Pt end) {
-    size_t n=(end-start), i;
-    for (i=n-1; i>0; --i) {
-        std::swap(start[i], start[int(unif_rand()*(i+1))]); // Equal chance of getting anything from [0, i], as per random_shuffle in C++.
-    }
-    return;
-}
+struct R_RNG {
+    typedef size_t result_type;
+    static constexpr result_type largest=result_type(-1); // Getting the maximum value.
+    static constexpr result_type min() { return 0; }
+    static constexpr result_type max() { return largest-1; } 
+    result_type operator()() const { return unif_rand()*largest; }
+};
 
 // Check subset vector.
 

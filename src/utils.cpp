@@ -10,8 +10,6 @@ Rcpp::IntegerVector check_subset_vector(SEXP subvec, size_t len) {
     return sout;
 }
 
-// Special function to check for NA'ness.
-
 bool isNA(int x) {
     return x==NA_INTEGER;
 }
