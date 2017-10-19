@@ -52,7 +52,9 @@ SEXP shuffle_scores_internal (M mat_ptr,
 
     Rcpp::NumericVector output(ncells, NA_REAL);
     V all_exprs(ngenes), current_exprs(nused);
+
     Rcpp::RNGScope rng; // Place after initialization of all Rcpp objects.
+    auto shuffler=setup_random_engine();
 
     auto oIt=output.begin();
     for (auto cIt=mycells.begin(); cIt!=mycells.end(); ++cIt, ++oIt) { 
@@ -72,7 +74,7 @@ SEXP shuffle_scores_internal (M mat_ptr,
         // Iterations of shuffling to obtain a null distribution for the score.
         int below=0, total=0;
         for (int it=0; it < nit; ++it) {
-            std::shuffle(current_exprs.begin(), current_exprs.end(), R_RNG());
+            std::shuffle(current_exprs.begin(), current_exprs.end(), shuffler);
             const double newscore=get_proportion(current_exprs, minp, marker1, marker2);
             if (!ISNA(newscore)) { 
                 if (newscore < curscore) { ++below; }
@@ -117,14 +119,16 @@ SEXP auto_shuffle(SEXP incoming, SEXP nits) {
     const Rcpp::NumericVector invec(incoming);
     const size_t N=invec.size();
     Rcpp::NumericMatrix outmat(N, niters);
+
     Rcpp::RNGScope rng; // Place after initialization of all Rcpp vectors.
+    auto shuffler=setup_random_engine();
 
     Rcpp::NumericVector::const_iterator source=invec.begin();
     Rcpp::NumericVector::iterator oIt=outmat.begin();
     
     for (int i=0; i<niters; ++i) {
         std::copy(source, source+N, oIt);
-        std::shuffle(oIt, oIt+N, R_RNG());
+        std::shuffle(oIt, oIt+N, shuffler);
         source=oIt;
         oIt+=N;
     }

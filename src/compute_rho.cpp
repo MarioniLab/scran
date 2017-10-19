@@ -31,10 +31,12 @@ SEXP get_null_rho (SEXP cells, SEXP iters) {
 
     Rcpp::NumericVector output(Niters);
     const double mult=rho_mult(Ncells);
+
     Rcpp::RNGScope rng; // Place after all Rcpp objects are initialized.
+    auto shuffler=setup_random_engine();
 
     for (int it=0; it<Niters; ++it) {
-        std::shuffle(rankings.begin(), rankings.end(), R_RNG());
+        std::shuffle(rankings.begin(), rankings.end(), shuffler);
         double tmp=0;
         for (int cell=0; cell<Ncells; ++cell) {
             const double tmpdiff=rankings[cell]-cell;
