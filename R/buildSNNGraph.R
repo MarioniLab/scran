@@ -19,12 +19,10 @@
     } 
     if (!is.na(d) && d < ncol(x)) {
         if (pc.approx) {
-            # Manual centering, because native center= support seems buggy ATM.
-            x <- t(t(x) - colMeans(x))
             if (!is.na(rand.seed)) {
                 set.seed(rand.seed)
             }
-            pc <- irlba::prcomp_irlba(as.matrix(x), n=d, scale.=FALSE, center=FALSE) 
+            pc <- irlba::prcomp_irlba(x, n=d, scale.=FALSE, center=TRUE) 
         } else {
             pc <- prcomp(x, rank.=d, scale.=FALSE, center=TRUE)
         }
