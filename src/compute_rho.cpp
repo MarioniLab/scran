@@ -33,7 +33,7 @@ SEXP get_null_rho (SEXP cells, SEXP iters) {
     const double mult=rho_mult(Ncells);
 
     Rcpp::RNGScope rng; // Place after all Rcpp objects are initialized.
-    auto shuffler=setup_random_engine();
+    R_random_engine shuffler;
 
     for (int it=0; it<Niters; ++it) {
         std::shuffle(rankings.begin(), rankings.end(), shuffler);

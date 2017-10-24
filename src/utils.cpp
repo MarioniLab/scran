@@ -1,8 +1,15 @@
 #include "scran.h"
 
-std::default_random_engine setup_random_engine() {
-    typedef std::default_random_engine RAND;
-    return RAND(RAND::result_type(-1)*unif_rand()); // Seeding somewhere in the middle of all possible result_type values.
+typedef std::default_random_engine RAND;
+RAND::result_type make_seed () {
+    return RAND::result_type(-1)*R::unif_rand(); // Seeding somewhere in the middle of all possible result_type values.
+}
+
+R_random_engine::R_random_engine(bool randseed) : std::default_random_engine(randseed ? make_seed() : 0) {}
+
+void R_random_engine::reseed() { 
+    seed(make_seed());
+    return;
 }
 
 Rcpp::IntegerVector check_subset_vector(SEXP subvec, size_t len) {

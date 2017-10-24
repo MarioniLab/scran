@@ -4,7 +4,11 @@
 
 // R-seeded random engine, to pass to C++ std::shuffle
 
-std::default_random_engine setup_random_engine();
+class R_random_engine : public std::default_random_engine {
+public:
+    R_random_engine(bool=true);
+    void reseed();
+};
 
 // Check subset vector.
 
