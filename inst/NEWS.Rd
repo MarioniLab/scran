@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.5.12}{\itemize{
+\section{Version 1.5.13}{\itemize{
 \item Supported parallelization in buildSNNGraph(), overlapExprs() with BPPARAM options.
 
 \item Forced zero-derived residuals to a constant value in correlatePairs(), overlapExprs().
@@ -28,6 +28,7 @@ Second d.f. of the fitted F-distribution is now reported as df2 in the output.
 \item Modified decomposeVar() to automatically use the second d.f. when test="f".
 
 \item Added option in denoisePCA() to return the number of components or the low-rank approximation.
+The proportion of variance explained is also stored as an attribute in all return values.
 
 \item Fixed a variety of bugs in mnnCorrect().
 }}

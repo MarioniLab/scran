@@ -1,16 +1,14 @@
 #ifndef UTILS_H
 #define UTILS_H
+#include <random>
 
-// Shuffle that mimics C++ shuffle, but using the R random number generator.
+// R-seeded random engine, to pass to C++ std::shuffle
 
-template <typename Pt>
-void Rx_shuffle (Pt start, Pt end) {
-    size_t n=(end-start), i;
-    for (i=n-1; i>0; --i) {
-        std::swap(start[i], start[int(unif_rand()*(i+1))]); // Equal chance of getting anything from [0, i], as per random_shuffle in C++.
-    }
-    return;
-}
+class R_random_engine : public std::default_random_engine {
+public:
+    R_random_engine(bool=true);
+    void reseed();
+};
 
 // Check subset vector.
 

@@ -30,11 +30,13 @@ SEXP get_null_rho (SEXP cells, SEXP iters) {
     std::iota(rankings.begin(), rankings.end(), 0);
 
     Rcpp::NumericVector output(Niters);
-    Rcpp::RNGScope rng;
     const double mult=rho_mult(Ncells);
 
+    Rcpp::RNGScope rng; // Place after all Rcpp objects are initialized.
+    R_random_engine shuffler;
+
     for (int it=0; it<Niters; ++it) {
-        Rx_shuffle(rankings.begin(), rankings.end());
+        std::shuffle(rankings.begin(), rankings.end(), shuffler);
         double tmp=0;
         for (int cell=0; cell<Ncells; ++cell) {
             const double tmpdiff=rankings[cell]-cell;

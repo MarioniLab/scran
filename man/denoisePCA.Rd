@@ -46,6 +46,10 @@ For \code{denoisePCA,SingleCellExperiment-method}, the return value is the same 
 Otherwise, a SingleCellExperiment object is returned that is a modified version of \code{x}.
 If \code{value="pca"}, the modified object will contain the PCs as the \code{"PCA"} entry in the \code{reducedDims} slot.
 If \code{value="lowrank"}, it will return a low-rank approximation in \code{assays} slot, named \code{"lowrank"}.
+
+In all cases, the fraction of variance explained by each PC will be stored as the \code{"percentVar"} attribute in the return value.
+This is directly compatible with functions such as \code{\link[scater]{plotPCA}}.
+Note that only the percentages for the first \code{max.rank} PCs will be recorded when \code{approximate=TRUE}.
 }
 
 \details{
