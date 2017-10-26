@@ -1,6 +1,6 @@
 Package: scran
-Version: 1.5.14
-Date: 2017-10-24
+Version: 1.5.15
+Date: 2017-10-26
 Title: Methods for Single-Cell RNA-Seq Data Analysis
 Authors@R: c(person("Aaron", "Lun", role = c("aut", "cre"), email =
         "alun@wehi.edu.au"), person("Karsten", "Bach", role = "aut"),

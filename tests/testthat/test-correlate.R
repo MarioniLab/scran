@@ -139,11 +139,11 @@ checkCorrelations <- function(out, exprs, null.dist) {
         assembled.pval[p] <- min(sum(null.dist <= assembled.rho[p] + 1e-8), sum(null.dist >= assembled.rho[p] - 1e-8))
     }
     assembled.pval <- 2*(assembled.pval + 1)/(length(null.dist)+1)
+    assembled.pval <- pmin(assembled.pval, 1)
     return(data.frame(rho=assembled.rho, pvalue=assembled.pval, FDR=p.adjust(assembled.pval, method="BH")))
 }
 
 ####################################################################################################
-
 # This checks the correlatePairs function.
 
 set.seed(10000)
@@ -152,141 +152,154 @@ Ncells <- 100
 X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes) + 1)
 rownames(X) <- paste0("X", seq_len(Ngenes))
 
-# With a pre-specified distribution.
+test_that("correlatePairs works with a pre-specified null distribution", {
+    nulls <- sort(runif(1e6, -1, 1))
 
-nulls <- sort(runif(1e6, -1, 1))
+    set.seed(100)
+    out <- correlatePairs(X, null.dist=nulls)
+    set.seed(100)
+    ref <- checkCorrelations(out, X, null.dist=nulls)
+    
+    expect_equal(out$rho, ref$rho)
+    expect_equal(out$p.value, ref$pvalue)
+    expect_equal(out$FDR, ref$FDR)
+})
 
-set.seed(100)
-out <- correlatePairs(X, null.dist=nulls)
-set.seed(100)
-ref <- checkCorrelations(out, X, null.dist=nulls)
+test_that("correlatePairs works without a pre-specified distribution", {
+    set.seed(10001)
+    Ngenes <- 20
+    Ncells <- 100
+    X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes) + 1)
+    rownames(X) <- paste0("X", seq_len(Ngenes))
+    
+    set.seed(100)
+    out <- correlatePairs(X)
+    set.seed(100)
+    nulls <- correlateNull(Ncells)
+    ref <- checkCorrelations(out, X, null.dist=nulls)
+    
+    expect_equal(out$rho, ref$rho)
+    expect_equal(out$p.value, ref$pvalue)
+    expect_equal(out$FDR, ref$FDR)
+})
 
-expect_equal(out$rho, ref$rho)
-expect_equal(out$p.value, ref$pvalue)
-expect_equal(out$FDR, ref$FDR)
-
-# Without a pre-specified distribution.
-
-set.seed(10001)
-Ngenes <- 20
-Ncells <- 100
-X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes) + 1)
-rownames(X) <- paste0("X", seq_len(Ngenes))
-
-set.seed(100)
-out <- correlatePairs(X)
-set.seed(100)
-nulls <- correlateNull(Ncells)
-ref <- checkCorrelations(out, X, null.dist=nulls)
-
-expect_equal(out$rho, ref$rho)
-expect_equal(out$p.value, ref$pvalue)
-expect_equal(out$FDR, ref$FDR)
-
-# With a design matrix.
-
-set.seed(10002)
-Ngenes <- 20
-Ncells <- 100
-X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes) + 1)
-rownames(X) <- paste0("X", seq_len(Ngenes))
+# Setting up a design matrix.
 grouping <- factor(rep(c(1,2), each=50))
 design <- model.matrix(~grouping)
 
-set.seed(200)
-nulls <- correlateNull(design=design, iter=1e4, residuals=TRUE)
-expect_warning(correlatePairs(X[1:5,], design=design, null=nulls, residuals=FALSE), "'residuals' is not the same as that used to generate")
-expect_warning(correlatePairs(X[1:5,], design=NULL, null=nulls, residuals=TRUE), "'design' is not the same as that used to generate")
+test_that("correlatePairs works with a design matrix", {
+    set.seed(10002)
+    Ngenes <- 20
+    Ncells <- 100
+    X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes) + 1)
+    rownames(X) <- paste0("X", seq_len(Ngenes))
+    
+    set.seed(200)
+    nulls <- correlateNull(design=design, iter=1e4, residuals=TRUE)
+    expect_warning(correlatePairs(X[1:5,], design=design, null=nulls, residuals=FALSE), "'residuals' is not the same as that used to generate")
+    expect_warning(correlatePairs(X[1:5,], design=NULL, null=nulls, residuals=TRUE), "'design' is not the same as that used to generate")
+    
+    set.seed(100) # Need because of random ranking.
+    out <- correlatePairs(X, design=design, null=nulls, residuals=TRUE, lower.bound=NA)
+    fit <- lm.fit(x=design, y=t(X))
+    exprs <- t(fit$residual)
+    set.seed(100)
+    ref <- checkCorrelations(out, exprs, null.dist=nulls)
+    
+    expect_equal(out$rho, ref$rho)
+    expect_equal(out$p.value, ref$pvalue)
+    expect_equal(out$FDR, ref$FDR)
+    
+    # Deeper test of the residual calculator.
+    QR <- qr(design, LAPACK=TRUE)
+    ref.resid <- t(lm.fit(y=t(X), x=design)$residuals)
+    out.resid <- .Call(scran:::cxx_get_residuals, X, QR$qr, QR$qraux, seq_len(nrow(X))-1L, NA_real_) 
+    expect_equal(unname(ref.resid), out.resid)
+    
+    subset.chosen <- sample(nrow(X), 10)
+    out.resid <- .Call(scran:::cxx_get_residuals, X, QR$qr, QR$qraux, subset.chosen-1L, NA_real_) 
+    expect_equal(unname(ref.resid[subset.chosen,]), out.resid)
+})
 
-set.seed(100) # Need because of random ranking.
-out <- correlatePairs(X, design=design, null=nulls, residuals=TRUE, lower.bound=NA)
-fit <- lm.fit(x=design, y=t(X))
-exprs <- t(fit$residual)
-set.seed(100)
-ref <- checkCorrelations(out, exprs, null.dist=nulls)
+test_that("correlatePairs works with lower bounds on the residuals", {
+    set.seed(100021)
+    X[] <- log(matrix(rpois(Ngenes*Ncells, lambda=1), nrow=Ngenes) + 1) # more zeroes with lambda=1
+    expect_true(sum(X==0)>0) # observations at the lower bound.
+    
+    # Checking proper calculation of the bounded residuals.
+    ref.resid <- t(lm.fit(y=t(X), x=design)$residuals)
+    alt.resid <- ref.resid
+    is.smaller <- X <= 0 # with bounds
+    smallest.per.row <- apply(alt.resid, 1, min) - 1
+    alt.resid[is.smaller] <- smallest.per.row[arrayInd(which(is.smaller), dim(is.smaller))[,1]]
 
-expect_equal(out$rho, ref$rho)
-expect_equal(out$p.value, ref$pvalue)
-expect_equal(out$FDR, ref$FDR)
+    QR <- qr(design, LAPACK=TRUE)
+    out.resid <- .Call(scran:::cxx_get_residuals, X, QR$qr, QR$qraux, seq_len(nrow(X))-1L, 0)
+    expect_equal(unname(alt.resid), out.resid)
+   
+    # Checking for correct calculation of statistics for bounded residuals.
+    set.seed(200)
+    nulls <- correlateNull(design=design, iter=1e4, residuals=TRUE)
+ 
+    set.seed(100) 
+    out <- correlatePairs(X, design=design, null=nulls, residuals=TRUE, lower.bound=0) # Checking what happens with bounds.
+    set.seed(100) 
+    ref <- checkCorrelations(out, alt.resid, null.dist=nulls)
+    
+    expect_equal(out$rho, ref$rho)
+    expect_equal(out$p.value, ref$pvalue)
+    expect_equal(out$FDR, ref$FDR)
+})
 
-# Deeper test of the residual calculator.
+test_that("correlatePairs works without simulated residuals for one-way layouts", {
+    # Repeating without simulation (need to use a normal matrix to avoid ties;
+    # bplapply mucks up the seed for tie breaking, even with a single core).
+    set.seed(200)
+    X[] <- rnorm(length(X))
+    nulls <- correlateNull(design=design, iter=1e3)
+   
+    # Calculating the weighted average of correlations. 
+    out <- correlatePairs(X, design=design, null=nulls)
+    collected.rho <- 0L
+    for (group in split(seq_along(grouping), grouping)) { 
+        ref <- checkCorrelations(out, X[,group], null.dist=nulls)
+        collected.rho <- collected.rho + length(group)/length(grouping) * ref$rho
+    }
+    expect_equal(out$rho, collected.rho)
+    
+    # Obtaining a p-value.
+    collected.p <- numeric(length(collected.rho)) 
+    for (x in seq_along(collected.rho)) { 
+        collected.p[x] <- min(sum(nulls <= collected.rho[x] + 1e-8), sum(nulls >= collected.rho[x] - 1e-8))
+    }
+    collected.p <- 2*(collected.p + 1)/(length(nulls)+1)
+    collected.p <- pmin(collected.p, 1)
+    expect_equal(out$p.value, collected.p)
+})
 
-QR <- qr(design, LAPACK=TRUE)
-ref.resid <- t(lm.fit(y=t(X), x=design)$residuals)
-out.resid <- .Call(scran:::cxx_get_residuals, X, QR$qr, QR$qraux, seq_len(nrow(X))-1L, NA_real_) 
-expect_equal(unname(ref.resid), out.resid)
+test_that("correlatePairs works with a variety of block sizes", {
+    # With a different block size, to check proper caching.
+    # (previous examples all have block.size=100, so no problems with caching).
 
-subset.chosen <- sample(nrow(X), 10)
-out.resid <- .Call(scran:::cxx_get_residuals, X, QR$qr, QR$qraux, subset.chosen-1L, NA_real_) 
-expect_equal(unname(ref.resid[subset.chosen,]), out.resid)
-
-# Testing with lower-bounded values and more zeroes.
-
-set.seed(100021)
-X[] <- log(matrix(rpois(Ngenes*Ncells, lambda=1), nrow=Ngenes) + 1) # more zeroes with lambda=1
-expect_true(sum(X==0)>0) # observations at the lower bound.
-
-ref.resid <- t(lm.fit(y=t(X), x=design)$residuals)
-alt.resid <- ref.resid
-is.smaller <- X <= 0 # with bounds
-smallest.per.row <- apply(alt.resid, 1, min) - 1
-alt.resid[is.smaller] <- smallest.per.row[arrayInd(which(is.smaller), dim(is.smaller))[,1]]
-out.resid <- .Call(scran:::cxx_get_residuals, X, QR$qr, QR$qraux, seq_len(nrow(X))-1L, 0)
-expect_equal(unname(alt.resid), out.resid)
-
-set.seed(100) 
-out <- correlatePairs(X, design=design, null=nulls, residuals=TRUE, lower.bound=0) # Checking what happens with bounds.
-set.seed(100) 
-ref <- checkCorrelations(out, alt.resid, null.dist=nulls)
-
-expect_equal(out$rho, ref$rho)
-expect_equal(out$p.value, ref$pvalue)
-expect_equal(out$FDR, ref$FDR)
-
-# Repeating without simulation (need to use a normal matrix to avoid ties;
-# bplapply mucks up the seed for tie breaking, even with a single core).
-
-set.seed(200)
-X[] <- rnorm(length(X))
-nulls <- correlateNull(design=design, iter=1e3)
-
-out <- correlatePairs(X, design=design, null=nulls)
-collected.rho <- 0L
-for (group in split(seq_along(grouping), grouping)) { 
-    ref <- checkCorrelations(out, X[,group], null.dist=nulls)
-    collected.rho <- collected.rho + length(group)/length(grouping) * ref$rho
-}
-
-expect_equal(out$rho, collected.rho)
-
-collected.p <- numeric(length(collected.rho)) 
-for (x in seq_along(collected.rho)) { 
-    collected.p[x] <- min(sum(nulls <= collected.rho[x] + 1e-8), sum(nulls >= collected.rho[x] - 1e-8))
-}
-collected.p <- 2*(collected.p + 1)/(length(nulls)+1)
-expect_equal(out$p.value, collected.p)
-
-# With a different block size, to check proper caching.
-# (previous examples all have block.size=100, so no problems with caching).
-
-set.seed(100041)
-nulls <- sort(runif(1e6, -1, 1))
-X[] <- rnorm(length(X))
-
-set.seed(100)
-out <- correlatePairs(X, null.dist=nulls)
-
-set.seed(100)
-out1 <- correlatePairs(X, null.dist=nulls, block.size=5)
-expect_equal(out$rho, out1$rho)
-expect_equal(out$p.value, out1$p.value)
-expect_equal(out$FDR, out1$FDR)
-
-set.seed(100)
-out2 <- correlatePairs(X, null.dist=nulls, block.size=2)
-expect_equal(out$rho, out2$rho)
-expect_equal(out$p.value, out2$p.value)
-expect_equal(out$FDR, out2$FDR)
+    set.seed(100041)
+    nulls <- sort(runif(1e6, -1, 1))
+    X[] <- rnorm(length(X))
+    
+    set.seed(100)
+    out <- correlatePairs(X, null.dist=nulls)
+    
+    set.seed(100)
+    out1 <- correlatePairs(X, null.dist=nulls, block.size=5)
+    expect_equal(out$rho, out1$rho)
+    expect_equal(out$p.value, out1$p.value)
+    expect_equal(out$FDR, out1$FDR)
+    
+    set.seed(100)
+    out2 <- correlatePairs(X, null.dist=nulls, block.size=2)
+    expect_equal(out$rho, out2$rho)
+    expect_equal(out$p.value, out2$p.value)
+    expect_equal(out$FDR, out2$FDR)
+})
 
 ####################################################################################################
 # Checking that it works with different 'subset.row' values.
