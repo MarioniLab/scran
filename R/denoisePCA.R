@@ -1,12 +1,13 @@
 .denoisePCA <- function(x, technical, design=NULL, subset.row=NULL,
                         value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100, 
-                        preserve.dim=FALSE, approximate=FALSE, rand.seed=1000)
+                        preserve.dim=FALSE, approximate=FALSE, rand.seed=1000, 
+                        irlba.args=list())
 # Performs PCA and chooses the number of PCs to keep based on the technical noise.
 # This is done on the residuals if a design matrix is supplied.
 #
 # written by Aaron Lun
 # created 13 March 2017    
-# last modified 13 October 2017
+# last modified 31 October 2017
 {
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     checked <- .make_var_defaults(x, fit=NULL, design=design)
@@ -55,8 +56,9 @@
         }
         max.rank <- min(dim(y)-1L, max.rank)
         nu <- ifelse(value!="n", max.rank, 0L)
-        out <- irlba::irlba(t(y), nu=nu, nv=max.rank, center=centering,
-                            maxit=max(100, max.rank*10)) # allowing more iterations if max.rank is high.
+        out <- do.call(irlba::irlba, c(list(A=t(y), nu=nu, nv=max.rank, center=centering,  
+                                            maxit=max(100, max.rank*10)), # allowing more iterations if max.rank is high.
+                                       irlba.args)) 
         var.exp <- out$d^2/(ncells - 1)
         
         # Assuming all non-computed components were technical, and discarding them for further consideration.

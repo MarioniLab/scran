@@ -9,7 +9,8 @@
 \usage{
 \S4method{denoisePCA}{ANY}(x, technical, design=NULL, subset.row=NULL,
     value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100, 
-    preserve.dim=FALSE, approximate=FALSE, rand.seed=1000)
+    preserve.dim=FALSE, approximate=FALSE, rand.seed=1000, 
+    irlba.args=list())
 
 \S4method{denoisePCA}{SingleCellExperiment}(x, ..., subset.row=NULL, 
     value=c("pca", "n", "lowrank"), assay.type="logcounts", 
@@ -30,6 +31,7 @@ All genes are used by default.}
 \item{approximate}{A logical scalar indicating whether approximate SVD should be performed via \code{\link[irlba]{irlba}}.}
 \item{rand.seed}{A numeric scalar specifying the seed for approximate PCA when \code{approximate=TRUE}.
 This can be set to \code{NA} to use the existing session seed.}
+\item{irlba.args}{A named list of additional arguments to pass to \code{\link[irlba]{irlba}} when \code{approximate=TRUE}.}
 \item{...}{Further arguments to pass to \code{denoisePCA,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use.}
 \item{get.spikes}{A logical scalar specifying whether spike-in transcripts should be used.

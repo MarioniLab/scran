@@ -1,12 +1,13 @@
 .buildSNNGraph <- function(x, k=10, d=50, transposed=FALSE, pc.approx=FALSE,
-                           rand.seed=1000, subset.row=NULL, BPPARAM=SerialParam())
+                           rand.seed=1000, irlba.args=list(), subset.row=NULL, 
+                           BPPARAM=SerialParam()) 
 # Builds a shared nearest-neighbor graph, where edges are present between each 
 # cell and its 'k' nearest neighbours. Edges are weighted based on the ranks of 
 # the shared nearest neighbours of the two cells, as described in the SNN-Cliq paper.
 #
 # written by Aaron Lun
 # created 3 April 2017
-# last modified 18 September 2017    
+# last modified 31 October 2017    
 { 
     ncells <- ncol(x)
     if (!is.null(subset.row)) {
@@ -22,7 +23,7 @@
             if (!is.na(rand.seed)) {
                 set.seed(rand.seed)
             }
-            pc <- irlba::prcomp_irlba(x, n=d, scale.=FALSE, center=TRUE) 
+            pc <- do.call(irlba::prcomp_irlba, c(list(x=x, n=d, scale.=FALSE, center=TRUE, retx=TRUE), irlba.args))
         } else {
             pc <- prcomp(x, rank.=d, scale.=FALSE, center=TRUE)
         }
