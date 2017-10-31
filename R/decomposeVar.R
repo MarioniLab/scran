@@ -37,10 +37,26 @@ setGeneric("decomposeVar", function(x, fit, ...) standardGeneric("decomposeVar")
 setMethod("decomposeVar", c("ANY", "list"), .decompose_var)
 
 setMethod("decomposeVar", c("SingleCellExperiment", "list"), 
-          function(x, fit, subset.row=NULL, ..., assay.type="logcounts", get.spikes=FALSE) {
+          function(x, fit, subset.row=NULL, ..., assay.type="logcounts", get.spikes=NA) {
+    # Checking whether we want to retrieve spikes but not use them in FDR calculations.
+    if (is.na(get.spikes)) { 
+        get.spikes <- TRUE
+        names.to.kill <- rownames(x)[isSpike(x)]
+    } else {
+        names.to.kill <- character(0)
+    }
 
     subset.row <- .SCE_subset_genes(subset.row, x=x, get.spikes=get.spikes)
     .check_centered_SF(x, assay.type=assay.type)
-    .decompose_var(assay(x, i=assay.type), fit, ..., subset.row=subset.row)
-})
+    out <- .decompose_var(assay(x, i=assay.type), fit, ..., subset.row=subset.row)
+
+    # Wiping out the p-values for the spike-in transcripts, if requested. 
+    if (length(names.to.kill)) {
+        m <- match(names.to.kill, rownames(out))
+        out$p.value[m] <- NA_real_
+        out$FDR <- p.adjust(out$p.value, method="BH")
+    }
+    return(out)
+}) 
+
 

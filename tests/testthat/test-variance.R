@@ -194,7 +194,7 @@ X <- normalize(X)
 fit <- trendVar(X)
 
 test_that("Variance decomposition is working correctly", {
-    out <- decomposeVar(X, fit)
+    out <- decomposeVar(X, fit, get.spikes=FALSE)
     ref <- decomposeVar(X[!isSpike(X),], fit, get.spikes=TRUE)
     expect_identical(out, ref)
     
@@ -216,8 +216,17 @@ test_that("decomposeVar behaves correctly with subsetting", {
     out.ref <- decomposeVar(X[shuffled,], fit)
     out2 <- decomposeVar(X, fit, subset.row=shuffled)
     expect_identical(out.ref, out2)  
-    out.ref2 <- decomposeVar(exprs(X)[setdiff(shuffled, which(isSpike(X))),], fit)
+
+    # Proper interaction with get.spikes.
+    out.ref2 <- decomposeVar(exprs(X)[shuffled,], fit)
+    was.spike <- which(isSpike(X)[shuffled])
+    out.ref2$p.value[was.spike] <- NA
+    out.ref2$FDR <- p.adjust(out.ref$p.value, method="BH")
     expect_identical(out.ref2, out2) 
+
+    out3 <- decomposeVar(X, fit, subset.row=shuffled, get.spikes=FALSE)
+    out.ref3 <- decomposeVar(exprs(X)[setdiff(shuffled, which(isSpike(X))),], fit)
+    expect_identical(out.ref3, out3)
 
     # Checks what happens when interaction with get.spikes is disabled.
     out.ref <- decomposeVar(X[shuffled,], fit, get.spikes=TRUE)
@@ -248,12 +257,12 @@ test_that("decomposeVar works with all genes", {
 test_that("decomposeVar works with design matrices", {
     # Testing with a modified design matrix.
     fit <- trendVar(X)
-    out <- decomposeVar(X, fit)
-    out2 <- decomposeVar(X, fit, design=NULL) # defaults to all-ones.
+    out <- decomposeVar(X, fit, get.spikes=FALSE)
+    out2 <- decomposeVar(X, fit, design=NULL, get.spikes=FALSE) # defaults to all-ones.
     expect_equal(out, out2)
 
     design <- model.matrix(~factor(rep(c(1,2), each=100)))
-    out3 <- decomposeVar(X, fit, design=design)
+    out3 <- decomposeVar(X, fit, design=design, get.spikes=FALSE)
     expect_equal(out$mean, out3$mean)
 
     refit <- lm.fit(y=t(exprs(X)), x=design)
