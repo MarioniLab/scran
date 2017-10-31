@@ -4,6 +4,10 @@
 
 \section{Version 1.7.1}{\itemize{
 \item Modified decomposeVar() to return statistics (but not p-values) for spike-ins when get.spikes=NA.
+
+\item Allowed passing of arguments to irlba() in denoisePCA() to assist convergence.
+
+\item Allows passing of arguments to prcomp_irlba() in buildSNNGraph() to assist convergence.
 }}
 
 \section{Version 1.6.0}{\itemize{
