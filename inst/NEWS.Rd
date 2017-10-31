@@ -2,7 +2,11 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.5.13}{\itemize{
+\section{Version 1.7.1}{\itemize{
+\item Modified decomposeVar() to return statistics (but not p-values) for spike-ins when get.spikes=NA.
+}}
+
+\section{Version 1.6.0}{\itemize{
 \item Supported parallelization in buildSNNGraph(), overlapExprs() with BPPARAM options.
 
 \item Forced zero-derived residuals to a constant value in correlatePairs(), overlapExprs().
