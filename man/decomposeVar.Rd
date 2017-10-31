@@ -9,7 +9,8 @@
 \usage{
 \S4method{decomposeVar}{ANY,list}(x, fit, design=NA, subset.row=NULL, ...)
 
-\S4method{decomposeVar}{SingleCellExperiment,list}(x, fit, subset.row=NULL, ..., assay.type="logcounts", get.spikes=FALSE)
+\S4method{decomposeVar}{SingleCellExperiment,list}(x, fit, subset.row=NULL, ..., 
+    assay.type="logcounts", get.spikes=NA)
 }
 
 \arguments{
@@ -26,7 +27,7 @@
 For \code{decomposeVar,matrix,list-method}, additional arguments to pass to \code{\link{testVar}}.
 For \code{decomposeVar,SingleCellExperiment,list-method}, additional arguments to pass to the matrix method.
 }
-\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
+\item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
 \item{get.spikes}{A logical scalar specifying whether decomposition should be performed for spike-ins.}
 }
 
@@ -38,12 +39,17 @@ The biological component is determined by subtracting the technical component fr
 
 Highly variable genes (HVGs) can be identified as those with large biological components.
 Unlike other methods for decomposition, this approach estimates the variance of the log-counts rather than of the counts themselves.
-The log-transformation blunts the impact of large positive outliers and ensures that the HVG list is not dominated by outliers.
+The log-transformation blunts the impact of large positive outliers and ensures that HVGs are driven by strong log-fold changes between cells, not differences in counts.
 Interpretation is not compromised -- HVGs will still be so, regardless of whether counts or log-counts are considered.
 
 The design matrix can be set if there are factors that should be blocked, e.g., batch effects, known (and uninteresting) clusters.
 If \code{NULL}, it will be set to an all-ones matrix, i.e., all cells are replicates.
 If \code{NA}, it will be extracted from \code{fit$design}, assuming that the same cells were used to fit the trend.
+
+If \code{get.spikes=NA} in \code{decomposeVar,SingleCellExperiment-method}, the p-value and FDR will not be returned for spike-in transcripts.
+This is the default as it returns the other variance statistics for diagnostic purposes, but ensures that the spike-ins are not treated as candidate HVGs.
+If \code{get.spikes=FALSE}, spike-in transcripts are filtered out from \code{x} and no statistics are returned.
+If \code{get.spikes=TRUE}, all statistics are computed for all rows, regardless of spike-in status.
 
 Users can also directly specify which rows to use with \code{subset.row}.
 This is equivalent to running \code{decomposeVar} on \code{x[subset.row,]}, but is more efficient as it avoids the construction of large temporary matrices.
@@ -62,7 +68,7 @@ This contains the numeric fields:
 \item{\code{tech}:}{Technical component of the variance.}
 \item{\code{p.value, FDR}:}{Raw and adjusted p-values for the test against the null hypothesis that \code{bio=0}.}
 }
-Rows corresponding to spike-in transcripts have their p-value and FDR fields set to \code{NA} unless \code{get.spikes=TRUE}. 
+If \code{get.spikes=NA}, the \code{p.value} and \code{FDR} fields will be set to \code{NA} for rows corresponding to spike-in transcripts.
 }
 
 \seealso{
