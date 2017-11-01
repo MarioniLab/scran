@@ -64,8 +64,7 @@ The overall technical variance is estimated by summing the values across genes.
 Genes with negative biological components are ignored during downstream analyses to ensure that the total variance is greater than the technical variance.
 
 The function works by assuming that the first X PCs contain all of the biological signal, while the remainder contains technical noise.
-For a given value of X, a prediction for the total technical variance is calculated, based on the variance explained by the later PCs.
-(It also accounts for a non-zero technical component in the variance explained by first X PCs.)
+For a given value of X, an estimate of the total technical variance is calculated from the sum of variance explained by all of the later PCs.
 A value of X is found such that the predicted technical variance equals the estimated technical variance.
 Note that X will be coerced to lie between \code{min.rank} and \code{max.rank}.
 

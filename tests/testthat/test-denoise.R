@@ -12,7 +12,7 @@ are_PCs_equal <- function(first, second, tol=1e-8) {
 
 set.seed(1000)
 ngenes <- 1000
-npops <- 5
+npops <- 10
 ncells <- 100
 means <- 2^runif(ngenes, -1, 10)
 pops <- matrix(2^rnorm(npops * ngenes), ncol=npops) * means
@@ -42,8 +42,8 @@ test_that("denoisePCA works as expected", {
         expect_equal(npcs[1], scran:::.get_npcs_to_keep(var.exp, tech.total))
         
         # Chosen number of PCs should be at the technical threshold.
-        expect_true(sum(var.exp[(npcs+1):ncol(lcounts)]) + var.exp[npcs+1] * npcs < tech.total) 
-        expect_true(sum(var.exp[(npcs):ncol(lcounts)]) + var.exp[npcs] * (npcs - 1) > tech.total)
+        expect_true(sum(var.exp[(npcs+1):ncol(lcounts)]) < tech.total) 
+        expect_true(sum(var.exp[(npcs):ncol(lcounts)]) > tech.total)
     }
 
     tech.var <- fit$trend(rowMeans(lcounts))
