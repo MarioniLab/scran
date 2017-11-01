@@ -118,11 +118,11 @@
 {
     npcs <- length(var.exp)
     flipped.var.exp <- rev(var.exp)
-    estimated.contrib <- cumsum(flipped.var.exp) + flipped.var.exp * (npcs:1 - 1L)
+    estimated.contrib <- cumsum(flipped.var.exp) 
 
-    below.noise <- tech.var > estimated.contrib
-    if (any(below.noise)) { 
-        to.keep <- npcs - max(which(below.noise))
+    above.noise <- estimated.contrib > tech.var
+    if (any(above.noise)) { 
+        to.keep <- npcs - min(which(above.noise)) + 1L
     } else {
         to.keep <- npcs
     }
