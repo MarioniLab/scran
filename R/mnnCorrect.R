@@ -94,7 +94,8 @@ mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE, 
         # Computing the correction vector.
         correction.in <- compute.correction.vectors(ref.batch.in, other.batch.in, s1, s2, other.batch.in.untrans, sigma)
         if (!same.set) {
-            correction.out <- compute.correction.vectors(ref.batch.out, other.batch.out, s1, s2, other.batch.out.untrans, sigma)
+            correction.out <- compute.correction.vectors(ref.batch.out, other.batch.out, s1, s2, other.batch.in.untrans, sigma)
+            # NOTE: use of 'other.batch.in.untrans' is intentional, as distances are calculated on cosine space.
         }
 
         if (svd.dim>0) {
@@ -104,7 +105,7 @@ mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE, 
             # Computing the biological subspace in both batches.
             in.ndim <- min(c(svd.dim, dim(ref.batch.in), dim(other.batch.in)))
             in.span1 <- get.bio.span(t(ref.batch.in[u1,,drop=FALSE]), ndim=min(in.ndim, length(s1)), pc.approx=pc.approx)
-            in.span2 <- get.bio.span(other.batch.in[,u2,drop=FALSE], ndim=min(in.ndim, length(s2)), pc.approx=pc.approx)
+            in.span2 <- get.bio.span(other.batch.in.untrans[,u2,drop=FALSE], ndim=min(in.ndim, length(s2)), pc.approx=pc.approx)
 
             # Reduce the component in each span from the batch correction vector.
             correction.in <- subtract.bio(correction.in, in.span1, in.span2)
@@ -112,13 +113,15 @@ mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE, 
             # Repeating for the output values.
             if (!same.set) { 
                 out.ndim <- min(c(svd.dim, dim(ref.batch.out), dim(other.batch.out)))
-                to.use <- rep(1, nrow(other.batch.out))
-
+                if (!is.null(subset.row)) { 
+                    out.ndim <- min(out.ndim, length(subset.row))
+                }                    
+                
                 out.span1 <- get.bio.span(t(ref.batch.out[u1,,drop=FALSE]), subset.row=subset.row,
                                           ndim=min(out.ndim, length(s1)), pc.approx=pc.approx)
-                out.span2 <- get.bio.span(other.batch.out[,u2,drop=FALSE], subset.row=subset.row,
+                out.span2 <- get.bio.span(other.batch.out.untrans[,u2,drop=FALSE], subset.row=subset.row,
                                           ndim=min(out.ndim, length(s2)), pc.approx=pc.approx)
-                correction.out <- subtract.bio(correction.out, out.span1, out.span2)
+                correction.out <- subtract.bio(correction.out, out.span1, out.span2, subset.row=subset.row)
             }
         } 
         
@@ -194,14 +197,20 @@ get.bio.span <- function(exprs, ndim, subset.row=NULL, pc.approx=FALSE)
     return(output)
 }
 
-subtract.bio <- function(correction, span1, span2) 
-# Subtracts the biological basis vectors from the correction vectors.
-# Note that the order of span1 and span2 does not matter.
+subtract.bio <- function(correction, span1, span2, subset.row=NULL) 
+# Computes the component parallel biological basis vectors in the correction vectors,
+# and subtracts them. Note that the order of span1 and span2 does not matter.
 { 
-    bio.comp <- correction %*% span1 %*% t(span1)
-    correction <- correction - bio.comp
-    bio.comp <- correction %*% span2 %*% t(span2)
-    correction <- correction - bio.comp
+    for (span in list(span1, span2)) { 
+        if (is.null(subset.row)) { 
+            bio.mag <- correction %*% span
+        } else { 
+            # Only using the subset to compute the magnitude that is parallel.
+            bio.mag <- correction[,subset.row,drop=FALSE] %*% span[subset.row,,drop=FALSE]
+        }
+        bio.comp <- bio.mag %*% t(span)
+        correction <- correction - bio.comp
+    }
     return(correction)
 }    
 

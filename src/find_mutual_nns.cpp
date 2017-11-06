@@ -84,22 +84,22 @@ SEXP cosine_norm(SEXP incoming) {
 
 SEXP smooth_gaussian_kernel(SEXP vect, SEXP index, SEXP data, SEXP sigma) {
     BEGIN_RCPP
-    const Rcpp::NumericMatrix _vect(vect);
-    const int npairs=_vect.nrow();
-    const int ngenes=_vect.ncol();
+    const Rcpp::NumericMatrix correction_vectors(vect);
+    const int npairs=correction_vectors.nrow();
+    const int ngenes=correction_vectors.ncol();
     const Rcpp::IntegerVector _index(index);
     if (npairs!=_index.size()) { 
         throw std::runtime_error("number of rows in 'vect' should be equal to length of 'index'");
     }
     
-    // Constructing the averages for each MNN cell.
+    // Constructing the average vector for each MNN cell.
     std::deque<std::vector<double> > averages;
     std::deque<int> number;
     std::set<int> mnncell;
 
     int row=0;
     for (const auto& i : _index) {
-        auto currow=_vect.row(row);
+        auto currow=correction_vectors.row(row);
         ++row;
         
         if (i >= averages.size() || averages[i].empty()) { 
@@ -129,12 +129,10 @@ SEXP smooth_gaussian_kernel(SEXP vect, SEXP index, SEXP data, SEXP sigma) {
         }
     }
 
-    // Smoothing the batch differences for every cell in the data set.
+    // Setting up input constructs (including the expression matrix on which the distances are computed).
     auto mat=beachmat::create_numeric_matrix(data);
     const int ncells=mat->get_ncol();
-    if (mat->get_nrow()!=ngenes) {
-        throw std::runtime_error("number of genes is not consistent between matrices");
-    }
+    const int ngenes_for_dist=mat->get_nrow();
 
     Rcpp::NumericVector _sigma(sigma);
     if (_sigma.size()!=1) {
@@ -142,20 +140,21 @@ SEXP smooth_gaussian_kernel(SEXP vect, SEXP index, SEXP data, SEXP sigma) {
     }
     const double s2=_sigma[0];
 
-    Rcpp::NumericMatrix output(ngenes, ncells);
+    // Setting up output constructs.
+    Rcpp::NumericMatrix output(ngenes, ncells); // yes, this is 'ngenes' not 'ngenes_for_dist'.
     std::vector<double> distances2(ncells), totalprob(ncells);
-    Rcpp::NumericVector mnn_incoming(ngenes), other_incoming(ngenes);
+    Rcpp::NumericVector mnn_incoming(ngenes_for_dist), other_incoming(ngenes_for_dist);
 
+    // Using distances between cells and MNN-involved cells to smooth the correction vector per cell.
     for (const auto& mnn : mnncell) {
         auto mnn_iIt=mat->get_const_col(mnn, mnn_incoming.begin());
 
-        // Compute squared distance to every other cell.
         for (int other=0; other<ncells; ++other) {
             double& curdist2=(distances2[other]=0);
             auto other_iIt=mat->get_const_col(other, other_incoming.begin());
             auto iIt_copy=mnn_iIt;
 
-            for (int g=0; g<ngenes; ++g) {
+            for (int g=0; g<ngenes_for_dist; ++g) {
                 const double tmp=(*iIt_copy  - *other_iIt);
                 curdist2+=tmp*tmp;
                 ++other_iIt;
