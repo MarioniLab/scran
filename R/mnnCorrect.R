@@ -1,11 +1,12 @@
-mnnCorrect <- function(..., k=20, sigma=1, cos.norm=TRUE, svd.dim=2, subset.row=NULL, order=NULL, 
-                       pc.approx=FALSE, BPPARAM=SerialParam())
-# Performs correction based on the batches specified in the ellipsis.
+mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE, svd.dim=0L, 
+                       subset.row=NULL, order=NULL, pc.approx=FALSE, BPPARAM=SerialParam())
+# Performs batch correction on multiple matrices of expression data,
+# as specified in the ellipsis.
 #    
 # written by Laleh Haghverdi
 # with modifications by Aaron Lun
 # created 7 April 2017
-# last modified 3 October 2017
+# last modified 6 November 2017
 {
     batches <- list(...) 
     nbatches <- length(batches) 
@@ -25,15 +26,34 @@ mnnCorrect <- function(..., k=20, sigma=1, cos.norm=TRUE, svd.dim=2, subset.row=
             stop("row names are not the same across batches")
         }
     }
+        
 
     # Subsetting to the desired subset of genes.
+    in.batches <- out.batches <- batches
+    same.set <- TRUE
     if (!is.null(subset.row)) { 
-        batches <- lapply(batches, "[", i=subset.row, , drop=FALSE) # Need the extra comma!
+        subset.row <- .subset_to_index(subset.row, batches[[1]], byrow=TRUE)
+        if (identical(subset.row, seq_len(ref.nrow))) { 
+            subset.row <- NULL
+        } else {
+            same.set <- FALSE
+            in.batches <- lapply(in.batches, "[", i=subset.row, , drop=FALSE) # Need the extra comma!
+        }
     }
 
     # Applying cosine normalization for MNN identification. 
-    if (cos.norm) { 
-        batches <- lapply(batches, cosine.norm) 
+    if (cos.norm.in) { 
+        in.batches <- lapply(in.batches, cosine.norm) 
+    }
+    if (cos.norm.out!=cos.norm.in) { 
+        same.set <- FALSE
+    }
+    if (cos.norm.out) { 
+        if (same.set) { 
+            out.batches <- in.batches
+        } else {
+            out.batches <- lapply(out.batches, cosine.norm) 
+        }
     }
 
     # Setting up the order.
@@ -48,44 +68,73 @@ mnnCorrect <- function(..., k=20, sigma=1, cos.norm=TRUE, svd.dim=2, subset.row=
    
     # Setting up the variables.
     ref <- order[1]
-    ref.batch <- t(batches[[ref]])
+    ref.batch.in <- t(in.batches[[ref]])
+    if (!same.set) { 
+        ref.batch.out <- t(out.batches[[ref]])
+    }
 
     num.mnn <- matrix(NA_integer_, nbatches, 2)
     output <- vector("list", nbatches)
-    output[[ref]] <- batches[[ref]]
-    
+    output[[ref]] <- out.batches[[ref]]
+
     for (b in 2:nbatches) { 
         target <- order[b]
-        other.batch <- t(batches[[target]])
+        other.batch.in.untrans <- in.batches[[target]]
+        other.batch.in <- t(other.batch.in.untrans)
+        if (!same.set) { 
+            other.batch.out.untrans <- out.batches[[target]]
+            other.batch.out <- t(other.batch.out.untrans)
+        }
         
         # Finding pairs of mutual nearest neighbours.
-        sets <- find.mutual.nn(ref.batch, other.batch, k1=k, k2=k, BPPARAM=BPPARAM)
+        sets <- find.mutual.nn(ref.batch.in, other.batch.in, k1=k, k2=k, BPPARAM=BPPARAM)
         s1 <- sets$first
         s2 <- sets$second      
 
         # Computing the correction vector.
-        correction <- compute.correction.vectors(ref.batch, other.batch, s1, s2, batches[[target]], sigma)
+        correction.in <- compute.correction.vectors(ref.batch.in, other.batch.in, s1, s2, other.batch.in.untrans, sigma)
+        if (!same.set) {
+            correction.out <- compute.correction.vectors(ref.batch.out, other.batch.out, s1, s2, other.batch.out.untrans, sigma)
+        }
 
-        if (!is.na(svd.dim)){
+        if (svd.dim>0) {
+            u1 <- unique(s1)
+            u2 <- unique(s2)
+
             # Computing the biological subspace in both batches.
-            ndim <- min(c(svd.dim, dim(ref.batch), dim(other.batch)))
-            span1 <- get.bio.span(t(ref.batch[unique(s1),,drop=FALSE]), ndim=min(ndim, length(s1)), pc.approx=pc.approx)
-            span2 <- get.bio.span(t(other.batch[unique(s2),,drop=FALSE]), ndim=min(ndim, length(s2)), pc.approx=pc.approx)
+            in.ndim <- min(c(svd.dim, dim(ref.batch.in), dim(other.batch.in)))
+            in.span1 <- get.bio.span(t(ref.batch.in[u1,,drop=FALSE]), ndim=min(in.ndim, length(s1)), pc.approx=pc.approx)
+            in.span2 <- get.bio.span(other.batch.in[,u2,drop=FALSE], ndim=min(in.ndim, length(s2)), pc.approx=pc.approx)
 
-            #nshared <- find.shared.subspace(span1, span2, assume.orthonormal=TRUE, get.angle=FALSE)$nshared
-            #if (nshared==0L) { warning("batches not sufficiently related") }
-    
             # Reduce the component in each span from the batch correction vector.
-            correction <- subtract.bio(correction, span1, span2)
+            correction.in <- subtract.bio(correction.in, in.span1, in.span2)
+
+            # Repeating for the output values.
+            if (!same.set) { 
+                out.ndim <- min(c(svd.dim, dim(ref.batch.out), dim(other.batch.out)))
+                to.use <- rep(1, nrow(other.batch.out))
+
+                out.span1 <- get.bio.span(t(ref.batch.out[u1,,drop=FALSE]), subset.row=subset.row,
+                                          ndim=min(out.ndim, length(s1)), pc.approx=pc.approx)
+                out.span2 <- get.bio.span(other.batch.out[,u2,drop=FALSE], subset.row=subset.row,
+                                          ndim=min(out.ndim, length(s2)), pc.approx=pc.approx)
+                correction.out <- subtract.bio(correction.out, out.span1, out.span2)
+            }
         } 
         
-        # Applying the correction and storing the numbers of nearest neighbors.
-        other.batch <- other.batch + correction       
-        num.mnn[target,] <- c(length(s1), length(s2))
-        output[[target]] <- t(other.batch)
+        # Applying the correction and expanding the reference batch. 
+        other.batch.in <- other.batch.in + correction.in
+        ref.batch.in <- rbind(ref.batch.in, other.batch.in)
+        if (same.set) {
+            output[[target]] <- t(other.batch.in)
+        } else {
+            other.batch.out <- other.batch.out + correction.out
+            ref.batch.out <- rbind(ref.batch.out, other.batch.out)
+            output[[target]] <- t(other.batch.out)
+        }
 
-        # Expanding the reference batch to include the new, corrected data.
-        ref.batch <- rbind(ref.batch, other.batch)
+        # Storing the numbers of nearest neighbors.
+        num.mnn[target,] <- c(length(s1), length(s2))
     }
 
     # Formatting output to be consistent with input.
@@ -111,20 +160,38 @@ compute.correction.vectors <- function(data1, data2, mnn1, mnn2, original, sigma
     return(t(out))
 }
 
-get.bio.span <- function(exprs, ndim, pc.approx=FALSE)
+get.bio.span <- function(exprs, ndim, subset.row=NULL, pc.approx=FALSE)
 # Computes the basis matrix of the biological subspace of 'exprs'.
 # The first 'ndim' dimensions are assumed to capture the biological subspace.
-# Avoids extra dimensions dominated by technical noise, which will result in both 
-# trivially large and small angles when using find.shared.subspace().
 {
     centred <- exprs - rowMeans(exprs)
     centred <- as.matrix(centred)
-    if (!pc.approx) { 
-        S <- svd(centred, nu=ndim, nv=0)
+
+    if (!is.null(subset.row)) {
+        leftovers <- centred[-subset.row,,drop=FALSE]
+        centred <- centred[subset.row,,drop=FALSE]
+        nv <- ndim
     } else {
-        S <- irlba::irlba(centred, nu=ndim, nv=0, work=ndim+20) # can't use centers=, as that subtracts from columns not rows.
+        nv <- 0
     }
-    return(S$u)
+
+    if (!pc.approx) { 
+        S <- svd(centred, nu=ndim, nv=nv)
+    } else {
+        S <- irlba::irlba(centred, nu=ndim, nv=nv, work=ndim+20) # can't use centers=, as that subtracts from columns not rows.
+    }
+    
+    if (is.null(subset.row)) { 
+        return(S$u)
+    } 
+
+    # Computing the basis values for the unused genes.
+    output <- matrix(0, nrow(exprs), ndim)
+    output[subset.row,] <- S$u
+    leftovers <- leftovers %*% S$v 
+    leftovers <- sweep(leftovers, 2, S$d[seq_len(ndim)], "/")
+    output[-subset.row,] <- leftovers
+    return(output)
 }
 
 subtract.bio <- function(correction, span1, span2) 
