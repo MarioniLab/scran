@@ -64,6 +64,22 @@ test_that("Mutual NN detection is correct", {
     comparator(REF(A, B, 20, 5), scran:::find.mutual.nn(A, B, 20, 5, SerialParam()))
 })
 
+set.seed(10002)
+test_that("Biological subspace is correctly re-projected", {
+    A <- matrix(rnorm(10000), ncol=50)
+    subset <- sample(nrow(A), nrow(A)/2)   
+    ref <- scran:::get.bio.span(A[subset,], 3) 
+    proj <- scran:::get.bio.span(A, 3, subset.row=subset) 
+    expect_equal(ref, proj[subset,])
+
+    B <- rbind(A, A)
+    first.half <- seq_len(nrow(A))
+    ref <- scran:::get.bio.span(A, 3)
+    proj <- scran:::get.bio.span(B, 3, subset.row=first.half) 
+    expect_equal(ref, proj[first.half,])
+    expect_equal(proj[first.half,], proj[-first.half,])
+})
+
 set.seed(10003)
 test_that("Batch vectors are correctly calculated", {
     data1 <- matrix(rnorm(10000, sd=0.1), ncol=25)
@@ -113,4 +129,35 @@ test_that("Batch vectors are correctly calculated", {
     xx <- scran:::compute.correction.vectors(data1, data2, mnn1, mnn2, t(data2), s2)
     ref <- REF(data1, data2, mnn1, mnn2, s2)
     expect_equal(xx, ref)
+})
+
+set.seed(10004)
+test_that("mnnCorrect behaves consistently with subsetting", {
+    alpha <- matrix(rnorm(1000), ncol=100)
+    bravo <- matrix(rnorm(2000), ncol=200)
+    charlie <- matrix(rnorm(3000), ncol=300)
+
+    keep <- 1:5 
+    ref <- mnnCorrect(alpha[keep,], bravo[keep,], charlie[keep,], cos.norm.out=FALSE)
+    out <- mnnCorrect(alpha, bravo, charlie, subset.row=keep, cos.norm.out=FALSE)
+    test.out <- lapply(out$corrected, "[", i=keep,)
+    expect_equal(ref$corrected, test.out)    
+
+    keep <- 6:10
+    ref <- mnnCorrect(alpha[keep,], bravo[keep,], charlie[keep,], cos.norm.in=FALSE, cos.norm.out=FALSE)
+    out <- mnnCorrect(alpha, bravo, charlie, subset.row=keep, cos.norm.in=FALSE, cos.norm.out=FALSE)
+    test.out <- lapply(out$corrected, "[", i=keep,)
+    expect_equal(ref$corrected, test.out)    
+
+    keep <- 2:7
+    ref <- mnnCorrect(alpha[keep,], bravo[keep,], charlie[keep,], svd.dim=2, cos.norm.out=FALSE)
+    out <- mnnCorrect(alpha, bravo, charlie, subset.row=keep, svd.dim=2, cos.norm.out=FALSE)
+    test.out <- lapply(out$corrected, "[", i=keep,)
+    expect_equal(ref$corrected, test.out)   
+
+    out <- mnnCorrect(rbind(alpha, alpha), rbind(bravo, bravo), rbind(charlie, charlie), 
+                      subset.row=1:nrow(alpha), svd.dim=2, cos.norm.out=FALSE)
+    ref1 <- lapply(out$corrected, "[", i=1:nrow(alpha),)
+    ref2 <- lapply(out$corrected, "[", i=nrow(alpha)+1:nrow(alpha),)
+    expect_equal(ref1, ref2) 
 })
