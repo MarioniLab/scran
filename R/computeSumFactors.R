@@ -1,5 +1,5 @@
 .computeSumFactors <- function(x, sizes=seq(20, 100, 5), clusters=NULL, ref.clust=NULL, 
-                               positive=FALSE, errors=FALSE, min.mean=1, subset.row=NULL) 
+                               positive=FALSE, errors=FALSE, min.mean=1, subset.row=NULL, no.warn=FALSE) 
 # This contains the function that performs normalization on the summed counts.
 # It also provides support for normalization within clusters, and then between
 # clusters to make things comparable. It can also switch to linear inverse models
@@ -27,9 +27,12 @@
     }
 
     # Checking the subsetting (with interplay with min.mean if required).
+    if (!is.null(subset.row) && !is.null(min.mean) && !no.warn) {
+        warning("'min.mean' should be NULL if filtering on abundance in 'subset.row'")
+    }
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     if (!is.null(min.mean)) { 
-        high.ave <- which(scater::calcAverage(x) >= min.mean)
+        high.ave <- which(calcAverage(x) >= min.mean)
         subset.row <- intersect(high.ave, subset.row)
     }
 
@@ -166,10 +169,17 @@ setGeneric("computeSumFactors", function(x, ...) standardGeneric("computeSumFact
 setMethod("computeSumFactors", "ANY", .computeSumFactors)
 
 setMethod("computeSumFactors", "SingleCellExperiment", 
-          function(x, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE, sf.out=FALSE) { 
+          function(x, min.mean=1, subset.row=NULL, no.warn=FALSE, ..., 
+                   assay.type="counts", get.spikes=FALSE, sf.out=FALSE) { 
+ 
+    if (is.null(subset.row) && !is.null(min.mean)) {
+        no.warn <- TRUE # avoid triggering the message of the subsetting was not originally specified
+    }
 
     subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
-    sf <- .computeSumFactors(assay(x, i=assay.type), subset.row=subset.row, ...) 
+    sf <- .computeSumFactors(assay(x, i=assay.type), subset.row=subset.row, 
+                             min.mean=min.mean, no.warn=no.warn, ...) 
+
     if (sf.out) { 
         return(sf) 
     }
