@@ -27,9 +27,12 @@
     }
 
     # Checking the subsetting (with interplay with min.mean if required).
+    if (!is.null(subset.row) && !is.null(min.mean) && is.null(attr(min.mean, "noWarn"))) {
+        warning("'min.mean' should be NULL if filtering on abundance in 'subset.row'")
+    }
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     if (!is.null(min.mean)) { 
-        high.ave <- which(scater::calcAverage(x) >= min.mean)
+        high.ave <- which(calcAverage(x) >= min.mean)
         subset.row <- intersect(high.ave, subset.row)
     }
 
@@ -166,10 +169,14 @@ setGeneric("computeSumFactors", function(x, ...) standardGeneric("computeSumFact
 setMethod("computeSumFactors", "ANY", .computeSumFactors)
 
 setMethod("computeSumFactors", "SingleCellExperiment", 
-          function(x, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE, sf.out=FALSE) { 
+          function(x, min.mean=1, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE, sf.out=FALSE) { 
+ 
+    if (is.null(subset.row) && !is.null(min.mean)) {
+        attr(min.mean, "noWarn") <- 1 # avoid triggering error when subset.row is not user-specified.
+    }
 
     subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
-    sf <- .computeSumFactors(assay(x, i=assay.type), subset.row=subset.row, ...) 
+    sf <- .computeSumFactors(assay(x, i=assay.type), subset.row=subset.row, min.mean=min.mean, ...) 
     if (sf.out) { 
         return(sf) 
     }
