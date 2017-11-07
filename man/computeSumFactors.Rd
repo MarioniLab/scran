@@ -8,10 +8,10 @@
 
 \usage{
 \S4method{computeSumFactors}{ANY}(x, sizes=seq(20, 100, 5), clusters=NULL, ref.clust=NULL,
-    positive=FALSE, errors=FALSE, min.mean=1, subset.row=NULL)
+    positive=FALSE, errors=FALSE, min.mean=1, subset.row=NULL, no.warn=FALSE)
 
-\S4method{computeSumFactors}{SingleCellExperiment}(x, subset.row=NULL, ..., assay.type="counts", 
-    get.spikes=FALSE, sf.out=FALSE)
+\S4method{computeSumFactors}{SingleCellExperiment}(x, min.mean=1, subset.row=NULL, no.warn=FALSE, ..., 
+    assay.type="counts", get.spikes=FALSE, sf.out=FALSE)
 }
 
 \arguments{
@@ -26,6 +26,7 @@
 \item{errors}{A logical scalar indicating whether the standard error should be returned. This option is deprecated, see below.}
 \item{min.mean}{A numeric scalar specifying the minimum (library size-adjusted) average count of genes to be used for normalization.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
+\item{no.warn}{A logical scalar indicating whether a warning should be generated when both \code{min.mean} and \code{subset.row} are specified.}
 \item{...}{Additional arguments to pass to \code{computeSumFactors,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
 \item{get.spikes}{A logical scalar specifying whether spike-in transcripts should be used.}
@@ -119,6 +120,10 @@ Filtering ensures that this is not the case, e.g., by removing genes with averag
 In general, genes with average counts below 1 (for read count data) or 0.1 (for UMI data) should not be used for normalization.
 Such genes will automatically be filtered out by applying a minimum threshold \code{min.mean} on the library size-adjusted average counts from \code{\link[scater]{calcAverage}}.
 If \code{subset.row} is specified, only the genes selected by \code{subset.row} and with average counts above \code{min.mean} will be used.
+
+A warning is triggered if \code{subset.row} is specified and \code{min.mean} is not \code{NULL}.
+This is designed to ensure that users who have filtered on abundance already in \code{subset.row} do not unintentionally filter again via \code{min.mean}.
+Users can disable this warning by setting \code{no.warn=TRUE}.
 }
 
 \section{Obtaining standard errors}{
