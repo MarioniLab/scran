@@ -305,15 +305,13 @@ find.shared.subspace <- function(A, B, sin.threshold=0.85, cos.threshold=1/sqrt(
     list(angle=180*theta/pi, nshared=shared)
 }
 
-cosine.norm <- function(X, mode=c("all", "matrix", "l2norm"))
+cosine.norm <- function(X, mode=c("matrix", "all", "l2norm"))
 # Computes the cosine norm, with some protection from zero-length norms.
 {
     mode <- match.arg(mode)
     out <- .Call(cxx_cosine_norm, X, mode!="l2norm")
-    switch(mode,
-           all=setNames(out, c("matrix", "l2norm")),
-           matrix=out[[1]],
-           l2norm=out[[2]])
+    names(out) <- c("matrix", "l2norm")
+    switch(mode, all=out, matrix=out$matrix, l2norm=out$l2norm)
 }
 
 bpl.get.knnx <- function(data, query, k, BPPARAM) 

@@ -6,8 +6,8 @@
 
 \usage{
 mnnCorrect(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE,
-    svd.dim=0L, subset.row=NULL,  order=NULL, pc.approx=FALSE, 
-    BPPARAM=SerialParam())
+    svd.dim=0L, var.adj=TRUE, subset.row=NULL, order=NULL, 
+    pc.approx=FALSE, BPPARAM=SerialParam())
 }
 
 \arguments{
@@ -19,6 +19,7 @@ Each matrix should contain the same number of rows, corresponding to the same ge
 \item{cos.norm.in}{A logical scalar indicating whether cosine normalization should be performed on the input data prior to calculating distances between cells.}
 \item{cos.norm.out}{A logical scalar indicating whether cosine normalization should be performed prior to computing corrected expression values.}
 \item{svd.dim}{An integer scalar specifying the number of dimensions to use for summarizing biological substructure within each batch.}
+\item{var.adj}{A logical scalar indicating whether variance adjustment should be performed.}
 \item{subset.row}{A vector specifying the genes with which distances between cells are calculated, e.g., for identifying mutual nearest neighbours.
 All genes are used by default.}
 \item{order}{An integer vector specifying the order in which batches are to be corrected.}
@@ -75,6 +76,12 @@ This can be turned off when there are no scaling differences between data sets.
 \item When \code{cos.norm.out=TRUE}, cosine normalization is performed on the matrix of values used to calculate correction vectors (and on which those vectors are applied).
 This can be turned off to obtain corrected values on the log-scale, similar to the input data.
 }
+
+Users should note that the order in which batches are corrected will affect the final results.
+The first batch in \code{order} is used as the reference batch against which the second batch is corrected.
+Corrected values of the second batch are added to the reference batch, against which the third batch is corrected, and so on.
+This strategy maximizes the chance of detecting sufficient MNN pairs for stable calculation of correction vectors in subsequent batches.
+%We would consider 20 cells involved in MNN pairs to be the minimum number required for batch correction.
 }
 
 \section{Further options}{
@@ -85,11 +92,12 @@ The biological subspace in each batch is identified with a SVD on the expression
 The number of dimensions of this subspace can be controlled with \code{svd.dim}.
 (By default, this option is turned off by setting \code{svd.dim=0}.)
 
-Users should note that the order in which batches are corrected will affect the final results.
-The first batch in \code{order} is used as the reference batch against which the second batch is corrected.
-Corrected values of the second batch are added to the reference batch, against which the third batch is corrected, and so on.
-This strategy maximizes the chance of detecting sufficient MNN pairs for stable calculation of correction vectors in subsequent batches.
-We would consider 20 cells involved in MNN pairs to be the minimum number required for batch correction.
+If \code{var.adj=TRUE}, the function will adjust the correction vector to equalize the variances of the two data sets along the batch effect vector.
+In particular, it avoids \dQuote{kissing} effects whereby MNN pairs are identified between the surfaces of point clouds from different batches.
+Naive correction would then bring only the surfaces into contact, rather than fully merging the clouds together.
+The adjustment ensures that the cells from the two batches are properly intermingled after correction.
+This is done by identifying each cell's position on the correction vector, identifying corresponding quantiles between batches, 
+and scaling the correction vector to ensure that the quantiles are matched after correction.
 }
 
 \author{
