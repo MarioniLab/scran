@@ -1,4 +1,4 @@
-mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE, svd.dim=0L, 
+mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE, svd.dim=0L, var.adj=TRUE,
                        subset.row=NULL, order=NULL, pc.approx=FALSE, BPPARAM=SerialParam())
 # Performs batch correction on multiple matrices of expression data,
 # as specified in the ellipsis.
@@ -26,7 +26,6 @@ mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE, 
             stop("row names are not the same across batches")
         }
     }
-        
 
     # Subsetting to the desired subset of genes.
     in.batches <- out.batches <- batches
@@ -95,7 +94,8 @@ mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE, 
         correction.in <- compute.correction.vectors(ref.batch.in, other.batch.in, s1, s2, other.batch.in.untrans, sigma)
         if (!same.set) {
             correction.out <- compute.correction.vectors(ref.batch.out, other.batch.out, s1, s2, other.batch.in.untrans, sigma)
-            # NOTE: use of 'other.batch.in.untrans' is intentional, as distances are calculated on cosine space.
+            # NOTE: use of 'other.batch.in.untrans' here is intentional, 
+            # as the distances should be the same as the MNN distances.
         }
 
         if (svd.dim>0) {
@@ -124,7 +124,16 @@ mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE, 
                 correction.out <- subtract.bio(correction.out, out.span1, out.span2, subset.row=subset.row)
             }
         } 
-        
+       
+        # Adjusting the shift variance, if requested.
+        # This is done after any SVD so that variance along the correction vector is purely technical.
+        if (var.adj) { 
+            correction.in <- adjust.shift.variance(ref.batch.in, other.batch.in, correction.in)
+            if (!same.set) {
+                correction.out <- adjust.shift.variance(ref.batch.out, other.batch.out, correction.out, subset.row=subset.row) 
+            }
+        }
+
         # Applying the correction and expanding the reference batch. 
         other.batch.in <- other.batch.in + correction.in
         ref.batch.in <- rbind(ref.batch.in, other.batch.in)
@@ -155,12 +164,51 @@ find.mutual.nn <- function(data1, data2, k1, k2, BPPARAM)
     return(out)
 }
 
-compute.correction.vectors <- function(data1, data2, mnn1, mnn2, original, sigma) 
-# Computes the batch correction vector for each cell in data2.
+compute.correction.vectors <- function(data1, data2, mnn1, mnn2, original2, sigma) 
+# Computes the batch correction vector for each cell in 'data2'.
+# 'original2' should also be supplied to compute distances 
+# (this may not be the same as 't(data2)' due to normalization, subsetting).
 {      
     vect <- data1[mnn1,,drop=FALSE] - data2[mnn2,,drop=FALSE]    
-    out <- .Call(cxx_smooth_gaussian_kernel, vect, mnn2-1L, original, sigma)
-    return(t(out))
+    cell.vect <- .Call(cxx_smooth_gaussian_kernel, vect, mnn2-1L, original2, sigma)
+    return(t(cell.vect)) 
+}
+
+adjust.shift.variance <- function(data1, data2, correction, subset.row=NULL) 
+# Performs variance adjustment to avoid kissing effects.    
+{
+    # Only using subsetted genes to compute locations, consistent with our policy in SVD. 
+    cell.vect <- correction 
+    if (!is.null(subset.row)) { 
+        cell.vect <- cell.vect[,subset.row,drop=FALSE]
+        data1 <- data1[,subset.row,drop=FALSE]
+        data2 <- data2[,subset.row,drop=FALSE]
+    }
+
+    print(head(sqrt(rowSums(cell.vect^2))))
+    scaling <- numeric(nrow(cell.vect))
+
+    for (cell in seq_along(scaling)) {
+        # For each cell, projecting both data sets onto the normalized correction vector for that cell.
+        cur.cor.vect <- cell.vect[cell,]
+        l2norm <- sqrt(sum(cur.cor.vect^2))
+        cur.cor.vect <- cur.cor.vect/l2norm
+        coords2 <- data2 %*% cur.cor.vect
+        coords1 <- data1 %*% cur.cor.vect
+
+        # Identifying the probability for that cell in its current data set, and the corresponding quantile in the other.
+        prob2 <- (rank(coords2)[cell] - 0.5)/length(coords2)
+        rank1 <- pmax(1, round(prob2 * length(coords1)))
+        ord1 <- order(coords1)[rank1]
+        
+        # Adjusting the length of the correction vector so that the correction will match the quantiles.
+        quan2 <- coords2[cell]
+        quan1 <- coords1[ord1]
+        scaling[cell] <- (quan1 - quan2)/l2norm
+    }
+
+    print(head(scaling))
+    return(scaling * correction)
 }
 
 get.bio.span <- function(exprs, ndim, subset.row=NULL, pc.approx=FALSE)
@@ -181,9 +229,11 @@ get.bio.span <- function(exprs, ndim, subset.row=NULL, pc.approx=FALSE)
     if (!pc.approx) { 
         S <- svd(centred, nu=ndim, nv=nv)
     } else {
-        S <- irlba::irlba(centred, nu=ndim, nv=nv, work=ndim+20) # can't use centers=, as that subtracts from columns not rows.
+        # Note: can't use centers=, as that subtracts from columns not rows.
+        S <- irlba::irlba(centred, nu=ndim, nv=nv, work=ndim+20) 
     }
-    
+   
+    # Returning the basis vectors directly if there was no subsetting. 
     if (is.null(subset.row)) { 
         return(S$u)
     } 
