@@ -41,18 +41,27 @@ mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE, 
     }
 
     # Applying cosine normalization for MNN identification. 
+    # We use the L2 norm for the subsetted input to adjust the output, 
+    # to ensure that results are consistent regardless of the manner of subsetting.
     if (cos.norm.in) { 
-        in.batches <- lapply(in.batches, cosine.norm) 
+        norm.scaling <- vector("list", nbatches)
+        for (b in seq_len(nbatches)) { 
+            current.in <- in.batches[[b]]
+            cos.out <- cosine.norm(current.in, mode="all")
+            in.batches[[b]] <- cos.out$matrix
+            norm.scaling[[b]] <- cos.out$l2norm
+        }
+    }
+    if (cos.norm.out) { 
+        if (!cos.norm.in) { 
+            norm.scaling <- lapply(in.batches, cosine.norm, mode="l2norm")
+        }
+        for (b in seq_len(nbatches)) { 
+            out.batches[[b]] <- sweep(out.batches[[b]], 2, norm.scaling[[b]], "/")
+        }
     }
     if (cos.norm.out!=cos.norm.in) { 
         same.set <- FALSE
-    }
-    if (cos.norm.out) { 
-        if (same.set) { 
-            out.batches <- in.batches
-        } else {
-            out.batches <- lapply(out.batches, cosine.norm) 
-        }
     }
 
     # Setting up the order.
@@ -185,9 +194,7 @@ adjust.shift.variance <- function(data1, data2, correction, subset.row=NULL)
         data2 <- data2[,subset.row,drop=FALSE]
     }
 
-    print(head(sqrt(rowSums(cell.vect^2))))
     scaling <- numeric(nrow(cell.vect))
-
     for (cell in seq_along(scaling)) {
         # For each cell, projecting both data sets onto the normalized correction vector for that cell.
         cur.cor.vect <- cell.vect[cell,]
@@ -207,7 +214,6 @@ adjust.shift.variance <- function(data1, data2, correction, subset.row=NULL)
         scaling[cell] <- (quan1 - quan2)/l2norm
     }
 
-    print(head(scaling))
     return(scaling * correction)
 }
 
@@ -299,10 +305,15 @@ find.shared.subspace <- function(A, B, sin.threshold=0.85, cos.threshold=1/sqrt(
     list(angle=180*theta/pi, nshared=shared)
 }
 
-cosine.norm <- function(X)
+cosine.norm <- function(X, mode=c("all", "matrix", "l2norm"))
 # Computes the cosine norm, with some protection from zero-length norms.
 {
-    .Call(cxx_cosine_norm, X)
+    mode <- match.arg(mode)
+    out <- .Call(cxx_cosine_norm, X, mode!="l2norm")
+    switch(mode,
+           all=setNames(out, c("matrix", "l2norm")),
+           matrix=out[[1]],
+           l2norm=out[[2]])
 }
 
 bpl.get.knnx <- function(data, query, k, BPPARAM) 

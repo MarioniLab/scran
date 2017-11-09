@@ -42,40 +42,63 @@ SEXP find_mutual_nns (SEXP left, SEXP right) {
 /* Performs the cosine normalization in a fairly efficient manner. */
 
 template<class M>
-SEXP cosine_norm_internal (M mat, SEXP original) {
+SEXP cosine_norm_internal (M mat, SEXP original, SEXP return_mat) {
     const size_t& nrow=mat->get_nrow();
     const size_t& ncol=mat->get_ncol();
-    auto output=beachmat::create_numeric_output(nrow, ncol, beachmat::output_param(original));
+
+    // Deciding whether or not to return the matrix.
+    Rcpp::LogicalVector retmat(return_mat);
+    if (retmat.size()!=1) { 
+        throw std::runtime_error("return matrix specification should be a logical vector");
+    }
+    bool mat_return=retmat[0];
     
+    beachmat::numeric_output* optr=NULL;
+    std::vector<std::unique_ptr<beachmat::numeric_output> > holder;
+    if (mat_return) { 
+        holder.push_back(beachmat::create_numeric_output(nrow, ncol, 
+                         beachmat::output_param(original, false, true)));
+        optr=holder.front().get();
+    }
+   
+    // Calculating the L2 norm of each vector and applying it. 
     Rcpp::NumericVector incoming(nrow);
+    Rcpp::NumericVector l2norm(ncol);
     for (size_t c=0; c<ncol; ++c) {
         mat->get_col(c, incoming.begin());
 
-        double total=0;
+        double& total=l2norm[c];
         for (const auto& val : incoming) { 
             total+=val*val;
         }
         total=std::sqrt(total);
         total=std::max(total, 0.00000001); // avoid division by zero.
 
-        for (auto& val : incoming) { 
-            val/=total;
+        if (mat_return) { 
+            for (auto& val : incoming) { 
+                val/=total;
+            }
+            optr->set_col(c, incoming.begin());
         }
-        output->set_col(c, incoming.begin());
     }
 
-    return output->yield();
+    // Figuring out what to return.
+    if (mat_return) { 
+        return Rcpp::List::create(optr->yield(), l2norm);
+    } else {
+        return Rcpp::List::create(R_NilValue, l2norm);
+    }
 }
 
-SEXP cosine_norm(SEXP incoming) {
+SEXP cosine_norm(SEXP incoming, SEXP getmat) {
     BEGIN_RCPP
     int rtype=beachmat::find_sexp_type(incoming);
     if (rtype==INTSXP) {
         auto input=beachmat::create_integer_matrix(incoming);
-        return cosine_norm_internal(input.get(), incoming);
+        return cosine_norm_internal(input.get(), incoming, getmat);
     } else {
         auto input=beachmat::create_numeric_matrix(incoming);
-        return cosine_norm_internal(input.get(), incoming);
+        return cosine_norm_internal(input.get(), incoming, getmat);
     }
     END_RCPP
 }
