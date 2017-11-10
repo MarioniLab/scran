@@ -81,10 +81,14 @@ mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE, 
         ref.batch.out <- t(out.batches[[ref]])
     }
 
-    num.mnn <- matrix(NA_integer_, nbatches, 2)
     output <- vector("list", nbatches)
     output[[ref]] <- out.batches[[ref]]
 
+    mnn.list <- vector("list", nbatches)
+    mnn.list[[ref]] <- DataFrame(current.cell=integer(0), other.cell=integer(0), other.batch=integer(0))
+    original.batch <- rep(ref, nrow(ref.batch.in)) 
+
+    # Looping through the batches.
     for (b in 2:nbatches) { 
         target <- order[b]
         other.batch.in.untrans <- in.batches[[target]]
@@ -154,13 +158,15 @@ mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE, 
             output[[target]] <- t(other.batch.out)
         }
 
-        # Storing the numbers of nearest neighbors.
-        num.mnn[target,] <- c(length(s1), length(s2))
+        # Storing the identities of the MNN pairs (using RLEs for compression of runs).
+        mnn.list[[target]] <- DataFrame(current.cell=s2, other.cell=Rle(s1), other.batch=Rle(original.batch[s1]))
+        original.batch <- c(original.batch, rep(target, nrow(other.batch.in)))
     }
 
     # Formatting output to be consistent with input.
     names(output) <- names(batches)
-    list(corrected=output, num.mnn=num.mnn)
+    names(mnn.list) <- names(batches)
+    list(corrected=output, pairs=mnn.list)
 }
 
 find.mutual.nn <- function(data1, data2, k1, k2, BPPARAM) 

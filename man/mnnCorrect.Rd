@@ -33,9 +33,9 @@ A named list containing two components:
 \item{\code{corrected}:}{A list of length equal to the number of batches, containing matrices of corrected expression values for each cell in each batch.
 The order of batches is the same as supplied in \code{...}, and the order of cells in each matrix is also unchanged.
 }
-\item{\code{mnn}:}{An integer matrix with two columns, specifying the number of MNNs used for correction of each batch.
-Each row corresponds to a batch, and the first and second columns contain the number of MNNs in the reference and current batch, respectively.
-}
+\item{\code{pairs}:}{A named list of length equal to the number of batches, containing DataFrames specifying the MNN pairs used for correction.
+Each row of the DataFrame defines a pair based on the cell in the current batch and another cell in an earlier batch.
+The identity of the other cell and batch are stored as run-length encodings to save space.}
 }}
 
 \details{
