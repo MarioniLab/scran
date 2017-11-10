@@ -6,8 +6,9 @@
 
 \usage{
 mnnCorrect(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE,
-    svd.dim=0L, var.adj=TRUE, subset.row=NULL, order=NULL, 
-    pc.approx=FALSE, BPPARAM=SerialParam())
+    svd.dim=0L, var.adj=TRUE, compute.angle=FALSE, subset.row=NULL, 
+    order=NULL, pc.approx=FALSE, irlba.args=list(),
+    BPPARAM=SerialParam())
 }
 
 \arguments{
@@ -19,11 +20,13 @@ Each matrix should contain the same number of rows, corresponding to the same ge
 \item{cos.norm.in}{A logical scalar indicating whether cosine normalization should be performed on the input data prior to calculating distances between cells.}
 \item{cos.norm.out}{A logical scalar indicating whether cosine normalization should be performed prior to computing corrected expression values.}
 \item{svd.dim}{An integer scalar specifying the number of dimensions to use for summarizing biological substructure within each batch.}
-\item{var.adj}{A logical scalar indicating whether variance adjustment should be performed.}
+\item{var.adj}{A logical scalar indicating whether variance adjustment should be performed on the correction vectors.}
+\item{compute.angle}{A logical scalar specifying whether to calculate the angle between each cell's correction vector and the biological subspace of the reference batch.}
 \item{subset.row}{A vector specifying the genes with which distances between cells are calculated, e.g., for identifying mutual nearest neighbours.
 All genes are used by default.}
 \item{order}{An integer vector specifying the order in which batches are to be corrected.}
 \item{pc.approx}{A logical scalar indicating whether \code{\link[irlba]{irlba}} should be used to identify the biological subspace.}
+\item{irlba.args}{A list of arguments to pass to \code{\link[irlba]{irlba}} when \code{pc.approx=TRUE}.}
 \item{BPPARAM}{A BiocParallelParam object specifying whether the nearest-neighbor searches should be parallelized.}
 }
 
@@ -36,6 +39,9 @@ The order of batches is the same as supplied in \code{...}, and the order of cel
 \item{\code{pairs}:}{A named list of length equal to the number of batches, containing DataFrames specifying the MNN pairs used for correction.
 Each row of the DataFrame defines a pair based on the cell in the current batch and another cell in an earlier batch.
 The identity of the other cell and batch are stored as run-length encodings to save space.}
+\item{\code{angles}:}{A named list of length equal to the number of batches, containing numeric vectors of angles.
+Each angle is computed between each cell's correction vector with the first two basis vectors of the first batch of cells (plus any previously corrected batches).
+This is only returned if \code{compute.angle=TRUE}.}
 }}
 
 \details{

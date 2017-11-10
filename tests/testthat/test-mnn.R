@@ -140,41 +140,47 @@ test_that("mnnCorrect behaves consistently with subsetting", {
     keep <- 1:5 
     ref <- mnnCorrect(alpha[keep,], bravo[keep,], charlie[keep,])
     out <- mnnCorrect(alpha, bravo, charlie, subset.row=keep)
-    test.out <- lapply(out$corrected, "[", i=keep,)
-    expect_equal(ref$corrected, test.out)    
+    out$corrected <- lapply(out$corrected, "[", i=keep,)
+    expect_equal(ref, out)    
 
     # Without cosine normalization of the output.
     ref <- mnnCorrect(alpha[keep,], bravo[keep,], charlie[keep,], cos.norm.out=FALSE)
     out <- mnnCorrect(alpha, bravo, charlie, subset.row=keep, cos.norm.out=FALSE)
-    test.out <- lapply(out$corrected, "[", i=keep,)
-    expect_equal(ref$corrected, test.out)    
+    out$corrected <- lapply(out$corrected, "[", i=keep,)
+    expect_equal(ref, out)    
 
     # Without cosine normalization of the input.
     ref <- mnnCorrect(alpha[keep,], bravo[keep,], charlie[keep,], cos.norm.in=FALSE)
     out <- mnnCorrect(alpha, bravo, charlie, subset.row=keep, cos.norm.in=FALSE)
-    test.out <- lapply(out$corrected, "[", i=keep,)
-    expect_equal(ref$corrected, test.out)    
+    out$corrected <- lapply(out$corrected, "[", i=keep,)
+    expect_equal(ref, out)    
 
     # Without any cosine normalization at all.
     keep <- 6:10
     ref <- mnnCorrect(alpha[keep,], bravo[keep,], charlie[keep,], cos.norm.in=FALSE, cos.norm.out=FALSE)
     out <- mnnCorrect(alpha, bravo, charlie, subset.row=keep, cos.norm.in=FALSE, cos.norm.out=FALSE)
-    test.out <- lapply(out$corrected, "[", i=keep,)
-    expect_equal(ref$corrected, test.out)    
+    out$corrected <- lapply(out$corrected, "[", i=keep,)
+    expect_equal(ref, out)    
 
     # With SVDs.
     keep <- 2:7
     ref <- mnnCorrect(alpha[keep,], bravo[keep,], charlie[keep,], svd.dim=2)
     out <- mnnCorrect(alpha, bravo, charlie, subset.row=keep, svd.dim=2)
-    test.out <- lapply(out$corrected, "[", i=keep,)
-    expect_equal(ref$corrected, test.out)   
+    out$corrected <- lapply(out$corrected, "[", i=keep,)
+    expect_equal(ref, out)   
 
     # Without the variance adjustment.
-    keep <- 2:7
     ref <- mnnCorrect(alpha[keep,], bravo[keep,], charlie[keep,], var.adj=FALSE)
     out <- mnnCorrect(alpha, bravo, charlie, subset.row=keep, var.adj=FALSE)
-    test.out <- lapply(out$corrected, "[", i=keep,)
-    expect_equal(ref$corrected, test.out)   
+    out$corrected <- lapply(out$corrected, "[", i=keep,)
+    expect_equal(ref, out)   
+
+    # Asking for angles.
+    keep <- 8:3
+    ref <- mnnCorrect(alpha[keep,], bravo[keep,], charlie[keep,], compute.angle=TRUE)
+    out <- mnnCorrect(alpha, bravo, charlie, subset.row=keep, compute.angle=TRUE)
+    out$corrected <- lapply(out$corrected, "[", i=keep,)
+    expect_equal(ref, out)   
 
     # Duplicated genes should have no effect.
     out <- mnnCorrect(rbind(alpha, alpha), rbind(bravo, bravo), rbind(charlie, charlie), 
@@ -182,4 +188,10 @@ test_that("mnnCorrect behaves consistently with subsetting", {
     ref1 <- lapply(out$corrected, "[", i=1:nrow(alpha),)
     ref2 <- lapply(out$corrected, "[", i=nrow(alpha)+1:nrow(alpha),)
     expect_equal(ref1, ref2) 
+    
+    # Checking that the order has no effect.
+    new.order <- c(2, 3, 1)
+    out <- mnnCorrect(alpha, bravo, charlie, order=new.order)
+    ref <- mnnCorrect(bravo, charlie, alpha)
+    expect_equal(out$corrected[new.order], ref$corrected)
 })
