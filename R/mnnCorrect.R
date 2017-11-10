@@ -129,16 +129,17 @@ mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE,
             angle.list[[target]] <- angle.out
         }
 
-        # Removing any component of the correction vector that's parallel to the basis vectors in either batch.
+        # Removing any component of the correction vector that's parallel to the biological basis vectors in either batch.
+        # Only using cells involved in MNN pairs, to avoid undercorrection in directions that weren't problematic anyway.
+        # (This is intended to mitigate the effect of identifying MNN pairs between non-corresponding populations.)
         if (svd.dim>0) {
             u1 <- unique(s1)
             u2 <- unique(s2)
 
             # Computing the biological subspace in both batches.
-            in.ndim <- min(c(svd.dim, dim(ref.batch.in), dim(other.batch.in)))
-            in.span1 <- get.bio.span(t(ref.batch.in[u1,,drop=FALSE]), ndim=min(in.ndim, length(s1)), 
+            in.span1 <- get.bio.span(t(ref.batch.in[u1,,drop=FALSE]), ndim=svd.dim,
                                      pc.approx=pc.approx, irlba.args=irlba.args)
-            in.span2 <- get.bio.span(other.batch.in.untrans[,u2,drop=FALSE], ndim=min(in.ndim, length(s2)), 
+            in.span2 <- get.bio.span(other.batch.in.untrans[,u2,drop=FALSE], ndim=svd.dim, 
                                      pc.approx=pc.approx, irlba.args=irlba.args)
 
             # Reduce the component in each span from the batch correction vector.
@@ -146,21 +147,15 @@ mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE,
 
             # Repeating for the output values.
             if (!same.set) { 
-                out.ndim <- min(c(svd.dim, dim(ref.batch.out), dim(other.batch.out)))
-                if (!is.null(subset.row)) { 
-                    out.ndim <- min(out.ndim, length(subset.row))
-                }                    
-                
                 out.span1 <- get.bio.span(t(ref.batch.out[u1,,drop=FALSE]), subset.row=subset.row,
-                                          ndim=min(out.ndim, length(s1)), pc.approx=pc.approx, irlba.args=irlba.args)
+                                          ndim=svd.dim, pc.approx=pc.approx, irlba.args=irlba.args)
                 out.span2 <- get.bio.span(other.batch.out.untrans[,u2,drop=FALSE], subset.row=subset.row,
-                                          ndim=min(out.ndim, length(s2)), pc.approx=pc.approx, irlba.args=irlba.args)
+                                          ndim=svd.dim, pc.approx=pc.approx, irlba.args=irlba.args)
                 correction.out <- subtract.bio(correction.out, out.span1, out.span2, subset.row=subset.row)
             }
         } 
        
-        # Adjusting the shift variance, if requested.
-        # This is done after any SVD so that variance along the correction vector is purely technical.
+        # Adjusting the shift variance; done after any SVD so that variance along the correction vector is purely technical.
         if (var.adj) { 
             correction.in <- adjust.shift.variance(ref.batch.in, other.batch.in, correction.in)
             if (!same.set) {
@@ -270,6 +265,7 @@ get.bio.span <- function(exprs, ndim, subset.row=NULL, pc.approx=FALSE, irlba.ar
     }
 
     # Returning the basis vectors directly if there was no subsetting. 
+    ndim <- min(ndim, dim(centred))
     S <- .svd_internal(centred, nu=ndim, nv=nv, pc.approx=pc.approx, irlba.args=irlba.args)
     if (is.null(subset.row)) { 
         return(S$u)
