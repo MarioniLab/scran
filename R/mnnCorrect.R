@@ -1,5 +1,7 @@
-mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE, svd.dim=0L, var.adj=TRUE,
-                       subset.row=NULL, order=NULL, pc.approx=FALSE, BPPARAM=SerialParam())
+mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE, 
+                       svd.dim=0L, var.adj=TRUE, compute.angle=FALSE,
+                       subset.row=NULL, order=NULL, pc.approx=FALSE, irlba.args=list(),
+                       BPPARAM=SerialParam())
 # Performs batch correction on multiple matrices of expression data,
 # as specified in the ellipsis.
 #    
@@ -88,6 +90,9 @@ mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE, 
     mnn.list[[ref]] <- DataFrame(current.cell=integer(0), other.cell=integer(0), other.batch=integer(0))
     original.batch <- rep(ref, nrow(ref.batch.in)) 
 
+    angle.list <- vector("list", nbatches)
+    angle.list[[ref]] <- numeric(0)
+
     # Looping through the batches.
     for (b in 2:nbatches) { 
         target <- order[b]
@@ -111,14 +116,30 @@ mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE, 
             # as the distances should be the same as the MNN distances.
         }
 
+        # Calculating the smallest angle between each correction vector and the first 2 basis vectors of the reference batch.
+        if (compute.angle) {
+            ref.centred <- t(ref.batch.in)
+            ref.centred <- ref.centred - rowMeans(ref.centred) 
+            ref.basis <- .svd_internal(ref.centred, nu=2, nv=0, pc.approx=pc.approx, irlba.args=irlba.args)$u
+
+            angle.out <- numeric(nrow(correction.in))
+            for (i in seq_along(angle.out)) {
+                angle.out[i] <- find.shared.subspace(ref.basis, t(correction.in[i,,drop=FALSE]))$angle
+            }
+            angle.list[[target]] <- angle.out
+        }
+
+        # Removing any component of the correction vector that's parallel to the basis vectors in either batch.
         if (svd.dim>0) {
             u1 <- unique(s1)
             u2 <- unique(s2)
 
             # Computing the biological subspace in both batches.
             in.ndim <- min(c(svd.dim, dim(ref.batch.in), dim(other.batch.in)))
-            in.span1 <- get.bio.span(t(ref.batch.in[u1,,drop=FALSE]), ndim=min(in.ndim, length(s1)), pc.approx=pc.approx)
-            in.span2 <- get.bio.span(other.batch.in.untrans[,u2,drop=FALSE], ndim=min(in.ndim, length(s2)), pc.approx=pc.approx)
+            in.span1 <- get.bio.span(t(ref.batch.in[u1,,drop=FALSE]), ndim=min(in.ndim, length(s1)), 
+                                     pc.approx=pc.approx, irlba.args=irlba.args)
+            in.span2 <- get.bio.span(other.batch.in.untrans[,u2,drop=FALSE], ndim=min(in.ndim, length(s2)), 
+                                     pc.approx=pc.approx, irlba.args=irlba.args)
 
             # Reduce the component in each span from the batch correction vector.
             correction.in <- subtract.bio(correction.in, in.span1, in.span2)
@@ -131,9 +152,9 @@ mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE, 
                 }                    
                 
                 out.span1 <- get.bio.span(t(ref.batch.out[u1,,drop=FALSE]), subset.row=subset.row,
-                                          ndim=min(out.ndim, length(s1)), pc.approx=pc.approx)
+                                          ndim=min(out.ndim, length(s1)), pc.approx=pc.approx, irlba.args=irlba.args)
                 out.span2 <- get.bio.span(other.batch.out.untrans[,u2,drop=FALSE], subset.row=subset.row,
-                                          ndim=min(out.ndim, length(s2)), pc.approx=pc.approx)
+                                          ndim=min(out.ndim, length(s2)), pc.approx=pc.approx, irlba.args=irlba.args)
                 correction.out <- subtract.bio(correction.out, out.span1, out.span2, subset.row=subset.row)
             }
         } 
@@ -223,7 +244,17 @@ adjust.shift.variance <- function(data1, data2, correction, subset.row=NULL)
     return(scaling * correction)
 }
 
-get.bio.span <- function(exprs, ndim, subset.row=NULL, pc.approx=FALSE)
+.svd_internal <- function(X, nu, nv, pc.approx=FALSE, irlba.args=list()) {
+    if (!pc.approx) { 
+        S <- svd(X, nu=nu, nv=nv)
+    } else {
+        # Note: can't use centers=, as that subtracts from columns not rows.
+        S <- do.call(irlba::irlba, c(list(A=X, nu=nu, nv=nv), irlba.args))
+    }
+    return(S)
+}
+ 
+get.bio.span <- function(exprs, ndim, subset.row=NULL, pc.approx=FALSE, irlba.args=list())
 # Computes the basis matrix of the biological subspace of 'exprs'.
 # The first 'ndim' dimensions are assumed to capture the biological subspace.
 {
@@ -238,14 +269,8 @@ get.bio.span <- function(exprs, ndim, subset.row=NULL, pc.approx=FALSE)
         nv <- 0
     }
 
-    if (!pc.approx) { 
-        S <- svd(centred, nu=ndim, nv=nv)
-    } else {
-        # Note: can't use centers=, as that subtracts from columns not rows.
-        S <- irlba::irlba(centred, nu=ndim, nv=nv, work=ndim+20) 
-    }
-   
     # Returning the basis vectors directly if there was no subsetting. 
+    S <- .svd_internal(centred, nu=ndim, nv=nv, pc.approx=pc.approx, irlba.args=irlba.args)
     if (is.null(subset.row)) { 
         return(S$u)
     } 
@@ -288,7 +313,8 @@ find.shared.subspace <- function(A, B, sin.threshold=0.85, cos.threshold=1/sqrt(
      
     # Singular values close to 1 indicate shared subspace A \invertsymbol{U} B
     # Otherwise A and B are completely orthogonal, i.e., all angles=90.
-    S <- svd(t(A) %*% B)
+    cp.AB <- crossprod(A, B)
+    S <- svd(cp.AB)
     shared <- sum(S$d > sin.threshold)
     if (!get.angle) {
         return(list(nshared=shared))
@@ -301,9 +327,9 @@ find.shared.subspace <- function(A, B, sin.threshold=0.85, cos.threshold=1/sqrt(
         theta <- acos(min(1, costheta))
     } else {
         if (ncol(A) < ncol(B)){ 
-            sintheta <- svd(t(A) - (t(A) %*% B) %*% t(B))$d[1]
+            sintheta <- svd(t(A) - tcrossprod(cp.AB, B), nu=0, nv=0)$d[1]
         } else {
-            sintheta <- svd(t(B) - (t(B) %*% A) %*% t(A))$d[1]
+            sintheta <- svd(t(B) - tcrossprod(t(cp.AB), A), nu=0, nv=0)$d[1]
         }
         theta <- asin(min(1, sintheta)) 
     }
