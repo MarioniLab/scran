@@ -136,6 +136,15 @@ test_that("trendVar works with other trend functions",  {
     expect_is(out.spl$trend, "function") 
     expect_equal(out.spl$trend(mx), out.spl$trend(mx+1))
     expect_equal(out.spl$trend(0), 0)
+
+    # Checking deprecation warnings and argument specification works (change to default args next time).
+    expect_warning(out.sp <- trendVar(d, span=0.2), "deprecated")
+    expect_warning(out.sp2 <- trendVar(d, loess.args=list(span=0.2)), NA)
+    expect_equal(out.sp$trend(1:50/5), out.sp2$trend(1:50/5))
+
+    expect_warning(out.sp <- trendVar(d, method="spline", df=5), "deprecated")
+    expect_warning(out.sp2 <- trendVar(d, method="spline", spline.args=list(df=5)), NA)
+    expect_equal(out.sp$trend(1:20/5), out.sp2$trend(1:20/5))
 })
 
 # Trying again with a design matrix.

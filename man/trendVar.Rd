@@ -7,10 +7,10 @@
 \description{Fit a mean-dependent trend to the gene-specific variances in single-cell RNA-seq data.}
 
 \usage{
-\S4method{trendVar}{ANY}(x, method=c("loess", "spline", "semiloess"), 
-    span=0.3, family="symmetric", degree=1, df=4,
-    parametric=FALSE, start=NULL, min.mean=0.1,
-    design=NULL, subset.row=NULL) 
+\S4method{trendVar}{ANY}(x, method=c("loess", "spline"), parametric=FALSE, 
+    loess.args=list(), spline.args=list(), rlm.args=list(), nls.args=list(),
+    span=NULL, family=NULL, degree=NULL, df=NULL, start=NULL, 
+    min.mean=0.1, design=NULL, subset.row=NULL) 
 
 \S4method{trendVar}{SingleCellExperiment}(x, subset.row=NULL, ..., assay.type="logcounts", use.spikes=TRUE)
 }
@@ -21,11 +21,14 @@
     Alternatively, a SingleCellExperiment object that contains such values.
 }
 \item{method}{A string specifying the algorithm to use for smooth trend fitting.}
-\item{span, family, degree}{Arguments to pass to \code{\link{loess}}.}
-\item{df}{Arguments to pass to \code{\link[splines]{ns}}.}
 \item{parametric}{A logical scalar indicating whether a parametric curve should be fitted prior to smoothing.}
-\item{start}{A named list of numeric scalars, containing starting values for parametric fitting with \code{\link{nls}}. 
-This is automatically generated with the most suitable values if set to \code{NULL}.}
+\item{loess.args}{A named list of arguments to pass to \code{\link{loess}} when \code{method="loess"}.}
+\item{spline.args}{A named list of arguments to pass to \code{\link[splines]{ns}} when \code{method="spline"}.}
+\item{rlm.args}{A named list of arguments to pass to \code{\link[MASS]{rlm}} when \code{method="spline"}.}
+\item{nls.args}{A named list of arguments to pass to \code{\link{nls}} when \code{parametric=TRUE}.}
+\item{span, family, degree}{Deprecated arguments to pass to \code{\link{loess}}.}
+\item{df}{Deprecated argument to pass to \code{\link{ns}}.}
+\item{start}{Deprecated argument to pass to \code{\link{nls}}.}
 \item{min.mean}{A numeric scalar specifying the minimum mean log-expression in order for a gene to be used for trend fitting.}
 \item{design}{A numeric matrix describing the uninteresting factors contributing to expression in each cell.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
@@ -54,25 +57,28 @@ Otherwise, it will default to an all-ones matrix, effectively treating all cells
 If \code{parametric=FALSE}, smoothing is performed directly on the log-variances.
 This is the default as it provides the most stable performance on arbitrary mean-variance relationships.
 
-If \code{parametric=TRUE}, wa non-linear curve of the form
+If \code{parametric=TRUE}, a non-linear curve of the form
 \deqn{y = \frac{ax}{x^n + b}}{y = ax/(x^n + b)}
 is fitted to the variances against the means using \code{\link{nls}}.
-The specified smoothing algorihtm is applied to the log-ratios of the variance to the fitted value.
+Starting values and the number of iterations are automatically set if not explicitly specified in \code{nls.args}.
+A smoothing algorihtm is then applied to the log-ratios of the variance to the fitted value for each gene.
 The aim is to use the parametric curve to reduce the sharpness of the expected mean-variance relationship[for easier smoothing.
 Conversely, the parametric form is not exact, so the smoothers will model any remaining trends in the residuals.
 
 The \code{method} argument specifies the smoothing algorithm to be applied on the log-ratios/variances.
 By default, a robust loess curve is used for trend fitting via \code{\link{loess}}.
 This provides a fairly flexible fit while protecting against genes with very large or very small variances.
-Some experimentation with \code{span}, \code{degree} or \code{family} may be required to obtain satisfactory results.
-If \code{method="spline"}, a natural spline of degree \code{df} will be used instead.
-This is constructed using the \code{\link[splines]{ns}} function and is fitted robustly using the \code{\link[MASS]{rlm}} function.
+Arguments to \code{\link{loess}} are specified with \code{loess.args}, with defaults of \code{span=0.3}, \code{family="symmetric"} and \code{degree=1} unless otherwise specified. 
+Some experimentation with these parameters may be required to obtain satisfactory results.
+
+If \code{method="spline"}, a natural spline will be used instead for smoothing.
+This is constructed using the \code{\link[splines]{ns}} function with arguments taken from \code{spline.args}.
+The degrees of freedom are set to \code{df=4} unless otherwise specified.
+Fitting is performed robustly using the \code{\link[MASS]{rlm}} function, using arguments taken from \code{rlm.args}.
 
 The \code{trendVar} function will produce an output \code{trend} function with which fitted values can be computed.
 When extrapolating to values below the smallest observed mean, the output function will approach zero.
 When extrapolating to values above the largest observed mean, the output function will be set to the fitted value of the trend at the largest mean.
-
-Note that \code{method="semiloess"} is the same as \code{parametric=TRUE} with \code{method="loess"}.
 }
 
 \section{Additional notes on row selection}{

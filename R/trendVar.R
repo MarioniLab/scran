@@ -1,13 +1,13 @@
-.trend_var <- function(x, method=c("loess", "spline", "semiloess"), 
-                       span=0.3, family="symmetric", degree=1, df=4,
-                       parametric=FALSE, start=NULL, min.mean=0.1,
-                       design=NULL, subset.row=NULL)
+.trend_var <- function(x, method=c("loess", "spline"), parametric=FALSE, 
+                       loess.args=list(), spline.args=list(), rlm.args=list(), nls.args=list(),
+                       span=NULL, family=NULL, degree=NULL, df=NULL, start=NULL, 
+                       min.mean=0.1, design=NULL, subset.row=NULL)
 # Fits a polynomial trend to the technical variability of the log-CPMs,
 # against their abundance (i.e., average log-CPM).
 # 
 # written by Aaron Lun
 # created 21 January 2016
-# last modified 13 July 2017
+# last modified 12 November 2017
 {
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     checked <- .make_var_defaults(x, fit=NULL, design=design)
@@ -24,13 +24,6 @@
     kept.vars <- vars[is.okay]
     kept.means <- means[is.okay]
 
-    method <- match.arg(method) 
-    if (method=="semiloess") {
-        warning("'semiloess' is deprecated, use parametric=TRUE and method='loess' instead")
-        method <- "loess"
-        parametric <- TRUE
-    }
-   
     # Fitting a parametric curve to try to flatten the shape.
     # This is of the form y = a*x/(x^n + b), but each coefficent is actually set
     # to exp(*) to avoid needing to set lower bounds.
@@ -39,11 +32,9 @@
             stop("need at least 4 values for non-linear curve fitting")
         } 
 
-        if (is.null(start)) start <- .get_nls_starts(kept.vars, kept.means)
-        init.fit <- nls(kept.vars ~ (exp(A)*kept.means)/(kept.means^(1+exp(N)) + exp(B)), 
-                        start=list(A=log(start$a), B=log(start$b), N=log(pmax(1e-8, start$n-1))),
-                        control=nls.control(warnOnly=TRUE, maxiter=500))
-
+        nls.args <- .setup_nls_args(nls.args, start.args=list(vars=kept.vars, means=kept.means))
+        nls.args$formula <- kept.vars ~ (exp(A)*kept.means)/(kept.means^(1+exp(N)) + exp(B))
+        init.fit <- do.call(nls, nls.args)
         to.fit <- log(kept.vars/fitted(init.fit))
         SUBSUBFUN <- function(x) { predict(init.fit, data.frame(kept.means=x)) }
     } else {
@@ -55,14 +46,19 @@
         SUBSUBFUN <- function(x) { pmin(1, x/left.edge) } # To get a gradient from 0 to 1 below the supported range.
     } 
     
-    # Fitting loess or splines to the remainder.
+    # Fitting loess or splines to the remainder. Note that we need kept.means as a variable in the formula for predict() to work!
+    method <- match.arg(method)
     if (method=="loess") { 
-        after.fit <- loess(to.fit ~ kept.means, degree=degree, family=family, span=span)
+        loess.args <- .setup_loess_args(loess.args, degree=degree, family=family, span=span)
+        loess.args$formula <- to.fit ~ kept.means 
+        after.fit <- do.call(loess, loess.args)
     } else {
-        after.fit <- MASS::rlm(to.fit ~ ns(kept.means, df=df))
+        spline.args <- .setup_spline_args(spline.args, df=df)
+        rlm.args$formula <- to.fit ~ do.call(ns, c(list(x=kept.means), spline.args)) 
+        after.fit <- do.call(MASS::rlm, rlm.args)
     }
 
-    # Only trusting the parametric froms for extrapolation; restricting non-parametric forms within the supported range.
+    # Only trusting the parametric SUBSUBFUN for extrapolation; restricting non-parametric forms within the supported range.
     left.edge <- min(kept.means)
     right.edge <- max(kept.means)
     SUBFUN <- function(x) { 
@@ -91,6 +87,10 @@
     }
     return(list(mean=means, var=vars, trend=FUN, design=design, df2=f.df2, start=start))
 }
+
+#########################################################
+# Computing NLS starting points for parametric fitting. #
+#########################################################
 
 .get_nls_starts <- function(vars, means, grad.prop=0.5, grid.length=100, grid.max=10) {
     lvars <- log2(vars)
@@ -128,6 +128,76 @@
     a <- unname(getA(n))
     list(n=n, b=b, a=a)
 }
+
+##############################
+# Setting default arguments. #
+##############################
+
+.warn_and_set_default <- function(val, name, default, new.arg) {
+    if (is.null(val)) {
+        return(default)
+    } else {
+        .Deprecated(old=paste0(name, "="), new=sprintf("%s(%s=)", new.arg, name))
+        return(val)
+    }
+}
+
+.setup_loess_args <- function(loess.args, span, family, degree) {
+    if (is.null(loess.args)) { 
+        return(list())
+    }
+
+    loess.call <- do.call(call, c("loess", loess.args))
+    loess.call <- match.call(loess, loess.call)
+    loess.args <- as.list(loess.call)[-1] # expand to full argument names.
+
+    span <- .warn_and_set_default(span, "span", 0.3, "loess.args")
+    family <- .warn_and_set_default(family, "family", "symmetric", "loess.args")
+    degree <- .warn_and_set_default(degree, "degree", 1, "loess.args")
+   
+    altogether <- c(loess.args, list(span=span, family=family, degree=degree))
+    keep <- !duplicated(names(altogether)) # loess.args are favoured.
+    return(altogether[keep])
+}
+
+.setup_spline_args <- function(spline.args, df) {
+    if (is.null(spline.args)) { 
+        return(list())
+    }
+
+    spline.call <- do.call(call, c("ns", spline.args))
+    spline.call <- match.call(ns, spline.call)
+    spline.args <- as.list(spline.call)[-1]
+
+    df <- .warn_and_set_default(df, "df", 4, "spline.args")
+    altogether <- c(spline.args, list(df=df))
+    keep <- !duplicated(names(altogether)) 
+    return(altogether[keep])
+}
+
+.setup_nls_args <- function(nls.args, start.args) {
+    if (is.null(nls.args)) { 
+        return(list())
+    }
+
+    nls.call <- do.call(call, c("nls", nls.args))
+    nls.call <- match.call(nls, nls.call)
+    nls.args <- as.list(nls.call)[-1]
+
+    control <- nls.control(warnOnly=TRUE, maxiter=500)
+    raw.start <- do.call(.get_nls_starts, start.args)
+    start <- list(A=log(raw.start$a), 
+                  B=log(raw.start$b), 
+                  N=log(pmax(1e-8, raw.start$n-1))) # reflects enforced positivity in formula.
+
+    altogether <- c(nls.args, list(control=control, start=start))
+    keep <- !duplicated(names(altogether)) 
+    return(altogether[keep])
+}
+
+#########################
+# Setting up S4 methods #
+#########################
 
 setGeneric("trendVar", function(x, ...) standardGeneric("trendVar"))
 
