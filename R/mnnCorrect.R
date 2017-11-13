@@ -248,6 +248,7 @@ adjust.shift.variance <- function(data1, data2, correction, subset.row=NULL)
         scaling[cell] <- (quan1 - quan2)/l2norm
     }
 
+    scaling <- pmax(scaling, 1)
     return(scaling * correction)
 }
 
