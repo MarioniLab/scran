@@ -108,9 +108,9 @@ mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE,
        
         # Adjusting the shift variance; done after any SVD so that variance along the correction vector is purely technical.
         if (var.adj) { 
-            correction.in <- adjust.shift.variance(ref.batch.in, other.batch.in, correction.in)
+            correction.in <- adjust.shift.variance(ref.batch.in, other.batch.in, correction.in, sigma=sigma)
             if (!same.set) {
-                correction.out <- adjust.shift.variance(ref.batch.out, other.batch.out, correction.out, subset.row=subset.row) 
+                correction.out <- adjust.shift.variance(ref.batch.out, other.batch.out, correction.out, sigma=sigma, subset.row=subset.row) 
             }
         }
 
@@ -217,7 +217,7 @@ compute.correction.vectors <- function(data1, data2, mnn1, mnn2, original2, sigm
     return(t(cell.vect)) 
 }
 
-adjust.shift.variance <- function(data1, data2, correction, subset.row=NULL) 
+adjust.shift.variance <- function(data1, data2, correction, sigma, subset.row=NULL) 
 # Performs variance adjustment to avoid kissing effects.    
 {
     # Only using subsetted genes to compute locations, consistent with our policy in SVD. 
@@ -237,14 +237,26 @@ adjust.shift.variance <- function(data1, data2, correction, subset.row=NULL)
         coords2 <- data2 %*% cur.cor.vect
         coords1 <- data1 %*% cur.cor.vect
 
-        # Identifying the probability for that cell in its current data set, and the corresponding quantile in the other.
-        prob2 <- (rank(coords2)[cell] - 0.5)/length(coords2)
-        rank1 <- pmax(1, round(prob2 * length(coords1)))
-        ord1 <- order(coords1)[rank1]
+        # Also getting the distance from the correction vector. 
+        dist2 <- data2[cell,] - t(data2)
+        dist2 <- dist2 - outer(cur.cor.vect, as.numeric(crossprod(dist2, cur.cor.vect)))
+        dist2 <- colSums(dist2^2)
+        weight2 <- exp(-dist2/sigma)
+
+        dist1 <- data2[cell,] - t(data1)
+        dist1 <- dist1 - outer(cur.cor.vect, as.numeric(crossprod(dist1, cur.cor.vect)))
+        dist1 <- colSums(dist1^2)
+        weight1 <- exp(-dist1/sigma)
+
+        # Computing the weighted cumulative probability, for quantile-quantile mapping.
+        rank2 <- rank(coords2, ties.method="first")
+        prob2 <- sum(weight2[rank2 <= rank2[cell]])/sum(weight2)
+        ord1 <- order(coords1)
+        ecdf1 <- cumsum(weight1[ord1])/sum(weight1)
         
         # Adjusting the length of the correction vector so that the correction will match the quantiles.
+        quan1 <- coords1[ord1[min(which(ecdf1 >= prob2))]]
         quan2 <- coords2[cell]
-        quan1 <- coords1[ord1]
         scaling[cell] <- (quan1 - quan2)/l2norm
     }
 
