@@ -89,39 +89,40 @@ test_that("denoisePCA works as expected", {
     pcs3 <- denoisePCA(lcounts, technical=even.lower.fun, value="pca")
     expect_equal(pcs3[,], pc.out3$x[,seq_len(npcs3)])
     expect_equal(attr(pcs3, "percentVar"), attr(npcs3, "percentVar"))
+})
 
+test_that("Low-rank approximations work as expected", {
     # Checking that the low-rank approximation is correctly computed.
     lrout <- denoisePCA(lcounts, technical=fit$trend, value="lowrank")
     expect_identical(dim(lrout), dim(lcounts))
+    
+    keep <- rownames(dec)[dec$bio > 0]
     expect_equal(rowMeans(lrout)[keep], rowMeans(lcounts)[keep])
-
-    expect_true(all(lrout[setdiff(rownames(lrout), keep),]==0)) # internally filtered genes set to all-zero.
     expect_true(all(apply(lrout[keep,], 1, var) > 0))
 
     QR <- qr(lrout - rowMeans(lrout)) 
-    expect_equal(npcs[1], QR$rank) # checking that it has the correct rank.
-    expect_equal(sum(apply(pcs, 2, var)), sum(apply(lrout, 1, var))) # explains the same amount of variance.
+    pcs <- denoisePCA(lcounts, technical=fit$trend, value="pca")
+    expect_equal(ncol(pcs), QR$rank) # checking that it has the correct rank.
+    expect_equal(sum(apply(pcs, 2, var)), sum(apply(lrout[keep,], 1, var))) # explains the same amount of variance.
+
+    # Checking that projections work.
+    lrout <- denoisePCA(lcounts, technical=fit$trend, value="lowrank")
+    lcounts.extra <- rbind(lcounts, lcounts[1:10,])
+    lrout.extra <- denoisePCA(lcounts.extra, technical=fit$trend, value="lowrank", subset.row=seq_len(nrow(lcounts)))
+    expect_equal(lrout[,], lrout.extra[seq_len(nrow(lcounts)),])
+    expect_equal(lrout[1:10,], lrout.extra[nrow(lcounts)+seq_len(10),])
 }) 
 
 test_that("denoisePCA works with different settings", {
-    # Checking that the output is the same.
-    pcs <- denoisePCA(lcounts, technical=fit$trend)
-    pcs3 <- denoisePCA(lcounts, technical=fit$trend, design=cbind(rep(1, ncells)))
-    are_PCs_equal(pcs, pcs3)
-
+    # Checking proper behaviour with subsetting.
     not.spike <- setdiff(seq_len(ngenes), is.spike)
     pcs <- denoisePCA(lcounts, technical=fit$trend, subset.row=not.spike)
     pcs2 <- denoisePCA(lcounts[not.spike,], technical=fit$trend)
     are_PCs_equal(pcs, pcs2)
 
-    # Checking that low rank settings behave correctly with subsetting.
     lr1 <- denoisePCA(lcounts, technical=fit$trend, subset.row=not.spike, value="lowrank")
     lr2 <- denoisePCA(lcounts[not.spike,], technical=fit$trend, value="lowrank")
-    expect_equal(lr1, lr2)
-
-    lr3 <- denoisePCA(lcounts, technical=fit$trend, subset.row=not.spike, value="lowrank", preserve.dim=TRUE)
-    expect_equal(lr1[,], lr3[not.spike,])
-    expect_true(all(lr3[-not.spike,]==0))
+    expect_equal(lr1[not.spike,], lr2[,])
 
     # Checking that it responds correctly to min and max settings.
     ref <- denoisePCA(lcounts, technical=fit$trend)
@@ -135,6 +136,11 @@ test_that("denoisePCA works with different settings", {
 })
 
 test_that("denoisePCA works with design matrices", {
+    # Checking that the output is the same with constant design.
+    pcs <- denoisePCA(lcounts, technical=fit$trend)
+    pcs3 <- denoisePCA(lcounts, technical=fit$trend, design=cbind(rep(1, ncells)))
+    are_PCs_equal(pcs, pcs3)
+
     # Checking for sensible handling of design matrices.
     design <- model.matrix(~factor(in.pop))
     dfit <- trendVar(lcounts, subset.row=is.spike, design=design)
@@ -177,14 +183,14 @@ test_that("denoisePCA works with IRLBA", {
     
     # Checking the low-rank approximations.
     lr <- suppressWarnings(denoisePCA(lcounts, technical=fit$trend, value="lowrank", approximate=TRUE, rand.seed=300))
+
     set.seed(300)
     e2 <- suppressWarnings(irlba::irlba(current, nu=max.cells, nv=max.cells)) 
-    lowrank <- e2$u[,1:npcs] %*% (e2$d[1:npcs] * t(e2$v[,1:npcs]))
-    
+    lowrank <- e2$u[,1:npcs] %*% (e2$d[1:npcs] * t(e2$v[,1:npcs]))   
+
     unnamed.lr <- lr
     dimnames(unnamed.lr) <- NULL
     expect_equivalent(unnamed.lr[keep,], t(lowrank) + unname(rowMeans(posbio)))
-    expect_true(all(unnamed.lr[!keep,]==0))
 })
 
 test_that("denoisePCA throws errors correctly", {
@@ -220,7 +226,7 @@ test_that("denoisePCA works with SingleCellExperiment inputs", {
 
     # Checking lowrank calculations.
     X3 <- denoisePCA(X, technical=fit$trend, value="lowrank")
-    ref <- denoisePCA(exprs(X), technical=fit$trend, value="lowrank", subset.row=not.spike)
+    ref <- denoisePCA(exprs(X)[not.spike,], technical=fit$trend, value="lowrank")
     pcx <- assay(X3, "lowrank")
     expect_equal(pcx[not.spike,], ref[,])
     expect_true(all(pcx[is.spike,]==0))

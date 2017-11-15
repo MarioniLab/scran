@@ -9,8 +9,7 @@
 \usage{
 \S4method{denoisePCA}{ANY}(x, technical, design=NULL, subset.row=NULL,
     value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100, 
-    preserve.dim=FALSE, approximate=FALSE, rand.seed=1000, 
-    irlba.args=list())
+    approximate=FALSE, rand.seed=1000, irlba.args=list())
 
 \S4method{denoisePCA}{SingleCellExperiment}(x, ..., subset.row=NULL, 
     value=c("pca", "n", "lowrank"), assay.type="logcounts", 
@@ -27,7 +26,6 @@ If \code{NULL}, all cells are assumed to belong to a single group.}
 All genes are used by default.}
 \item{value}{A string specifying the type of value to return; the PCs, the number of retained components, or a low-rank approximation.}
 \item{min.rank, max.rank}{Integer scalars specifying the minimum and maximum number of PCs to retain.}
-\item{preserve.dim}{A logical scalar indicating whether the dimensions should be preserved when \code{subset.row} is not \code{NULL}.}
 \item{approximate}{A logical scalar indicating whether approximate SVD should be performed via \code{\link[irlba]{irlba}}.}
 \item{rand.seed}{A numeric scalar specifying the seed for approximate PCA when \code{approximate=TRUE}.
 This can be set to \code{NA} to use the existing session seed.}
@@ -75,9 +73,10 @@ If \code{value="n"}, the value of X is directly reported, which avoids computing
 If \code{value="lowrank"}, a low-rank approximation of the original matrix is computed using only the first X components.
 This is useful for denoising prior to downstream applications that expect gene-wise expression profiles.
 
-If \code{value="lowrank"}, genes with negative components are still reported but are assigned expression values of zero for all cells.
-If \code{subset.row} is not \code{NULL}, genes that are not in the selected set are removed by default.
-However, if \code{preserve.dim=TRUE}, the unselected genes will still be reported and are assigned all-zero expression profiles.
+When \code{value="lowrank"}, approximation values are returned for all genes.
+This includes \dQuote{unselected} genes, i.e., with negative biological components or that were not selected with \code{subset.row}.
+The low-rank approximation is obtained for these genes by projecting their expression profiles into the low-dimensional space defined by the SVD on the selected genes.
+The exception is when \code{get.spikes=FALSE}, whereby zeroes are returned for all spike-in rows.
 
 If \code{design} is specified, the residuals of a linear model fitted to each gene are computed.
 Because variances computed from residuals are usually underestimated, the residuals are scaled up so that their variance is equal to the residual variance of the model fit.
