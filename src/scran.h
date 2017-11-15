@@ -51,6 +51,8 @@ SEXP cosine_norm(SEXP, SEXP);
 
 SEXP smooth_gaussian_kernel(SEXP, SEXP, SEXP, SEXP);
 
+SEXP adjust_shift_variance(SEXP, SEXP, SEXP, SEXP);
+
 }
 
 #include "utils.h"

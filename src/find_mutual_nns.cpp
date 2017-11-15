@@ -221,3 +221,123 @@ SEXP smooth_gaussian_kernel(SEXP vect, SEXP index, SEXP data, SEXP sigma) {
     return output;
     END_RCPP
 }
+
+/* Perform variance adjustment with weighted distributions */
+
+double sq_distance_to_line(Rcpp::NumericMatrix::Column::const_iterator ref, 
+                           std::vector<double>::const_iterator grad,
+                           Rcpp::NumericMatrix::Column::const_iterator point,
+                           std::vector<double>& working) {
+    for (auto& w : working) { // Calculating the vector difference from "point" to "ref".
+        w=*ref - *point;
+        ++point;
+        ++ref;
+    }
+
+    // Calculating the vector difference from "point" to the line, and taking its norm.
+    const double scale=std::inner_product(working.begin(), working.end(), grad, 0.0);
+    double dist=0;
+    for (auto& w : working) {
+        w -= scale * (*grad);
+        ++grad;
+        dist+=w*w;
+    }
+   
+    return dist;
+}
+
+SEXP adjust_shift_variance(SEXP data1, SEXP data2, SEXP vect, SEXP sigma) {
+    BEGIN_RCPP
+    const Rcpp::NumericMatrix _data1(data1), _data2(data2), _vect(vect);
+    const size_t ngenes=_data1.nrow();
+    if (ngenes!=_data2.nrow() || ngenes!=_vect.ncol()) { 
+        throw std::runtime_error("number of genes do not match up between matrices");
+    }
+    const size_t ncells1=_data1.ncol(), ncells2=_data2.ncol();
+    if (ncells2!=_vect.nrow()) {
+        throw std::runtime_error("number of cells do not match up between matrices");
+    }        
+
+    Rcpp::NumericVector _sigma(sigma);
+    if (_sigma.size()!=1) {
+        throw std::runtime_error("sigma should be a double-precision scalar");
+    }
+    const double s2=_sigma[0];
+
+    std::vector<double> grad(ngenes), working(ngenes);
+    std::vector<std::pair<double, double> > distance1(ncells1); 
+    Rcpp::NumericVector output(ncells2);
+
+    // Iterating through all cells.
+    for (size_t cell=0; cell<ncells2; ++cell) {
+        const auto curcell=_data2.column(cell);
+
+        // Calculating the l2 norm and adjusting to a unit vector.
+        double l2norm=0;
+        {
+            const auto curvect=_vect.row(cell);
+            std::copy(curvect.begin(), curvect.end(), grad.begin());
+            for (const auto& g : grad) {
+                l2norm+=g*g;            
+            }
+            l2norm=std::sqrt(l2norm);
+            for (auto& g : grad) { 
+                g/=l2norm;
+            }
+        }
+                
+        const double curproj=std::inner_product(grad.begin(), grad.end(), curcell.begin(), 0.0);
+
+        // Getting the cumulative probability of each cell in its own batch.
+        double prob2=0, totalprob2=0;    
+        for (size_t same=0; same<ncells2; ++same) {
+            if (same==cell) { 
+                prob2+=1;
+                totalprob2+=1;
+            } else {
+                const auto samecell=_data2.column(same);
+                const double sameproj=std::inner_product(grad.begin(), grad.end(), samecell.begin(), 0.0); // Projection
+                const double samedist=sq_distance_to_line(curcell.begin(), grad.begin(), samecell.begin(), working); // Distance.
+                
+                const double sameprob=std::exp(-samedist/s2);
+                if (sameproj <= curproj) {
+                    prob2+=sameprob;
+                }
+                totalprob2+=sameprob;
+            }
+        }
+        prob2/=totalprob2;
+
+        // Filling up the coordinates and weights for the reference batch.
+        double totalprob1=0;
+        for (size_t other=0; other<ncells1; ++other) {
+            const auto othercell=_data1.column(other);
+            distance1[other].first=std::inner_product(grad.begin(), grad.end(), othercell.begin(), 0.0); // Projection
+            const double otherdist=sq_distance_to_line(curcell.begin(), grad.begin(), othercell.begin(), working); // Distance.
+            totalprob1+=(distance1[other].second=std::exp(-otherdist/s2));
+        }
+        std::sort(distance1.begin(), distance1.end());
+
+        // Choosing the quantile in the projected reference coordinates that matches the cumulative probability in its own batch.
+        const double target=prob2*totalprob1;
+        double cumulative=0, ref_quan=R_NaReal;
+        if (ncells1) { 
+            ref_quan=distance1.back().first;
+        }
+
+        for (const auto& val : distance1) {
+            cumulative+=val.second;
+            if (cumulative >= target) { 
+                ref_quan=val.first;
+                break;
+            }
+        }
+
+        // Distance between quantiles represents the scaling of the original vector.        
+        output[cell]=(ref_quan - curproj)/l2norm;
+    }
+    
+    return(output);
+    END_RCPP
+}
+
