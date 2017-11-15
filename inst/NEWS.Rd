@@ -2,12 +2,16 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.7.1}{\itemize{
+\section{Version 1.7.4}{\itemize{
 \item Modified decomposeVar() to return statistics (but not p-values) for spike-ins when get.spikes=NA.
 
 \item Allowed passing of arguments to irlba() in denoisePCA() to assist convergence.
+Reported low-rank approximations for all genes, regardless of whether they were used in the SVD.
 
 \item Allows passing of arguments to prcomp_irlba() in buildSNNGraph() to assist convergence.
+
+\item Fixed a number of bugs in mnnCorrect(), migrated code to C++ and parallelized functions.
+Added variance shift adjustment, calculation of angles with the biological subspace.
 }}
 
 \section{Version 1.6.0}{\itemize{
