@@ -8,7 +8,9 @@
 \item Allowed passing of arguments to irlba() in denoisePCA() to assist convergence.
 Reported low-rank approximations for all genes, regardless of whether they were used in the SVD.
 
-\item Allows passing of arguments to prcomp_irlba() in buildSNNGraph() to assist convergence.
+\item Allowed passing of arguments to prcomp_irlba() in buildSNNGraph() to assist convergence.
+
+\item Added the buildKNNGraph() function to construct a simple k-nearest-neighbours graph.
 
 \item Fixed a number of bugs in mnnCorrect(), migrated code to C++ and parallelized functions.
 Added variance shift adjustment, calculation of angles with the biological subspace.
