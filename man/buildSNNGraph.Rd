@@ -1,17 +1,29 @@
-\name{buildSNNGraph}
+\name{build*NNGraph}
+
 \alias{buildSNNGraph}
 \alias{buildSNNGraph,ANY-method}
 \alias{buildSNNGraph,SingleCellExperiment-method}
 
-\title{Build a SNN graph}
-\description{Build a shared-nearest-neighbors graph for cells based on their expression profiles.}
+\alias{buildKNNGraph}
+\alias{buildKNNGraph,ANY-method}
+\alias{buildKNNGraph,SingleCellExperiment-method}
+
+\title{Build a nearest-neighbor graph}
+\description{Build a shared or k-nearest-neighbors graph for cells based on their expression profiles.}
 
 \usage{
-\S4method{buildSNNGraph}{ANY}(x, k=10, d=50, transposed=FALSE, pc.approx=FALSE,
-    rand.seed=1000, irlba.args=list(), subset.row=NULL, 
-    BPPARAM=SerialParam())
+\S4method{buildSNNGraph}{ANY}(x, k=10, d=50, transposed=FALSE, 
+    pc.approx=FALSE, rand.seed=1000, irlba.args=list(), 
+    subset.row=NULL, BPPARAM=SerialParam())
 
 \S4method{buildSNNGraph}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", 
+    get.spikes=FALSE, use.dimred=NULL)
+
+\S4method{buildKNNGraph}{ANY}(x, k=10, d=50, directed=FALSE, transposed=FALSE, 
+    pc.approx=FALSE, rand.seed=1000, irlba.args=list(), 
+    subset.row=NULL, BPPARAM=SerialParam())
+
+\S4method{buildKNNGraph}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", 
     get.spikes=FALSE, use.dimred=NULL)
 }
 
@@ -20,6 +32,7 @@
 If it is matrix, it can also be transposed.}
 \item{k}{An integer scalar specifying the number of nearest neighbors to consider during graph construction.}
 \item{d}{An integer scalar specifying the number of dimensions to use for the k-NN search.}
+\item{directed}{A logical scalar indicating whether the output of \code{buildKNNGraph} should be a directed graph.}
 \item{transposed}{A logical scalar indicating whether \code{x} is transposed (i.e., rows are cells).}
 \item{pc.approx}{A logical scalar indicating whether approximate PCA should be performed.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
@@ -34,9 +47,10 @@ This can be set to \code{NA} to use the existing session seed.}
 }
 
 \details{
-This function builds a SNN graph using cells as nodes.
-Each cell is connected to its \code{k} nearest neighbors, based on Euclidean distances in their expression profiles.
-The weight of the edge between two cells is determined by the ranking of their shared nearest neighbors.
+The \code{buildSNNGraph} method builds a shared nearest-neighbour graph using cells as nodes.
+For each cell, its \code{k} nearest neighbours are identified based on Euclidean distances in their expression profiles.
+An edge is drawn between all pairs of cells that share at least one neighbour.
+The weight of the edge between two cells is determined by the ranking of the shared nearest neighbors.
 More shared neighbors, or shared neighbors that are close to both cells, will yield larger weights.
 
 The aim is to use the SNN graph to perform community-based clustering, using various methods in the \pkg{igraph} package.
@@ -44,6 +58,18 @@ This is faster/more memory efficient than hierarchical clustering for large numb
 In particular, it avoids the need to construct a distance matrix for all pairs of cells.
 The choice of \code{k} can be roughly interpreted as the minimum cluster size.
 
+Note that the setting of \code{k} here is slightly different from that used in SNN-Cliq.
+The original implementation considers each cell to be its first nearest neighbor that contributes to \code{k}.
+In \code{buildSNNGraph}, the \code{k} nearest neighbours refers to the number of \emph{other} cells.
+
+The \code{buildKNNGraph} method builds a simpler k-nearest neighbour graph.
+Cells are again nodes, and edges are drawn between each cell and its k-nearest neighbours.
+No weighting of the edges is performed.
+In theory, these graphs are directed as nearest neighour relationships may not be reciprocal.
+However, by default, \code{directed=FALSE} such that an undirected graph is returned.
+}
+
+\section{Choice of input data}{
 In practice, PCA is performed on \code{x} to obtain the first \code{d} principal components.
 This is necessary in order to perform the k-NN search (done using the \code{\link[FNN]{get.knn}} function) in reasonable time.
 By default, the first 50 components are chosen, which should retain most of the substructure in the data set.
@@ -59,14 +85,12 @@ By default, spike-in transcripts are removed from the expression matrix in \code
 However, any non-\code{NULL} setting of \code{subset.row} will override \code{get.spikes}.
 If \code{use.dimred} is not \code{NULL}, existing PCs are used from the specified entry of \code{reducedDims(x)}, 
 and any setting of \code{d}, \code{subset.row} and \code{get.spikes} are ignored.
-
-Note that the setting of \code{k} here is slightly different from that used in SNN-Cliq.
-The original implementation considers each cell to be its first nearest neighbor that contributes to \code{k}.
-In \code{buildSNNGraph}, the \code{k} nearest neighbours refers to the number of \emph{other} cells.
 }
 
 \value{
-An igraph-type graph, where nodes are cells and weighted edges represent connections between nearest neighbors.
+An igraph-type graph, where nodes are cells and edges represent connections between nearest neighbors.
+For \code{buildSNNGraph}, these edges are weighted.
+For \code{buildKNNGraph}, edges are not weighted but may be directed if \code{directed=TRUE}.
 }
 
 \author{

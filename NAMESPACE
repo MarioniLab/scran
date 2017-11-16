@@ -8,7 +8,7 @@ export(
 )
 
 exportMethods(
-    quickCluster, buildSNNGraph,
+    quickCluster, buildSNNGraph, buildKNNGraph,
     computeSumFactors, computeSpikeFactors, 
     trendVar, decomposeVar, technicalCV2, improvedCV2,
     sandbag, cyclone,
