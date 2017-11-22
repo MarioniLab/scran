@@ -206,15 +206,15 @@ test_that("computeSumFactors correctly detects low-abundance genes", {
                  computeSumFactors(dummy[intersect(1:500, which(keep)),], min.mean=NULL))
 
     # Check that the warning is triggered if subset.row is specified and min.mean is not turned off.
-    expect_warning(computeSumFactors(dummy, subset.row=keep), "should be NULL if filtering")
+    expect_warning(computeSumFactors(dummy, subset.row=keep), "are defined, see ?computeSumFactors", fixed=TRUE)
     expect_warning(computeSumFactors(dummy, min.mean=NULL, subset.row=keep), NA)
 
     sce <- SingleCellExperiment(list(counts=dummy))
-    expect_warning(computeSumFactors(sce, subset.row=1:500), "should be NULL if filtering")
+    expect_warning(computeSumFactors(sce, subset.row=1:500), "are defined, see ?computeSumFactors", fixed=TRUE)
     expect_warning(computeSumFactors(sce, min.mean=NULL, subset.row=1:500), NA)
 
     isSpike(sce) <- 1:100
-    expect_warning(computeSumFactors(sce, subset.row=1:500), "should be NULL if filtering")
+    expect_warning(computeSumFactors(sce, subset.row=1:500), "are defined, see ?computeSumFactors", fixed=TRUE)
     expect_warning(computeSumFactors(sce), NA)             
 })
 

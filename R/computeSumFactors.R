@@ -7,7 +7,7 @@
 #
 # written by Aaron Lun
 # created 23 November 2015
-# last modified 23 June 2017 
+# last modified 22 November 2017 
 {
     ncells <- ncol(x)
     if (!is.null(clusters)) {
@@ -28,7 +28,7 @@
 
     # Checking the subsetting (with interplay with min.mean if required).
     if (!is.null(subset.row) && !is.null(min.mean) && !no.warn) {
-        warning("'min.mean' should be NULL if filtering on abundance in 'subset.row'")
+        warning("both 'min.mean' and 'subset.row' are defined, see ?computeSumFactors")
     }
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     if (!is.null(min.mean)) { 
@@ -169,7 +169,7 @@ setGeneric("computeSumFactors", function(x, ...) standardGeneric("computeSumFact
 setMethod("computeSumFactors", "ANY", .computeSumFactors)
 
 setMethod("computeSumFactors", "SingleCellExperiment", 
-          function(x, min.mean=1, subset.row=NULL, no.warn=FALSE, ..., 
+          function(x, ..., min.mean=1, subset.row=NULL, no.warn=FALSE, 
                    assay.type="counts", get.spikes=FALSE, sf.out=FALSE) { 
  
     if (is.null(subset.row) && !is.null(min.mean)) {

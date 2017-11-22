@@ -10,7 +10,7 @@
 \S4method{computeSumFactors}{ANY}(x, sizes=seq(20, 100, 5), clusters=NULL, ref.clust=NULL,
     positive=FALSE, errors=FALSE, min.mean=1, subset.row=NULL, no.warn=FALSE)
 
-\S4method{computeSumFactors}{SingleCellExperiment}(x, min.mean=1, subset.row=NULL, no.warn=FALSE, ..., 
+\S4method{computeSumFactors}{SingleCellExperiment}(x, ..., min.mean=1, subset.row=NULL, no.warn=FALSE,
     assay.type="counts", get.spikes=FALSE, sf.out=FALSE)
 }
 
@@ -121,9 +121,9 @@ In general, genes with average counts below 1 (for read count data) or 0.1 (for 
 Such genes will automatically be filtered out by applying a minimum threshold \code{min.mean} on the library size-adjusted average counts from \code{\link[scater]{calcAverage}}.
 If \code{subset.row} is specified, only the genes selected by \code{subset.row} and with average counts above \code{min.mean} will be used.
 
-A warning is triggered if \code{subset.row} is specified and \code{min.mean} is not \code{NULL}.
+A warning is triggered if both \code{subset.row} and \code{min.mean} are not \code{NULL}.
 This is designed to ensure that users who have filtered on abundance already in \code{subset.row} do not unintentionally filter again via \code{min.mean}.
-Users can disable this warning by setting \code{no.warn=TRUE}.
+If filtering on both \code{subset.row} and \code{min.mean} is intended, users can disable this warning by setting \code{no.warn=TRUE}.
 }
 
 \section{Obtaining standard errors}{
