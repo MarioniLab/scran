@@ -52,7 +52,7 @@ importFrom("grDevices", grey.colors)
 importFrom("graphics", plot, text)
 
 importFrom("SummarizedExperiment", assay, "assay<-", assayNames)
-importFrom("S4Vectors", mcols, "mcols<-", metadata, "metadata<-")
+importFrom("S4Vectors", mcols, "mcols<-", metadata, "metadata<-", Rle, DataFrame)
 importFrom("BiocGenerics", as.data.frame, sizeFactors, "sizeFactors<-", counts)
 import(methods)
 

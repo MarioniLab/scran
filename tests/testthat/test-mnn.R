@@ -64,6 +64,22 @@ test_that("Mutual NN detection is correct", {
     comparator(REF(A, B, 20, 5), scran:::find.mutual.nn(A, B, 20, 5, SerialParam()))
 })
 
+set.seed(10002)
+test_that("Biological subspace is correctly re-projected", {
+    A <- matrix(rnorm(10000), ncol=50)
+    subset <- sample(nrow(A), nrow(A)/2)   
+    ref <- scran:::get.bio.span(A[subset,], 3) 
+    proj <- scran:::get.bio.span(A, 3, subset.row=subset) 
+    expect_equal(ref, proj[subset,])
+
+    B <- rbind(A, A)
+    first.half <- seq_len(nrow(A))
+    ref <- scran:::get.bio.span(A, 3)
+    proj <- scran:::get.bio.span(B, 3, subset.row=first.half) 
+    expect_equal(ref, proj[first.half,])
+    expect_equal(proj[first.half,], proj[-first.half,])
+})
+
 set.seed(10003)
 test_that("Batch vectors are correctly calculated", {
     data1 <- matrix(rnorm(10000, sd=0.1), ncol=25)
@@ -86,7 +102,6 @@ test_that("Batch vectors are correctly calculated", {
         dimnames(out) <- NULL
         return(out)
     }
-
 
     # Vanilla check
     s2 <- 0.1
@@ -113,4 +128,120 @@ test_that("Batch vectors are correctly calculated", {
     xx <- scran:::compute.correction.vectors(data1, data2, mnn1, mnn2, t(data2), s2)
     ref <- REF(data1, data2, mnn1, mnn2, s2)
     expect_equal(xx, ref)
+})
+
+set.seed(100032)
+test_that("Variance shift adjustment is correctly performed", {
+    data1 <- matrix(rnorm(10000, sd=0.1), ncol=25)
+    data2 <- matrix(rnorm(25000, sd=0.1), ncol=25)
+    corvect <- matrix(runif(length(data2)), nrow=nrow(data2))
+
+    # Constructing a reference function.
+    REF <- function(data1, data2, cell.vect, sigma) {
+        scaling <- numeric(nrow(cell.vect))
+        for (cell in seq_along(scaling)) {
+            # For each cell, projecting both data sets onto the normalized correction vector for that cell.
+            cur.cor.vect <- cell.vect[cell,]
+            l2norm <- sqrt(sum(cur.cor.vect^2))
+            cur.cor.vect <- cur.cor.vect/l2norm
+            coords2 <- data2 %*% cur.cor.vect
+            coords1 <- data1 %*% cur.cor.vect
+    
+            # Also getting the distance from the correction vector. 
+            dist2 <- data2[cell,] - t(data2)
+            dist2 <- dist2 - outer(cur.cor.vect, as.numeric(crossprod(dist2, cur.cor.vect)))
+            dist2 <- colSums(dist2^2)
+            weight2 <- exp(-dist2/sigma)
+    
+            dist1 <- data2[cell,] - t(data1)
+            dist1 <- dist1 - outer(cur.cor.vect, as.numeric(crossprod(dist1, cur.cor.vect)))
+            dist1 <- colSums(dist1^2)
+            weight1 <- exp(-dist1/sigma)
+    
+            # Computing the weighted cumulative probability, for quantile-quantile mapping.
+            rank2 <- rank(coords2, ties.method="first")
+            prob2 <- sum(weight2[rank2 <= rank2[cell]])/sum(weight2)
+            ord1 <- order(coords1)
+            ecdf1 <- cumsum(weight1[ord1])/sum(weight1)
+            
+            # Adjusting the length of the correction vector so that the correction will match the quantiles.
+            quan1 <- coords1[ord1[min(which(ecdf1 >= prob2))]]
+            quan2 <- coords2[cell]
+            scaling[cell] <- (quan1 - quan2)/l2norm
+        }
+        return(scaling)
+    }
+
+    ref <- REF(data1, data2, corvect, 1)
+    test <- .Call(scran:::cxx_adjust_shift_variance, t(data1), t(data2), corvect, 1)
+    expect_equal(ref, test)
+
+    ref <- REF(data1, data2, corvect, 0.1)
+    test <- .Call(scran:::cxx_adjust_shift_variance, t(data1), t(data2), corvect, 0.1)
+    expect_equal(ref, test)
+})
+
+set.seed(10004)
+test_that("mnnCorrect behaves consistently with subsetting", {
+    alpha <- matrix(rnorm(1000), ncol=100)
+    bravo <- matrix(rnorm(2000), ncol=200)
+    charlie <- matrix(rnorm(3000), ncol=300)
+
+    keep <- 1:5 
+    ref <- mnnCorrect(alpha[keep,], bravo[keep,], charlie[keep,])
+    out <- mnnCorrect(alpha, bravo, charlie, subset.row=keep)
+    out$corrected <- lapply(out$corrected, "[", i=keep,)
+    expect_equal(ref, out)    
+
+    # Without cosine normalization of the output.
+    ref <- mnnCorrect(alpha[keep,], bravo[keep,], charlie[keep,], cos.norm.out=FALSE)
+    out <- mnnCorrect(alpha, bravo, charlie, subset.row=keep, cos.norm.out=FALSE)
+    out$corrected <- lapply(out$corrected, "[", i=keep,)
+    expect_equal(ref, out)    
+
+    # Without cosine normalization of the input.
+    ref <- mnnCorrect(alpha[keep,], bravo[keep,], charlie[keep,], cos.norm.in=FALSE)
+    out <- mnnCorrect(alpha, bravo, charlie, subset.row=keep, cos.norm.in=FALSE)
+    out$corrected <- lapply(out$corrected, "[", i=keep,)
+    expect_equal(ref, out)    
+
+    # Without any cosine normalization at all.
+    keep <- 6:10
+    ref <- mnnCorrect(alpha[keep,], bravo[keep,], charlie[keep,], cos.norm.in=FALSE, cos.norm.out=FALSE)
+    out <- mnnCorrect(alpha, bravo, charlie, subset.row=keep, cos.norm.in=FALSE, cos.norm.out=FALSE)
+    out$corrected <- lapply(out$corrected, "[", i=keep,)
+    expect_equal(ref, out)    
+
+    # With SVDs.
+    keep <- 2:7
+    ref <- mnnCorrect(alpha[keep,], bravo[keep,], charlie[keep,], svd.dim=2)
+    out <- mnnCorrect(alpha, bravo, charlie, subset.row=keep, svd.dim=2)
+    out$corrected <- lapply(out$corrected, "[", i=keep,)
+    expect_equal(ref, out)   
+
+    # Without the variance adjustment.
+    ref <- mnnCorrect(alpha[keep,], bravo[keep,], charlie[keep,], var.adj=FALSE)
+    out <- mnnCorrect(alpha, bravo, charlie, subset.row=keep, var.adj=FALSE)
+    out$corrected <- lapply(out$corrected, "[", i=keep,)
+    expect_equal(ref, out)   
+
+    # Asking for angles.
+    keep <- 8:3
+    ref <- mnnCorrect(alpha[keep,], bravo[keep,], charlie[keep,], compute.angle=TRUE)
+    out <- mnnCorrect(alpha, bravo, charlie, subset.row=keep, compute.angle=TRUE)
+    out$corrected <- lapply(out$corrected, "[", i=keep,)
+    expect_equal(ref, out)   
+
+    # Duplicated genes should have no effect.
+    out <- mnnCorrect(rbind(alpha, alpha), rbind(bravo, bravo), rbind(charlie, charlie), 
+                      subset.row=1:nrow(alpha), svd.dim=2)
+    ref1 <- lapply(out$corrected, "[", i=1:nrow(alpha),)
+    ref2 <- lapply(out$corrected, "[", i=nrow(alpha)+1:nrow(alpha),)
+    expect_equal(ref1, ref2) 
+    
+    # Checking that the order has no effect.
+    new.order <- c(2, 3, 1)
+    out <- mnnCorrect(alpha, bravo, charlie, order=new.order)
+    ref <- mnnCorrect(bravo, charlie, alpha)
+    expect_equal(out$corrected[new.order], ref$corrected)
 })

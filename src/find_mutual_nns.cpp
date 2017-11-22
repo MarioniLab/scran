@@ -42,40 +42,63 @@ SEXP find_mutual_nns (SEXP left, SEXP right) {
 /* Performs the cosine normalization in a fairly efficient manner. */
 
 template<class M>
-SEXP cosine_norm_internal (M mat, SEXP original) {
+SEXP cosine_norm_internal (M mat, SEXP original, SEXP return_mat) {
     const size_t& nrow=mat->get_nrow();
     const size_t& ncol=mat->get_ncol();
-    auto output=beachmat::create_numeric_output(nrow, ncol, beachmat::output_param(original));
+
+    // Deciding whether or not to return the matrix.
+    Rcpp::LogicalVector retmat(return_mat);
+    if (retmat.size()!=1) { 
+        throw std::runtime_error("return matrix specification should be a logical vector");
+    }
+    bool mat_return=retmat[0];
     
+    beachmat::numeric_output* optr=NULL;
+    std::vector<std::unique_ptr<beachmat::numeric_output> > holder;
+    if (mat_return) { 
+        holder.push_back(beachmat::create_numeric_output(nrow, ncol, 
+                         beachmat::output_param(original, false, true)));
+        optr=holder.front().get();
+    }
+   
+    // Calculating the L2 norm of each vector and applying it. 
     Rcpp::NumericVector incoming(nrow);
+    Rcpp::NumericVector l2norm(ncol);
     for (size_t c=0; c<ncol; ++c) {
         mat->get_col(c, incoming.begin());
 
-        double total=0;
+        double& total=l2norm[c];
         for (const auto& val : incoming) { 
             total+=val*val;
         }
         total=std::sqrt(total);
         total=std::max(total, 0.00000001); // avoid division by zero.
 
-        for (auto& val : incoming) { 
-            val/=total;
+        if (mat_return) { 
+            for (auto& val : incoming) { 
+                val/=total;
+            }
+            optr->set_col(c, incoming.begin());
         }
-        output->set_col(c, incoming.begin());
     }
 
-    return output->yield();
+    // Figuring out what to return.
+    if (mat_return) { 
+        return Rcpp::List::create(optr->yield(), l2norm);
+    } else {
+        return Rcpp::List::create(R_NilValue, l2norm);
+    }
 }
 
-SEXP cosine_norm(SEXP incoming) {
+SEXP cosine_norm(SEXP incoming, SEXP getmat) {
     BEGIN_RCPP
     int rtype=beachmat::find_sexp_type(incoming);
     if (rtype==INTSXP) {
         auto input=beachmat::create_integer_matrix(incoming);
-        return cosine_norm_internal(input.get(), incoming);
+        return cosine_norm_internal(input.get(), incoming, getmat);
     } else {
         auto input=beachmat::create_numeric_matrix(incoming);
-        return cosine_norm_internal(input.get(), incoming);
+        return cosine_norm_internal(input.get(), incoming, getmat);
     }
     END_RCPP
 }
@@ -84,22 +107,22 @@ SEXP cosine_norm(SEXP incoming) {
 
 SEXP smooth_gaussian_kernel(SEXP vect, SEXP index, SEXP data, SEXP sigma) {
     BEGIN_RCPP
-    const Rcpp::NumericMatrix _vect(vect);
-    const int npairs=_vect.nrow();
-    const int ngenes=_vect.ncol();
+    const Rcpp::NumericMatrix correction_vectors(vect);
+    const int npairs=correction_vectors.nrow();
+    const int ngenes=correction_vectors.ncol();
     const Rcpp::IntegerVector _index(index);
     if (npairs!=_index.size()) { 
         throw std::runtime_error("number of rows in 'vect' should be equal to length of 'index'");
     }
     
-    // Constructing the averages for each MNN cell.
+    // Constructing the average vector for each MNN cell.
     std::deque<std::vector<double> > averages;
     std::deque<int> number;
     std::set<int> mnncell;
 
     int row=0;
     for (const auto& i : _index) {
-        auto currow=_vect.row(row);
+        auto currow=correction_vectors.row(row);
         ++row;
         
         if (i >= averages.size() || averages[i].empty()) { 
@@ -129,12 +152,10 @@ SEXP smooth_gaussian_kernel(SEXP vect, SEXP index, SEXP data, SEXP sigma) {
         }
     }
 
-    // Smoothing the batch differences for every cell in the data set.
+    // Setting up input constructs (including the expression matrix on which the distances are computed).
     auto mat=beachmat::create_numeric_matrix(data);
     const int ncells=mat->get_ncol();
-    if (mat->get_nrow()!=ngenes) {
-        throw std::runtime_error("number of genes is not consistent between matrices");
-    }
+    const int ngenes_for_dist=mat->get_nrow();
 
     Rcpp::NumericVector _sigma(sigma);
     if (_sigma.size()!=1) {
@@ -142,20 +163,21 @@ SEXP smooth_gaussian_kernel(SEXP vect, SEXP index, SEXP data, SEXP sigma) {
     }
     const double s2=_sigma[0];
 
-    Rcpp::NumericMatrix output(ngenes, ncells);
+    // Setting up output constructs.
+    Rcpp::NumericMatrix output(ngenes, ncells); // yes, this is 'ngenes' not 'ngenes_for_dist'.
     std::vector<double> distances2(ncells), totalprob(ncells);
-    Rcpp::NumericVector mnn_incoming(ngenes), other_incoming(ngenes);
+    Rcpp::NumericVector mnn_incoming(ngenes_for_dist), other_incoming(ngenes_for_dist);
 
+    // Using distances between cells and MNN-involved cells to smooth the correction vector per cell.
     for (const auto& mnn : mnncell) {
         auto mnn_iIt=mat->get_const_col(mnn, mnn_incoming.begin());
 
-        // Compute squared distance to every other cell.
         for (int other=0; other<ncells; ++other) {
             double& curdist2=(distances2[other]=0);
             auto other_iIt=mat->get_const_col(other, other_incoming.begin());
             auto iIt_copy=mnn_iIt;
 
-            for (int g=0; g<ngenes; ++g) {
+            for (int g=0; g<ngenes_for_dist; ++g) {
                 const double tmp=(*iIt_copy  - *other_iIt);
                 curdist2+=tmp*tmp;
                 ++other_iIt;
@@ -199,3 +221,123 @@ SEXP smooth_gaussian_kernel(SEXP vect, SEXP index, SEXP data, SEXP sigma) {
     return output;
     END_RCPP
 }
+
+/* Perform variance adjustment with weighted distributions */
+
+double sq_distance_to_line(Rcpp::NumericMatrix::Column::const_iterator ref, 
+                           std::vector<double>::const_iterator grad,
+                           Rcpp::NumericMatrix::Column::const_iterator point,
+                           std::vector<double>& working) {
+    for (auto& w : working) { // Calculating the vector difference from "point" to "ref".
+        w=*ref - *point;
+        ++point;
+        ++ref;
+    }
+
+    // Calculating the vector difference from "point" to the line, and taking its norm.
+    const double scale=std::inner_product(working.begin(), working.end(), grad, 0.0);
+    double dist=0;
+    for (auto& w : working) {
+        w -= scale * (*grad);
+        ++grad;
+        dist+=w*w;
+    }
+   
+    return dist;
+}
+
+SEXP adjust_shift_variance(SEXP data1, SEXP data2, SEXP vect, SEXP sigma) {
+    BEGIN_RCPP
+    const Rcpp::NumericMatrix _data1(data1), _data2(data2), _vect(vect);
+    const size_t ngenes=_data1.nrow();
+    if (ngenes!=_data2.nrow() || ngenes!=_vect.ncol()) { 
+        throw std::runtime_error("number of genes do not match up between matrices");
+    }
+    const size_t ncells1=_data1.ncol(), ncells2=_data2.ncol();
+    if (ncells2!=_vect.nrow()) {
+        throw std::runtime_error("number of cells do not match up between matrices");
+    }        
+
+    Rcpp::NumericVector _sigma(sigma);
+    if (_sigma.size()!=1) {
+        throw std::runtime_error("sigma should be a double-precision scalar");
+    }
+    const double s2=_sigma[0];
+
+    std::vector<double> grad(ngenes), working(ngenes);
+    std::vector<std::pair<double, double> > distance1(ncells1); 
+    Rcpp::NumericVector output(ncells2);
+
+    // Iterating through all cells.
+    for (size_t cell=0; cell<ncells2; ++cell) {
+        const auto curcell=_data2.column(cell);
+
+        // Calculating the l2 norm and adjusting to a unit vector.
+        double l2norm=0;
+        {
+            const auto curvect=_vect.row(cell);
+            std::copy(curvect.begin(), curvect.end(), grad.begin());
+            for (const auto& g : grad) {
+                l2norm+=g*g;            
+            }
+            l2norm=std::sqrt(l2norm);
+            for (auto& g : grad) { 
+                g/=l2norm;
+            }
+        }
+                
+        const double curproj=std::inner_product(grad.begin(), grad.end(), curcell.begin(), 0.0);
+
+        // Getting the cumulative probability of each cell in its own batch.
+        double prob2=0, totalprob2=0;    
+        for (size_t same=0; same<ncells2; ++same) {
+            if (same==cell) { 
+                prob2+=1;
+                totalprob2+=1;
+            } else {
+                const auto samecell=_data2.column(same);
+                const double sameproj=std::inner_product(grad.begin(), grad.end(), samecell.begin(), 0.0); // Projection
+                const double samedist=sq_distance_to_line(curcell.begin(), grad.begin(), samecell.begin(), working); // Distance.
+                
+                const double sameprob=std::exp(-samedist/s2);
+                if (sameproj <= curproj) {
+                    prob2+=sameprob;
+                }
+                totalprob2+=sameprob;
+            }
+        }
+        prob2/=totalprob2;
+
+        // Filling up the coordinates and weights for the reference batch.
+        double totalprob1=0;
+        for (size_t other=0; other<ncells1; ++other) {
+            const auto othercell=_data1.column(other);
+            distance1[other].first=std::inner_product(grad.begin(), grad.end(), othercell.begin(), 0.0); // Projection
+            const double otherdist=sq_distance_to_line(curcell.begin(), grad.begin(), othercell.begin(), working); // Distance.
+            totalprob1+=(distance1[other].second=std::exp(-otherdist/s2));
+        }
+        std::sort(distance1.begin(), distance1.end());
+
+        // Choosing the quantile in the projected reference coordinates that matches the cumulative probability in its own batch.
+        const double target=prob2*totalprob1;
+        double cumulative=0, ref_quan=R_NaReal;
+        if (ncells1) { 
+            ref_quan=distance1.back().first;
+        }
+
+        for (const auto& val : distance1) {
+            cumulative+=val.second;
+            if (cumulative >= target) { 
+                ref_quan=val.first;
+                break;
+            }
+        }
+
+        // Distance between quantiles represents the scaling of the original vector.        
+        output[cell]=(ref_quan - curproj)/l2norm;
+    }
+    
+    return(output);
+    END_RCPP
+}
+

@@ -25,8 +25,9 @@ static const R_CallMethodDef all_call_entries[] = {
     REGISTER(overlap_exprs, 4),
     REGISTER(sum_spikes, 2),
     REGISTER(find_mutual_nns, 2),
-    REGISTER(cosine_norm, 1),
+    REGISTER(cosine_norm, 2),
     REGISTER(smooth_gaussian_kernel, 4),
+    REGISTER(adjust_shift_variance, 4),
     {NULL, NULL, 0}
 };
 
