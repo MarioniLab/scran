@@ -23,7 +23,7 @@
 \item{method}{A string specifying the algorithm to use for smooth trend fitting.}
 \item{parametric}{A logical scalar indicating whether a parametric curve should be fitted prior to smoothing.}
 \item{loess.args}{A named list of arguments to pass to \code{\link{loess}} when \code{method="loess"}.}
-\item{spline.args}{A named list of arguments to pass to \code{\link[stats]{smooth.spline}} when \code{method="spline"}.}
+\item{spline.args}{A named list of arguments to pass to \code{\link[aroma.light]{robustSmoothSpline}} when \code{method="spline"}.}
 \item{nls.args}{A named list of arguments to pass to \code{\link{nls}} when \code{parametric=TRUE}.}
 \item{span, family, degree}{Deprecated arguments to pass to \code{\link{loess}}.}
 \item{df}{Deprecated argument to pass to \code{\link{ns}}.}

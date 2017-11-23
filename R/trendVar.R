@@ -57,7 +57,7 @@
         spline.args <- .setup_spline_args(spline.args, df=df)
         spline.args$x <- kept.means
         spline.args$y <- to.fit
-        after.fit <- do.call(smooth.spline, spline.args)
+        after.fit <- do.call(aroma.light::robustSmoothSpline, spline.args)
         PREDICTOR <- function(x) { predict(after.fit, data.frame(kept.means=x))$y[,1] }
     }
 
@@ -168,8 +168,8 @@
         return(list())
     }
 
-    spline.call <- do.call(call, c("ns", spline.args))
-    spline.call <- match.call(ns, spline.call)
+    spline.call <- do.call(call, c("robustSmoothSpline", spline.args))
+    spline.call <- match.call(aroma.light::robustSmoothSpline, spline.call)
     spline.args <- as.list(spline.call)[-1]
 
     df <- .warn_and_set_default(df, "df", 4, "spline.args")
