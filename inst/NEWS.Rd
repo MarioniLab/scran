@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.7.4}{\itemize{
+\section{Version 1.7.5}{\itemize{
 \item Modified decomposeVar() to return statistics (but not p-values) for spike-ins when get.spikes=NA.
 
 \item Allowed passing of arguments to irlba() in denoisePCA() to assist convergence.
@@ -14,6 +14,12 @@ Reported low-rank approximations for all genes, regardless of whether they were 
 
 \item Fixed a number of bugs in mnnCorrect(), migrated code to C++ and parallelized functions.
 Added variance shift adjustment, calculation of angles with the biological subspace.
+
+\item Modified trend specification arguments in trendVar() for greater flexibility.
+Switched from ns() to robustSmoothSpline() to avoid bugs with unloaded predict.ns().
+
+\item Added option to avoid normalization in the SingleCellExperiment method for improvedCV2().
+Switched from ns() to smooth.spline() or robustSmoothSpline() to avoid bugs.
 }}
 
 \section{Version 1.6.0}{\itemize{
