@@ -34,7 +34,6 @@ importFrom("stats", approx, as.dist, cor, fitted, hclust, loess, median, p.adjus
 
 importFrom("zoo", zoo, rollapply, index)
 importFrom("statmod", glmgam.fit)
-importFrom("splines", ns)
 
 importFrom("FNN", get.knn, get.knnx)
 importFrom("igraph", make_graph, simplify, E, "E<-", cluster_fast_greedy, modularity)

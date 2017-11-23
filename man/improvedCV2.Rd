@@ -13,7 +13,8 @@ This is intended to be a more stable version of \code{\link{technicalCV2}}.
 \S4method{improvedCV2}{ANY}(x, is.spike, sf.cell=NULL, sf.spike=NULL, 
     log.prior=NULL, df=4, robust=FALSE, use.spikes=FALSE)
 
-\S4method{improvedCV2}{SingleCellExperiment}(x, spike.type=NULL, ..., assay.type="logcounts", logged=NULL)
+\S4method{improvedCV2}{SingleCellExperiment}(x, spike.type=NULL, ..., assay.type="logcounts", 
+    logged=NULL, normalized=NULL)
 }
 
 \arguments{
@@ -26,14 +27,15 @@ This is intended to be a more stable version of \code{\link{technicalCV2}}.
 \item{sf.spike}{A numeric vector containing size factors for spike-in transcripts.}
 \item{log.prior}{A numeric scalar specifying the pseudo-count added prior to log-transformation.
 If this is set, \code{x} is assumed to contain log-expression values, otherwise it is assumed to contain counts.}
-\item{df}{An integer scalar indicating the number of degrees of freedom for the spline fit with \code{\link[splines]{ns}}.}
-\item{robust}{A logical scalar indicating whether robust fitting should be performed with \code{\link[MASS]{rlm}}.}
+\item{df}{An integer scalar indicating the number of degrees of freedom for the spline fit with \code{\link[stats]{smooth.spline}}.}
+\item{robust}{A logical scalar indicating whether robust fitting should be performed with \code{\link[aroma.light]{robustSmoothSpline}}.}
 \item{use.spikes}{A logical scalar indicating whether p-values should be returned for spike-in transcripts.}
 \item{spike.type}{A character vector containing the names of the spike-in sets to use.}
 \item{...}{Additional arguments to pass to \code{improvedCV2,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use.}
 \item{logged}{A logical scalar indicating if \code{assay.type} contains log-expression values.
-This is automatically determined if \code{assay.type="counts"} or \code{"logcounts"}.}
+This is automatically determined if \code{assay.type="counts"}, \code{"logcounts"} or \code{"normcounts"}.}
+\item{normalized}{A logical scalar indicating if \code{assay.type} is normalized, also automatically determined where possible.}
 }
 
 \details{

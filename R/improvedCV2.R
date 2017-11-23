@@ -4,7 +4,7 @@
 #
 # written by Aaron Lun
 # created 9 February 2017
-# last modified 6 June 2017
+# last modified 23 November 2017
 {
     # Figuring out what rows to fit to.
     all.genes <- seq_len(nrow(x))
@@ -54,19 +54,21 @@
     use.log.cv2 <- log.cv2[to.use]
 
     # Fit a spline to the log-variances, compute p-values.
-    form <- use.log.cv2 ~ ns(use.log.means, df=df)
     if (robust) {
-        fit <- MASS::rlm(form)
-        tech.sd <- fit$s
+        fit <- aroma.light::robustSmoothSpline(use.log.means, use.log.cv2, df=df)
+        tech.var <- sum((fitted(fit) - use.log.cv2)^2)/(length(use.log.cv2)-fit$df)
+        tech.sd <- sqrt(tech.var)
     } else {
-        fit <- lm(form)
-        tech.sd <- sqrt(mean(fit$effects[-seq_len(fit$rank)]^2))
+        fit <- smooth.spline(use.log.means, use.log.cv2, df=df)
+        tech.sd <- median(abs(fitted(fit) - use.log.cv2)) * 1.4826
     }
-    tech.log.cv2 <- predict(fit, data.frame(use.log.means=log.means[ok.means]))
+    tech.log.cv2 <- predict(fit, data.frame(use.log.means=log.means[ok.means]))$y[,1]
 
     p <- rep(1, length(ok.means))
     p[ok.means] <- pnorm(log.cv2[ok.means], mean=tech.log.cv2, sd=tech.sd, lower.tail=FALSE)
-    if (!use.spikes) p[is.spike] <- NA
+    if (!use.spikes) {
+        p[is.spike] <- NA
+    }
 
     tech.cv2 <- rep(NA_real_, length(ok.means))    
     tech.cv2[ok.means] <- exp(tech.log.cv2 + tech.sd^2/2) # correcting for variance
@@ -79,26 +81,37 @@ setGeneric("improvedCV2", function(x, ...) standardGeneric("improvedCV2"))
 setMethod("improvedCV2", "ANY", .improvedCV2)
 
 setMethod("improvedCV2", "SingleCellExperiment", 
-          function(x, spike.type=NULL, ..., assay.type="logcounts", logged=NULL) {
+          function(x, spike.type=NULL, ..., assay.type="logcounts", logged=NULL, normalized=NULL) {
 
     log.prior <- NULL
     if (!is.null(logged)) {
-        if (logged) log.prior <- .get_log_offset(x)
+        if (logged) {
+            log.prior <- .get_log_offset(x)
+        }
     } else {
         if (assay.type=="logcounts") {
             log.prior <- .get_log_offset(x)
+        } else if (assay.type!="counts" && assay.type!="normcounts") {
+            stop("cannot determine if values are logged")
+        }
+    }
+
+    if (is.null(normalized)) {
+        normalized <- FALSE
+        if (assay.type=="logcounts" || assay.type=="normcounts") {
+            normalized <- TRUE
         } else if (assay.type!="counts") {
-            stop("cannot determine if values are logged or counts")
+            stop("cannot determine if values are normalized")
         }
     }
     
-    prep <- .prepare_cv2_data(x, spike.type=spike.type)
+    if (normalized) {
+        prep <- list(is.spike=isSpike(x, type=spike.type))
+    } else {
+        prep <- .prepare_cv2_data(x, spike.type=spike.type)
+    }
+
     .improvedCV2(assay(x, i=assay.type), is.spike=prep$is.spike, 
                  sf.cell=prep$sf.cell, sf.spike=prep$sf.spike, log.prior=log.prior, ...)          
 })
 
-# library(scran); library(MASS); library(splines)
-# sce <- readRDS("brain_data.rds")
-# x <- exprs(sce)
-# is.spike <- isSpike(sce)
-# log.prior <- sce@logExprsOffset
