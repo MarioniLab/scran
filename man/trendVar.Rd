@@ -22,7 +22,7 @@
 }
 \item{method}{A string specifying the algorithm to use for smooth trend fitting.}
 \item{span, family, degree}{Arguments to pass to \code{\link{loess}}.}
-\item{df}{Arguments to pass to \code{\link[splines]{ns}}.}
+\item{df}{Arguments to pass to \code{\link[aroma.light]{robustSmoothSpline}}.}
 \item{parametric}{A logical scalar indicating whether a parametric curve should be fitted prior to smoothing.}
 \item{start}{A named list of numeric scalars, containing starting values for parametric fitting with \code{\link{nls}}. 
 This is automatically generated with the most suitable values if set to \code{NULL}.}
@@ -65,8 +65,7 @@ The \code{method} argument specifies the smoothing algorithm to be applied on th
 By default, a robust loess curve is used for trend fitting via \code{\link{loess}}.
 This provides a fairly flexible fit while protecting against genes with very large or very small variances.
 Some experimentation with \code{span}, \code{degree} or \code{family} may be required to obtain satisfactory results.
-If \code{method="spline"}, a natural spline of degree \code{df} will be used instead.
-This is constructed using the \code{\link[splines]{ns}} function and is fitted robustly using the \code{\link[MASS]{rlm}} function.
+If \code{method="spline"}, a smoothing spline of degree \code{df} will be used instead, fitted using the \code{\link[stats]{smooth.spline}} function.
 
 The \code{trendVar} function will produce an output \code{trend} function with which fitted values can be computed.
 When extrapolating to values below the smallest observed mean, the output function will approach zero.

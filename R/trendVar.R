@@ -58,8 +58,10 @@
     # Fitting loess or splines to the remainder.
     if (method=="loess") { 
         after.fit <- loess(to.fit ~ kept.means, degree=degree, family=family, span=span)
+        PREDICTOR <- function(x) { predict(after.fit, data.frame(kept.means = x)) }
     } else {
-        after.fit <- MASS::rlm(to.fit ~ ns(kept.means, df=df))
+        after.fit <- aroma.light::robustSmoothSpline(kept.means, to.fit, df=df)
+        PREDICTOR <- function(x) { predict(after.fit, data.frame(kept.means = x))$y[,1] }
     }
 
     # Only trusting the parametric froms for extrapolation; restricting non-parametric forms within the supported range.
@@ -67,7 +69,7 @@
     right.edge <- max(kept.means)
     SUBFUN <- function(x) { 
         both.bounded <- pmax(pmin(x, right.edge), left.edge)
-        exp(predict(after.fit, data.frame(kept.means=both.bounded))) * SUBSUBFUN(x)
+        exp(PREDICTOR(both.bounded)) * SUBSUBFUN(x)
     }
 
     # Estimating the df2, as well as scale shift from estimating mean of logs (assuming shape of trend is correct).

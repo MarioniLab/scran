@@ -30,7 +30,8 @@ importFrom("limma", fitFDistRobustly, lmFit, contrasts.fit, squeezeVar)
 
 importFrom("utils", combn)
 importFrom("stats", approx, as.dist, cor, fitted, hclust, loess, median, p.adjust, pchisq, pf, dist,
-           predict, quantile, coefficients, nls, nls.control, lm, pnorm, coef, var, prcomp, model.matrix, pt)
+           predict, quantile, coefficients, nls, nls.control, lm, pnorm, coef, var, prcomp, model.matrix, pt,
+           smooth.spline)
 
 importFrom("zoo", zoo, rollapply, index)
 importFrom("statmod", glmgam.fit)
