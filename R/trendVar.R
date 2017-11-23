@@ -1,5 +1,5 @@
 .trend_var <- function(x, method=c("loess", "spline"), parametric=FALSE, 
-                       loess.args=list(), spline.args=list(), rlm.args=list(), nls.args=list(),
+                       loess.args=list(), spline.args=list(), nls.args=list(),
                        span=NULL, family=NULL, degree=NULL, df=NULL, start=NULL, 
                        min.mean=0.1, design=NULL, subset.row=NULL)
 # Fits a polynomial trend to the technical variability of the log-CPMs,
@@ -52,10 +52,13 @@
         loess.args <- .setup_loess_args(loess.args, degree=degree, family=family, span=span)
         loess.args$formula <- to.fit ~ kept.means 
         after.fit <- do.call(loess, loess.args)
+        PREDICTOR <- function(x) { predict(after.fit, data.frame(kept.means=x)) }
     } else {
         spline.args <- .setup_spline_args(spline.args, df=df)
-        rlm.args$formula <- to.fit ~ do.call(ns, c(list(x=kept.means), spline.args)) 
-        after.fit <- do.call(MASS::rlm, rlm.args)
+        spline.args$x <- kept.means
+        spline.args$y <- to.fit
+        after.fit <- do.call(smooth.spline, spline.args)
+        PREDICTOR <- function(x) { predict(after.fit, data.frame(kept.means=x))$y[,1] }
     }
 
     # Only trusting the parametric SUBSUBFUN for extrapolation; restricting non-parametric forms within the supported range.
@@ -63,7 +66,7 @@
     right.edge <- max(kept.means)
     SUBFUN <- function(x) { 
         both.bounded <- pmax(pmin(x, right.edge), left.edge)
-        exp(predict(after.fit, data.frame(kept.means=both.bounded))) * SUBSUBFUN(x)
+        exp(PREDICTOR(both.bounded)) * SUBSUBFUN(x)
     }
 
     # Estimating the df2, as well as scale shift from estimating mean of logs (assuming shape of trend is correct).

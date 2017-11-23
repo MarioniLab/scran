@@ -24,8 +24,10 @@ test_that("trendVar works on a basic scenario", {
     mn <- min(out$mean)
     expect_equal(out$trend(mx), out$trend(mx+1))
     expect_equal(out$trend(0), 0)
+    expect_equal(out$trend(1:10), sapply(1:10, out$trend)) # Checking we get consistent results.
     
     expect_equal(out$design, as.matrix(rep(1, ncells)))
+    
 })
 
 test_that("trendVar is robust to zero-variance and low-abundance genes", {
@@ -129,6 +131,7 @@ test_that("trendVar works with other trend functions",  {
     expect_is(out.semi$trend, "function") 
     expect_true(out.semi$trend(mx) > out.semi$trend(mx+1))
     expect_equal(out.semi$trend(0), 0)
+    expect_equal(out.semi$trend(1:10), sapply(1:10, out.semi$trend)) 
 
     out.spl <- trendVar(d, method="spline")
     expect_equal(out$mean, out.spl$mean)
@@ -136,6 +139,7 @@ test_that("trendVar works with other trend functions",  {
     expect_is(out.spl$trend, "function") 
     expect_equal(out.spl$trend(mx), out.spl$trend(mx+1))
     expect_equal(out.spl$trend(0), 0)
+    expect_equal(out.spl$trend(1:10), sapply(1:10, out.spl$trend)) # IMPORTANT: check that predict.ns is working.
 
     # Checking deprecation warnings and argument specification works (change to default args next time).
     expect_warning(out.sp <- trendVar(d, span=0.2), "deprecated")

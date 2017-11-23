@@ -8,7 +8,7 @@
 
 \usage{
 \S4method{trendVar}{ANY}(x, method=c("loess", "spline"), parametric=FALSE, 
-    loess.args=list(), spline.args=list(), rlm.args=list(), nls.args=list(),
+    loess.args=list(), spline.args=list(), nls.args=list(),
     span=NULL, family=NULL, degree=NULL, df=NULL, start=NULL, 
     min.mean=0.1, design=NULL, subset.row=NULL) 
 
@@ -23,8 +23,7 @@
 \item{method}{A string specifying the algorithm to use for smooth trend fitting.}
 \item{parametric}{A logical scalar indicating whether a parametric curve should be fitted prior to smoothing.}
 \item{loess.args}{A named list of arguments to pass to \code{\link{loess}} when \code{method="loess"}.}
-\item{spline.args}{A named list of arguments to pass to \code{\link[splines]{ns}} when \code{method="spline"}.}
-\item{rlm.args}{A named list of arguments to pass to \code{\link[MASS]{rlm}} when \code{method="spline"}.}
+\item{spline.args}{A named list of arguments to pass to \code{\link[stats]{smooth.spline}} when \code{method="spline"}.}
 \item{nls.args}{A named list of arguments to pass to \code{\link{nls}} when \code{parametric=TRUE}.}
 \item{span, family, degree}{Deprecated arguments to pass to \code{\link{loess}}.}
 \item{df}{Deprecated argument to pass to \code{\link{ns}}.}
@@ -71,10 +70,9 @@ This provides a fairly flexible fit while protecting against genes with very lar
 Arguments to \code{\link{loess}} are specified with \code{loess.args}, with defaults of \code{span=0.3}, \code{family="symmetric"} and \code{degree=1} unless otherwise specified. 
 Some experimentation with these parameters may be required to obtain satisfactory results.
 
-If \code{method="spline"}, a natural spline will be used instead for smoothing.
-This is constructed using the \code{\link[splines]{ns}} function with arguments taken from \code{spline.args}.
-The degrees of freedom are set to \code{df=4} unless otherwise specified.
-Fitting is performed robustly using the \code{\link[MASS]{rlm}} function, using arguments taken from \code{rlm.args}.
+If \code{method="spline"}, smoothing will instead be performed using the \code{\link{smooth.spline}} function 
+Arguments are specified with \code{spline.args}, with a default degrees of freedom of \code{df=4} unless otherwise specified.
+Splines can be more effective than loess at capturing smooth curves with strong non-linear gradients.
 
 The \code{trendVar} function will produce an output \code{trend} function with which fitted values can be computed.
 When extrapolating to values below the smallest observed mean, the output function will approach zero.
