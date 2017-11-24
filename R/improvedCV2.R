@@ -53,17 +53,21 @@
     use.log.means <- log.means[to.use]
     use.log.cv2 <- log.cv2[to.use]
 
-    # Fit a spline to the log-variances, compute p-values.
+    # Fit a spline to the log-variances.
+    # We need to use predict() to get fitted values, as fitted() can be NA for repeated values.
     if (robust) {
         fit <- aroma.light::robustSmoothSpline(use.log.means, use.log.cv2, df=df)
-        tech.var <- sum((fitted(fit) - use.log.cv2)^2)/(length(use.log.cv2)-fit$df)
+        fitted.val <- predict(fit, use.log.means)$y
+        tech.var <- sum((fitted.val - use.log.cv2)^2)/(length(use.log.cv2)-fit$df)
         tech.sd <- sqrt(tech.var)
     } else {
         fit <- smooth.spline(use.log.means, use.log.cv2, df=df)
-        tech.sd <- median(abs(fitted(fit) - use.log.cv2)) * 1.4826
+        fitted.val <- predict(fit, use.log.means)$y
+        tech.sd <- median(abs(fitted.val - use.log.cv2)) * 1.4826
     }
-    tech.log.cv2 <- predict(fit, data.frame(use.log.means=log.means[ok.means]))$y[,1]
+    tech.log.cv2 <- predict(fit, log.means[ok.means])$y
 
+    # Compute p-values.
     p <- rep(1, length(ok.means))
     p[ok.means] <- pnorm(log.cv2[ok.means], mean=tech.log.cv2, sd=tech.sd, lower.tail=FALSE)
     if (!use.spikes) {

@@ -58,7 +58,7 @@
         spline.args$x <- kept.means
         spline.args$y <- to.fit
         after.fit <- do.call(aroma.light::robustSmoothSpline, spline.args)
-        PREDICTOR <- function(x) { predict(after.fit, data.frame(kept.means=x))$y[,1] }
+        PREDICTOR <- function(x) { predict(after.fit, x)$y }
     }
 
     # Only trusting the parametric SUBSUBFUN for extrapolation; restricting non-parametric forms within the supported range.
