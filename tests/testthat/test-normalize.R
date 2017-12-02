@@ -330,7 +330,7 @@ test_that("normalize from scater works on spike-in genes", {
     out <- normalize(X)
     chosen <- rbinom(ngenes, 1, 0.7)==0L
     isSpike(X, "whee") <- chosen
-    expect_warning(X3 <- normalize(X), "spike-in transcripts in 'whee'")
+    expect_warning(X3 <- normalize(X), "spike-in set 'whee'")
     expect_equal(exprs(out), exprs(X3))
 
     # Checking that it correctly uses the spike-in size factors.    

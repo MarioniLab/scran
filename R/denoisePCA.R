@@ -77,7 +77,7 @@
         leftovers <- seq_len(nrow(x))[-use.rows]
         if (length(leftovers)) { 
             left.x <- x[leftovers,,drop=FALSE]
-            left.means <- calcAverage(left.x, size.factors=rep(1, ncol(x)))
+            left.means <- calcAverage(left.x, size_factors=rep(1, ncol(x)))
             left.x <- left.x - left.means
             new.vals <- tcrossprod(left.x %*% out.val$U, out.val$U)
             new.vals <- new.vals + left.means

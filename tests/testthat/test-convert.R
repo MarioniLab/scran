@@ -13,7 +13,7 @@ X <- SingleCellExperiment(list(counts=dummy))
 is.spike <- rbinom(ngenes, 1, 0.5)==0L
 isSpike(X, "MySpike") <- is.spike
 sizeFactors(X) <- 2^rnorm(ncells)
-expect_warning(X <- normalize(X), "spike-in transcripts in 'MySpike'")
+expect_warning(X <- normalize(X), "spike-in set 'MySpike'")
 
 rowData(X)$SYMBOL <- paste0("X", seq_len(ngenes))
 X$other <- sample(LETTERS, ncells, replace=TRUE)
