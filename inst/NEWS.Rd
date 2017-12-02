@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.7.5}{\itemize{
+\section{Version 1.7.7}{\itemize{
 \item Modified decomposeVar() to return statistics (but not p-values) for spike-ins when get.spikes=NA.
 
 \item Allowed passing of arguments to irlba() in denoisePCA() to assist convergence.
@@ -20,6 +20,8 @@ Switched from ns() to robustSmoothSpline() to avoid bugs with unloaded predict.n
 
 \item Added option to avoid normalization in the SingleCellExperiment method for improvedCV2().
 Switched from ns() to smooth.spline() or robustSmoothSpline() to avoid bugs.
+
+\item Replaced zoo functions with runmed() for calculating the median trend in DM().
 }}
 
 \section{Version 1.6.0}{\itemize{

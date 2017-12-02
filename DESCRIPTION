@@ -1,6 +1,6 @@
 Package: scran
-Version: 1.7.6
-Date: 2017-11-23
+Version: 1.7.7
+Date: 2017-12-02
 Title: Methods for Single-Cell RNA-Seq Data Analysis
 Authors@R: c(person("Aaron", "Lun", role = c("aut", "cre"), email =
         "alun@wehi.edu.au"), person("Karsten", "Bach", role = "aut"),
@@ -12,7 +12,7 @@ Depends: R (>= 3.5), BiocParallel, SingleCellExperiment
 Imports: SummarizedExperiment, S4Vectors, BiocGenerics, 
         Rcpp (>= 0.12.14), stats, methods, utils, graphics, grDevices,
         Matrix, scater, edgeR, limma, dynamicTreeCut, FNN, igraph, 
-        shiny, zoo, statmod, ggplot2, DT, viridis
+        shiny, statmod, ggplot2, DT, viridis
 Suggests: testthat, BiocStyle, knitr, beachmat, HDF5Array, limSolve, 
         org.Mm.eg.db, DESeq2, monocle, Rtsne, pracma, Biobase, irlba,
         aroma.light

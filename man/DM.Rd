@@ -5,18 +5,19 @@
 \description{Compute the distance-to-median statistic for the CV2 residuals of all genes}
 
 \usage{
-DM(mean, cv2, win.size=50)
+DM(mean, cv2, win.size=51)
 }
 
 \arguments{
 \item{mean}{A numeric vector of average counts for each gene.}
 \item{cv2}{A numeric vector of squared coefficients of variation for each gene.}
-\item{win.size}{An integer scalar specifying the window size for median-based smoothing.}
+\item{win.size}{An integer scalar specifying the window size for median-based smoothing.
+This should be odd or will be incremented by 1.} 
 }
 
 \details{
 This function will compute the distance-to-median (DM) statistic described by Kolodziejczyk et al. (2015).
-Briefly, a median-based trend is fitted to the log-transformed \code{cv2} against the log-transformed \code{mean}.
+Briefly, a median-based trend is fitted to the log-transformed \code{cv2} against the log-transformed \code{mean} using \code{\link{runmed}}.
 The DM is defined as the residual from the trend for each gene.
 This statistic is a measure of the relative variability of each gene, after accounting for the empirical mean-variance relationship.
 Highly variable genes can then be identified as those with high DM values.
