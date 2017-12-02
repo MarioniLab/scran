@@ -74,6 +74,10 @@
         if (is.null(spike.type)) { 
             # Get all spikes.
             spike.type <- spikeNames(x)            
+        } else {
+            if (!all(spike.type %in% spikeNames(x))) { 
+                stop(sprintf("spike-in set '%s' does not exist", spike.type[1]))
+            }
         }
         if (!length(spike.type)) { 
             stop("no spike-in sets specified from 'x'")
