@@ -68,7 +68,7 @@ rownames(spike.counts) <- paste0("ERCC-", seq_len(nspikes))
 all.counts <- rbind(gene.counts, spike.counts)
 ```
 
-Finally, we construct a `SCESet` object to store all of the data.
+Finally, we construct a `SingleCellExperiment` object to store all of the data.
 We also indicate which rows correspond to spike-in transcripts.
 This is done through the `calculateQCMetrics` method from `r Biocpkg("scater")`, which takes a named list of sets of control genes.
 We indicate which sets of controls are spike-ins using the `setSpike` setter function.
@@ -158,7 +158,7 @@ Even if we decide to use the deconvolution size factors, it is _strongly_ recomm
 This is because the spike-ins are not affected by total mRNA content.
 Using the deconvolution size factors will over-normalize the spike-in counts, whereas the spike-in size factors are more appropriate.
 To obtain the latter without overwriting the former, we set `general.use=FALSE` in our call to `computeSpikeFactors`.
-This means that the spike-in-based size factors will be computed and stored in the `SCESet` object, but will only be used by the spike-in transcripts.
+This means that the spike-in-based size factors will be computed and stored in the `SingleCellExperiment` object, but will only be used by the spike-in transcripts.
 (Obviously, if the spike-in size factors were already being used for normalization, e.g., in `sce2`, then this extra step is unnecessary.)
 
 ```{r}
@@ -269,7 +269,7 @@ If there were insufficient permutation iterations, a warning will be issued sugg
 
 # Converting to other formats
 
-The `SCESet` object can be easily converted into other formats using the `convertTo` method.
+The `SingleCellExperiment` object can be easily converted into other formats using the `convertTo` method.
 This allows analyses to be performed using other pipelines and packages.
 For example, if DE analyses were to be performed using `r Biocpkg("edgeR")`, the count data in `sce` could be used to construct a `DGEList`.
 
