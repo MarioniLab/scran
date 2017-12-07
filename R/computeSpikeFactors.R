@@ -18,7 +18,7 @@ setMethod("computeSpikeFactors", "SingleCellExperiment",
         }
     }
     if (!any(is.spike)) {
-        is.spike <- logical(0)
+        stop("no spike-in transcripts present in 'x'")
     }
 
     # Computing spike-in size factors.

@@ -280,8 +280,14 @@ test_that("computeSpikeFactors responds correctly to general.use", {
 })
 
 test_that("computeSpikeFactors fails correctly on silly inputs", {
+    expect_error(out <- computeSpikeFactors(X[0,]), "no spike-in transcripts present in 'x'")
+
+    alt.X <- X
+    counts(alt.X)[] <- 0L
     expect_warning(out <- computeSpikeFactors(X[0,]), "zero spike-in counts during spike-in normalization")
     expect_identical(unname(sizeFactors(out)), rep(NaN, ncol(out)))
+
+    # Checking that it correctly returns nothing.
     out <- computeSpikeFactors(X[,0])
     expect_identical(unname(sizeFactors(out)), numeric(0))
 })
