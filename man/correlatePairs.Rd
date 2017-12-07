@@ -8,11 +8,11 @@
 \description{Identify pairs of genes that are significantly correlated based on a modified Spearman's rho.}
 
 \usage{
-correlateNull(ncells, iters=1e6, design=NULL, residuals=FALSE) 
+correlateNull(ncells, iters=1e6, design=NULL, residuals=FALSE)
 
-\S4method{correlatePairs}{ANY}(x, null.dist=NULL, tol=1e-8, iters=1e6, 
+\S4method{correlatePairs}{ANY}(x, null.dist=NULL, tol=1e-8, iters=1e6,
     design=NULL, residuals=FALSE, lower.bound=NULL,
-    use.names=TRUE, subset.row=NULL, pairings=NULL, per.gene=FALSE,  
+    use.names=TRUE, subset.row=NULL, pairings=NULL, per.gene=FALSE,
     block.size=100L, BPPARAM=SerialParam())
 
 \S4method{correlatePairs}{SingleCellExperiment}(x, ..., use.names=TRUE, subset.row=NULL, per.gene=FALSE,
@@ -32,7 +32,7 @@ correlateNull(ncells, iters=1e6, design=NULL, residuals=FALSE)
 \item{BPPARAM}{A BiocParallelParam object to use in \code{bplapply} for parallel processing.}
 \item{tol}{A numeric scalar indicating the maximum difference under which two expression values are tied.}
 \item{use.names}{
-    A logical scalar specifying whether the row names of \code{exprs} should be used in the output.
+    A logical scalar specifying whether the row names of \code{assay.type} should be used in the output.
     Alternatively, a character vector containing the names to use.
 }
 \item{subset.row}{A logical, integer or character vector indicating the rows of \code{x} to use to compute correlations.}
@@ -67,8 +67,8 @@ Correction for multiple testing is done using the BH method.
 % Yeah, we could use a t-distribution for this, but the empirical distribution is probably more robust if you have few cells (or effects, after batch correction).
 
 For \code{correlatePairs}, a pre-computed empirical distribution can be supplied as \code{null.dist} if available.
-Otherwise, it will be automatically constructed via \code{correlateNull} with \code{ncells} set to the number of columns in \code{exprs}.
-For \code{correlatePairs,SingleCellExperiment-method}, correlations should be computed for normalized expression values in the specified \code{assay.type}. 
+Otherwise, it will be automatically constructed via \code{correlateNull} with \code{ncells} set to the number of columns in \code{assay.type}.
+For \code{correlatePairs,SingleCellExperiment-method}, correlations should be computed for normalized expression values in the specified \code{assay.type}.
 
 The lower bound of the p-values is determined by the value of \code{iters}.
 If the \code{limited} field is \code{TRUE} in the returned dataframe, it may be possible to obtain lower p-values by increasing \code{iters}.
@@ -94,7 +94,7 @@ For \code{correlatePairs} with \code{per.gene=FALSE}, a dataframe is returned wi
 \item{\code{rho}:}{A numeric field containing the approximate Spearman's rho.}
 \item{\code{p.value, FDR}:}{Numeric fields containing the permutation p-value and its BH-corrected equivalent.}
 \item{\code{limited}:}{A logical scalar indicating whether the p-value is at its lower bound, defined by \code{iters}.}
-} 
+}
 Rows are sorted by increasing \code{p.value} and, if tied, decreasing absolute size of \code{rho}.
 The exception is if \code{subset.row} is a matrix, in which case each row in the dataframe correspond to a row of \code{subset.row}.
 
@@ -149,7 +149,7 @@ For example, we could select only HVGs to focus on genes contributing to cell-to
 There is no need to account for HVG pre-selection in multiple testing, because rank correlations are unaffected by the variance.
 
 Lowly-expressed genes can also cause problems when \code{design} is non-\code{NULL} and \code{residuals=TRUE}.
-Tied counts, and zeroes in particular, may not result in tied residuals after fitting of the linear model. 
+Tied counts, and zeroes in particular, may not result in tied residuals after fitting of the linear model.
 Model fitting may break ties in a consistent manner across genes, yielding large correlations between genes with many zero counts.
 Focusing on HVGs should mitigate the detection of these uninteresting correlations, as genes dominated by zeroes will usually have low variance.
 }
@@ -176,8 +176,8 @@ Phipson B and Smyth GK (2010).
 Permutation P-values should never be zero: calculating exact P-values when permutations are randomly drawn.
 \emph{Stat. Appl. Genet. Mol. Biol.} 9:Article 39.
 
-Simes RJ (1986). 
-An improved Bonferroni procedure for multiple tests of significance. 
+Simes RJ (1986).
+An improved Bonferroni procedure for multiple tests of significance.
 \emph{Biometrika} 73:751-754.
 }
 
@@ -187,7 +187,7 @@ ncells <- 100
 null.dist <- correlateNull(ncells, iters=100000)
 exprs <- matrix(rpois(ncells*100, lambda=10), ncol=ncells)
 out <- correlatePairs(exprs, null.dist=null.dist)
-hist(out$p.value) 
+hist(out$p.value)
 }
 
 \keyword{

@@ -7,10 +7,10 @@
 \description{Fit a mean-dependent trend to the gene-specific variances in single-cell RNA-seq data.}
 
 \usage{
-\S4method{trendVar}{ANY}(x, method=c("loess", "spline"), parametric=FALSE, 
+\S4method{trendVar}{ANY}(x, method=c("loess", "spline"), parametric=FALSE,
     loess.args=list(), spline.args=list(), nls.args=list(),
-    span=NULL, family=NULL, degree=NULL, df=NULL, start=NULL, 
-    min.mean=0.1, design=NULL, subset.row=NULL) 
+    span=NULL, family=NULL, degree=NULL, df=NULL, start=NULL,
+    min.mean=0.1, design=NULL, subset.row=NULL)
 
 \S4method{trendVar}{SingleCellExperiment}(x, subset.row=NULL, ..., assay.type="logcounts", use.spikes=TRUE)
 }
@@ -32,7 +32,7 @@
 \item{design}{A numeric matrix describing the uninteresting factors contributing to expression in each cell.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to \code{trendVar,ANY-method}.}
-\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
+\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{logcounts}.}
 \item{use.spikes}{A logical scalar specifying whether the trend should be fitted to variances for spike-in transcripts or endogenous genes.}
 }
 
@@ -67,10 +67,10 @@ Conversely, the parametric form is not exact, so the smoothers will model any re
 The \code{method} argument specifies the smoothing algorithm to be applied on the log-ratios/variances.
 By default, a robust loess curve is used for trend fitting via \code{\link{loess}}.
 This provides a fairly flexible fit while protecting against genes with very large or very small variances.
-Arguments to \code{\link{loess}} are specified with \code{loess.args}, with defaults of \code{span=0.3}, \code{family="symmetric"} and \code{degree=1} unless otherwise specified. 
+Arguments to \code{\link{loess}} are specified with \code{loess.args}, with defaults of \code{span=0.3}, \code{family="symmetric"} and \code{degree=1} unless otherwise specified.
 Some experimentation with these parameters may be required to obtain satisfactory results.
 
-If \code{method="spline"}, smoothing will instead be performed using the \code{\link{smooth.spline}} function 
+If \code{method="spline"}, smoothing will instead be performed using the \code{\link{smooth.spline}} function
 Arguments are specified with \code{spline.args}, with a default degrees of freedom of \code{df=4} unless otherwise specified.
 Splines can be more effective than loess at capturing smooth curves with strong non-linear gradients.
 
@@ -80,7 +80,7 @@ When extrapolating to values above the largest observed mean, the output functio
 }
 
 \section{Additional notes on row selection}{
-Spike-in transcripts can be selected in \code{trendVar,SingleCellExperiment-method} using the \code{use.spikes} method. 
+Spike-in transcripts can be selected in \code{trendVar,SingleCellExperiment-method} using the \code{use.spikes} method.
 \itemize{
 \item By default, \code{use.spikes=TRUE} which means that only rows labelled as spike-ins with \code{isSpike(x)} will be used.
 \item If \code{use.spikes=FALSE}, only the rows \emph{not} labelled as spike-ins will be used.
@@ -104,7 +104,7 @@ Obviously, the usefulness of the trend is dependent on the quality of the featur
 For example, the trend will not provide accurate estimates of the technical component if the coverage of all spike-ins is lower than that of endogenous genes.
 }
 
-\section{Warning on size factor centring}{ 
+\section{Warning on size factor centring}{
 If \code{assay.type="logcounts"}, \code{trendVar,SingleCellExperiment-method} will attempt to determine if the expression values were computed from counts via \code{\link[scater]{normalize}}.
 If so, a warning will be issued if the size factors are not centred at unity.
 This is because different size factors are typically used for endogenous genes and spike-in transcripts.
@@ -157,7 +157,7 @@ Aaron Lun
 example(computeSpikeFactors) # Using the mocked-up data 'y' from this example.
 
 # Normalizing (gene-based factors for genes, spike-in factors for spike-ins)
-y <- computeSumFactors(y) 
+y <- computeSumFactors(y)
 y <- computeSpikeFactors(y, general.use=FALSE)
 y <- normalize(y)
 
@@ -166,14 +166,14 @@ fit <- trendVar(y)
 plot(fit$mean, fit$var)
 curve(fit$trend(x), col="red", lwd=2, add=TRUE)
 
-# Fitting a trend to the endogenous genes. 
+# Fitting a trend to the endogenous genes.
 fit.g <- trendVar(y, use.spikes=FALSE)
 plot(fit.g$mean, fit.g$var)
 curve(fit.g$trend(x), col="red", lwd=2, add=TRUE)
 }
 
 \references{
-Lun ATL, McCarthy DJ and Marioni JC (2016). 
+Lun ATL, McCarthy DJ and Marioni JC (2016).
 A step-by-step workflow for low-level analysis of single-cell RNA-seq data with Bioconductor.
 \emph{F1000Res.} 5:2122
 

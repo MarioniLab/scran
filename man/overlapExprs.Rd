@@ -7,11 +7,11 @@
 \description{Compute the gene-specific overlap in expression profiles between two groups of cells.}
 
 \usage{
-\S4method{overlapExprs}{ANY}(x, groups, design=NULL, residuals=FALSE, tol=1e-8, 
+\S4method{overlapExprs}{ANY}(x, groups, design=NULL, residuals=FALSE, tol=1e-8,
     BPPARAM=SerialParam(), subset.row=NULL, lower.bound=NULL)
 
-\S4method{overlapExprs}{SingleCellExperiment}(x, ..., subset.row=NULL, lower.bound=NULL, 
-    assay.type="logcounts", get.spikes=FALSE) 
+\S4method{overlapExprs}{SingleCellExperiment}(x, ..., subset.row=NULL, lower.bound=NULL,
+    assay.type="logcounts", get.spikes=FALSE)
 }
 
 \arguments{
@@ -23,13 +23,13 @@
 A vector of group assignments for all cells.
 }
 \item{design}{A numeric matrix containing blocking terms, i.e., uninteresting factors driving expression across cells.}
-\item{residuals}{A logical scalar indicating whether overlaps should be computed between residuals of a linear model.} 
+\item{residuals}{A logical scalar indicating whether overlaps should be computed between residuals of a linear model.}
 \item{tol}{A numeric scalar specifying the tolerance with which ties are considered.}
 \item{BPPARAM}{A BiocParallelParam object to use in \code{bplapply} for parallel processing.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{lower.bound}{A numeric scalar specifying the theoretical lower bound of values in \code{x}, only used when \code{residuals=TRUE}.}
 \item{...}{Additional arguments to pass to the matrix method.}
-\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
+\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{logcounts}.}
 \item{get.spikes}{A logical scalar specifying whether decomposition should be performed for spike-ins.}
 }
 
@@ -54,7 +54,7 @@ This is overridden by any non-\code{NULL} value of \code{subset.row}.
 \section{Accounting for uninteresting variation}{
 If the experiment has known (and uninteresting) factors of variation, these can be included in \code{design}.
 The approach used to remove these factors depends on the design matrix.
-If there is only one factor in \code{design}, the levels of the factor are defined as separate blocks. 
+If there is only one factor in \code{design}, the levels of the factor are defined as separate blocks.
 Overlaps between groups are computed within each block, and a weighted mean (based on the number of cells in each block) of the overlaps is taken across all blocks.
 
 This approach avoids the need for linear modelling and the associated assumptions regarding normality and correct model specification.
@@ -73,7 +73,7 @@ A named list of numeric matrices.
 Each matrix corresponds to a group (A) in \code{groups} and contains one row per gene in \code{x} (or the subset specified by \code{subset.row}).
 Each column corresponds to another group (B) in \code{groups}.
 The matrix entries contain overlap proportions between groups A and B for each gene.
-} 
+}
 
 \author{
 Aaron Lun
@@ -85,7 +85,7 @@ Aaron Lun
 
 \examples{
 # Using the mocked-up data 'y2' from this example.
-example(computeSpikeFactors) 
+example(computeSpikeFactors)
 y2 <- normalize(y2)
 groups <- sample(3, ncol(y2), replace=TRUE)
 out <- overlapExprs(y2, groups, subset.row=1:10)

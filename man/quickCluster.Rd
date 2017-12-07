@@ -7,7 +7,7 @@
 \description{Cluster similar cells based on rank correlations in their gene expression profiles.}
 
 \usage{
-\S4method{quickCluster}{ANY}(x, min.size=200, max.size=NULL, subset.row=NULL, 
+\S4method{quickCluster}{ANY}(x, min.size=200, max.size=NULL, subset.row=NULL,
     get.ranks=FALSE, method=c("hclust", "igraph"), pc.approx=TRUE, ...)
 
 \S4method{quickCluster}{SingleCellExperiment}(x, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE)
@@ -25,11 +25,11 @@
 \item{method}{A string specifying the clustering method to use.}
 \item{pc.approx}{Argument passed to \code{\link{buildSNNGraph}} when \code{method="igraph"}, otherwise ignored.}
 \item{...}{
-    For \code{quickCluster,ANY-method}, additional arguments to be passed to \code{\link{cutreeDynamic}} for \code{method="hclust"}, 
+    For \code{quickCluster,ANY-method}, additional arguments to be passed to \code{\link{cutreeDynamic}} for \code{method="hclust"},
         or \code{\link{buildSNNGraph}} for \code{method="igraph"}.
     For \code{quickCluster,SingleCellExperiment-method}, additional arguments to pass to \code{quickCluster,ANY-method}.
 }
-\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
+\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{logcounts}.}
 \item{get.spikes}{A logical specifying whether spike-in transcripts should be used.}
 }
 

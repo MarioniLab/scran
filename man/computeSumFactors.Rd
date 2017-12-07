@@ -28,7 +28,7 @@
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{no.warn}{A logical scalar indicating whether a warning should be generated when both \code{min.mean} and \code{subset.row} are specified.}
 \item{...}{Additional arguments to pass to \code{computeSumFactors,ANY-method}.}
-\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
+\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{logcounts}.}
 \item{get.spikes}{A logical scalar specifying whether spike-in transcripts should be used.}
 \item{sf.out}{A logical scalar indicating whether only size factors should be returned.}
 }
@@ -81,7 +81,7 @@ However, this has known problems when the linear system becomes too large (see \
 In such cases, set \code{clusters} to break up the linear system into smaller, more manageable components that can be solved separately.
 }
 
-\section{Dealing with negative size factors}{ 
+\section{Dealing with negative size factors}{
 In theory, it is possible to obtain negative estimates for the size factors.
 These values are obviously nonsensical and \code{computeSumFactors} will raise a warning if they are encountered.
 Negative estimates are mostly commonly generated from low quality cells with few expressed features, such that most counts are zero even after pooling.
@@ -105,12 +105,12 @@ Such occurrences are unavoidable -- rather, the aim is to prevent negative value
 
 \section{Gene selection}{
 By default, \code{get.spikes=FALSE} in \code{quickCluster,SingleCellExperiment-method} which means that spike-in transcripts are not included in the set of genes used for deconvolution.
-This is because they can behave differently from the endogenous genes. 
+This is because they can behave differently from the endogenous genes.
 Users wanting to perform spike-in normalization should see \code{\link{computeSpikeFactors}} instead.
 
 Users can also set \code{subset.row} to specify which rows of \code{x} are to be used to calculate correlations.
 This is equivalent to but more efficient than subsetting \code{x} directly, as it avoids constructing a (potentially large) temporary matrix.
-If \code{subset.row} is specified and \code{get.spikes=FALSE}, only the non-spike-in entries of \code{subset.row} will be used in deconvolution. 
+If \code{subset.row} is specified and \code{get.spikes=FALSE}, only the non-spike-in entries of \code{subset.row} will be used in deconvolution.
 
 Note that pooling does not eliminate the need to filter out low-abundance genes.
 As mentioned above, if too many genes have consistently low counts across all cells, even the pool-based size factors will be zero.

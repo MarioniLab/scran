@@ -7,7 +7,7 @@
 \description{Classify single cells into their cell cycle phases based on gene expression data.}
 
 \usage{
-\S4method{cyclone}{ANY}(x, pairs, gene.names=rownames(x), iter=1000, min.iter=100, min.pairs=50, 
+\S4method{cyclone}{ANY}(x, pairs, gene.names=rownames(x), iter=1000, min.iter=100, min.pairs=50,
     BPPARAM=SerialParam(), verbose=FALSE, subset.row=NULL)
 
 \S4method{cyclone}{SingleCellExperiment}(x, pairs, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE)
@@ -27,7 +27,7 @@
 \item{verbose}{A logical scalar specifying whether diagnostics should be printed to screen.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to \code{cyclone,ANY-method}.}
-\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
+\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{logcounts}.}
 \item{get.spikes}{A logical specifying whether spike-in transcripts should be used.}
 }
 
@@ -40,7 +40,7 @@ For each cell, \code{cyclone} calculates the proportion of all marker pairs wher
 A high proportion suggests that the cell is likely to belong in G1 phase, as the expression ranking in the new data is consistent with that in the training data.
 
 Proportions are not directly comparable between phases due to the use of different sets of gene pairs for each phase.
-Instead, proportions are converted into scores (see below) that account for the size and precision of the proportion estimate. 
+Instead, proportions are converted into scores (see below) that account for the size and precision of the proportion estimate.
 The same process is repeated for all phases, using the corresponding set of marker pairs in \code{pairs}.
 Cells with G1 or G2M scores above 0.5 are assigned to the G1 or G2M phases, respectively.
 (If both are above 0.5, the higher score is used for assignment.)
@@ -59,10 +59,10 @@ However, for non-cell cycle phase groupings, the output \code{phases} will be an
 Users should manually apply their own score thresholds for assigning cells into specific groups.
 }
 
-\section{Description of the score calculation}{ 
+\section{Description of the score calculation}{
 To make the proportions comparable between phases, a distribution of proportions is constructed by shuffling the expression values within each cell and recalculating the proportion.
 The phase score is defined as the lower tail probability at the observed proportion.
-High scores indicate that the proportion is greater than what is expected by chance if the expression of marker genes were independent 
+High scores indicate that the proportion is greater than what is expected by chance if the expression of marker genes were independent
 (i.e., with no cycle-induced correlations between marker pairs within each cell).
 
 % The shuffling assumes that the marker genes are IID from the same distribution of expression values, such that there's no correlations.
@@ -87,7 +87,7 @@ This modification aims to use the most relevant expression values to build the n
 \value{
 A list is returned containing:
 \describe{
-\item{\code{phases}:}{A character vector containing the predicted phase for each cell.} 
+\item{\code{phases}:}{A character vector containing the predicted phase for each cell.}
 \item{\code{scores}:}{A data frame containing the numeric phase scores for each phase and cell (i.e., each row is a cell).}
 \item{\code{normalized.scores}:}{A data frame containing the row-normalized scores (i.e., where the row sum for each cell is equal to 1).}
 }
@@ -106,7 +106,7 @@ with modifications by Aaron Lun
 example(sandbag) # Using the mocked-up data in this example.
 
 # Classifying (note: test.data!=training.data in real cases)
-test <- training 
+test <- training
 assignments <- cyclone(test, out)
 head(assignments$scores)
 head(assignments$phases)
@@ -120,7 +120,7 @@ plot(assignments$score$G1, assignments$score$G2M, col=col, pch=16)
 }
 
 \references{
-Scialdone A, Natarajana KN, Saraiva LR et al. (2015). 
+Scialdone A, Natarajana KN, Saraiva LR et al. (2015).
 Computational assignment of cell-cycle stage from single-cell transcriptome data.
 \emph{Methods} 85:54--61
 }

@@ -7,10 +7,10 @@
 \description{Find candidate marker genes for clusters of cells, by testing for differential expression between clusters.}
 
 \usage{
-\S4method{findMarkers}{ANY}(x, clusters, design=NULL, pval.type=c("any", "all"), 
+\S4method{findMarkers}{ANY}(x, clusters, design=NULL, pval.type=c("any", "all"),
     direction=c("any", "up", "down"), min.mean=0.1, subset.row=NULL)
 
-\S4method{findMarkers}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", get.spikes=FALSE) 
+\S4method{findMarkers}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", get.spikes=FALSE)
 }
 
 \arguments{
@@ -27,7 +27,7 @@ A vector of cluster identities for all cells.
 \item{min.mean}{A numeric scalar specifying the mean threshold for computing empirical Bayes parameters.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to the matrix method.}
-\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
+\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{logcounts}.}
 \item{get.spikes}{A logical scalar specifying whether decomposition should be performed for spike-ins.}
 }
 
@@ -72,7 +72,7 @@ Note that the presence of factors that are confounded with \code{clusters} will 
 \value{
 A named list of data frames, where each data frame corresponds to a cluster and contains a ranked set of potential marker genes.
 In each data frame, the log-fold change of the cluster against every other cluster Y is also reported, under the column named \code{logFC.Y}.
-} 
+}
 
 \author{
 Aaron Lun
@@ -83,23 +83,23 @@ Aaron Lun
 }
 
 \references{
-Law CW, Chen Y, Shi W and Smyth, GK (2014). 
-voom: precision weights unlock linear model analysis tools for RNA-seq read counts. 
-\emph{Genome Biol.} 15:R29 
+Law CW, Chen Y, Shi W and Smyth, GK (2014).
+voom: precision weights unlock linear model analysis tools for RNA-seq read counts.
+\emph{Genome Biol.} 15:R29
 
-Simes RJ (1986). 
-An improved Bonferroni procedure for multiple tests of significance. 
+Simes RJ (1986).
+An improved Bonferroni procedure for multiple tests of significance.
 \emph{Biometrika} 73:751-754.
 
-Berger RL and Hsu JC (1996). 
+Berger RL and Hsu JC (1996).
 Bioequivalence trials, intersection-union tests and equivalence confidence sets.
 \emph{Statist. Sci.} 11, 283-319.
 }
 
 \examples{
 # Using the mocked-up data 'y2' from this example.
-example(computeSpikeFactors) 
+example(computeSpikeFactors)
 y2 <- normalize(y2)
-kout <- kmeans(t(exprs(y2)), centers=2) # Any clustering method is okay.
+kout <- kmeans(t(logcounts(y2)), centers=2) # Any clustering method is okay.
 out <- findMarkers(y2, clusters=kout$cluster)
 }

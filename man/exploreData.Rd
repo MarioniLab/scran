@@ -18,13 +18,13 @@ exploreData(x, cell.data, gene.data, red.dim, run=TRUE)
 
 \details{
 This function will return a Shiny app object that can be run with \code{\link{runApp}}.
-The app allows the user to interactively explore gene expression patterns in single-cell RNA-seq data. 
+The app allows the user to interactively explore gene expression patterns in single-cell RNA-seq data.
 Explorative analysis is focused on comparing gene exression between different groups of cells, as defined by the covariates of \code{cell.data}.
 
-Three plots are shown in the app: 
+Three plots are shown in the app:
 \itemize{
 \item a scatterplot of cell locations based on the \code{red.dim} coordinates, colored by a selected covariate
-\item a scatterplot of cell locations based on the \code{red.dim} coordinates, colored by expression of a selected gene 
+\item a scatterplot of cell locations based on the \code{red.dim} coordinates, colored by expression of a selected gene
 \item boxplot(s) of expression values for a selected gene, grouped by a selected covariate.
 }
 
@@ -58,11 +58,11 @@ gene.data <- DataFrame(lengths=runif(nrow(sce)))
 
 # Mocking up  some reduced dimensions.
 library(Rtsne)
-tsn <- Rtsne(t(exprs(sce)), perplexity=10)
+tsn <- Rtsne(t(logcounts(sce)), perplexity=10)
 red.dim <- tsn$Y[,1:2]
 
 # Creating the app object.
-app <- exploreData(exprs(sce), cell.data, gene.data, red.dim, run=FALSE)
+app <- exploreData(logcounts(sce), cell.data, gene.data, red.dim, run=FALSE)
 if (interactive()) { shiny::runApp(app) }
 
 \dontrun{# Running directly from the function.

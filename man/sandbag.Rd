@@ -7,10 +7,10 @@
 \description{Use gene expression data to train a classifier for cell cycle phase.}
 
 \usage{
-\S4method{sandbag}{ANY}(x, phases, gene.names=rownames(x), 
+\S4method{sandbag}{ANY}(x, phases, gene.names=rownames(x),
     fraction=0.5, subset.row=NULL)
 
-\S4method{sandbag}{SingleCellExperiment}(x, phases, subset.row=NULL, ..., 
+\S4method{sandbag}{SingleCellExperiment}(x, phases, subset.row=NULL, ...,
     assay.type="counts", get.spikes=FALSE)
 }
 
@@ -25,14 +25,14 @@ This should typically be of length 3, with elements named as \code{"G1"}, \code{
 \item{fraction}{A numeric scalar specifying the minimum fraction to define a marker gene pair.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to \code{sandbag,ANY-method}.}
-\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
+\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{logcounts}.}
 \item{get.spikes}{A logical specifying whether spike-in transcripts should be used.}
 }
 
 \details{
 This function implements the training step of the pair-based prediction method described by Scialdone et al. (2015).
 Pairs of genes (A, B) are identified from a training data set where in each pair,
-    the fraction of cells in phase G1 with expression of A > B (based on expression values in \code{training.data}) 
+    the fraction of cells in phase G1 with expression of A > B (based on expression values in \code{training.data})
     and the fraction with B > A in each other phase exceeds \code{fraction}.
 These pairs are defined as the marker pairs for G1.
 This is repeated for each phase to obtain a separate marker pair set.
@@ -40,7 +40,7 @@ This is repeated for each phase to obtain a separate marker pair set.
 Pre-defined sets of marker pairs are provided for mouse and human (see Examples).
 The mouse set was generated as described by Scialdone et al. (2015), while the human training set was generated with data from Leng et al. (2015).
 Classification from test data can be performed using the \code{\link{cyclone}} function.
-For each cell, this involves comparing expression values between genes in each marker pair. 
+For each cell, this involves comparing expression values between genes in each marker pair.
 The cell is then assigned to the phase that is consistent with the direction of the difference in expression in the majority of pairs.
 
 For \code{sandbag,SingleCellExperiment-method}, the matrix of counts is used but can be replaced with expression values by setting \code{assays}.
@@ -51,7 +51,7 @@ Users can also manually select which rows to use via \code{subset.row}, which wi
 
 While \code{sandbag} and its partner function \code{\link{cyclone}} were originally designed for cell cyclone phase classification,
 the same computational strategy can be used to classify cells into any mutually exclusive groupings.
-Any number and nature of groups can be specified in \code{phases}, e.g., differentiation lineages, activation states. 
+Any number and nature of groups can be specified in \code{phases}, e.g., differentiation lineages, activation states.
 Only the names of \code{phases} need to be modified to reflect the biology being studied.
 }
 
@@ -86,7 +86,7 @@ hs.pairs <- readRDS(system.file("exdata", "human_cycle_markers.rds", package="sc
 }
 
 \references{
-Scialdone A, Natarajana KN, Saraiva LR et al. (2015). 
+Scialdone A, Natarajana KN, Saraiva LR et al. (2015).
 Computational assignment of cell-cycle stage from single-cell transcriptome data.
 \emph{Methods} 85:54--61
 
