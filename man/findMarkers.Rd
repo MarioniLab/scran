@@ -27,7 +27,7 @@ A vector of cluster identities for all cells.
 \item{min.mean}{A numeric scalar specifying the mean threshold for computing empirical Bayes parameters.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to the matrix method.}
-\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
+\item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
 \item{get.spikes}{A logical scalar specifying whether decomposition should be performed for spike-ins.}
 }
 
@@ -100,6 +100,6 @@ Bioequivalence trials, intersection-union tests and equivalence confidence sets.
 # Using the mocked-up data 'y2' from this example.
 example(computeSpikeFactors) 
 y2 <- normalize(y2)
-kout <- kmeans(t(exprs(y2)), centers=2) # Any clustering method is okay.
+kout <- kmeans(t(logcounts(y2)), centers=2) # Any clustering method is okay.
 out <- findMarkers(y2, clusters=kout$cluster)
 }

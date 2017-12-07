@@ -32,7 +32,7 @@ correlateNull(ncells, iters=1e6, design=NULL, residuals=FALSE)
 \item{BPPARAM}{A BiocParallelParam object to use in \code{bplapply} for parallel processing.}
 \item{tol}{A numeric scalar indicating the maximum difference under which two expression values are tied.}
 \item{use.names}{
-    A logical scalar specifying whether the row names of \code{exprs} should be used in the output.
+    A logical scalar specifying whether the row names of \code{x} should be used in the output.
     Alternatively, a character vector containing the names to use.
 }
 \item{subset.row}{A logical, integer or character vector indicating the rows of \code{x} to use to compute correlations.}
@@ -67,7 +67,7 @@ Correction for multiple testing is done using the BH method.
 % Yeah, we could use a t-distribution for this, but the empirical distribution is probably more robust if you have few cells (or effects, after batch correction).
 
 For \code{correlatePairs}, a pre-computed empirical distribution can be supplied as \code{null.dist} if available.
-Otherwise, it will be automatically constructed via \code{correlateNull} with \code{ncells} set to the number of columns in \code{exprs}.
+Otherwise, it will be automatically constructed via \code{correlateNull} with \code{ncells} set to the number of columns in \code{x}.
 For \code{correlatePairs,SingleCellExperiment-method}, correlations should be computed for normalized expression values in the specified \code{assay.type}. 
 
 The lower bound of the p-values is determined by the value of \code{iters}.

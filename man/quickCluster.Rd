@@ -29,7 +29,7 @@
         or \code{\link{buildSNNGraph}} for \code{method="igraph"}.
     For \code{quickCluster,SingleCellExperiment-method}, additional arguments to pass to \code{quickCluster,ANY-method}.
 }
-\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
+\item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
 \item{get.spikes}{A logical specifying whether spike-in transcripts should be used.}
 }
 

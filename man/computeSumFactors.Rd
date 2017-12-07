@@ -28,7 +28,7 @@
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{no.warn}{A logical scalar indicating whether a warning should be generated when both \code{min.mean} and \code{subset.row} are specified.}
 \item{...}{Additional arguments to pass to \code{computeSumFactors,ANY-method}.}
-\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
+\item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
 \item{get.spikes}{A logical scalar specifying whether spike-in transcripts should be used.}
 \item{sf.out}{A logical scalar indicating whether only size factors should be returned.}
 }

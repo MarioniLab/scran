@@ -27,7 +27,7 @@
 \item{verbose}{A logical scalar specifying whether diagnostics should be printed to screen.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to \code{cyclone,ANY-method}.}
-\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
+\item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
 \item{get.spikes}{A logical specifying whether spike-in transcripts should be used.}
 }
 

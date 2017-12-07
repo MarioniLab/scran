@@ -29,7 +29,7 @@ A vector of group assignments for all cells.
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{lower.bound}{A numeric scalar specifying the theoretical lower bound of values in \code{x}, only used when \code{residuals=TRUE}.}
 \item{...}{Additional arguments to pass to the matrix method.}
-\item{assay.type}{A string specifying which assay values to use, e.g., \code{counts} or \code{exprs}.}
+\item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
 \item{get.spikes}{A logical scalar specifying whether decomposition should be performed for spike-ins.}
 }
 
