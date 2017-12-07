@@ -284,7 +284,7 @@ test_that("computeSpikeFactors fails correctly on silly inputs", {
 
     alt.X <- X
     counts(alt.X)[] <- 0L
-    expect_warning(out <- computeSpikeFactors(X[0,]), "zero spike-in counts during spike-in normalization")
+    expect_warning(out <- computeSpikeFactors(alt.X), "zero spike-in counts during spike-in normalization")
     expect_identical(unname(sizeFactors(out)), rep(NaN, ncol(out)))
 
     # Checking that it correctly returns nothing.
