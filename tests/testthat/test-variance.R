@@ -25,6 +25,7 @@ test_that("trendVar works on a basic scenario", {
     expect_equal(out$trend(mx), out$trend(mx+1))
     expect_equal(out$trend(0), 0)
     expect_equal(out$trend(1:10), sapply(1:10, out$trend)) # Checking we get consistent results.
+    expect_equal(out$trend(100:1/20), sapply(100:1/20, out$trend))  # More checking.
     
     expect_equal(out$design, as.matrix(rep(1, ncells)))
     
@@ -55,29 +56,33 @@ test_that("trendVar behaves correctly with subsetting", {
 })
 
 test_that("trendVar works correctly on SingleCellExperiment objects", {
-    suppressWarnings(expect_error(trendVar(X, parametric=TRUE), "need at least 4 values for non-linear curve fitting")) 
-    suppressWarnings(expect_error(trendVar(X, parametric=FALSE), "need at least 2 values for non-parametric curve fitting"))
+    suppressWarnings(expect_error(trendVar(X, parametric=TRUE), "no spike-in transcripts present for 'use.spikes=TRUE'"))
+    suppressWarnings(expect_error(trendVar(X, parametric=FALSE), "no spike-in transcripts present for 'use.spikes=TRUE'"))
 
     cntrl_data <- list(All=!logical(ngenes), Some=rbinom(ngenes, 1, 0.5)==0, None=logical(ngenes))
+    test.x <- runif(1000, 0, max(out$mean))
 
+    # Checking that spike-in referencing works.
     isSpike(X, "All") <- cntrl_data$All
     expect_identical(isSpike(X), cntrl_data$All) # Just checking here...
     out2 <- trendVar(X)
     expect_equal(out$mean, out2$mean)
     expect_equal(out$var, out2$var)
-    expect_equal(out$trend, out2$trend)
+    expect_equal(out$trend(test.x), out2$trend(test.x))
     expect_equal(out$design, out2$design)
     
+    # Checking that spike-in referencing fails, and use.spikes=FALSE works.
     isSpike(X, "All") <- NULL
     isSpike(X, "None") <- cntrl_data$None
     expect_identical(isSpike(X), cntrl_data$None)
-    expect_error(trendVar(X), "need at least 2 values for non-parametric curve fitting")
+    expect_error(trendVar(X), "no spike-in transcripts present for 'use.spikes=TRUE'")
     out3 <- trendVar(X, use.spikes=FALSE)
     expect_equal(out3$mean, out2$mean)
     expect_equal(out3$var, out2$var)
-    expect_equal(out3$trend, out2$trend)
+    expect_equal(out3$trend(test.x), out2$trend(test.x))
     expect_equal(out3$design, out2$design)
     
+    # Checking that subsetting by spike-ins works.
     isSpike(X, "None") <- NULL
     isSpike(X, "Some") <- cntrl_data$Some
     expect_identical(isSpike(X), cntrl_data$Some)
@@ -87,7 +92,7 @@ test_that("trendVar works correctly on SingleCellExperiment objects", {
     out3b <- trendVar(X, use.spikes=NA)
     expect_equal(out3$mean, out3b$mean)
     expect_equal(out3$var, out3b$var)
-    expect_equal(out3$trend, out3b$trend)
+    expect_equal(out3$trend(test.x), out3b$trend(test.x))
     expect_equal(out3$design, out3b$design)
    
     # Checking for proper interaction between use.spike and subset.row.
@@ -109,7 +114,7 @@ test_that("trendVar works correctly on SingleCellExperiment objects", {
     out4 <- trendVar(X2)
     expect_equal(out4$mean, out2$mean)
     expect_equal(out4$var, out2$var)
-    expect_equal(out4$trend, out2$trend)
+    expect_equal(out4$trend(test.x), out2$trend(test.x))
     expect_equal(out4$design, out2$design)
 })
 

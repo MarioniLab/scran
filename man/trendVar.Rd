@@ -83,7 +83,8 @@ When extrapolating to values above the largest observed mean, the output functio
 Spike-in transcripts can be selected in \code{trendVar,SingleCellExperiment-method} using the \code{use.spikes} method. 
 \itemize{
 \item By default, \code{use.spikes=TRUE} which means that only rows labelled as spike-ins with \code{isSpike(x)} will be used.
-\item If \code{use.spikes=FALSE}, only the rows \emph{not} labelled as spike-ins will be used.
+An error will be raised if no rows are labelled as spike-in transcripts.
+\item If \code{use.spikes=FALSE}, only the rows \emph{not} labelled as spike-in transcripts will be used.
 \item If \code{use.spikes=NA}, every row will be used for trend fitting, regardless of whether it corresponds to a spike-in transcript or not.
 }
 
@@ -92,8 +93,8 @@ For \code{trendVar,ANY-method}, it is equivalent to manually supplying a matrix 
 This assumes that most genes exhibit technical variation and little biological variation, e.g., in a homogeneous population.
 
 Users can also directly specify which rows to use with \code{subset.row}, which will interact as expected with any non-\code{NA} value of \code{use.spikes}.
-If \code{subset.row} is specified and \code{use.spikes=TRUE}, only the spike-in transcripts in \code{subset.row} are used.
-Otherwise, if \code{use.spikes=FALSE}, only the non-spike in transcripts in \code{subset.row} are used.
+If \code{subset.row} is specified and \code{use.spikes=TRUE}, rows are only used if they are both spike-in transcripts \emph{and} in \code{subset.row}.
+Otherwise, if \code{use.spikes=FALSE}, only rows in \code{subset.row} that are \emph{not} spike-in transcripts are used.
 
 Low-abundance genes with mean log-expression below \code{min.mean} are not used in trend fitting, to preserve the sensitivity of span-based smoothers at moderate-to-high abundances.
 It also protects against discreteness, which can interfere with estimation of the variability of the variance estimates and accurate scaling of the trend.

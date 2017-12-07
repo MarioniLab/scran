@@ -218,6 +218,9 @@ setMethod("trendVar", "SingleCellExperiment", function(x, subset.row=NULL, ..., 
         }
         is.spike <- which(is.spike)
         if (use.spikes) {
+            if (!length(is.spike)) {
+                stop("no spike-in transcripts present for 'use.spikes=TRUE'")
+            }
             subset.row <- intersect(subset.row, is.spike)                
         } else {
             subset.row <- setdiff(subset.row, is.spike)
