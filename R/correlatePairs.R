@@ -1,55 +1,27 @@
 .correlate_pairs <- function(x, null.dist=NULL, tol=1e-8, iters=1e6, 
-                             design=NULL, residuals=FALSE, lower.bound=NULL, 
+                             block=NULL, design=NULL, residuals=FALSE, lower.bound=NULL, 
                              use.names=TRUE, subset.row=NULL, pairings=NULL, per.gene=FALSE, 
                              block.size=100L, BPPARAM=SerialParam())
 # This calculates a (modified) Spearman's rho for each pair of genes.
 #
 # written by Aaron Lun
 # created 10 February 2016
-# last modified 7 June 2017
 {
-    compute.residuals <- FALSE
-    if (!is.null(design)) { 
-        blocks <- .is_one_way(design)
-        if (is.null(blocks) || residuals) { 
-            compute.residuals <- TRUE
-            blocks <- list(seq_len(ncol(x)))
-        } 
-        if (is.null(null.dist)) { 
-            null.dist <- correlateNull(design=design, residuals=residuals, iters=iters)
-        }
-    } else {
-        blocks <- list(seq_len(ncol(x)))
-        if (is.null(null.dist)) { 
-            null.dist <- correlateNull(ncol(x), iters=iters)
-        } 
-    }
+    null.out <- .check_null_dist(x, block=block, design=design, iters=iters, null.dist=null.dist, residuals=residuals)
+    null.dist <- null.out$null
+    blocks <- null.out$blocks
 
-    # Checking that the null distribution is sensible.
-    if (!identical(design, attr(null.dist, "design"))) { 
-        warning("'design' is not the same as that used to generate 'null.dist'")
-    }
-    if (!is.null(design)) { 
-        if (!identical(residuals, attr(null.dist, "residuals"))) {
-            warning("'residuals' is not the same as that used to generate 'null.dist'")
-        }
-    }
-    null.dist <- as.double(null.dist)
-    if (is.unsorted(null.dist)) { 
-        null.dist <- sort(null.dist)
-    }
-
-    # Checking the subsetting and tolerance
+    # Checking which pairwise correlations should be computed.
     block.size <- as.integer(block.size)
     pair.out <- .construct_pair_indices(subset.row=subset.row, x=x, pairings=pairings, block.size=block.size)
     subset.row <- pair.out$subset.row
     gene1 <- pair.out$gene1
     gene2 <- pair.out$gene2
     reorder <- pair.out$reorder
-    final.names <- .choose_gene_names(subset.row=subset.row, x=x, use.names=use.names)
 
-    # Computing residuals; also replacing the subset vector, as it'll already be subsetted.
-    if (compute.residuals) { 
+    # Computing residuals (setting values that were originally zero to a lower bound).
+    # Also replacing the subset vector, as it'll already be subsetted.
+    if (!is.null(design) && is.null(block)) {
         use.x <- .calc_residuals_wt_zeroes(x, design, subset.row=subset.row, lower.bound=lower.bound) 
         use.subset.row <- seq_len(nrow(use.x)) - 1L
     } else {
@@ -84,10 +56,11 @@
     all.pval <- pmin(all.pval, 1)
 
     # Returning output on a per-gene basis, testing if each gene is correlated to any other gene.
+    final.names <- .choose_gene_names(subset.row=subset.row, x=x, use.names=use.names)
     if (per.gene) {
         by.gene <- .Call(cxx_combine_corP, length(subset.row), gene1 - 1L, gene2 - 1L, 
                          all.rho, all.pval, limited, order(all.pval) - 1L) 
-        if (is.character(by.gene)) stop(by.gene)
+
         out <- data.frame(gene=final.names, rho=by.gene[[2]], p.value=by.gene[[1]],
                           FDR=p.adjust(by.gene[[1]], method="BH"), 
                           limited=by.gene[[3]], stringsAsFactors=FALSE)
@@ -109,6 +82,52 @@
     .is_sig_limited(out)
     return(out)
 }
+
+.check_null_dist <- function(x, block, design, iters, null.dist, residuals) 
+# This makes sure that the null distribution is in order.
+{
+    if (!is.null(block)) { 
+        blocks <- split(seq_len(ncol(x)), block)
+        if (is.null(null.dist)) { 
+            null.dist <- correlateNull(block=block, iters=iters)
+        }
+
+    } else if (!is.null(design)) { 
+        if (is.null(.is_one_way(design))) { 
+            if (residuals) {
+                .Deprecated(msg="'residuals=TRUE' is deprecated, choose between 'design' and 'block'")
+            }
+        } else if (!residuals) {
+            .Deprecated(msg="'residuals=FALSE' is deprecated, use 'block' instead")
+        }
+            
+        blocks <- list(seq_len(ncol(x)))
+        if (is.null(null.dist)) { 
+            null.dist <- correlateNull(design=design, iters=iters)
+        }
+
+    } else {
+        blocks <- list(seq_len(ncol(x)))
+        if (is.null(null.dist)) { 
+            null.dist <- correlateNull(ncol(x), iters=iters)
+        } 
+    }
+
+    # Checking that the null distribution is sensible.
+    if (!identical(block, attr(null.dist, "block"))) { 
+        warning("'block' is not the same as that used to generate 'null.dist'")
+    }
+    if (!identical(design, attr(null.dist, "design"))) { 
+        warning("'design' is not the same as that used to generate 'null.dist'")
+    }
+    null.dist <- as.double(null.dist)
+    if (is.unsorted(null.dist)) { 
+        null.dist <- sort(null.dist)
+    }
+    
+    return(list(null=null.dist, blocks=blocks))
+}
+
 
 .construct_pair_indices <- function(subset.row, x, pairings, block.size=100) 
 # This returns a new subset-by-row vector, along with the pairs of elements
@@ -185,7 +204,7 @@
     }
 
     # Ordering by blocksize. This will be used to reduce the number of reads from the matrix in C++,
-    # by caching the expression profile of a number of genes rather than re-reading them per pair.
+    # by caching the expression profiles of a number of genes rather than re-reading them per pair.
     block.order <- order(floor((gene1-1L)/block.size), floor((gene2-1L)/block.size))
     gene1 <- gene1[block.order]
     gene2 <- gene2[block.order]

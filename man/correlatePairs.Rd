@@ -8,10 +8,10 @@
 \description{Identify pairs of genes that are significantly correlated based on a modified Spearman's rho.}
 
 \usage{
-correlateNull(ncells, iters=1e6, design=NULL, residuals=FALSE) 
+correlateNull(ncells, iters=1e6, block=NULL, design=NULL, residuals=FALSE) 
 
 \S4method{correlatePairs}{ANY}(x, null.dist=NULL, tol=1e-8, iters=1e6, 
-    design=NULL, residuals=FALSE, lower.bound=NULL,
+    block=NULL, design=NULL, residuals=FALSE, lower.bound=NULL,
     use.names=TRUE, subset.row=NULL, pairings=NULL, per.gene=FALSE,  
     block.size=100L, BPPARAM=SerialParam())
 
@@ -22,8 +22,9 @@ correlateNull(ncells, iters=1e6, design=NULL, residuals=FALSE)
 \arguments{
 \item{ncells}{An integer scalar indicating the number of cells in the data set.}
 \item{iters}{An integer scalar specifying the number of values in the null distribution.}
+\item{block}{A factor specifying the blocking level for each cell.}
 \item{design}{A numeric design matrix containing uninteresting factors to be ignored.}
-\item{residuals}{A logical scalar indicating whether correlations should be calculated from residuals when \code{design!=NULL}.}
+\item{residuals}{A logical scalar, deprecated.}
 \item{x}{
     A numeric matrix-like object of log-normalized expression values, where rows are genes and columns are cells.
     Alternatively, a SingleCellExperiment object containing such a matrix.
@@ -104,22 +105,24 @@ The \code{p.value} field contains the Simes p-value, and the \code{FDR} field co
 }
 
 \section{Accounting for uninteresting variation}{
-If the experiment has known (and uninteresting) factors of variation, these can be included in \code{design}.
-These factors will be regressed out to ensure that they do not drive strong correlations between genes.
+If the experiment has known (and uninteresting) factors of variation, these can be included in \code{design} or \code{block}.
+\code{correlatePairs} will then attempt to ensure that these factors do not drive strong correlations between genes.
 Examples might be to block on batch effects or cell cycle phase, which may have substantial but uninteresting effects on expression.
 
-The approach used to remove these factors depends on the design matrix.
-If there is only one factor in \code{design}, the levels of the factor are defined as separate groups.
-For each pair of genes, correlations are computed within each group, and a weighted mean (based on the group size) of the correlations is taken across all groups.
+The approach used to remove these factors depends on whether \code{design} or \code{block} is used.
+If there is only one factor, e.g., for plate or animal of origin, \code{block} should be used.
+Each level of the factor is defined as a separate group of cells.
+For each pair of genes, correlations are computed within each group, and a weighted mean based on the group size) of the correlations is taken across all groups.
 The same strategy is used to generate the null distribution where ranks are computed and shuffled within each group.
 
-For designs containing multiple factors or covariates, a linear model is fitted to the (log-normalized) expression values with \code{design}.
+For experiments containing multiple factors or covariates, a design matrix should be passed into \code{design}.
+The \code{correlatePairs} function will fit a linear model to the (log-normalized) expression values.
 The correlation between a pair of genes is then computed from the residuals of the fitted model.
 Similarly, to obtain a null distribution of rho values, normally-distributed random errors are simulated in a fitted model based on \code{design};
     the corresponding residuals are generated from these errors; and the correlation between sets of residuals is computed at each iteration.
 
-The second model-based approach can also be used for one-way layouts by setting \code{residuals=TRUE}.
-By default, this is not turned on as the second approach involves more work/assumptions:
+We recommend using \code{block} wherever possible (and it will take priority if both \code{block} and \code{design} are specified).
+While \code{design} can also be used for one-way layouts, this is not ideal as it involves more work/assumptions:
 \itemize{
 \item It assumes normality, during both linear modelling and generation of the null distribution.
 This assumption is largely unavoidable for complex designs, where some quantitative constraints are required to remove nuisance effects.

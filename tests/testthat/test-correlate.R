@@ -9,84 +9,87 @@ refnull <- function(niters, ncells, resort=TRUE) {
     out
 }
 
-set.seed(100)
-ref <- refnull(1e3, 121)
-set.seed(100)
-out <- correlateNull(121, iters=1e3)
-expect_equal(ref, as.double(out))
+test_that("null distribution of correlations is correctly calculated", {
+    set.seed(100)
+    ref <- refnull(1e3, 121)
+    set.seed(100)
+    out <- correlateNull(121, iters=1e3)
+    expect_equal(ref, as.double(out))
+    
+    set.seed(100)
+    ref <- refnull(1e3, 12)
+    set.seed(100)
+    out <- correlateNull(12, iters=1e3)
+    expect_equal(ref, as.double(out))
+})
 
-set.seed(100)
-ref <- refnull(1e3, 12)
-set.seed(100)
-out <- correlateNull(12, iters=1e3)
-expect_equal(ref, as.double(out))
+test_that("correlateNull works with a design matrix", {
+    # A one-way layout.
+    design <- model.matrix(~factor(rep(c(1,2), each=10)))
+    QR <- qr(design)
+    df <- nrow(design)-ncol(design)
 
-# Checking with design matrix.
+    set.seed(100)
+    collected <- list()
+    for (x in seq_len(1e3)) {
+        first.half <- qr.qy(QR, c(0,0, rnorm(df)))
+        second.half <- qr.qy(QR, c(0, 0, rnorm(df)))
+        collected[[x]] <- cor(first.half, second.half, method="spearman")
+    }
+    out1 <- sort(unlist(collected))
 
-design <- model.matrix(~factor(rep(c(1,2), each=10)))
-QR <- qr(design)
-df <- nrow(design)-ncol(design)
+    set.seed(100)
+    expect_warning(out2 <- correlateNull(design=design, iters=1e3, residuals=TRUE), "deprecated")
+    expect_equal(out1, as.double(out2))
+    expect_equal(attr(out2, "design"), design)
 
-set.seed(100)
-collected <- list()
-for (x in seq_len(1e3)) {
-    first.half <- qr.qy(QR, c(0,0, rnorm(df)))
-    second.half <- qr.qy(QR, c(0, 0, rnorm(df)))
-    collected[[x]] <- cor(first.half, second.half, method="spearman")
-}
-out1 <- sort(unlist(collected))
+    # A more complicated design.
+    design <- model.matrix(~seq_len(10))
+    QR <- qr(design, LAPACK=TRUE) # Q2 is not unique, and varies between LAPACK and LINPACK.
+    df <- nrow(design)-ncol(design)
+    
+    set.seed(100)
+    collected <- list()
+    for (x in seq_len(1e3)) {
+        first.half <- qr.qy(QR, c(0, 0, rnorm(df)))
+        second.half <- qr.qy(QR, c(0, 0, rnorm(df))) 
+        collected[[x]] <- cor(first.half, second.half, method="spearman")
+    }
+    out1 <- sort(unlist(collected))
+    
+    set.seed(100)
+    expect_warning(out2 <- correlateNull(design=design, iters=1e3, residuals=TRUE), "deprecated")
+    expect_equal(out1, as.double(out2))
+    expect_equal(attr(out2, "design"), design)
+})
 
-set.seed(100)
-out2 <- correlateNull(design=design, iters=1e3, residuals=TRUE)
-expect_equal(out1, as.double(out2))
-expect_equal(attr(out2, "design"), design)
-expect_equal(attr(out2, "residuals"), TRUE)
+test_that("correlateNull works with a blocking factor", {
+    grouping <- rep(1:5, each=3)
+    
+    set.seed(100)
+    out1 <- 0L
+    for (gl in table(grouping)) { 
+        out1 <- out1 + refnull(1e3, gl, resort=FALSE) * gl
+    }
+    out1 <- out1/length(grouping)
+    out1 <- sort(out1)
+    
+    set.seed(100)
+    out2 <- correlateNull(block=grouping, iters=1e3)
+    expect_equal(out1, as.double(out2))
+    expect_equal(attr(out2, "block"), grouping)
+    expect_identical(attr(out2, "design"), NULL)
 
-# A more complicated design.
+    expect_warning(out3 <- correlateNull(design=model.matrix(~factor(grouping)), residuals=FALSE, iters=1e3), "deprecated")
+})
 
-design <- model.matrix(~seq_len(10))
-QR <- qr(design, LAPACK=TRUE) # Q2 is not unique, and varies between LAPACK and LINPACK.
-df <- nrow(design)-ncol(design)
-
-set.seed(100)
-collected <- list()
-for (x in seq_len(1e3)) {
-    first.half <- qr.qy(QR, c(0, 0, rnorm(df)))
-    second.half <- qr.qy(QR, c(0, 0, rnorm(df))) 
-    collected[[x]] <- cor(first.half, second.half, method="spearman")
-}
-out1 <- sort(unlist(collected))
-
-set.seed(100)
-out2 <- correlateNull(design=design, iters=1e3, residuals=TRUE)
-expect_equal(out1, as.double(out2))
-expect_equal(attr(out2, "design"), design)
-expect_equal(attr(out2, "residuals"), TRUE)
-
-# A one-way layout without simulating the residuals.
-
-grouping <- rep(1:5, each=3)
-design <- model.matrix(~factor(grouping))
-
-set.seed(100)
-out1 <- 0L
-for (gl in table(grouping)) { 
-    out1 <- out1 + refnull(1e3, gl, resort=FALSE) * gl
-}
-out1 <- out1/length(grouping)
-out1 <- sort(out1)
-
-set.seed(100)
-out2 <- correlateNull(design=design, iters=1e3)
-expect_equal(out1, as.double(out2))
-expect_equal(attr(out2, "design"), design)
-expect_equal(attr(out2, "residuals"), FALSE)
-
-# Checking nonsense inputs.
-
-expect_error(correlateNull(ncells=100, iters=0), "number of iterations should be positive")
-expect_error(correlateNull(ncells=0), "number of cells should be greater than 2")
-expect_error(correlateNull(ncells=100, design=design), "cannot specify both 'ncells' and 'design'")
+test_that("correlateNull works correctly on silly inputs", {
+    expect_error(correlateNull(ncells=100, iters=0), "number of iterations should be positive")
+    expect_error(correlateNull(ncells=0), "number of cells should be greater than 2")
+    expect_error(correlateNull(ncells=100, design=design), "cannot specify both 'ncells' and 'design'")
+    expect_error(correlateNull(200, block=rep(1, 20)), "cannot specify")
+    expect_error(correlateNull(200, design=cbind(rep(1, 20))), "cannot specify")
+})
 
 ####################################################################################################
 # Checking what happens for the error-tolerant ranking.
@@ -102,31 +105,33 @@ expect_error(correlateNull(ncells=100, design=design), "cannot specify both 'nce
     rank(y, ties.method="random")
 }
 
-whee <- runif(100, -1e-16, 1e-16)
-set.seed(100)
-r <- .tolerant_rank(whee)
-set.seed(100)
-r2 <- rank(integer(100), ties.method="random")
-set.seed(100)
-r3 <- .Call(scran:::cxx_rank_subset, rbind(whee), 0L, seq_along(whee)-1L, 1e-6)
-
-expect_identical(r, r2)
-expect_identical(r, r3[,1])
-
-set.seed(200)
-extra <- sample(10, 100, replace=TRUE)
-set.seed(100)
-r <- .tolerant_rank(whee + extra)
-set.seed(100)
-r2 <- rank(extra, ties.method="random")
-set.seed(100)
-r3 <- .Call(scran:::cxx_rank_subset, rbind(whee + extra), 0L, seq_along(extra)-1L, 1e-6)
-set.seed(100)
-r4 <- .Call(scran:::cxx_rank_subset, rbind(extra), 0L, seq_along(extra)-1L, 1e-6)
-
-expect_identical(r, r2)
-expect_identical(r, r3[,1])
-expect_identical(r, r4[,1])
+test_that("error tolerant ranking is working correctly", {
+    whee <- runif(100, -1e-16, 1e-16)
+    set.seed(100)
+    r <- .tolerant_rank(whee)
+    set.seed(100)
+    r2 <- rank(integer(100), ties.method="random")
+    set.seed(100)
+    r3 <- .Call(scran:::cxx_rank_subset, rbind(whee), 0L, seq_along(whee)-1L, 1e-6)
+    
+    expect_identical(r, r2)
+    expect_identical(r, r3[,1])
+    
+    set.seed(200)
+    extra <- sample(10, 100, replace=TRUE)
+    set.seed(100)
+    r <- .tolerant_rank(whee + extra)
+    set.seed(100)
+    r2 <- rank(extra, ties.method="random")
+    set.seed(100)
+    r3 <- .Call(scran:::cxx_rank_subset, rbind(whee + extra), 0L, seq_along(extra)-1L, 1e-6)
+    set.seed(100)
+    r4 <- .Call(scran:::cxx_rank_subset, rbind(extra), 0L, seq_along(extra)-1L, 1e-6)
+    
+    expect_identical(r, r2)
+    expect_identical(r, r3[,1])
+    expect_identical(r, r4[,1])
+})
 
 ####################################################################################################
 
@@ -195,12 +200,11 @@ test_that("correlatePairs works with a design matrix", {
     rownames(X) <- paste0("X", seq_len(Ngenes))
     
     set.seed(200)
-    nulls <- correlateNull(design=design, iter=1e4, residuals=TRUE)
-    expect_warning(correlatePairs(X[1:5,], design=design, null=nulls, residuals=FALSE), "'residuals' is not the same as that used to generate")
+    expect_warning(nulls <- correlateNull(design=design, iter=1e4, residuals=TRUE), "deprecated")
     expect_warning(correlatePairs(X[1:5,], design=NULL, null=nulls, residuals=TRUE), "'design' is not the same as that used to generate")
     
     set.seed(100) # Need because of random ranking.
-    out <- correlatePairs(X, design=design, null=nulls, residuals=TRUE, lower.bound=NA)
+    expect_warning(out <- correlatePairs(X, design=design, null=nulls, lower.bound=NA, residuals=FALSE), "deprecated")
     fit <- lm.fit(x=design, y=t(X))
     exprs <- t(fit$residual)
     set.seed(100)
@@ -256,10 +260,11 @@ test_that("correlatePairs works without simulated residuals for one-way layouts"
     # bplapply mucks up the seed for tie breaking, even with a single core).
     set.seed(200)
     X[] <- rnorm(length(X))
-    nulls <- correlateNull(design=design, iter=1e3)
-   
+    nulls <- correlateNull(block=grouping, iter=1e3)
+    out <- correlatePairs(X, block=grouping, null=nulls)
+    expect_warning(correlatePairs(X, block=NULL, null=nulls), "'block' is not the same")
+ 
     # Calculating the weighted average of correlations. 
-    out <- correlatePairs(X, design=design, null=nulls)
     collected.rho <- 0L
     for (group in split(seq_along(grouping), grouping)) { 
         ref <- checkCorrelations(out, X[,group], null.dist=nulls)
@@ -279,8 +284,7 @@ test_that("correlatePairs works without simulated residuals for one-way layouts"
 
 test_that("correlatePairs works with a variety of block sizes", {
     # With a different block size, to check proper caching.
-    # (previous examples all have block.size=100, so no problems with caching).
-
+    # (previous examples all have block.size=100, but with too few genes to trigger caching bugs).
     set.seed(100041)
     nulls <- sort(runif(1e6, -1, 1))
     X[] <- rnorm(length(X))
