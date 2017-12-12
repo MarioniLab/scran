@@ -25,22 +25,24 @@ X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes)+1)
 rownames(X) <- paste0("X", seq_len(Ngenes))
 grouping <- as.character(sample(3, Ncells, replace=TRUE))
 
-out <- scran:::.overlapExprs(X, grouping)
-for (i1 in names(out)) { 
-    obs <- out[[i1]]
-    expect_identical(sort(c(i1, colnames(obs))), sort(unique(grouping)))
-    for (i2 in colnames(obs)) { 
-        ref <- refcomp(X, which(grouping==i1), which(grouping==i2))       
-        expect_equal(ref, obs[,i2])
-        expect_true(all(abs(out[[i1]][,i2] + out[[i2]][,i1] - 1) < 1e-8))
+test_that("overlapExprs works in the simple case", {
+    out <- scran:::.overlapExprs(X, grouping)
+    for (i1 in names(out)) { 
+        obs <- out[[i1]]
+        expect_identical(sort(c(i1, colnames(obs))), sort(unique(grouping)))
+        for (i2 in colnames(obs)) { 
+            ref <- refcomp(X, which(grouping==i1), which(grouping==i2))       
+            expect_equal(ref, obs[,i2])
+            expect_true(all(abs(out[[i1]][,i2] + out[[i2]][,i1] - 1) < 1e-8))
+        }
     }
-}
-
-# Checking subsetting works as expected.
-chosen <- 17:11
-alt <- scran:::.overlapExprs(X, grouping, subset.row=chosen)
-out2 <- lapply(out, function(x) { x[chosen,] })
-expect_equal(alt, out2)
+    
+    # Checking subsetting works as expected.
+    chosen <- 17:11
+    alt <- scran:::.overlapExprs(X, grouping, subset.row=chosen)
+    out2 <- lapply(out, function(x) { x[chosen,] })
+    expect_equal(alt, out2)
+})
 
 #############################
 # Checking what happens with a blocking factor.
@@ -94,86 +96,95 @@ blockcomp <- function(X, groups, block) {
     output
 }
 
-grouping <- rep(1:4, each=25)
-block <- factor(rep(rep(LETTERS[1:4], c(2, 5, 8, 10)), 4))
-X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes)+1)
-rownames(X) <- paste0("X", seq_len(Ngenes))
-out <- scran:::.overlapExprs(X, grouping, design=model.matrix(~block))
-ref <- blockcomp(X, grouping, block) 
-expect_equal(out, ref)
-
-grouping <- rep(1:4, each=25)
-block <- factor(rep(rep(LETTERS[1:4], c(2, 5, 8, 10)), 4))
-block[grouping==4] <- "A" # Checking what happens when a group is only present in one blocking level.
-X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes)+1)
-rownames(X) <- paste0("X", seq_len(Ngenes))
-out <- scran:::.overlapExprs(X, grouping, design=model.matrix(~block))
-ref <- blockcomp(X, grouping, block) 
-expect_equal(out, ref)
-
-grouping <- rep(1:4, each=25)
-block <- factor(rep(rep(LETTERS[1:4], c(2, 5, 8, 10)), 4))
-grouping[block=="A"] <- 1 # Checking what happens when one blocking level only contains one group.
-X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes)+1)
-rownames(X) <- paste0("X", seq_len(Ngenes))
-out <- scran:::.overlapExprs(X, grouping, design=model.matrix(~block))
-ref <- blockcomp(X, grouping, block) 
-expect_equal(out, ref)
-
-grouping <- rep(1:4, each=25)
-block <- factor(rep(rep(LETTERS[1:4], c(2, 5, 8, 10)), 4))
-grouping[block=="A"] <- 1 # Checking what happens when blocks are confounded with group.
-block[grouping==1] <- "A"
-X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes)+1)
-rownames(X) <- paste0("X", seq_len(Ngenes))
-out <- scran:::.overlapExprs(X, grouping, design=model.matrix(~block))
-ref <- blockcomp(X, grouping, block) 
-expect_equal(out, ref)
-expect_true(all(is.na(out[[1]])))
+test_that("overlapExprs works correctly with a blocking factor", {
+    grouping <- rep(1:4, each=25)
+    block <- factor(rep(rep(LETTERS[1:4], c(2, 5, 8, 10)), 4))
+    X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes)+1)
+    rownames(X) <- paste0("X", seq_len(Ngenes))
+    out <- scran:::.overlapExprs(X, grouping, block=block)
+    ref <- blockcomp(X, grouping, block) 
+    expect_equal(out, ref)
+    
+    # Checking what happens when a group is only present in one blocking level.
+    grouping <- rep(1:4, each=25)
+    block <- factor(rep(rep(LETTERS[1:4], c(2, 5, 8, 10)), 4))
+    block[grouping==4] <- "A" 
+    X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes)+1)
+    rownames(X) <- paste0("X", seq_len(Ngenes))
+    out <- scran:::.overlapExprs(X, grouping, block=block)
+    ref <- blockcomp(X, grouping, block) 
+    expect_equal(out, ref)
+    
+    # Checking what happens when one blocking level only contains one group.
+    grouping <- rep(1:4, each=25)
+    block <- factor(rep(rep(LETTERS[1:4], c(2, 5, 8, 10)), 4))
+    grouping[block=="A"] <- 1 
+    X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes)+1)
+    rownames(X) <- paste0("X", seq_len(Ngenes))
+    out <- scran:::.overlapExprs(X, grouping, block=block)
+    ref <- blockcomp(X, grouping, block) 
+    expect_equal(out, ref)
+    
+    # Checking what happens when blocks are confounded with group.
+    grouping <- rep(1:4, each=25)
+    block <- factor(rep(rep(LETTERS[1:4], c(2, 5, 8, 10)), 4))
+    grouping[block=="A"] <- 1 
+    block[grouping==1] <- "A"
+    X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes)+1)
+    rownames(X) <- paste0("X", seq_len(Ngenes))
+    out <- scran:::.overlapExprs(X, grouping, block=block)
+    ref <- blockcomp(X, grouping, block) 
+    expect_equal(out, ref)
+    expect_true(all(is.na(out[[1]])))
+})
 
 #############################
 # Checking what happens when you force it to use residuals.
 
-grouping <- rep(1:4, each=25)
-block <- factor(rep(rep(LETTERS[1:4], c(2, 5, 8, 10)), 4))
-design <- model.matrix(~block)
-X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes)+1)
-rownames(X) <- paste0("X", seq_len(Ngenes))
-
-out <- scran:::.overlapExprs(X, grouping, design=design, residuals=TRUE, lower.bound=NA)
-fit <- lm.fit(y=t(X),x=design)
-ref <- scran:::.overlapExprs(t(fit$residuals), grouping)
-expect_equal(out, ref)
-
-X[] <- log(matrix(rpois(Ngenes*Ncells, lambda=1), nrow=Ngenes)+1)
-out <- scran:::.overlapExprs(X, grouping, design=design, residuals=TRUE, lower.bound=0) # With boundedness.
-fit <- lm.fit(y=t(X),x=design)
-resid <- t(fit$residuals)
-resid[X<=0] <- -100
-ref <- scran:::.overlapExprs(resid, grouping)
-expect_equal(out, ref)
-
-# A more natural example with a covariate.
-block <- runif(Ncells)
-design <- model.matrix(~block)
-X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes)+1)
-rownames(X) <- paste0("X", seq_len(Ngenes))
-
-out <- scran:::.overlapExprs(X, grouping, design=design, lower.bound=NA)
-fit <- lm.fit(y=t(X),x=design)
-ref <- scran:::.overlapExprs(t(fit$residuals), grouping)
-expect_equal(out, ref)
-
-X[] <- log(matrix(rpois(Ngenes*Ncells, lambda=1), nrow=Ngenes)+1)
-out <- scran:::.overlapExprs(X, grouping, design=design, lower.bound=0) # With boundedness.
-fit <- lm.fit(y=t(X),x=design)
-resid <- t(fit$residuals)
-resid[X<=0] <- -100
-ref <- scran:::.overlapExprs(resid, grouping)
-expect_equal(out, ref)
+test_that("overlapExprs works correctly with residuals", {
+    grouping <- rep(1:4, each=25)
+    block <- factor(rep(rep(LETTERS[1:4], c(2, 5, 8, 10)), 4))
+    design <- model.matrix(~block)
+    X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes)+1)
+    rownames(X) <- paste0("X", seq_len(Ngenes))
+    
+    # Unbounded.
+    out <- scran:::.overlapExprs(X, grouping, design=design, lower.bound=NA)
+    fit <- lm.fit(y=t(X),x=design)
+    ref <- scran:::.overlapExprs(t(fit$residuals), grouping)
+    expect_equal(out, ref)
+    
+    # Lower-bounded.
+    X[] <- log(matrix(rpois(Ngenes*Ncells, lambda=1), nrow=Ngenes)+1)
+    out <- scran:::.overlapExprs(X, grouping, design=design, lower.bound=0) 
+    fit <- lm.fit(y=t(X),x=design)
+    resid <- t(fit$residuals)
+    resid[X<=0] <- -100
+    ref <- scran:::.overlapExprs(resid, grouping)
+    expect_equal(out, ref)
+    
+    ## A more natural example with a covariate.
+    block <- runif(Ncells)
+    design <- model.matrix(~block)
+    X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes)+1)
+    rownames(X) <- paste0("X", seq_len(Ngenes))
+    
+    out <- scran:::.overlapExprs(X, grouping, design=design, lower.bound=NA)
+    fit <- lm.fit(y=t(X),x=design)
+    ref <- scran:::.overlapExprs(t(fit$residuals), grouping)
+    expect_equal(out, ref)
+    
+    X[] <- log(matrix(rpois(Ngenes*Ncells, lambda=1), nrow=Ngenes)+1)
+    out <- scran:::.overlapExprs(X, grouping, design=design, lower.bound=0) # With boundedness.
+    fit <- lm.fit(y=t(X),x=design)
+    resid <- t(fit$residuals)
+    resid[X<=0] <- -100
+    ref <- scran:::.overlapExprs(resid, grouping)
+    expect_equal(out, ref)
+})
 
 #############################
-# Checking for consistent behaviour with SCEsets.
+# Checking for consistent behaviour with SingleCellExperiment objects. 
 
 test_that("overlapExprs behaves consistently with SingleCellExperiment objects", {
     Y <- matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes)+1
@@ -194,18 +205,20 @@ test_that("overlapExprs behaves consistently with SingleCellExperiment objects",
 #############################
 # Silly examples.
 
-out <- scran:::.overlapExprs(X, integer(Ncells))
-expect_identical(names(out), "0")
-expect_identical(ncol(out[[1]]), 0L)
-
-out <- scran:::.overlapExprs(X, grouping, subset.row=integer(0))
-expect_identical(names(out), as.character(1:4))
-expect_identical(unname(sapply(out, nrow)), integer(length(out))) 
-out2 <- scran:::.overlapExprs(X[0,], grouping)
-expect_identical(out, out2)
-
-expect_identical(length(scran:::.overlapExprs(X[,0], grouping[0])), 0L)
-expect_error(scran:::.overlapExprs(X[,0], grouping), "length of 'groups' not equal to number of cells", fixed=TRUE)
-expect_error(scran:::.overlapExprs(X, grouping, design=cbind(rep(1, 10))), "'nrow(design)' not equal to number of cells", fixed=TRUE)
-
+test_that("overlapExprs fails correctly on silly examples", {
+    out <- scran:::.overlapExprs(X, integer(Ncells))
+    expect_identical(names(out), "0")
+    expect_identical(ncol(out[[1]]), 0L)
+    
+    grouping <- rep(1:4, each=25)
+    out <- scran:::.overlapExprs(X, grouping, subset.row=integer(0))
+    expect_identical(names(out), as.character(1:4))
+    expect_identical(unname(sapply(out, nrow)), integer(length(out))) 
+    out2 <- scran:::.overlapExprs(X[0,], grouping)
+    expect_identical(out, out2)
+    
+    expect_identical(length(scran:::.overlapExprs(X[,0], grouping[0])), 0L)
+    expect_error(scran:::.overlapExprs(X[,0], grouping), "length of 'groups' not equal to number of cells", fixed=TRUE)
+    expect_error(scran:::.overlapExprs(X, grouping, design=cbind(rep(1, 10))), "'nrow(design)' not equal to number of cells", fixed=TRUE)
+})
 

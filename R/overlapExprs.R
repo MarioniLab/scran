@@ -1,23 +1,11 @@
-.overlapExprs <- function(x, groups, design=NULL, residuals=FALSE, tol=1e-8, 
+.overlapExprs <- function(x, groups, block=NULL, design=NULL, residuals=FALSE, tol=1e-8, 
                           BPPARAM=SerialParam(), subset.row=NULL, lower.bound=NULL)
 # Computes the gene-specific overlap in expression profiles between two groups of cells.
 # This aims to determine whether two distributions of expression values are well-separated.    
 # 
 # written by Aaron Lun
 # created 17 April 2017
-# last modified 27 April 2017
 {
-    compute.residuals <- FALSE
-    if (!is.null(design)) { 
-        groupings <- .is_one_way(design)
-        if (is.null(groupings) || residuals) { 
-            compute.residuals <- TRUE
-            groupings <- list(seq_len(ncol(x)))
-        } 
-    } else {
-        groupings <- list(seq_len(ncol(x)))
-    }
-
     # Checking dimensions.
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     ncells <- ncol(x)
@@ -29,7 +17,8 @@
     }
 
     # Computing residuals; also replacing the subset vector, as it'll already be subsetted.
-    if (compute.residuals) { 
+    by.block <- .check_blocking_inputs(x, block=block, design=design, residuals=residuals)
+    if (!is.null(design) && is.null(block)) { 
         use.x <- .calc_residuals_wt_zeroes(x, design, subset.row=subset.row, lower.bound=lower.bound)
         use.subset.row <- seq_len(nrow(use.x)) - 1L
     } else {
@@ -62,7 +51,7 @@
     tol <- as.double(tol)
 
     # Running through each blocking level, splitting cells into groups and computing the proportions.
-    for (subset.col in groupings) { 
+    for (subset.col in by.block) { 
         cur.groups <- groups[subset.col]
         by.group <- split(subset.col, cur.groups, drop=FALSE)
         if (length(by.group)==1L) { next }
@@ -81,6 +70,28 @@
         output[[g]] <- t(t(output[[g]])/used.cells[[g]])
     }
     return(output)
+}
+
+.check_blocking_inputs <- function(x, block, design, residuals) 
+# This makes sure that the null distribution is in order.
+{
+    if (!is.null(block)) { 
+        blocks <- split(seq_len(ncol(x)), block)
+
+    } else if (!is.null(design)) { 
+        if (is.null(.is_one_way(design))) { 
+            if (residuals) {
+                .Deprecated(msg="'residuals=TRUE' is deprecated, choose between 'design' and 'block'")
+            }
+        } else if (!residuals) {
+            .Deprecated(msg="'residuals=FALSE' is deprecated, use 'block' instead")
+        }
+        blocks <- list(seq_len(ncol(x)))
+
+    } else {
+        blocks <- list(seq_len(ncol(x)))
+    }
+    return(blocks)
 }
 
 .find_overlap_exprs <- function(x, subset.row, by.group, tol) 

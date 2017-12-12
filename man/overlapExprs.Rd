@@ -7,8 +7,8 @@
 \description{Compute the gene-specific overlap in expression profiles between two groups of cells.}
 
 \usage{
-\S4method{overlapExprs}{ANY}(x, groups, design=NULL, residuals=FALSE, tol=1e-8, 
-    BPPARAM=SerialParam(), subset.row=NULL, lower.bound=NULL)
+\S4method{overlapExprs}{ANY}(x, groups, block=NULL, design=NULL, residuals=FALSE, 
+    tol=1e-8, BPPARAM=SerialParam(), subset.row=NULL, lower.bound=NULL)
 
 \S4method{overlapExprs}{SingleCellExperiment}(x, ..., subset.row=NULL, lower.bound=NULL, 
     assay.type="logcounts", get.spikes=FALSE) 
@@ -22,6 +22,7 @@
 \item{groups}{
 A vector of group assignments for all cells.
 }
+\item{block}{A factor specifying the blocking level for each cell.}
 \item{design}{A numeric matrix containing blocking terms, i.e., uninteresting factors driving expression across cells.}
 \item{residuals}{A logical scalar indicating whether overlaps should be computed between residuals of a linear model.} 
 \item{tol}{A numeric scalar specifying the tolerance with which ties are considered.}
@@ -52,20 +53,20 @@ This is overridden by any non-\code{NULL} value of \code{subset.row}.
 }
 
 \section{Accounting for uninteresting variation}{
-If the experiment has known (and uninteresting) factors of variation, these can be included in \code{design}.
-The approach used to remove these factors depends on the design matrix.
-If there is only one factor in \code{design}, the levels of the factor are defined as separate blocks. 
+If the experiment has known (and uninteresting) factors of variation, these can be included in \code{design} or \code{block}.
+The approach used to remove these factors depends on which argument is used.
+If there is only one factor, using \code{block} is recommended whereby the levels of the factor are defined as separate groups. 
 Overlaps between groups are computed within each block, and a weighted mean (based on the number of cells in each block) of the overlaps is taken across all blocks.
 
 This approach avoids the need for linear modelling and the associated assumptions regarding normality and correct model specification.
 In particular, it avoids problems with breaking of ties when counts or expression values are converted to residuals.
 However, it also makes less use of information, e.g., we ignore any blocks containing cells from only one group.
-\code{NA} proportions may be observed for a pair of groups if there is no block that contains cells from that pair.
+\code{NA} proportions may also be observed for a pair of groups if there is no block that contains cells from that pair.
 
-For designs containing multiple factors or covariates, a linear model is fitted to the expression values with \code{design}.
+For experiments containing multiple factors or covariates, a linear model is fitted to the expression values with an appropriate matrix in \code{design}.
 Overlap proportions are then computed using the residuals of the fitted model.
 This approach is not ideal, requiring log-transformed \code{x} and setting of \code{lower.bound} - see \code{?\link{correlatePairs}} for a related discussion.
-It can also be used for one-way layouts by setting \code{residuals=TRUE}.
+Where possible for one-way layouts, we suggest using \code{block} instead.
 }
 
 \value{
