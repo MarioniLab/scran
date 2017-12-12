@@ -13,7 +13,7 @@ correlateNull(ncells, iters=1e6, block=NULL, design=NULL, residuals=FALSE)
 \S4method{correlatePairs}{ANY}(x, null.dist=NULL, tol=1e-8, iters=1e6, 
     block=NULL, design=NULL, residuals=FALSE, lower.bound=NULL,
     use.names=TRUE, subset.row=NULL, pairings=NULL, per.gene=FALSE,  
-    block.size=100L, BPPARAM=SerialParam())
+    cache.size=100L, BPPARAM=SerialParam())
 
 \S4method{correlatePairs}{SingleCellExperiment}(x, ..., use.names=TRUE, subset.row=NULL, per.gene=FALSE,
     lower.bound=NULL, assay.type="logcounts", get.spikes=FALSE)
@@ -42,7 +42,7 @@ or a list of 2 vectors of genes between which correlations are to be computed;
 or a integer/character matrix with 2 columns of specific gene pairs - see below for details.}
 \item{per.gene}{A logical scalar specifying whether statistics should be summarized per gene.}
 \item{lower.bound}{A numeric scalar specifying the theoretical lower bound of values in \code{x}, only used when \code{residuals=TRUE}.}
-\item{block.size}{An integer scalar specifying the number of cells for which ranked expression values are stored in memory.
+\item{cache.size}{An integer scalar specifying the number of cells for which ranked expression values are stored in memory.
 Smaller values can be used in machines with less memory, at the cost of processing speed.}
 \item{...}{Additional arguments to pass to \code{correlatePairs,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use.}

@@ -282,9 +282,9 @@ test_that("correlatePairs works without simulated residuals for one-way layouts"
     expect_equal(out$p.value, collected.p)
 })
 
-test_that("correlatePairs works with a variety of block sizes", {
-    # With a different block size, to check proper caching.
-    # (previous examples all have block.size=100, but with too few genes to trigger caching bugs).
+test_that("correlatePairs works with a variety of cache sizes", {
+    # With a different set of cache sizes, to check proper caching.
+    # (previous examples all have cache.size=100, but with too few genes to trigger caching bugs).
     set.seed(100041)
     nulls <- sort(runif(1e6, -1, 1))
     X[] <- rnorm(length(X))
@@ -293,13 +293,13 @@ test_that("correlatePairs works with a variety of block sizes", {
     out <- correlatePairs(X, null.dist=nulls)
     
     set.seed(100)
-    out1 <- correlatePairs(X, null.dist=nulls, block.size=5)
+    out1 <- correlatePairs(X, null.dist=nulls, cache.size=5)
     expect_equal(out$rho, out1$rho)
     expect_equal(out$p.value, out1$p.value)
     expect_equal(out$FDR, out1$FDR)
     
     set.seed(100)
-    out2 <- correlatePairs(X, null.dist=nulls, block.size=2)
+    out2 <- correlatePairs(X, null.dist=nulls, cache.size=2)
     expect_equal(out$rho, out2$rho)
     expect_equal(out$p.value, out2$p.value)
     expect_equal(out$FDR, out2$FDR)

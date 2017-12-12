@@ -1,7 +1,7 @@
 .correlate_pairs <- function(x, null.dist=NULL, tol=1e-8, iters=1e6, 
                              block=NULL, design=NULL, residuals=FALSE, lower.bound=NULL, 
                              use.names=TRUE, subset.row=NULL, pairings=NULL, per.gene=FALSE, 
-                             block.size=100L, BPPARAM=SerialParam())
+                             cache.size=100L, BPPARAM=SerialParam())
 # This calculates a (modified) Spearman's rho for each pair of genes.
 #
 # written by Aaron Lun
@@ -9,11 +9,11 @@
 {
     null.out <- .check_null_dist(x, block=block, design=design, iters=iters, null.dist=null.dist, residuals=residuals)
     null.dist <- null.out$null
-    blocks <- null.out$blocks
+    by.block <- null.out$blocks
 
     # Checking which pairwise correlations should be computed.
-    block.size <- as.integer(block.size)
-    pair.out <- .construct_pair_indices(subset.row=subset.row, x=x, pairings=pairings, block.size=block.size)
+    cache.size <- as.integer(cache.size)
+    pair.out <- .construct_pair_indices(subset.row=subset.row, x=x, pairings=pairings, cache.size=cache.size)
     subset.row <- pair.out$subset.row
     gene1 <- pair.out$gene1
     gene2 <- pair.out$gene2
@@ -40,10 +40,10 @@
     # Iterating through all blocking levels (for one-way layouts; otherwise, this is a loop of length 1).
     # Computing correlations between gene pairs, and adding a weighted value to the final average.
     all.rho <- numeric(length(gene1))
-    for (subset.col in blocks) { 
+    for (subset.col in by.block) { 
         ranked.exprs <- .Call(cxx_rank_subset, use.x, use.subset.row, subset.col - 1L, as.double(tol))
         out <- bpmapply(FUN=.get_correlation, gene1=sgene1, gene2=sgene2, 
-                        MoreArgs=list(ranked.exprs=ranked.exprs, block.size=block.size), BPPARAM=BPPARAM)
+                        MoreArgs=list(ranked.exprs=ranked.exprs, cache.size=cache.size), BPPARAM=BPPARAM)
         current.rho <- unlist(out)
         all.rho <- all.rho + current.rho * length(subset.col)/ncol(x)
     }
@@ -129,7 +129,7 @@
 }
 
 
-.construct_pair_indices <- function(subset.row, x, pairings, block.size=100) 
+.construct_pair_indices <- function(subset.row, x, pairings, cache.size=100) 
 # This returns a new subset-by-row vector, along with the pairs of elements
 # indexed along that vector (i.e., "1" refers to the first element of subset.row,
 # rather than the first element of "x").
@@ -205,17 +205,17 @@
 
     # Ordering by blocksize. This will be used to reduce the number of reads from the matrix in C++,
     # by caching the expression profiles of a number of genes rather than re-reading them per pair.
-    block.order <- order(floor((gene1-1L)/block.size), floor((gene2-1L)/block.size))
+    block.order <- order(floor((gene1-1L)/cache.size), floor((gene2-1L)/cache.size))
     gene1 <- gene1[block.order]
     gene2 <- gene2[block.order]
     return(list(subset.row=subset.row, gene1=gene1, gene2=gene2, reorder=!is.ordered))
 }
 
-.get_correlation <- function(gene1, gene2, ranked.exprs, block.size) 
+.get_correlation <- function(gene1, gene2, ranked.exprs, cache.size) 
 # Pass all arguments explicitly rather than through the function environments
 # (avoid duplicating memory in bplapply).
 {
-    .Call(cxx_compute_rho, gene1, gene2, ranked.exprs, block.size)
+    .Call(cxx_compute_rho, gene1, gene2, ranked.exprs, cache.size)
 }
 
 .choose_gene_names <- function(subset.row, x, use.names) {
