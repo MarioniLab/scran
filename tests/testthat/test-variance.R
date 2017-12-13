@@ -17,21 +17,20 @@ out <- trendVar(d)
 test_that("trendVar works on a basic scenario", {
     expect_equal(out$mean, rowMeans(d))
     expect_equal(out$var, apply(d, 1, var))
-    
-    # hard to test it without copying the code, so I'll just check that the bounds are right.
+    expect_identical(out$design, NULL)
+    expect_identical(out$design, NULL)
+   
+    # Hard to test it without copying the code, so I'll just check that the bounds are right.
     expect_is(out$trend, "function") 
     mx <- max(out$mean)
     mn <- min(out$mean)
     expect_equal(out$trend(mx), out$trend(mx+1))
     expect_equal(out$trend(0), 0)
-    expect_equal(out$trend(1:10), sapply(1:10, out$trend)) # Checking we get consistent results.
-    expect_equal(out$trend(100:1/20), sapply(100:1/20, out$trend))  # More checking.
-    
-    expect_equal(out$design, as.matrix(rep(1, ncells)))
-    
+    expect_equal(out$trend(1:10), sapply(1:10, out$trend)) # Checking we get consistent results with returned function.
+    expect_equal(out$trend(100:1/20), sapply(100:1/20, out$trend))  # More checking, reversed order.
 })
 
-test_that("trendVar is robust to zero-variance and low-abundance genes", {
+test_that("trendVar subsets properly (user-supplied and automatic)", {
     # Checking that genes with no variance don't break the results, but still get reported in the output.
     dz <- rbind(1, d, 0)
     outz <- trendVar(dz)
@@ -46,13 +45,12 @@ test_that("trendVar is robust to zero-variance and low-abundance genes", {
     expect_false(all(rowMeans(d)>=1))
     ref <- trendVar(d[rowMeans(d)>=1,])
     expect_equal(filt$trend(0:100/10), ref$trend(0:100/10))
-})
 
-test_that("trendVar behaves correctly with subsetting", {
+    # Checking that manual subset.row works. 
     shuffled <- c(500:110)
     out.ref <- trendVar(d[shuffled,])
     out2 <- trendVar(d, subset.row=shuffled)
-    expect_equal(out.ref, out2) # Checking that subset.row works. 
+    expect_equal(out.ref, out2) 
 })
 
 test_that("trendVar works correctly on SingleCellExperiment objects", {
@@ -130,6 +128,7 @@ test_that("trendVar works with other trend functions",  {
     mx <- max(out$mean)
     mn <- min(out$mean)
 
+    # Parametric:
     out.semi <- trendVar(d, parametric=TRUE)
     expect_equal(out$mean, out.semi$mean)
     expect_equal(out$var, out.semi$var)
@@ -138,13 +137,22 @@ test_that("trendVar works with other trend functions",  {
     expect_equal(out.semi$trend(0), 0)
     expect_equal(out.semi$trend(1:10), sapply(1:10, out.semi$trend)) 
 
+    # Spline:
     out.spl <- trendVar(d, method="spline")
     expect_equal(out$mean, out.spl$mean)
     expect_equal(out$var, out.spl$var)
     expect_is(out.spl$trend, "function") 
     expect_equal(out.spl$trend(mx), out.spl$trend(mx+1))
     expect_equal(out.spl$trend(0), 0)
-    expect_equal(out.spl$trend(1:10), sapply(1:10, out.spl$trend)) # IMPORTANT: check that predict.ns is working.
+    expect_equal(out.spl$trend(1:10), sapply(1:10, out.spl$trend)) 
+
+    # Results should be the same with/without weighting, as all weights are the same without blocking.
+    out.unw <- trendVar(d, weighted=FALSE)
+    expect_equal(out.unw$trend(1:100/10), out$trend(1:100/10))
+    out.semi.unw <- trendVar(d, weighted=FALSE, parametric=TRUE)
+    expect_equal(out.semi.unw$trend(1:100/10), out.semi$trend(1:100/10))
+    out.spl.unw <- trendVar(d, weighted=FALSE, method="spline")
+    expect_equal(out.spl.unw$trend(1:100/10), out.spl$trend(1:100/10))
 
     # Checking deprecation warnings and argument specification works (change to default args next time).
     expect_warning(out.sp <- trendVar(d, span=0.2), "deprecated")
@@ -156,42 +164,85 @@ test_that("trendVar works with other trend functions",  {
     expect_equal(out.sp$trend(1:20/5), out.sp2$trend(1:20/5))
 })
 
-# Trying again with a design matrix.
+test_that("trendVar works with design matrices", {
+    design <- model.matrix(~factor(rep(c(1,2), each=100)))
+    out <- trendVar(d, design=design)
+    expect_equal(out$mean, rowMeans(d))
+    fit <- lm.fit(y=t(d), x=design)
+    effects <- fit$effects[-seq_len(ncol(design)),]
+    expect_equal(out$var, colMeans(effects^2))
+    
+    expect_is(out$trend, "function")
+    m <- max(out$mean)
+    expect_equal(out$trend(m), out$trend(m+1))
+    m <- min(out$mean)
+    expect_equal(out$trend(0), 0)
+    
+    expect_equal(out$design, design)
+    
+    # Trying again with a design matrix with non-trivial pivoting.
+    covariate <- 1:200
+    design <- model.matrix(~factor(rep(c(1,2), each=100)) + covariate)
+    expect_identical(qr(design, LAPACK=TRUE)$pivot, c(3L, 1L, 2L))
+    
+    out <- trendVar(d, design=design)
+    expect_equal(out$mean, rowMeans(d))
+    fit <- lm.fit(y=t(d), x=design)
+    effects <- fit$effects[-seq_len(ncol(design)),]
+    expect_equal(out$var, colMeans(effects^2))
+})
 
-design <- model.matrix(~factor(rep(c(1,2), each=100)))
-out <- trendVar(d, design=design)
-expect_equal(out$mean, rowMeans(d))
-fit <- lm.fit(y=t(d), x=design)
-effects <- fit$effects[-seq_len(ncol(design)),]
-expect_equal(out$var, colMeans(effects^2))
+test_that("trendVar works with blocking factors", {
+    blocking <- sample(3, ncol(d), replace=TRUE)
+    fit <- trendVar(d, block=blocking)
 
-expect_is(out$trend, "function")
-m <- max(out$mean)
-expect_equal(out$trend(m), out$trend(m+1))
-m <- min(out$mean)
-expect_equal(out$trend(0), 0)
+    # Checking means are correctly calculated.
+    exp.means <- cbind(rowMeans(d[,blocking==1]),
+                       rowMeans(d[,blocking==2]),
+                       rowMeans(d[,blocking==3]))
+    colnames(exp.means) <- 1:3
+    expect_equal(exp.means, fit$mean)
 
-expect_equal(out$design, design)
+    # Checking variances are correctly calculated.
+    exp.var <- cbind(apply(d[,blocking==1], 1, var),
+                     apply(d[,blocking==2], 1, var),
+                     apply(d[,blocking==3], 1, var))
+    colnames(exp.var) <- 1:3
+    expect_equal(exp.var, fit$var)
 
-# Trying again with a design matrix with non-trivial pivoting.
+    # No real way to check the trend, other than to make sure it works.
+    expect_equal(fit$trend(0), 0)
+    expect_equal(fit$trend(1:10), sapply(1:10, fit$trend)) # Checking we get consistent results with returned function.
+    expect_equal(fit$trend(100:1/20), sapply(100:1/20, fit$trend))  # More checking, reversed order.
 
-covariate <- 1:200
-design <- model.matrix(~factor(rep(c(1,2), each=100)) + covariate)
-expect_identical(qr(design, LAPACK=TRUE)$pivot, c(3L, 1L, 2L))
+    # Checking that blocking with weights actually makes a difference.
+    fit.unw <- trendVar(d, block=blocking, weighted=FALSE)
+    expect_equal(fit$mean, fit.unw$mean)
+    expect_equal(fit$var, fit.unw$var)
+    expect_false(fit$trend(1)==fit.unw$trend(1))
 
-out <- trendVar(d, design=design)
-expect_equal(out$mean, rowMeans(d))
-fit <- lm.fit(y=t(d), x=design)
-effects <- fit$effects[-seq_len(ncol(design)),]
-expect_equal(out$var, colMeans(effects^2))
+    # Checking that it correctly ignores blocks without residual d.f.
+    blocking[1] <- 0
+    refit <- trendVar(d, block=blocking)
+    fit.0 <- trendVar(d[,-1], block=blocking[-1])
+    expect_equal(fit.0$mean, refit$mean)
+    expect_equal(fit.0$var, refit$var)
+    expect_false(fit.0$trend(1)==refit$trend(1))
+})
 
 # There's a lot of ways it can fail when silly inputs are supplied.
 
 test_that("trendVar throws the correct errors", {
     expect_error(trendVar(d[0,,drop=FALSE], parametric=FALSE), "need at least 2 values for non-parametric curve fitting") # loess fails with empty input vectors.
     expect_error(trendVar(d[0,,drop=FALSE], parametric=TRUE), "need at least 4 values for non-linear curve fitting")
-    expect_error(trendVar(d[,0,drop=FALSE]), "BLAS/LAPACK routine 'DGEQP3' gave error code -4") # QR fails straight away.
-    expect_error(trendVar(d[,1,drop=FALSE], parametric=FALSE), "invalid 'x'") # undefined variance with no d.f.
+
+    expect_error(trendVar(d[,0,drop=FALSE]), "no residual d.f. in 'x' for variance estimation") # QR fails straight away.
+    expect_error(trendVar(d[,0,drop=FALSE], block=integer(0)), "no residual d.f. in any level of 'block' for variance estimation") # QR fails straight away.
+    expect_error(trendVar(d[,0,drop=FALSE], design=cbind(integer(0))), "no residual d.f. in 'design' for variance estimation") # QR fails straight away.
+    expect_error(trendVar(d[,1,drop=FALSE], parametric=FALSE), "no residual d.f. in 'x' for variance estimation") # undefined variance with no d.f.
+
+    expect_error(trendVar(d, block=2), "length of 'block'")
+    expect_error(trendVar(d, design=cbind(1)), "number of rows in 'design'")
 })
 
 ####################################################################################################

@@ -10,7 +10,7 @@
 \S4method{trendVar}{ANY}(x, method=c("loess", "spline"), parametric=FALSE, 
     loess.args=list(), spline.args=list(), nls.args=list(),
     span=NULL, family=NULL, degree=NULL, df=NULL, start=NULL, 
-    min.mean=0.1, design=NULL, subset.row=NULL) 
+    block=NULL, design=NULL, min.mean=0.1, subset.row=NULL) 
 
 \S4method{trendVar}{SingleCellExperiment}(x, subset.row=NULL, ..., assay.type="logcounts", use.spikes=TRUE)
 }
@@ -28,8 +28,9 @@
 \item{span, family, degree}{Deprecated arguments to pass to \code{\link{loess}}.}
 \item{df}{Deprecated argument to pass to \code{\link{ns}}.}
 \item{start}{Deprecated argument to pass to \code{\link{nls}}.}
-\item{min.mean}{A numeric scalar specifying the minimum mean log-expression in order for a gene to be used for trend fitting.}
+\item{block}{A factor specifying the blocking level for each cell.}
 \item{design}{A numeric matrix describing the uninteresting factors contributing to expression in each cell.}
+\item{min.mean}{A numeric scalar specifying the minimum mean log-expression in order for a gene to be used for trend fitting.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to \code{trendVar,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
@@ -38,18 +39,14 @@
 
 \details{
 This function fits an abundance-dependent trend to the variance of the log-normalized expression for the spike-in transcripts.
-For SingleCellExperiment objects, these expression values can be computed by \code{\link{normalize}} after setting the size factors, e.g., with \code{\link{computeSpikeFactors}}.
+For SingleCellExperiment objects, these expression values are computed by \code{\link{normalize}} after setting the size factors, e.g., with \code{\link{computeSpikeFactors}}.
 Log-transformed values are used as these are more robust to genes/transcripts with strong expression in only one or two outlier cells.
+It also allows the fitted trend to be applied in downstream procedures that use log-transformed counts.
 
 The mean and variance of the normalized log-counts is calculated for each spike-in transcript, and a trend is fitted to the variance against the mean for all transcripts.
-The fitted value of this trend represents technical variability due to sequencing, drop-outs during capture, etc.
+The fitted value of this trend represents technical variability due to sequencing, drop-outs during capture, etc. at a given mean.
+This assumes that a constant amount of spike-in RNA was added to each cell, such that the differences in counts are purely due to measurement error.
 Variance decomposition to biological and technical components for endogenous genes can then be performed later with \code{\link{decomposeVar}}.
-
-The design matrix can be set if there are factors that should be blocked, e.g., batch effects, known (and uninteresting) clusters.
-Otherwise, it will default to an all-ones matrix, effectively treating all cells as part of the same group.
-
-% This function is separated from decomposeVar in order to allow for different design matrices/cells to be used for trend fitting and variance estimation.
-% For example, if you have multiple groups, you can fit the trend to the spike-ins for all groups, but estimate the variance individually for each group.
 }
 
 \section{Trend fitting options}{
@@ -79,8 +76,28 @@ When extrapolating to values below the smallest observed mean, the output functi
 When extrapolating to values above the largest observed mean, the output function will be set to the fitted value of the trend at the largest mean.
 }
 
+\section{Handling uninteresting factors of variation}{
+There are two approaches to handling unwanted factors of variation.
+The simplest approach is to use a design matrix containing the uninteresting factors can be specified in \code{design}.
+This will fit a linear model to the log-expression values for each gene, yielding an estimate for the residual variance.
+The trend is then fitted to the residual variance against the mean for each spike-in transcripts.
+
+The other approach is to use \code{block}, where all cells in each level are treated as a separate group.
+Means and variances are estimated within each group and the resulting sets of means/variances are pooled across all groups.
+The trend is then fitted to the pooled observations, where observations from different levels are weighted according to the residual d.f. 
+This effectively multiplies the number of points by the number of levels in \code{block}.
+
+We suggest using \code{block} wherever possible, as this preserves differences in the means/variances between levels of the factor. 
+In contrast, using \code{design} will effectively compute an average mean/variance.
+This may yield an inaccurate representation of the trend, as the fitted value at an average mean may not be equal to the average variance for non-linear trends.
+Nonetheless, we still support \code{design} as it can accommodate additive models, whereas \code{block} only handles one-way layouts.
+
+% This function is separated from decomposeVar in order to allow for different design matrices/cells to be used for trend fitting and variance estimation.
+% For example, if you have multiple groups, you can fit the trend to the spike-ins for all groups, but estimate the variance individually for each group.
+}
+
 \section{Additional notes on row selection}{
-Spike-in transcripts can be selected in \code{trendVar,SingleCellExperiment-method} using the \code{use.spikes} method. 
+The selection of spike-in transcripts can be adjusted in \code{trendVar,SingleCellExperiment-method} using the \code{use.spikes} method. 
 \itemize{
 \item By default, \code{use.spikes=TRUE} which means that only rows labelled as spike-ins with \code{isSpike(x)} will be used.
 An error will be raised if no rows are labelled as spike-in transcripts.
@@ -92,17 +109,15 @@ If \code{use.spikes=FALSE}, this implies that \code{trendVar} will be applied to
 For \code{trendVar,ANY-method}, it is equivalent to manually supplying a matrix of normalized expression for endogenous genes.
 This assumes that most genes exhibit technical variation and little biological variation, e.g., in a homogeneous population.
 
-Users can also directly specify which rows to use with \code{subset.row}, which will interact as expected with any non-\code{NA} value of \code{use.spikes}.
-If \code{subset.row} is specified and \code{use.spikes=TRUE}, rows are only used if they are both spike-in transcripts \emph{and} in \code{subset.row}.
-Otherwise, if \code{use.spikes=FALSE}, only rows in \code{subset.row} that are \emph{not} spike-in transcripts are used.
-
 Low-abundance genes with mean log-expression below \code{min.mean} are not used in trend fitting, to preserve the sensitivity of span-based smoothers at moderate-to-high abundances.
 It also protects against discreteness, which can interfere with estimation of the variability of the variance estimates and accurate scaling of the trend.
 The default threshold is chosen based on the point at which discreteness is observed in variance estimates from Poisson-distributed counts.
 For heterogeneous droplet data, a lower threshold of 0.001-0.01 should be used.
 
-Obviously, the usefulness of the trend is dependent on the quality of the features to which it is fitted.
-For example, the trend will not provide accurate estimates of the technical component if the coverage of all spike-ins is lower than that of endogenous genes.
+Users can also directly specify which rows to use with \code{subset.row}.
+All of these parameters - including \code{min.mean} and \code{use.spikes} - interact with each other sensibly, by taking the intersection of rows that fulfill all criteria.
+For example, if \code{subset.row} is specified and \code{use.spikes=TRUE}, rows are only used if they are both spike-in transcripts \emph{and} in \code{subset.row}.
+Otherwise, if \code{use.spikes=FALSE}, only rows in \code{subset.row} that are \emph{not} spike-in transcripts are used.
 }
 
 \section{Warning on size factor centring}{ 
