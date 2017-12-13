@@ -1,28 +1,24 @@
 .trend_var <- function(x, method=c("loess", "spline"), parametric=FALSE, 
                        loess.args=list(), spline.args=list(), nls.args=list(),
                        span=NULL, family=NULL, degree=NULL, df=NULL, start=NULL, 
-                       min.mean=0.1, design=NULL, subset.row=NULL)
-# Fits a polynomial trend to the technical variability of the log-CPMs,
+                       block=NULL, design=NULL, weighted=TRUE, 
+                       min.mean=0.1, subset.row=NULL)
+# Fits a smooth trend to the technical variability of the log-CPMs
 # against their abundance (i.e., average log-CPM).
 # 
 # written by Aaron Lun
 # created 21 January 2016
-# last modified 12 November 2017
 {
-    subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
-    checked <- .make_var_defaults(x, fit=NULL, design=design)
-    design <- checked$design
-    QR <- .ranksafe_qr(design)
-
-    lout <- .Call(cxx_fit_linear_model, QR$qr, QR$qraux, x, subset.row - 1L, FALSE)
-    means <- lout[[1]]
-    vars <- lout[[2]]
-    names(means) <- names(vars) <- rownames(x)[subset.row]
+    stats.out <- .get_var_stats(x, block=block, design=design, subset.row=subset.row)
+    vars <- stats.out$vars
+    means <- stats.out$means
+    resid.df <- stats.out$resid.df
 
     # Filtering out zero-variance and low-abundance genes.
     is.okay <- vars > 1e-8 & means >= min.mean
     kept.vars <- vars[is.okay]
     kept.means <- means[is.okay]
+    kept.resid <- resid.df[is.okay]
 
     # Fitting a parametric curve to try to flatten the shape.
     # This is of the form y = a*x/(x^n + b), but each coefficent is actually set
@@ -34,6 +30,10 @@
 
         nls.args <- .setup_nls_args(nls.args, start.args=list(vars=kept.vars, means=kept.means))
         nls.args$formula <- kept.vars ~ (exp(A)*kept.means)/(kept.means^(1+exp(N)) + exp(B))
+        if (weighted) {
+            nls.args$weights <- kept.resid
+        }
+
         init.fit <- do.call(nls, nls.args)
         to.fit <- log(kept.vars/fitted(init.fit))
         SUBSUBFUN <- function(x) { predict(init.fit, data.frame(kept.means=x)) }
@@ -51,12 +51,20 @@
     if (method=="loess") { 
         loess.args <- .setup_loess_args(loess.args, degree=degree, family=family, span=span)
         loess.args$formula <- to.fit ~ kept.means 
+        if (weighted) {
+            loess.args$weights <- kept.resid
+        }
+
         after.fit <- do.call(loess, loess.args)
         PREDICTOR <- function(x) { predict(after.fit, data.frame(kept.means=x)) }
     } else {
         spline.args <- .setup_spline_args(spline.args, df=df)
         spline.args$x <- kept.means
         spline.args$y <- to.fit
+        if (weighted) {
+            spline.args$w <- kept.resid/max(kept.resid) # For some reason, robustSmoothSpline only accepts weights in [0, 1].
+        }
+
         after.fit <- do.call(aroma.light::robustSmoothSpline, spline.args)
         PREDICTOR <- function(x) { predict(after.fit, x)$y }
     }
@@ -71,7 +79,7 @@
 
     # Estimating the df2, as well as scale shift from estimating mean of logs (assuming shape of trend is correct).
     leftovers <- kept.vars/SUBFUN(kept.means)
-    f.fit <- fitFDistRobustly(leftovers, df1=nrow(design) - ncol(design))
+    f.fit <- fitFDistRobustly(leftovers, df1=kept.resid)
     f.df2 <- f.fit$df2
     
     # We don't just want the scaling factor, we want the scaled mean of the F-distribution (see explanation below).
@@ -88,7 +96,76 @@
         names(output) <- names(x)
         return(output)
     }
-    return(list(mean=means, var=vars, trend=FUN, design=design, df2=f.df2, start=start))
+    return(list(mean=means, var=vars, trend=FUN, block=block, design=design, df2=f.df2, start=start))
+}
+
+#########################################################
+# Computing variance and mean based on blocking factors #
+#########################################################
+
+.get_var_stats <- function(x, block, design, subset.row) {
+    subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
+
+    if (!is.null(block)) { 
+        if (ncol(x)!=length(block)) {
+            stop("length of 'block' should be the same as 'ncol(x)'")
+        }
+        by.block <- split(seq_len(ncol(x)), block)
+        resid.df <- lengths(by.block) - 1L
+        discard <- resid.df <= 0L
+        if (all(discard)){ 
+            stop("no residual d.f. in any level of 'block' for variance estimation")
+        }
+        by.block <- by.block[!discard]
+
+        # Calculating the statistics for each block. 
+        means <- vars <- matrix(0, length(subset.row), length(by.block))
+        dimnames(means) <- dimnames(vars) <- list(rownames(x)[subset.row], names(by.block)) 
+
+        for (g in names(by.block)) {
+            chosen <- by.block[[g]]
+            means[,g] <- scater:::.rowSums(x, rows=subset.row, cols=chosen)/length(chosen)
+            vars[,g] <- scater:::.rowVars(x, rows=subset.row, cols=chosen)
+        }
+
+        # Expanding to all observations.
+        resid.df <- matrix(resid.df, length(subset.row), length(by.block), 
+                           byrow=TRUE, dimnames=dimnames(means))
+
+    } else if (!is.null(design)) {
+        checked <- .make_var_defaults(x, fit=NULL, design=design)
+        design <- checked$design
+        resid.df <- nrow(design) - ncol(design)
+        if (resid.df <= 0L) {
+            stop("no residual d.f. in 'design' for variance estimation") 
+        }
+       
+        # Calculating the residual variance of the fitted linear model. 
+        QR <- .ranksafe_qr(design)
+        lout <- .Call(cxx_fit_linear_model, QR$qr, QR$qraux, x, subset.row - 1L, FALSE)
+        means <- lout[[1]]
+        vars <- lout[[2]]
+        names(means) <- names(vars) <- rownames(x)[subset.row]
+
+        # Expanding residual d.f. to all observations.
+        resid.df <- rep(resid.df, length(means))
+        names(resid.df) <- names(means)
+
+    } else {
+        resid.df <- ncol(x) - 1L
+        if (resid.df <= 0L) {
+            stop("no residual d.f. in 'x' for variance estimation")
+        }
+
+        means <- scater:::.rowSums(x, rows=subset.row)/ncol(x)
+        vars <- scater:::.rowVars(x, rows=subset.row)
+        names(means) <- names(vars) <- rownames(x)[subset.row]
+
+        resid.df <- rep(resid.df, length(means))
+        names(resid.df) <- names(means)
+    }
+
+    return(list(vars=vars, means=means, resid.df=resid.df))
 }
 
 #########################################################

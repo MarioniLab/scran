@@ -50,6 +50,9 @@
     } else if (length(design)==1L && is.na(design)) { 
         design <- fit$design 
     }
+    if (nrow(design)!=ncol(x)) {
+        stop("number of rows in 'design' should be equal to 'ncol(x)'")
+    }
     return(list(design=design))
 }
 
