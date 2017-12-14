@@ -165,6 +165,13 @@ test_that("trendVar works with other trend functions",  {
 })
 
 test_that("trendVar works with design matrices", {
+    design <- matrix(1, ncol(d), 1)
+    out2 <- trendVar(d, design=design)
+    expect_equal(out2$mean, rowMeans(d))
+    expect_equal(out2$var, apply(d, 1, var))
+    expect_equal(out2$trend(1:100/10), out$trend(1:100/10))
+ 
+    # A non-trivial design matrix.
     design <- model.matrix(~factor(rep(c(1,2), each=100)))
     out <- trendVar(d, design=design)
     expect_equal(out$mean, rowMeans(d))
@@ -219,15 +226,18 @@ test_that("trendVar works with blocking factors", {
     fit.unw <- trendVar(d, block=blocking, weighted=FALSE)
     expect_equal(fit$mean, fit.unw$mean)
     expect_equal(fit$var, fit.unw$var)
-    expect_false(fit$trend(1)==fit.unw$trend(1))
+    expect_equal(fit$trend(0), fit.unw$trend(0))
+    for (i in 1:5) {
+        expect_false(isTRUE(all.equal(fit$trend(i), fit.unw$trend(i))))
+    }
 
     # Checking that it correctly ignores blocks without residual d.f.
     blocking[1] <- 0
     refit <- trendVar(d, block=blocking)
     fit.0 <- trendVar(d[,-1], block=blocking[-1])
-    expect_equal(fit.0$mean, refit$mean)
-    expect_equal(fit.0$var, refit$var)
-    expect_false(fit.0$trend(1)==refit$trend(1))
+    expect_equal(refit$mean, cbind(`0`=d[,1], fit.0$mean))
+    expect_equal(refit$var, cbind(`0`=NA_real_, fit.0$var))
+    expect_equal(refit$trend(0:30/10), fit.0$trend(0:30/10))
 })
 
 # There's a lot of ways it can fail when silly inputs are supplied.
@@ -263,10 +273,7 @@ X <- normalize(X)
 fit <- trendVar(X)
 
 test_that("Variance decomposition is working correctly", {
-    out <- decomposeVar(X, fit, get.spikes=FALSE)
-    ref <- decomposeVar(X[!isSpike(X),], fit, get.spikes=TRUE)
-    expect_identical(out, ref)
-    
+    # Testing that the metrics are all calculated correctly.
     out.all <- decomposeVar(X, fit, get.spikes=TRUE)
     ref.mean <- rowMeans(exprs(X))
     expect_equivalent(out.all$mean, ref.mean)
@@ -274,10 +281,21 @@ test_that("Variance decomposition is working correctly", {
     expect_equivalent(ref.var, out.all$total)
     expect_equivalent(out.all$tech, fit$trend(ref.mean))
     expect_equivalent(out.all$bio, out.all$total-out.all$tech)
-    
+
+    # Checking that the p-value calculation is correct.
     ref.p <- testVar(out.all$total, out.all$tech, df=ncells-1)
     expect_equivalent(ref.p, out.all$p.value)
     expect_equivalent(p.adjust(ref.p, method="BH"), out.all$FDR)
+
+    # Testing that spike-in selection is working.
+    out <- decomposeVar(X, fit, get.spikes=FALSE)
+    ref <- decomposeVar(X[!isSpike(X),], fit, get.spikes=TRUE)
+    expect_identical(out, ref)
+
+    ref2 <- decomposeVar(X, fit, get.spikes=NA)
+    out.all$p.value[isSpike(X)] <- NA
+    out.all$FDR <- p.adjust(out.all$p.value, method="BH")
+    expect_identical(ref2, out.all)
 })
    
 test_that("decomposeVar behaves correctly with subsetting", {
@@ -291,7 +309,7 @@ test_that("decomposeVar behaves correctly with subsetting", {
     was.spike <- which(isSpike(X)[shuffled])
     out.ref2$p.value[was.spike] <- NA
     out.ref2$FDR <- p.adjust(out.ref$p.value, method="BH")
-    expect_identical(out.ref2, out2) 
+    expect_identical(out.ref2, out2)
 
     out3 <- decomposeVar(X, fit, subset.row=shuffled, get.spikes=FALSE)
     out.ref3 <- decomposeVar(exprs(X)[setdiff(shuffled, which(isSpike(X))),], fit)
@@ -307,8 +325,8 @@ test_that("decomposeVar behaves correctly with subsetting", {
 
 test_that("decomposeVar checks size factor centering", {
     subX <- X[,1:10] # Checking that it raises a warning upon subsetting (where the size factors are no longer centered).
-    expect_warning(decomposeVar(subX, fit, design=NULL), "size factors not centred")
-    expect_warning(decomposeVar(normalize(subX), fit, design=NULL), NA)
+    expect_warning(decomposeVar(subX, fit), "size factors not centred")
+    expect_warning(decomposeVar(normalize(subX), fit), NA)
 })
 
 test_that("decomposeVar works with all genes", {
@@ -319,19 +337,24 @@ test_that("decomposeVar works with all genes", {
     expect_equal(all.fit$var, setNames(all.dec$total, rownames(all.dec)))
     expect_equal(all.fit$trend(all.fit$mean), setNames(all.dec$tech, rownames(all.dec)))
 
+    # Using only the elements in the fit object, and checking we get the same result.
     all.dec2 <- decomposeVar(fit=all.fit)
     expect_equal(all.dec, all.dec2)
 })
 
 test_that("decomposeVar works with design matrices", {
-    # Testing with a modified design matrix.
+    # Testing with a trivial design matrix.
+    design0 <- matrix(1, ncol(X), 1)
     fit <- trendVar(X)
     out <- decomposeVar(X, fit, get.spikes=FALSE)
-    out2 <- decomposeVar(X, fit, design=NULL, get.spikes=FALSE) # defaults to all-ones.
+    fit2 <- trendVar(X, design=design0)
+    out2 <- decomposeVar(X, fit2, get.spikes=FALSE) # defaults to all-ones.
     expect_equal(out, out2)
 
+    # Testing with a modified design matrix.
     design <- model.matrix(~factor(rep(c(1,2), each=100)))
-    out3 <- decomposeVar(X, fit, design=design, get.spikes=FALSE)
+    fit3 <- trendVar(X, design=design)
+    out3 <- decomposeVar(X, fit3, get.spikes=FALSE)
     expect_equal(out$mean, out3$mean)
 
     refit <- lm.fit(y=t(exprs(X)), x=design)
@@ -339,12 +362,70 @@ test_that("decomposeVar works with design matrices", {
     test.var <- colMeans(effects^2)
     
     expect_equivalent(out3$total, test.var[!isSpike(X)])
-    expect_equivalent(out3$tech, fit$trend(out$mean))
+    expect_equivalent(out3$tech, fit3$trend(out$mean))
     expect_equivalent(out3$bio, out3$total-out3$tech)
     
     ref.p <- testVar(out3$total, out3$tech, df=nrow(design) - ncol(design))
     expect_equivalent(ref.p, out3$p.value)
     expect_equivalent(p.adjust(ref.p, method="BH"), out3$FDR)
+
+    # Checking what happens when I use design in decomposeVar only.
+    out2a <- decomposeVar(X, fit, design=design, get.spikes=FALSE)
+    expect_equivalent(out2a$mean, out$mean)
+    expect_equivalent(out2a$total, test.var[!isSpike(X)])
+    expect_equivalent(out2a$tech, fit$trend(out$mean))
+    expect_equivalent(out2a$bio, out2a$total-out2a$tech)
+})
+
+test_that("decomposeVar works with blocking", {
+    # Testing it out.
+    block0 <- rep(1, ncol(X))
+    fit <- trendVar(X)
+    out <- decomposeVar(X, fit)
+    fit2 <- trendVar(X, block=block0)
+    out2 <- decomposeVar(X, fit2)
+    expect_equal(out, out2)
+    
+    # Trying it out with actual blocking, and manually checking the outputs.
+    block <- sample(3, ncol(X), replace=TRUE)
+    fit3 <- trendVar(X, block=block)
+    out3 <- decomposeVar(X, fit3)
+
+    var.mat <- cbind(apply(logcounts(X)[,block==1], 1, var),
+                     apply(logcounts(X)[,block==2], 1, var),
+                     apply(logcounts(X)[,block==3], 1, var))
+    resid.df <- tabulate(block) - 1L
+    total.var <- as.numeric(var.mat %*% resid.df/sum(resid.df))
+    expect_equal(total.var, out3$total)
+
+    total.mean <- unname(rowMeans(logcounts(X)))
+    expect_equal(total.mean, out3$mean)
+
+    mean.mat <- cbind(rowMeans(logcounts(X)[,block==1]),
+                      rowMeans(logcounts(X)[,block==2]),
+                      rowMeans(logcounts(X)[,block==3]))
+    tech.var <- fit3$trend(as.vector(mean.mat))
+    dim(tech.var) <- dim(mean.mat)
+    total.tech <- as.numeric(tech.var %*% resid.df/sum(resid.df))
+    expect_equal(total.tech, out3$tech)
+    expect_equal(total.var - total.tech, out3$bio)
+    
+    pval <- testVar(as.numeric(var.mat), null=as.numeric(tech.var), 
+                    df=rep(resid.df, each=nrow(X)))
+    dim(pval) <- dim(mean.mat)
+    pval[isSpike(X),] <- NA
+    expect_equal(out3$p.value, pchisq(-2*rowSums(log(pval)), 2*ncol(pval), lower.tail=FALSE))
+
+    # Checking out what happens when I use a normal trend but use block= in decomposeVar only.
+    out2a <- decomposeVar(X, fit, block=block)
+    expect_equal(total.var, out2a$total)
+    expect_equal(total.mean, out2a$mean)
+
+    tech.var <- fit$trend(as.vector(mean.mat))
+    dim(tech.var) <- dim(mean.mat)
+    total.tech <- as.numeric(tech.var %*% resid.df/sum(resid.df))
+    expect_equal(total.tech, out2a$tech)
+    expect_equal(total.var - total.tech, out2a$bio)
 })
 
 ####################################################################################################
@@ -375,7 +456,7 @@ test_that("testVar's F-test works as expected", {
     pvals <- testVar(fit$var, fit$trend(fit$mean), df=ncells-1, second.df=fit$df2, test='f')
     
     rat <- (fit$var/fit$trend(fit$mean))
-    df1 <- nrow(fit$design)-ncol(fit$design)
+    df1 <- ncells - 1L
     ffit <- limma::fitFDistRobustly(rat[fit$var > 0 & fit$mean >= 0.1], df=df1) # filtering out zero-variance, low-abundance genes.
     expect_equal(pvals, pf(rat/ffit$scale, df1=df1, df2=ffit$df2, lower.tail=FALSE))
     

@@ -7,7 +7,7 @@
 \description{Decompose the gene-specific variance into biological and technical components for single-cell RNA-seq data.}
 
 \usage{
-\S4method{decomposeVar}{ANY,list}(x, fit, design=NA, subset.row=NULL, ...)
+\S4method{decomposeVar}{ANY,list}(x, fit, block=NA, design=NA, subset.row=NULL, ...)
 
 \S4method{decomposeVar}{SingleCellExperiment,list}(x, fit, subset.row=NULL, ..., 
     assay.type="logcounts", get.spikes=NA)
@@ -21,6 +21,7 @@
 \item{fit}{
     A list containing the output of \code{\link{trendVar}}, run on log-expression values for spike-in genes.
 }
+\item{block}{A factor containing the level of a blocking factor for each cell.}
 \item{design}{A numeric matrix describing the uninteresting factors contributing to expression in each cell.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{
@@ -42,9 +43,21 @@ Unlike other methods for decomposition, this approach estimates the variance of 
 The log-transformation blunts the impact of large positive outliers and ensures that HVGs are driven by strong log-fold changes between cells, not differences in counts.
 Interpretation is not compromised -- HVGs will still be so, regardless of whether counts or log-counts are considered.
 
-The design matrix can be set if there are factors that should be blocked, e.g., batch effects, known (and uninteresting) clusters.
-If \code{NULL}, it will be set to an all-ones matrix, i.e., all cells are replicates.
-If \code{NA}, it will be extracted from \code{fit$design}, assuming that the same cells were used to fit the trend.
+To account for uninteresting factors of variation, either \code{block} or \code{design} can be specified:
+\itemize{
+\item Setting \code{block} will estimate the mean and variance of each gene for cells in each group (i.e., each level of \code{block}) separately.
+The technical component is also estimated for each group separately, based on the group-specific mean.
+Group-specific statistics are combined to obtain a single value per gene.
+For means and variances, this is done by taking a weighted average across groups, with weighting based on the residual d.f. (for variances) or number of cells (for means).
+For p-values, Fisher's method is used on the group-specific p-values returned by \code{\link{testVar}}.
+\item Alternatively, uninteresting factors can be used to construct a design matrix to pass to the function via \code{design}.
+In this case, a linear model is fitted to the expression profile for each gene, and the variance is calculated from the residual variance of the fit.
+The technical component is estimated as the fitted value of the trend at the mean expression across all cells for that gene.
+This approach is useful for covariates or additive models that cannot be expressed as a one-way layout for use in \code{block}.
+}
+If either of these are \code{NA}, they will be extracted from \code{fit}, assuming that the same cells were used to fit the trend.
+If \code{block} is specified, this will override any setting of \code{design}.
+Use of \code{block} is generally favoured as group-specific means result in a better estimate of the technical component than an average across all groups.
 
 If \code{get.spikes=NA} in \code{decomposeVar,SingleCellExperiment-method}, the p-value and FDR will not be returned for spike-in transcripts.
 This is the default as it returns the other variance statistics for diagnostic purposes, but ensures that the spike-ins are not treated as candidate HVGs.
@@ -62,8 +75,8 @@ A data frame is returned where each row corresponds to and is named after a row 
 (if \code{subset.row=NULL}; otherwise, each row corresponds to an element of \code{subset.row}).
 This contains the numeric fields:
 \describe{
-\item{\code{mean}:}{Mean normalized log-count per gene.}
-\item{\code{total}:}{Variance of the normalized log-counts per gene.}
+\item{\code{mean}:}{Mean normalized log-expression per gene.}
+\item{\code{total}:}{Variance of the normalized log-expression per gene.}
 \item{\code{bio}:}{Biological component of the variance.}
 \item{\code{tech}:}{Technical component of the variance.}
 \item{\code{p.value, FDR}:}{Raw and adjusted p-values for the test against the null hypothesis that \code{bio=0}.}
