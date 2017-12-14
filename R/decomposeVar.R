@@ -33,12 +33,13 @@
         block.pval <- testVar(as.vector(lvar), null=block.tech.var, df=as.vector(resid.df), second.df=fit$df2, ...)
         dim(block.pval) <- dim(block.tech.var) <- dim(lmeans)
 
-        # Aggregating variances together, using the weighted mean of residual d.f.
+        # Aggregating variances together, using the weighted mean of residual d.f. 
+        # (we set na.rm=TRUE for situations when no resid. d.f. are available).
         total.resid.df <- rowSums(resid.df)
-        lvar <- rowSums(lvar * resid.df)/total.resid.df
+        lvar <- rowSums(lvar * resid.df, na.rm=TRUE)/total.resid.df
         tech.var <- rowSums(block.tech.var * resid.df)/total.resid.df
         
-        # Aggregating means together (effectively rowMeans(x), without having to recompute it).
+        # Aggregating means together (effectively rowMeans(x), without having to recompute it from 'x').
         num.per.block <- table(block)
         lmeans <- lmeans %*% num.per.block[colnames(lmeans)]/ncol(x)
 

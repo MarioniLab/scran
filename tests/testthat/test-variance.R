@@ -426,6 +426,17 @@ test_that("decomposeVar works with blocking", {
     total.tech <- as.numeric(tech.var %*% resid.df/sum(resid.df))
     expect_equal(total.tech, out2a$tech)
     expect_equal(total.var - total.tech, out2a$bio)
+    
+    # Checking what happens with a no-residual level.
+    block[1] <- 0
+    fit4a <- trendVar(X, block=block)
+    out4a <- decomposeVar(X, fit4a)
+    fit4b <- trendVar(X[,-1], block=block[-1])
+    out4b <- decomposeVar(X[,-1], fit4b)
+    expect_equal(out4a$total, out4b$total)
+    expect_equal(out4a$tech, out4b$tech)
+    expect_equal(out4a$bio, out4b$bio)
+    expect_equal(out4a$mean, total.mean)
 })
 
 ####################################################################################################
