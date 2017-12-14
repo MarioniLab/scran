@@ -10,7 +10,7 @@
 \S4method{trendVar}{ANY}(x, method=c("loess", "spline"), parametric=FALSE, 
     loess.args=list(), spline.args=list(), nls.args=list(),
     span=NULL, family=NULL, degree=NULL, df=NULL, start=NULL, 
-    block=NULL, design=NULL, min.mean=0.1, subset.row=NULL) 
+    block=NULL, design=NULL, weighted=TRUE, min.mean=0.1, subset.row=NULL) 
 
 \S4method{trendVar}{SingleCellExperiment}(x, subset.row=NULL, ..., assay.type="logcounts", use.spikes=TRUE)
 }
@@ -30,6 +30,7 @@
 \item{start}{Deprecated argument to pass to \code{\link{nls}}.}
 \item{block}{A factor specifying the blocking level for each cell.}
 \item{design}{A numeric matrix describing the uninteresting factors contributing to expression in each cell.}
+\item{weighted}{A logical scalar indicated whether weighted trend fitting should be performed when \code{block!=NULL}.}
 \item{min.mean}{A numeric scalar specifying the minimum mean log-expression in order for a gene to be used for trend fitting.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to \code{trendVar,ANY-method}.}
@@ -84,7 +85,7 @@ The trend is then fitted to the residual variance against the mean for each spik
 
 The other approach is to use \code{block}, where all cells in each level are treated as a separate group.
 Means and variances are estimated within each group and the resulting sets of means/variances are pooled across all groups.
-The trend is then fitted to the pooled observations, where observations from different levels are weighted according to the residual d.f. 
+The trend is then fitted to the pooled observations, where observations from different levels are weighted according to the residual d.f. used for variance estimation.
 This effectively multiplies the number of points by the number of levels in \code{block}.
 \code{block} will take priority and \code{design} will be ignored if both arguments are specified.
 
