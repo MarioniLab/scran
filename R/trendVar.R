@@ -12,7 +12,7 @@
     stats.out <- .get_var_stats(x, block=block, design=design, subset.row=subset.row)
 
     # Filtering out zero-variance and low-abundance genes.
-    is.okay <- stats.out$vars > 1e-8 & stats.out$means >= min.mean
+    is.okay <- stats.out$resid.df > 0L & stats.out$vars > 1e-8 & stats.out$means >= min.mean 
     kept.vars <- stats.out$vars[is.okay]
     kept.means <- stats.out$means[is.okay]
     kept.resid <- stats.out$resid.df[is.okay]
@@ -114,18 +114,15 @@
         recorder$block <- block
 
         # Checking residual d.f.
-        by.block <- split(seq_len(ncol(x)), block)
+        by.block <- split(seq_len(ncol(x)), block, drop=TRUE)
         resid.df <- lengths(by.block) - 1L
-        discard <- resid.df <= 0L
-        if (all(discard)){ 
+        if (all(resid.df<=0L)){ 
             stop("no residual d.f. in any level of 'block' for variance estimation")
         }
-        by.block <- by.block[!discard]
 
         # Calculating the statistics for each block. 
-        means <- vars <- matrix(0, length(subset.row), length(by.block))
-        dimnames(means) <- dimnames(vars) <- list(rownames(x)[subset.row], names(by.block)) 
-
+        means <- vars <- matrix(0, length(subset.row), length(by.block),
+                                dimnames=list(rownames(x)[subset.row], names(by.block))) 
         for (g in names(by.block)) {
             chosen <- by.block[[g]]
             means[,g] <- scater:::.rowSums(x, rows=subset.row, cols=chosen)/length(chosen)
