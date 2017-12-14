@@ -10,15 +10,12 @@
 # created 21 January 2016
 {
     stats.out <- .get_var_stats(x, block=block, design=design, subset.row=subset.row)
-    vars <- stats.out$vars
-    means <- stats.out$means
-    resid.df <- stats.out$resid.df
 
     # Filtering out zero-variance and low-abundance genes.
-    is.okay <- vars > 1e-8 & means >= min.mean
-    kept.vars <- vars[is.okay]
-    kept.means <- means[is.okay]
-    kept.resid <- resid.df[is.okay]
+    is.okay <- stats.out$vars > 1e-8 & stats.out$means >= min.mean
+    kept.vars <- stats.out$vars[is.okay]
+    kept.means <- stats.out$means[is.okay]
+    kept.resid <- stats.out$resid.df[is.okay]
 
     # Fitting a parametric curve to try to flatten the shape.
     # This is of the form y = a*x/(x^n + b), but each coefficent is actually set
@@ -91,12 +88,15 @@
         warning("undefined expectation for small df2")
         f.scale <- f.fit$scale
     }
+
     FUN <- function(x) { 
         output <- SUBFUN(x) * f.scale
         names(output) <- names(x)
         return(output)
     }
-    return(list(mean=means, var=vars, trend=FUN, block=block, design=design, df2=f.df2, start=start))
+    stats.out$trend <- FUN
+    stats.out$df2 <- f.df2
+    return(stats.out)
 }
 
 #########################################################
@@ -105,11 +105,15 @@
 
 .get_var_stats <- function(x, block, design, subset.row) {
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
+    recorder <- list()
 
     if (!is.null(block)) { 
         if (ncol(x)!=length(block)) {
             stop("length of 'block' should be the same as 'ncol(x)'")
         }
+        recorder$block <- block
+
+        # Checking residual d.f.
         by.block <- split(seq_len(ncol(x)), block)
         resid.df <- lengths(by.block) - 1L
         discard <- resid.df <= 0L
@@ -135,6 +139,9 @@
     } else if (!is.null(design)) {
         checked <- .make_var_defaults(x, fit=NULL, design=design)
         design <- checked$design
+        recorder$design <- design
+
+        # Checking residual d.f.
         resid.df <- nrow(design) - ncol(design)
         if (resid.df <= 0L) {
             stop("no residual d.f. in 'design' for variance estimation") 
@@ -165,7 +172,7 @@
         names(resid.df) <- names(means)
     }
 
-    return(list(vars=vars, means=means, resid.df=resid.df))
+    return(c(list(vars=vars, means=means, resid.df=resid.df), recorder))
 }
 
 #########################################################

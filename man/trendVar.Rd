@@ -86,6 +86,7 @@ The other approach is to use \code{block}, where all cells in each level are tre
 Means and variances are estimated within each group and the resulting sets of means/variances are pooled across all groups.
 The trend is then fitted to the pooled observations, where observations from different levels are weighted according to the residual d.f. 
 This effectively multiplies the number of points by the number of levels in \code{block}.
+\code{block} will take priority and \code{design} will be ignored if both arguments are specified.
 
 We suggest using \code{block} wherever possible, as this preserves differences in the means/variances between levels of the factor. 
 In contrast, using \code{design} will effectively compute an average mean/variance.
@@ -148,10 +149,15 @@ This ensures that spurious differences in abundance are not introduced by the no
 \value{
 A named list is returned, containing:
 \describe{
-\item{\code{mean}:}{A numeric vector of mean log-CPMs for all spike-in transcripts.}
-\item{\code{var}:}{A numeric vector of the variances of log-CPMs for all spike-in transcripts.}
-\item{\code{trend}:}{A function that returns the fitted value of the trend at any mean log-CPM.}
-\item{\code{design}:}{A numeric matrix, containing the design matrix that was used.}
+\item{\code{mean}:}{A numeric vector of mean log-expression values for all spike-in transcripts, if \code{block=NULL}.
+Otherwise, a numeric matrix of means where each row corresponds to a spike-in and each column corresponds to a level of \code{block}.}
+\item{\code{var}:}{A numeric vector of the variances of log-expression values for all spike-in transcripts, if \code{block=NULL}.
+Otherwise, a numeric matrix of variances where each row corresponds to a spike-in and each column corresponds to a level of \code{block}.}
+\item{\code{resid.df}:}{An integer vector of the residual d.f. used for variance estimation of each spike-in transcript, if \code{block=NULL}.
+Otherwise, an integer matrix where each column specifies the residual d.f. used in each level of \code{block}.}
+\item{\code{block}:}{A factor identical to the input \code{block}, only returned if it was not \code{NULL}.}
+\item{\code{design}:}{A numeric matrix identical to the input \code{design}, only returned if it was not \code{NULL} and \code{block=NULL}.}
+\item{\code{trend}:}{A function that returns the fitted value of the trend at any mean.}
 \item{\code{df2}:}{A numeric scalar, specifying the second degrees of freedom for a scaled F-distribution describing the variability of variance estimates around the trend.}
 }
 }
