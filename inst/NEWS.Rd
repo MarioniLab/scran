@@ -2,8 +2,9 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.7.7}{\itemize{
+\section{Version 1.7.8}{\itemize{
 \item Modified decomposeVar() to return statistics (but not p-values) for spike-ins when get.spikes=NA.
+Added block= argument for mean/variance calculations within each level of a blocking factor.
 
 \item Allowed passing of arguments to irlba() in denoisePCA() to assist convergence.
 Reported low-rank approximations for all genes, regardless of whether they were used in the SVD.
@@ -17,11 +18,18 @@ Added variance shift adjustment, calculation of angles with the biological subsp
 
 \item Modified trend specification arguments in trendVar() for greater flexibility.
 Switched from ns() to robustSmoothSpline() to avoid bugs with unloaded predict.ns().
+Added block= argument for mean/variance calculations within each level of a blocking factor.
 
 \item Added option to avoid normalization in the SingleCellExperiment method for improvedCV2().
 Switched from ns() to smooth.spline() or robustSmoothSpline() to avoid bugs.
 
 \item Replaced zoo functions with runmed() for calculating the median trend in DM().
+
+\item Added block= argument to correlatePairs() to calculate correlations within each level of a blocking factor.
+Deprecated the use of residuals=FALSE for one-way layouts in design=.
+
+\item Added block= argument to overlapExprs() to calculate overlaps within each level of a blocking factor.
+Deprecated the use of residuals=FALSE for one-way layouts in design=.
 }}
 
 \section{Version 1.6.0}{\itemize{
