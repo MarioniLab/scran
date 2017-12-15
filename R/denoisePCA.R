@@ -1,4 +1,4 @@
-.denoisePCA <- function(x, technical, design=NULL, subset.row=NULL,
+.denoisePCA <- function(x, technical, block=NULL, design=NULL, subset.row=NULL,
                         value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100, 
                         approximate=FALSE, rand.seed=1000, irlba.args=list())
 # Performs PCA and chooses the number of PCs to keep based on the technical noise.
@@ -6,37 +6,74 @@
 #
 # written by Aaron Lun
 # created 13 March 2017    
-# last modified 15 November 2017
 {
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
-    checked <- .make_var_defaults(x, fit=NULL, design=design)
-    QR <- .ranksafe_qr(checked$design)
-    stats <- .Call(cxx_fit_linear_model, QR$qr, QR$qraux, x, subset.row - 1L, FALSE)
-    all.means <- stats[[1]]
-    all.var <- stats[[2]]
+    stats.out <- .get_var_stats(x, block=block, design=design, subset.row=subset.row, get.QR=TRUE)
+
+    # Defining the total variance and mean separately if we're blocked.
+    if (!is.null(block)) { 
+        block.means <- stats.out$means
+        num.per.block <- table(block)
+        all.means <- block.means %*% num.per.block[colnames(block.means)]/length(block)
+
+        resid.df <- stats.out$resid.df
+        total.resid.df <- rowSums(resid.df)
+        block.var <- stats.out$var
+        all.var <- rowSums(block.var * resid.df, na.rm=TRUE)/total.resid.df
+
+        if (is.function(technical)) { 
+            block.tech.var <- technical(as.vector(block.means))
+            dim(block.tech.var) <- dim(block.means)
+            tech.var <- rowSums(block.tech.var * resid.df)/total.resid.df
+        } else {
+            tech.var <- technical
+        }
+    } else {
+        all.means <- stats.out$means
+        all.var <- stats.out$var
+
+        if (is.function(technical)) { 
+            tech.var <- technical(all.means)
+        } else {
+            tech.var <- technical
+        }
+    }
 
     # Filtering out genes with negative biological components.
-    tech.var <- technical(all.means)
     keep <- all.var > tech.var
     use.rows <- subset.row[keep]
     all.means <- all.means[keep]
     all.var <- all.var[keep]
     tech.var <- tech.var[keep]
     technical <- sum(tech.var)
+ 
+    if (!is.null(block)) {
+        # Subtracting from each block (block.means is partially subsetted, hence the use of 'keep').
+        y <- as.matrix(x[use.rows,,drop=FALSE])
+        by.block <- split(seq_len(ncol(y)), block)
+        rescale <- sqrt((ncol(y) - ncol(block.means))/(ncol(y) - 1L)) # see below.
 
-    if (!is.null(design)) {  
+        for (b in names(by.block)) {
+            chosen <- by.block[[b]]
+            y[,chosen] <- (y[,chosen] - block.means[keep,b])/rescale
+        }
+        centering <- numeric(nrow(y))
+
+    } else if (!is.null(design)) {  
         # Computing residuals; don't set a lower bound.
         # Note that this function implicitly subsets by subset.row.
+        QR <- stats.out$QR
         rx <- .calc_residuals_wt_zeroes(x, QR=QR, subset.row=use.rows, lower.bound=NA) 
-
-        # Rescaling residuals so that the variance is unbiased.
-        # This is necessary because variance of residuals is underestimated.
-        rvar <- apply(rx, 1, var)
+        
+        # Rescaling residuals so that the variance is unbiased. You think you have N - 1 residual d.f.,
+        # but you actually only have nrow(design) - ncol(design) residual d.f., so we rescale.
+        rescale <- sqrt((nrow(design) - ncol(design))/(nrow(design) - 1L))
        
         # Replacing 'x' with the scaled residuals (these should already have a mean of zero,
         # see http://math.stackexchange.com/questions/494181/ for a good explanation).
-        y <- rx * sqrt(all.var/rvar)
+        y <- rx/rescale
         centering <- numeric(nrow(y))
+
     } else {
         y <- x[use.rows,,drop=FALSE] 
         centering <- all.means # all.means is already subsetted, remember.

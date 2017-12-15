@@ -141,6 +141,10 @@ test_that("denoisePCA works with design matrices", {
     pcs3 <- denoisePCA(lcounts, technical=fit$trend, design=cbind(rep(1, ncells)))
     are_PCs_equal(pcs, pcs3)
 
+    pcs <- denoisePCA(lcounts, technical=fit$trend, subset.row=is.spike)
+    pcs3 <- denoisePCA(lcounts, technical=fit$trend, subset.row=is.spike, design=cbind(rep(1, ncells)))
+    are_PCs_equal(pcs, pcs3)
+
     # Checking for sensible handling of design matrices.
     design <- model.matrix(~factor(in.pop))
     dfit <- trendVar(lcounts, subset.row=is.spike, design=design)
@@ -149,7 +153,7 @@ test_that("denoisePCA works with design matrices", {
     alt <- lm.fit(y=t(lcounts), x=design)
     true.var <- colMeans(alt$effects[-seq_len(alt$rank),]^2)
     obs.var <- apply(alt$residuals, 2, var)
-    new.x <- alt$residuals * sqrt(true.var/obs.var)
+    new.x <- t(t(alt$residuals) * sqrt(true.var/obs.var)) # critical: make sure rescaling is correct.
     
     tech.var <- dfit$trend(rowMeans(lcounts))
     keep <- true.var > tech.var
@@ -159,6 +163,43 @@ test_that("denoisePCA works with design matrices", {
     expect_equal(attr(pcs, "percentVar"), alt.pc$sdev^2/sum(alt.pc$sdev^2))
     are_PCs_equal(alt.pc$x[,seq_len(ncol(pcs)),drop=FALSE], pcs)
 })
+
+test_that("desnoisePCA works with blocking", {
+    # Checking that the output is the same with trivial blocking.
+    pcs <- denoisePCA(lcounts, technical=fit$trend)
+    pcs3 <- denoisePCA(lcounts, technical=fit$trend, block=rep("YAY", ncol(lcounts)))
+    are_PCs_equal(pcs, pcs3)
+
+    pcs <- denoisePCA(lcounts, technical=fit$trend, subset.row=is.spike)
+    pcs3 <- denoisePCA(lcounts, technical=fit$trend, subset.row=is.spike, block=rep("YAY", ncol(lcounts)))
+    are_PCs_equal(pcs, pcs3)
+
+    # Checking for correct handling of blocking factors.
+    set.seed(10009)
+    block <- factor(sample(3, ncol(lcounts), replace=TRUE))
+    pcs <- denoisePCA(lcounts, technical=fit$trend, block=block)
+
+    design <- model.matrix(~0 + block)
+    colnames(design) <- levels(block)
+    alt <- lm.fit(y=t(lcounts), x=design)
+    true.var <- colMeans(alt$effects[-seq_len(alt$rank),]^2)
+    obs.var <- apply(alt$residuals, 2, var)
+    new.x <- t(t(alt$residuals) * sqrt(true.var/obs.var)) # critical: make sure rescaling is correct.
+
+    block.means <- t(alt$coefficients)
+    block.tech.var <- fit$trend(as.vector(block.means))
+    dim(block.tech.var) <- dim(block.means)
+    resid.df <- table(block)[colnames(block.means)] - 1L
+    tech.var <- block.tech.var %*% resid.df/sum(resid.df)
+
+    keep <- true.var > tech.var
+    alt.pc <- prcomp(new.x[,keep])
+    
+    expect_equal(ncol(pcs), scran:::.get_npcs_to_keep(alt.pc$sdev^2, sum(tech.var[keep])))
+    expect_equal(attr(pcs, "percentVar"), alt.pc$sdev^2/sum(alt.pc$sdev^2))
+    are_PCs_equal(alt.pc$x[,seq_len(ncol(pcs)),drop=FALSE], pcs)
+})
+
 
 test_that("denoisePCA works with IRLBA", {
     # Checking choice of number of PCs.
@@ -196,7 +237,7 @@ test_that("denoisePCA works with IRLBA", {
 test_that("denoisePCA throws errors correctly", {
     # Checking invalid specifications.
     expect_error(denoisePCA(lcounts[0,], fit$trend), "a dimension is zero")
-    expect_error(denoisePCA(lcounts[,0], fit$trend), "error code")
+    expect_error(denoisePCA(lcounts[,0], fit$trend), "no residual d.f. in 'x' for variance estimation")
 })
 
 test_that("denoisePCA works with SingleCellExperiment inputs", {

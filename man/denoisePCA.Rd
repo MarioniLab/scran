@@ -7,7 +7,7 @@
 \description{Denoise log-expression data by removing principal components corresponding to technical noise.}
 
 \usage{
-\S4method{denoisePCA}{ANY}(x, technical, design=NULL, subset.row=NULL,
+\S4method{denoisePCA}{ANY}(x, technical, block=NULL, design=NULL, subset.row=NULL,
     value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100, 
     approximate=FALSE, rand.seed=1000, irlba.args=list())
 
@@ -19,10 +19,11 @@
 \arguments{
 \item{x}{A numeric matrix of log-expression values for \code{denoisePCA,ANY-method}, 
 or a SingleCellExperiment object containing such values for \code{denoisePCA,SingleCellExperiment-method}.}
-\item{technical}{A function that computes the technical component of the variance for a gene with a given mean (log-)expression, see \code{?\link{trendVar}}.}
-\item{design}{A numeric matrix containing the experimental design.
-If \code{NULL}, all cells are assumed to belong to a single group.}
-\item{subset.row}{A logical, integer or character vector indicating the rows of \code{x} to use.
+\item{technical}{A function that computes the technical component of the variance for a gene with a given mean (log-)expression, see \code{?\link{trendVar}}.
+Alternatively, a numeric vector containing the technical component for each gene in \code{x}.}
+\item{block}{A factor specifying the blocking level for each cell.}
+\item{design}{A numeric matrix containing the experimental design.}
+\item{subset.row}{A logical, integer or character vector indicating the rows of \code{x} to use for PCA.
 All genes are used by default.}
 \item{value}{A string specifying the type of value to return; the PCs, the number of retained components, or a low-rank approximation.}
 \item{min.rank, max.rank}{Integer scalars specifying the minimum and maximum number of PCs to retain.}
@@ -40,7 +41,7 @@ This will be intersected with \code{subset.row} if the latter is specified.}
 \value{
 For \code{denoisePCA,ANY-method}, a numeric matrix is returned containing the selected PCs (columns) for all cells (rows) if \code{value="pca"}.
 If \code{value="n"}, it will return an integer scalar specifying the number of retained components.
-If \code{value="lowrank"}, it will return a low-rank approximation of \code{x} with the same dimensions.
+If \code{value="lowrank"}, it will return a low-rank approximation of \code{x} with the \emph{same} dimensions.
 
 For \code{denoisePCA,SingleCellExperiment-method}, the return value is the same as \code{denoisePCA,ANY-method} if \code{sce.out=TRUE} or \code{value="n"}.
 Otherwise, a SingleCellExperiment object is returned that is a modified version of \code{x}.
@@ -59,28 +60,38 @@ In contrast, biological substructure should be correlated and captured by earlie
 The idea is to discard later PCs to remove technical noise and improve the resolution of substructure.
 
 The choice of the number of PCs to discard is based on the estimates of technical variance in \code{technical}.
-This uses the trend function obtained from \code{\link{trendVar}} to compute the technical component for each gene, based on its mean abundance.
-The overall technical variance is estimated by summing the values across genes.
-Genes with negative biological components are ignored during downstream analyses to ensure that the total variance is greater than the technical variance.
+This can be a vector of technical components for each gene, as produced by \code{\link{decomposeVar}}.
+Alternatively, the trend function obtained from \code{\link{trendVar}} is used to compute the technical component for each gene, based on its mean abundance.
+An estimate of the overall technical variance is estimated by summing the values across genes.
+Genes with negative biological components are ignored during downstream analyses to ensure that the total variance is greater than the overall technical estimate. 
 
 The function works by assuming that the first X PCs contain all of the biological signal, while the remainder contains technical noise.
 For a given value of X, an estimate of the total technical variance is calculated from the sum of variance explained by all of the later PCs.
 A value of X is found such that the predicted technical variance equals the estimated technical variance.
 Note that X will be coerced to lie between \code{min.rank} and \code{max.rank}.
+}
 
-Only the first X PCs are reported if \code{value="pca"}.
-If \code{value="n"}, the value of X is directly reported, which avoids computing the PCs if only the rank is desired.
-If \code{value="lowrank"}, a low-rank approximation of the original matrix is computed using only the first X components.
+\section{Generating low-rank approximations}{
+When \code{value="lowrank"}, a low-rank approximation of the original matrix is computed using only the first X components.
 This is useful for denoising prior to downstream applications that expect gene-wise expression profiles.
 
-When \code{value="lowrank"}, approximation values are returned for all genes.
+Note that approximation values are returned for \emph{all} genes.
 This includes \dQuote{unselected} genes, i.e., with negative biological components or that were not selected with \code{subset.row}.
 The low-rank approximation is obtained for these genes by projecting their expression profiles into the low-dimensional space defined by the SVD on the selected genes.
 The exception is when \code{get.spikes=FALSE}, whereby zeroes are returned for all spike-in rows.
+}
 
+\section{Handling uninteresting factors of variation}{
 If \code{design} is specified, the residuals of a linear model fitted to each gene are computed.
 Because variances computed from residuals are usually underestimated, the residuals are scaled up so that their variance is equal to the residual variance of the model fit.
 This ensures that the sum of variances is not understated, which would lead to more PCs being discarded than appropriate.
+
+A similar procedure is performed if \code{block} is specified, whereby the expression value for each cell is replaced with the deviation from the mean of each block.
+However, the technical component for each block is defined from the \code{technical} function at the block-specific mean, rather than using a global mean across all cells.
+The technical component for the entire gene is then defined as a weighted average of the values across blocks, see \code{?\link{decomposeVar}} for details.
+This provides a more accurate estimate of the technical component for one-way layouts.
+
+Note that the choice between \code{design} and \code{block} is irrelevant if \code{technical} is a vector rather than a function.
 }
 
 \author{

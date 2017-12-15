@@ -103,7 +103,7 @@
 # Computing variance and mean based on blocking factors #
 #########################################################
 
-.get_var_stats <- function(x, block, design, subset.row) {
+.get_var_stats <- function(x, block, design, subset.row, get.QR=FALSE) {
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     recorder <- list()
 
@@ -146,6 +146,10 @@
        
         # Calculating the residual variance of the fitted linear model. 
         QR <- .ranksafe_qr(design)
+        if (get.QR) {
+            recorder$QR <- QR
+        }
+
         lout <- .Call(cxx_fit_linear_model, QR$qr, QR$qraux, x, subset.row - 1L, FALSE)
         means <- lout[[1]]
         vars <- lout[[2]]
