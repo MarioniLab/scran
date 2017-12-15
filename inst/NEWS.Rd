@@ -8,6 +8,8 @@ Added block= argument for mean/variance calculations within each level of a bloc
 
 \item Allowed passing of arguments to irlba() in denoisePCA() to assist convergence.
 Reported low-rank approximations for all genes, regardless of whether they were used in the SVD.
+Added block= argument for technical component estimation within each level of the blocking factor.
+Supported use of a vector in technical= instead of a function.
 
 \item Allowed passing of arguments to prcomp_irlba() in buildSNNGraph() to assist convergence.
 
