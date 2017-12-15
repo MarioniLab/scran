@@ -9,7 +9,7 @@ combineVar(..., method=c("fisher", "simes", "berger"))
 }
 
 \arguments{
-\item{...}{Two or more data frames, each produced by \code{\link{decomposeVar}}.}
+\item{...}{Two or more data frames, each produced by \code{\link{decomposeVar}} with \code{store.stats=TRUE}.}
 \item{method}{A string specifying how p-values are to be combined.}
 }
 
@@ -60,12 +60,12 @@ y <- computeSpikeFactors(y, general.use=FALSE) # Size factors for spike-ins.
 y1 <- y[,1:100] 
 y1 <- normalize(y1) # normalize separately after subsetting.
 fit1 <- trendVar(y1)
-results1 <- decomposeVar(y1, fit1)
+results1 <- decomposeVar(y1, fit1, store.stats=TRUE)
 
 y2 <- y[,1:100 + 100] 
 y2 <- normalize(y2) # normalize separately after subsetting.
 fit2 <- trendVar(y2)
-results2 <- decomposeVar(y2, fit2)
+results2 <- decomposeVar(y2, fit2, store.stats=TRUE)
 
 head(combineVar(results1, results2))
 head(combineVar(results1, results2, method="simes"))

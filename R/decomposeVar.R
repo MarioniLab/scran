@@ -1,4 +1,4 @@
-.decompose_var <- function(x, fit, block=NA, design=NA, subset.row=NULL, ...)
+.decompose_var <- function(x, fit, block=NA, design=NA, subset.row=NULL, store.stats=FALSE, ...)
 # Computes the biological variability of the log-CPMs by subtracting the
 # inferred technical variance from the total variance.
 #
@@ -46,6 +46,8 @@
         # Combining p-values using Fisher's method (independent observations).
         logp <- -2*rowSums(log(block.pval))
         pval <- pchisq(logp, df=2*ncol(block.pval), lower.tail=FALSE)
+        resid.df <- total.resid.df
+
     } else {
         gnames <- names(lmeans)
         tech.var <- fit$trend(lmeans)
@@ -56,6 +58,9 @@
     out <- data.frame(mean=lmeans, total=lvar, bio=bio.var, tech=tech.var,
                       p.value=pval, FDR=p.adjust(pval, method="BH"),
                       row.names=gnames)
+    if (store.stats) { 
+        attr(out, "decomposeVar.stats") <- list(num.cells=ncol(x), resid.df=resid.df)
+    }
     return(out)
 }
 

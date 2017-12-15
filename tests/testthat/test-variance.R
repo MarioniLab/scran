@@ -296,6 +296,13 @@ test_that("Variance decomposition is working correctly", {
     out.all$p.value[isSpike(X)] <- NA
     out.all$FDR <- p.adjust(out.all$p.value, method="BH")
     expect_identical(ref2, out.all)
+
+    # Checking that stats are correctly stored.
+    out2 <- decomposeVar(X, fit, get.spikes=TRUE, store.stats=TRUE)
+    expect_equal(attr(out2, "decomposeVar.stats")$num.cells, ncells)
+    expect_equal(unname(attr(out2, "decomposeVar.stats")$resid.df), rep(ncells-1L, ngenes))
+    attr(out2, "decomposeVar.stats") <- NULL
+    expect_equal(out2, decomposeVar(X, fit, get.spikes=TRUE))
 })
    
 test_that("decomposeVar behaves correctly with subsetting", {
@@ -479,5 +486,59 @@ test_that("testVar works with silly inputs", {
     expect_identical(testVar(numeric(0), trended, df=df), numeric(0))
     expect_identical(testVar(observed, numeric(0), df=df), rep(NA_real_, length(observed)))
     expect_identical(testVar(observed, trended, df=numeric(0)), rep(NA_real_, length(observed)))
+})
+
+####################################################################################################
+
+set.seed(20003)
+test_that("combineVar works correctly", {
+    ncells <- 200
+    ngenes <- 1000
+    means <- 2^runif(ngenes, -1, 5)
+    dummy <- matrix(rnbinom(ngenes*ncells, mu=means, size=5), ncol=ncells, nrow=ngenes)
+    
+    rownames(dummy) <- paste0("X", seq_len(ngenes))
+    X <- SingleCellExperiment(list(counts=dummy))
+    sizeFactors(X) <- colSums(dummy)
+    X <- normalize(X)
+    d <- exprs(X)
+    out <- trendVar(d)
+    dec <- decomposeVar(d, out, store.stats=TRUE)
+    
+    sub.d <- d[,seq_len(ncells/2)]
+    block <- sample(3, replace=TRUE, ncol(sub.d))
+    out2 <- trendVar(sub.d, block=block)
+    dec2 <- decomposeVar(sub.d, out2, store.stats=TRUE)
+
+    alt.d <- d[,ncells/2+1:50]
+    design <- model.matrix(~runif(ncol(alt.d)))    
+    out3 <- trendVar(alt.d, design=design)
+    dec3 <- decomposeVar(alt.d, out3, store.stats=TRUE)
+
+    # Checking averaging of stats.
+    res <- combineVar(dec, dec2, dec3)
+    expect_equal(res$mean, (dec$mean * ncells + 
+                            dec2$mean * ncol(sub.d) + 
+                            dec3$mean * ncol(alt.d)) / (ncells + ncol(sub.d) + ncol(alt.d)))
+    expect_equal(res$total, (dec$total * (ncells - 1) + 
+                             dec2$total * (ncol(sub.d) - 3) + 
+                             dec3$total * (ncol(alt.d) - 2)) / (ncells -1 + ncol(sub.d) - 3 + ncol(alt.d) - 2))
+
+    # Checking proper calculation of combined p-values.
+    expect_equal(res$p.value, apply(cbind(dec$p.value, dec2$p.value, dec3$p.value),
+                                    1, FUN=function(p) { pchisq(-sum(log(p))*2, df=2*length(p), lower.tail=FALSE) }))
+
+    res2 <- combineVar(dec, dec2, dec3, method="simes")
+    expect_equal(res[,c("mean", "total", "tech", "bio")], res2[,c("mean", "total", "tech", "bio")])
+    expect_equal(res2$p.value, apply(cbind(dec$p.value, dec2$p.value, dec3$p.value),
+                                     1, FUN=function(p) { min(p.adjust(p, method="BH")) }))
+
+    res3 <- combineVar(dec, dec2, dec3, method="berger")
+    expect_equal(res[,c("mean", "total", "tech", "bio")], res3[,c("mean", "total", "tech", "bio")])
+    expect_equal(res3$p.value, apply(cbind(dec$p.value, dec2$p.value, dec3$p.value), 1, max))
+
+    # Checking fail when you miss store.stats.
+    dec4 <- decomposeVar(alt.d, out3)
+    expect_error(res <- combineVar(dec, dec4), "inputs should come from decomposeVar() with store.stats=TRUE", fixed=TRUE)
 })
 

@@ -7,7 +7,8 @@
 \description{Decompose the gene-specific variance into biological and technical components for single-cell RNA-seq data.}
 
 \usage{
-\S4method{decomposeVar}{ANY,list}(x, fit, block=NA, design=NA, subset.row=NULL, ...)
+\S4method{decomposeVar}{ANY,list}(x, fit, block=NA, design=NA, subset.row=NULL, 
+    store.stats=FALSE, ...)
 
 \S4method{decomposeVar}{SingleCellExperiment,list}(x, fit, subset.row=NULL, ..., 
     assay.type="logcounts", get.spikes=NA)
@@ -24,6 +25,7 @@
 \item{block}{A factor containing the level of a blocking factor for each cell.}
 \item{design}{A numeric matrix describing the uninteresting factors contributing to expression in each cell.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
+\item{store.stats}{A logical scalar indicating whether additional statistics should be stored in the attributes of the output, see \code{?\link{combineVar}}.}
 \item{...}{
 For \code{decomposeVar,matrix,list-method}, additional arguments to pass to \code{\link{testVar}}.
 For \code{decomposeVar,SingleCellExperiment,list-method}, additional arguments to pass to the matrix method.
@@ -82,6 +84,10 @@ This contains the numeric fields:
 \item{\code{p.value, FDR}:}{Raw and adjusted p-values for the test against the null hypothesis that \code{bio=0}.}
 }
 If \code{get.spikes=NA}, the \code{p.value} and \code{FDR} fields will be set to \code{NA} for rows corresponding to spike-in transcripts.
+
+If \code{store.stats=TRUE}, the attributes of the output will contain a \code{"decomposeVar.stats"} field.
+This holds a list of two elements - \code{num.cells}, an integer scalar storing the number of cells in \code{x}; 
+and \code{resid.df}, an integer vector containing the residual d.f. used for variance estimation of each gene in the output data frame.
 }
 
 \seealso{

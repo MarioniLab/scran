@@ -5,6 +5,7 @@
 \section{Version 1.7.8}{\itemize{
 \item Modified decomposeVar() to return statistics (but not p-values) for spike-ins when get.spikes=NA.
 Added block= argument for mean/variance calculations within each level of a blocking factor.
+Added store.stats= argument to record stats in attributes for use in combineVar(). 
 
 \item Allowed passing of arguments to irlba() in denoisePCA() to assist convergence.
 Reported low-rank approximations for all genes, regardless of whether they were used in the SVD.
@@ -32,6 +33,8 @@ Deprecated the use of residuals=FALSE for one-way layouts in design=.
 
 \item Added block= argument to overlapExprs() to calculate overlaps within each level of a blocking factor.
 Deprecated the use of residuals=FALSE for one-way layouts in design=.
+
+\item Modified combineVar() so that it is aware to the stats recorded in decomposeVar() with store.stats=TRUE.
 }}
 
 \section{Version 1.6.0}{\itemize{
