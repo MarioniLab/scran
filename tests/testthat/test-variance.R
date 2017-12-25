@@ -164,6 +164,7 @@ test_that("trendVar works with other trend functions",  {
     expect_equal(out.sp$trend(1:20/5), out.sp2$trend(1:20/5))
 })
 
+set.seed(20002)
 test_that("trendVar works with design matrices", {
     design <- matrix(1, ncol(d), 1)
     out2 <- trendVar(d, design=design)
@@ -197,8 +198,17 @@ test_that("trendVar works with design matrices", {
     fit <- lm.fit(y=t(d), x=design)
     effects <- fit$effects[-seq_len(ncol(design)),]
     expect_equal(out$var, colMeans(effects^2))
+
+    # Checking that subsetting is properly considered.
+    reordering <- sample(nrow(d))
+    out3 <- trendVar(d, design=design, subset.row=reordering)
+    ref <- trendVar(d[reordering,], design=design)    
+    expect_equal(out3$mean, ref$mean)
+    expect_equal(out3$var, ref$var)
+    expect_equal(out3$trend(0:10/2), ref$trend(0:10/2))
 })
 
+set.seed(20003)
 test_that("trendVar works with blocking factors", {
     blocking <- sample(3, ncol(d), replace=TRUE)
     fit <- trendVar(d, block=blocking)
@@ -238,6 +248,14 @@ test_that("trendVar works with blocking factors", {
     expect_equal(refit$mean, cbind(`0`=d[,1], fit.0$mean))
     expect_equal(refit$var, cbind(`0`=NA_real_, fit.0$var))
     expect_equal(refit$trend(0:30/10), fit.0$trend(0:30/10))
+
+    # Checking that subsetting is properly considered.
+    reordering <- sample(nrow(d))
+    out3 <- trendVar(d, block=blocking, subset.row=reordering)
+    ref <- trendVar(d[reordering,], block=blocking)    
+    expect_equal(out3$mean, ref$mean)
+    expect_equal(out3$var, ref$var)
+    expect_equal(out3$trend(0:10/2), ref$trend(0:10/2))
 })
 
 # There's a lot of ways it can fail when silly inputs are supplied.
