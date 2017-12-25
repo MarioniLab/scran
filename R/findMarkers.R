@@ -5,7 +5,6 @@
 #
 # written by Aaron Lun
 # created 22 March 2017
-# last modified 22 July 2017    
 {
     # Creating a design matrix.
     clusters <- as.factor(clusters)
@@ -19,19 +18,19 @@
         if (any(to.drop)) {
             design <- design[,-which(to.drop)[1],drop=FALSE]
         }
-        full.design <- cbind(full.design, design) # Other linear dependencies will trigger warnings.
+        full.design <- cbind(full.design, design) # Other linear dependencies will trigger errors in .ranksafe_QR. 
     }
- 
+
+    # Other variables to be initialized.
     pval.type <- match.arg(pval.type) 
     direction <- match.arg(direction)  
-  
-    # Fit a linear model with a one-way layout (need to account for the fact that the matrix is pivoted).
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
-    QR <- .ranksafe_qr(full.design)
-    stats <- .Call(cxx_fit_linear_model, QR$qr, QR$qraux, x, subset.row - 1L, TRUE)
-    coefficients <- stats[[1]][order(QR$pivot),,drop=FALSE]
-    means <- stats[[2]]
-    sigma2 <- stats[[3]]
+
+    # Estimating the parameters.
+    fit <- .fit_lm_internal(x=x, subset.row=subset.row, clusters=clusters, design=full.design)
+    coefficients <- fit$coefficients
+    means <- fit$means
+    sigma2 <- fit$sigma2
 
     # Performing the EB shrinkage in two chunks if min.mean is requested.
     # This ensures that discreteness at low means is quarantined from the high abundances.
@@ -123,6 +122,40 @@
     }
 
     return(output)
+}
+
+.fit_lm_internal <- function(x, subset.row, clusters, design) 
+# Fit a linear model and get coefficients (need to account for the fact that the matrix is pivoted).
+# Alternatively, do this blockwise to avoid having to do the QtY multiplication and back-solving.
+{
+    if (nlevels(clusters) != ncol(design)) {
+        QR <- .ranksafe_qr(design)
+        if (nrow(design) <= ncol(design)) {
+            stop("no residual d.f. in design matrix for variance estimation") 
+        }
+        stats <- .Call(cxx_fit_linear_model, QR$qr, QR$qraux, x, subset.row - 1L, TRUE)
+        coefficients <- stats[[1]][order(QR$pivot),,drop=FALSE]
+        means <- stats[[2]]
+        sigma2 <- stats[[3]]
+    } else {
+        # Assumes ordering of levels in 'clusters' is the same as that in 'design'.
+        by.block <- split(seq_len(ncol(x))-1L, clusters, drop=TRUE)
+        group.size <- lengths(by.block)
+        resid.df <- group.size - 1L
+        if (all(resid.df<=0L)){ 
+            stop("no residual d.f. in any level of 'clusters' for variance estimation")
+        }
+
+        # Calculating the statistics for each block, and adding them across blocks
+        # (avoid NA variances when some blocks have no residual d.f.).
+        stats <- .Call(cxx_fit_oneway, by.block, x, subset.row - 1L)
+        coefficients <- stats[[1]]
+        means <- drop(coefficients %*% group.size)/sum(group.size)
+        keep <- resid.df > 0
+        sigma2 <- drop(stats[[2]][,keep,drop=FALSE] %*% resid.df[keep])/sum(resid.df[keep])
+        coefficients <- t(coefficients) # for consistency.
+    }
+    return(list(coefficients=coefficients, means=means, sigma2=sigma2))
 }
 
 .perform_eb_shrinkage <- function(sigma2, covariate, design)
