@@ -161,8 +161,10 @@
             stop("no residual d.f. in 'x' for variance estimation")
         }
 
-        means <- scater:::.rowSums(x, rows=subset.row)/ncol(x)
-        vars <- scater:::.rowVars(x, rows=subset.row)
+        by.block <- list(seq_len(ncol(x))-1L)
+        stats <- .Call(cxx_fit_oneway, by.block, x, subset.row-1L)
+        means <- drop(stats[[1]])
+        vars <- drop(stats[[2]])
         names(means) <- names(vars) <- rownames(x)[subset.row]
 
         resid.df <- rep(resid.df, length(means))
