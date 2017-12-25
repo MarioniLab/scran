@@ -69,3 +69,75 @@ SEXP fit_linear_model (SEXP qr, SEXP qraux, SEXP exprs, SEXP subset, SEXP get_co
     }
     END_RCPP
 }
+
+/* A much faster function when there's a one-way layout involved. */
+
+template<class M>
+SEXP fit_oneway_internal (Rcpp::List bygroup, M emat, SEXP subset) {
+    // Checking the various groupings.
+    const size_t ncells=emat->get_ncol();
+    const size_t ngroups=bygroup.size();
+    std::vector<Rcpp::IntegerVector> groups(ngroups);
+    for (size_t i=0; i<ngroups; ++i) { 
+        groups[i]=check_subset_vector(bygroup[i], ncells);
+    }
+    
+    auto subout=check_subset_vector(subset, emat->get_nrow());
+    const size_t slen=subout.size();
+   
+    // Setting up the output objects.
+    Rcpp::NumericMatrix outvar(slen, ngroups);
+    Rcpp::NumericMatrix outmean(slen, ngroups);
+    int counter=0;
+    Rcpp::NumericVector incoming(ncells);
+
+    for (const auto& r : subout) {
+        emat->get_row(r, incoming.begin());
+        auto curvarrow=outvar.row(counter);
+        auto curmeanrow=outmean.row(counter);
+        ++counter;
+
+        for (size_t g=0; g<ngroups; ++g) {
+            const auto& curgroup=groups[g];
+            double& curmean=curmeanrow[g];
+            double& curvar=curvarrow[g];
+
+            // Calculating the mean.          
+            if (!curgroup.size()) {
+                curmean=R_NaReal;
+                curvar=R_NaReal;
+                continue; 
+            }
+            for (const auto& index : curgroup) {
+                curmean+=incoming[index];
+            }
+            curmean/=curgroup.size();
+
+            // Computing the variance.
+            if (curgroup.size()==1) {
+                curvar=R_NaReal;
+                continue;
+            }
+            for (const auto& index : curgroup) {
+                const double tmp=incoming[index] - curmean;
+                curvar += tmp * tmp;
+            }
+            curvar/=curgroup.size()-1;
+        }
+    }
+
+    return(Rcpp::List::create(outmean, outvar));
+}
+
+SEXP fit_oneway (SEXP grouping, SEXP exprs, SEXP subset) {
+    BEGIN_RCPP
+    int rtype=beachmat::find_sexp_type(exprs);
+    if (rtype==INTSXP) {
+        auto emat=beachmat::create_integer_matrix(exprs);
+        return fit_oneway_internal(grouping, emat.get(), subset);
+    } else {
+        auto emat=beachmat::create_numeric_matrix(exprs);
+        return fit_oneway_internal(grouping, emat.get(), subset);
+    }
+    END_RCPP
+}

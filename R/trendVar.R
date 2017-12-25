@@ -114,24 +114,20 @@
         recorder$block <- block
 
         # Checking residual d.f.
-        by.block <- split(seq_len(ncol(x)), block, drop=TRUE)
+        by.block <- split(seq_len(ncol(x))-1L, block, drop=TRUE)
         resid.df <- lengths(by.block) - 1L
         if (all(resid.df<=0L)){ 
             stop("no residual d.f. in any level of 'block' for variance estimation")
         }
 
         # Calculating the statistics for each block. 
-        means <- vars <- matrix(0, length(subset.row), length(by.block),
-                                dimnames=list(rownames(x)[subset.row], names(by.block))) 
-        for (g in names(by.block)) {
-            chosen <- by.block[[g]]
-            means[,g] <- scater:::.rowSums(x, rows=subset.row, cols=chosen)/length(chosen)
-            vars[,g] <- scater:::.rowVars(x, rows=subset.row, cols=chosen)
-        }
+        stats <- .Call(cxx_fit_oneway, by.block, x, subset.row-1L)
+        means <- stats[[1]]
+        vars <- stats[[2]]
+        dimnames(means) <- dimnames(vars) <- list(rownames(x)[subset.row], names(by.block))
 
         # Expanding to all observations.
-        resid.df <- matrix(resid.df, length(subset.row), length(by.block), 
-                           byrow=TRUE, dimnames=dimnames(means))
+        resid.df <- matrix(resid.df, length(subset.row), length(by.block), byrow=TRUE, dimnames=dimnames(means))
 
     } else if (!is.null(design)) {
         checked <- .make_var_defaults(x, fit=NULL, design=design)
