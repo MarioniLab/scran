@@ -87,6 +87,7 @@ REFFUN <- function(y, design, clust.vals, output, pval.type="any", direction="an
     return(TRUE)
 }
 
+set.seed(7000001)
 test_that("findMarkers works as expected", {
     clust <- kmeans(t(exprs(X)), centers=3)
     out <- findMarkers(X, clusters=clust$cluster)
@@ -108,8 +109,21 @@ test_that("findMarkers works as expected", {
     
     out <- findMarkers(X, clusters=clust$cluster, direction="down")
     REFFUN(exprs(X), design, levels(clusters), out, direction="down")
+
+    # Checking what happens if one or all groups have no residual d.f.
+    expect_error(findMarkers(X, clusters=1:ncol(X)), "no residual d.f.")
+
+    alt.cluster <- clust$cluster
+    alt.cluster[1] <- 100 # one group with no residual d.f.
+    alt.out <- findMarkers(X, clusters=alt.cluster)
+
+    alt.cluster <- factor(alt.cluster)
+    alt.design <- model.matrix(~0 + alt.cluster)
+    colnames(alt.design) <- levels(alt.cluster)
+    REFFUN(exprs(X), alt.design, levels(alt.cluster), alt.out)
 })
 
+set.seed(7000002)
 test_that("findMarkers works properly with a design matrix", {
     clust <- kmeans(t(exprs(X)), centers=3)
     block <- factor(sample(2, ncol(X), replace=TRUE))
@@ -119,8 +133,13 @@ test_that("findMarkers works properly with a design matrix", {
     design <- model.matrix(~0 + clusters + block)
     colnames(design) <- c(levels(clusters), "block2")
     REFFUN(exprs(X), design, levels(clusters), out.des)
+
+    # Checking for correct error upon having no residual d.f. in the design matrix.
+    design0 <- matrix(1, ncol(X), 1)
+    expect_error(findMarkers(X, clusters=1:ncol(X), design=design0), "no residual d.f.")
 })
 
+set.seed(7000003)
 test_that("findMarkers works correctly with subsetting and spikes", {   
     clust <- kmeans(t(exprs(X)), centers=3)
     out <- findMarkers(X, clusters=clust$cluster, subset.row=100:1)
@@ -131,6 +150,12 @@ test_that("findMarkers works correctly with subsetting and spikes", {
     out <- findMarkers(X, clusters=clust$cluster)
     out2 <- findMarkers(exprs(X)[-(1:100),], clusters=clust$cluster)
     expect_identical(out, out2)
+
+    # Repeating with a design matrix, to check that subsetting works in both branches for coefficient calculation.
+    block <- factor(sample(2, ncol(X), replace=TRUE))
+    out.des <- findMarkers(exprs(X), clusters=clust$cluster, design=model.matrix(~block), subset.row=100:1)
+    out.des2 <- findMarkers(exprs(X)[100:1,,drop=FALSE], clusters=clust$cluster, design=model.matrix(~block))
+    expect_identical(out.des, out.des2)
 })
 
 # Repeating with non-infinite d.f. to check shrinkage.
