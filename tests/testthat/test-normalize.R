@@ -108,7 +108,8 @@ sumInR <- function(x, sizes, center=TRUE, min.mean=0) {
     expect_equal(final.val, ref$output)
 
     # Avoid slight numerical differences between Matrix::qr and base::qr.
-    nf <- as.numeric(solve(qr(final.mat), final.val))
+    nf <- Matrix::solve(Matrix::qr(final.mat), final.val)
+    nf <- as.numeric(nf)
     sf <- nf * lib.sizes
     if (center) {
         sf <- sf/mean(sf)
