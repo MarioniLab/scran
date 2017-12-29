@@ -8,9 +8,9 @@
 
 \usage{
 \S4method{computeSumFactors}{ANY}(x, sizes=seq(20, 100, 5), clusters=NULL, ref.clust=NULL,
-    positive=FALSE, errors=FALSE, min.mean=1, subset.row=NULL, no.warn=FALSE)
+    positive=FALSE, errors=FALSE, min.mean=1, subset.row=NULL)
 
-\S4method{computeSumFactors}{SingleCellExperiment}(x, ..., min.mean=1, subset.row=NULL, no.warn=FALSE,
+\S4method{computeSumFactors}{SingleCellExperiment}(x, ..., min.mean=1, subset.row=NULL, 
     assay.type="counts", get.spikes=FALSE, sf.out=FALSE)
 }
 
@@ -26,7 +26,6 @@
 \item{errors}{A logical scalar indicating whether the standard error should be returned. This option is deprecated, see below.}
 \item{min.mean}{A numeric scalar specifying the minimum (library size-adjusted) average count of genes to be used for normalization.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
-\item{no.warn}{A logical scalar indicating whether a warning should be generated when both \code{min.mean} and \code{subset.row} are specified.}
 \item{...}{Additional arguments to pass to \code{computeSumFactors,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
 \item{get.spikes}{A logical scalar specifying whether spike-in transcripts should be used.}
@@ -108,10 +107,6 @@ By default, \code{get.spikes=FALSE} in \code{quickCluster,SingleCellExperiment-m
 This is because they can behave differently from the endogenous genes. 
 Users wanting to perform spike-in normalization should see \code{\link{computeSpikeFactors}} instead.
 
-Users can also set \code{subset.row} to specify which rows of \code{x} are to be used to calculate correlations.
-This is equivalent to but more efficient than subsetting \code{x} directly, as it avoids constructing a (potentially large) temporary matrix.
-If \code{subset.row} is specified and \code{get.spikes=FALSE}, only the non-spike-in entries of \code{subset.row} will be used in deconvolution. 
-
 Note that pooling does not eliminate the need to filter out low-abundance genes.
 As mentioned above, if too many genes have consistently low counts across all cells, even the pool-based size factors will be zero.
 This results in zero or negative size factor estimates for many cells.
@@ -119,11 +114,13 @@ Filtering ensures that this is not the case, e.g., by removing genes with averag
 
 In general, genes with average counts below 1 (for read count data) or 0.1 (for UMI data) should not be used for normalization.
 Such genes will automatically be filtered out by applying a minimum threshold \code{min.mean} on the library size-adjusted average counts from \code{\link[scater]{calcAverage}}.
-If \code{subset.row} is specified, only the genes selected by \code{subset.row} and with average counts above \code{min.mean} will be used.
+If \code{clusters} is specified, filtering by \code{min.mean} is performed on the per-cluster average during within-cluster normalization,
+and then on the average of the per-cluster averages during between-cluster normalization.
 
-A warning is triggered if both \code{subset.row} and \code{min.mean} are not \code{NULL}.
-This is designed to ensure that users who have filtered on abundance already in \code{subset.row} do not unintentionally filter again via \code{min.mean}.
-If filtering on both \code{subset.row} and \code{min.mean} is intended, users can disable this warning by setting \code{no.warn=TRUE}.
+Users can also set \code{subset.row} to specify which rows of \code{x} are to be used to calculate the normalization factors. 
+This is equivalent to but more efficient than subsetting \code{x} directly, as it avoids constructing a (potentially large) temporary matrix.
+If \code{subset.row} is specified and \code{get.spikes=FALSE}, only the non-spike-in entries of \code{subset.row} will be used in deconvolution. 
+Similarly, only the genes selected by \code{subset.row} and with average counts above \code{min.mean} will be used.
 }
 
 \section{Obtaining standard errors}{

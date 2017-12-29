@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.7.8}{\itemize{
+\section{Version 1.7.9}{\itemize{
 \item Modified decomposeVar() to return statistics (but not p-values) for spike-ins when get.spikes=NA.
 Added block= argument for mean/variance calculations within each level of a blocking factor.
 Added store.stats= argument to record stats in attributes for use in combineVar(). 
@@ -35,6 +35,9 @@ Deprecated the use of residuals=FALSE for one-way layouts in design=.
 Deprecated the use of residuals=FALSE for one-way layouts in design=.
 
 \item Modified combineVar() so that it is aware to the stats recorded in decomposeVar() with store.stats=TRUE.
+
+\item Modified the behaviour of min.mean= in computeSumFactors() when clusters!=NULL.
+Abundance filtering is now performed within each cluster and for pairs of clusters, rather than globally.
 }}
 
 \section{Version 1.6.0}{\itemize{
