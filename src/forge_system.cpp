@@ -13,62 +13,32 @@ SEXP subset_and_divide_internal(const M in, SEXP inmat, SEXP row_subset, SEXP co
     auto csubout=check_subset_vector(col_subset, in->get_ncol());
     const size_t cslen=csubout.size();
 
-    /* Checking which rows are non-zero, and which are to be retained.
-     * This is done in C++ so as to avoid needing to create the normalized expression
-     * matrix and then subset it (i.e., two sets of writes).
-     */
     V incoming(in->get_nrow());
-    std::deque<size_t> to_retain, to_retain_subset;
     size_t start_row=0, end_row=0;
-    {
-        // Computing the row sums.
-        V combined(rslen);
-        for (const auto& c : csubout) { 
-            auto inIt=in->get_const_col(c, incoming.begin());
-            auto coIt=combined.begin();
-            for (auto rsIt=rsubout.begin(); rsIt!=rsubout.end(); ++rsIt, ++coIt) {
-                (*coIt)+=*(inIt + *rsIt);
-            }
-        }
-        
-        // Storing the indices of elements to be retained (w.r.t. the original matrix, and to the row subset).
-        auto coIt = combined.begin();
-        auto rsIt = rsubout.begin(); 
-        for (size_t rs=0; rs<rslen; ++coIt, ++rsIt, ++rs) {
-            if (*coIt >= 0.00000001) {
-                to_retain.push_back(*rsIt);
-                to_retain_subset.push_back(rs);
-            }
-        }
-
-        if (!to_retain.empty()) {
-            // Cutting out extraction costs for unneeded start/end elements.
-            start_row=*std::min_element(to_retain.begin(), to_retain.end());
-            end_row=*std::max_element(to_retain.begin(), to_retain.end())+1;
-            for (size_t& idex : to_retain) {
-                idex -= start_row;
-            }
-        }
+    if (rslen) {
+        // Cutting out extraction costs for unneeded start/end elements.
+        start_row=*std::min_element(rsubout.begin(), rsubout.end());
+        end_row=*std::max_element(rsubout.begin(), rsubout.end())+1;
     }
 
     // Setting up the output structures.
     Rcpp::NumericVector libsizes(cslen);
-    const size_t final_nrow=to_retain.size();
-    Rcpp::NumericVector outgoing(final_nrow), averaged(final_nrow);
+    Rcpp::NumericVector outgoing(rslen), averaged(rslen);
 
     beachmat::output_param oparam(inmat, false, true);
-    oparam.set_chunk_dim(final_nrow, 1); // pure-column chunks for random access, if HDF5.
-    auto omat=beachmat::create_numeric_output(final_nrow, cslen, oparam);
+    oparam.set_chunk_dim(rslen, 1); // pure-column chunks for random access, if HDF5.
+    auto omat=beachmat::create_numeric_output(rslen, cslen, oparam);
 
     auto lbIt=libsizes.begin();
     size_t cs=0;
-    for (auto csIt=csubout.begin(); csIt!=csubout.end(); ++csIt, ++lbIt, ++cs) {
+    for (const auto& c : csubout) {
 
         // Extracting the column, subsetting the rows.
-        auto inIt=in->get_const_col(*csIt, incoming.begin(), start_row, end_row);
+        auto inIt=in->get_const_col(c, incoming.begin(), start_row, end_row);
         auto oIt=outgoing.begin();
-        for (auto trIt=to_retain.begin(); trIt!=to_retain.end(); ++trIt, ++oIt) {
-            (*oIt)=*(inIt + *trIt);
+        for (const auto& r : rsubout) {
+            (*oIt)=*(inIt + r - start_row);
+            ++oIt;
         }
            
         // Dividing by the library size. 
@@ -76,31 +46,28 @@ SEXP subset_and_divide_internal(const M in, SEXP inmat, SEXP row_subset, SEXP co
         if (curlib < 0.00000001) {
             throw std::runtime_error("cells should have non-zero library sizes");
         }
+        ++lbIt;
+
         for (double& out : outgoing) {
             out/=curlib;
         }
-
         omat->set_col(cs, outgoing.begin());
+        ++cs;
 
         // Adding to the average.
         oIt=outgoing.begin();
-        for (auto aIt=averaged.begin(); aIt!=averaged.end(); ++aIt, ++oIt) {
-            (*aIt)+=(*oIt);
+        for (auto& a : averaged) {
+            a+=(*oIt);
+            ++oIt;
         }
     }
 
-    /* Expanding the average vector back to the dimensions spanned by subset_row 
-     * (i.e., before removing all-zeroes). This ensures pseudo-cells are comparable 
-     * between clusters. Done in C++ to avoid needing to pass back the subset vector.
-     */
-    Rcpp::NumericVector full_averaged(rslen);
-    auto aIt=averaged.begin();
-    for (auto trIt=to_retain_subset.begin(); trIt!=to_retain_subset.end(); ++trIt, ++aIt) {
-        (*aIt)/=cslen;
-        full_averaged[*trIt]=(*aIt);
+    // Dividing the average.
+    for (auto& a : averaged) {
+        a/=cslen;
     }
 
-    return Rcpp::List::create(libsizes, omat->yield(), averaged, full_averaged);
+    return Rcpp::List::create(libsizes, omat->yield(), averaged); 
 }
 
 SEXP subset_and_divide(SEXP matrix, SEXP row_subset, SEXP col_subset) {

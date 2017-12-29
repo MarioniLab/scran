@@ -1,5 +1,5 @@
 .computeSumFactors <- function(x, sizes=seq(20, 100, 5), clusters=NULL, ref.clust=NULL, 
-                               positive=FALSE, errors=FALSE, min.mean=1, subset.row=NULL, no.warn=FALSE) 
+                               positive=FALSE, errors=FALSE, min.mean=1, subset.row=NULL)
 # This contains the function that performs normalization on the summed counts.
 # It also provides support for normalization within clusters, and then between
 # clusters to make things comparable. It can also switch to linear inverse models
@@ -7,7 +7,6 @@
 #
 # written by Aaron Lun
 # created 23 November 2015
-# last modified 22 November 2017 
 {
     ncells <- ncol(x)
     if (!is.null(clusters)) {
@@ -20,25 +19,18 @@
         indices <- list(seq_len(ncells))
     }
 
-    # Checking sizes.
+    # Checking sizes and subsetting.
     sizes <- sort(as.integer(sizes))
     if (anyDuplicated(sizes)) { 
         stop("'sizes' are not unique") 
     }
-
-    # Checking the subsetting (with interplay with min.mean if required).
-    if (!is.null(subset.row) && !is.null(min.mean) && !no.warn) {
-        warning("both 'min.mean' and 'subset.row' are defined, see ?computeSumFactors")
-    }
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
-    if (!is.null(min.mean)) { 
-        high.ave <- which(calcAverage(x) >= min.mean)
-        subset.row <- intersect(high.ave, subset.row)
-    }
+    min.mean <- pmax(min.mean, 1e-8) # must be at least non-zero mean. 
 
     # Setting some other values.
     nclusters <- length(indices)
-    clust.nf <- clust.profile <- clust.libsizes <- clust.meanlib <- clust.se <- vector("list", nclusters)
+    clust.nf <- clust.profile <- clust.libsizes <- vector("list", nclusters)
+    clust.meanlib <- numeric(nclusters)
     warned.neg <- FALSE
 
     # Computing normalization factors within each cluster first.
@@ -59,8 +51,17 @@
         cur.out <- .Call(cxx_subset_and_divide, x, subset.row-1L, curdex-1L) 
         cur.libs <- cur.out[[1]]
         exprs <- cur.out[[2]]
-        use.ave.cell <- cur.out[[3]]
-        ave.cell <- cur.out[[4]]
+        ave.cell <- cur.out[[3]]
+
+        # Filtering by mean (easier to do it here in R, rather than C++).
+        mean.lib <- mean(cur.libs)
+        high.ave <- min.mean/mean.lib <= ave.cell # mimics calcAverage
+        if (!all(high.ave)) { 
+            exprs <- exprs[high.ave,,drop=FALSE]
+            use.ave.cell <- ave.cell[high.ave]
+        } else {
+            use.ave.cell <- ave.cell
+        }
 
         # Using our summation approach.
         sphere <- .generateSphere(cur.libs)
@@ -89,23 +90,16 @@
         clust.nf[[clust]] <- final.nf
         clust.profile[[clust]] <- ave.cell
         clust.libsizes[[clust]] <- cur.libs
-        clust.meanlib[[clust]] <- mean(cur.libs)
+        clust.meanlib[clust] <- mean.lib 
     }
 
     # Adjusting size factors between clusters (using the cluster with the
     # median per-cell library size as the reference, if not specified).
-    if (is.null(ref.clust)) {
-        clust.meanlib <- unlist(clust.meanlib)
-        ref.col <- which(rank(clust.meanlib, ties.method="first")==as.integer(length(clust.meanlib)/2)+1L)
-    } else {
-        ref.col <- which(names(indices)==ref.clust)
-        if (length(ref.col)==0L) { 
-            stop("'ref.clust' value not in 'clusters'")
-        }
-    }
+    rescaling.factors <- .rescale_clusters(clust.profile, clust.meanlib, ref.clust=ref.clust, 
+                                           min.mean=min.mean, clust.names=names(indices))
     clust.nf.scaled <- vector("list", nclusters)
     for (clust in seq_len(nclusters)) { 
-        clust.nf.scaled[[clust]] <- clust.nf[[clust]] * median(clust.profile[[clust]]/clust.profile[[ref.col]], na.rm=TRUE)
+        clust.nf.scaled[[clust]] <- clust.nf[[clust]] * rescaling.factors[[clust]]
     }
     clust.nf.scaled <- unlist(clust.nf.scaled)
 
@@ -119,6 +113,10 @@
     final.sf <- final.sf/mean(final.sf[is.pos])
     return(final.sf)
 }
+
+#############################################################
+# Internal functions.
+#############################################################
 
 .generateSphere <- function(lib.sizes) 
 # This function sorts cells by their library sizes, and generates an ordering vector.
@@ -164,12 +162,48 @@ LOWWEIGHT <- 0.000001
     return(list(design=design, output=output))
 }
 
+.rescale_clusters <- function(mean.prof, mean.lib, ref.clust, min.mean, clust.names) {
+    # Picking the cluster with the median library size as the reference.
+    if (is.null(ref.clust)) {
+        ref.col <- which(rank(mean.lib, ties.method="first")==as.integer(length(mean.lib)/2)+1L)
+    } else {
+        ref.col <- which(clust.names==ref.clust)
+        if (length(ref.col)==0L) { 
+            stop("'ref.clust' value not in 'clusters'")
+        }
+    }
+
+    nclusters <- length(mean.prof)
+    rescaling <- vector("list", nclusters)
+    for (clust in seq_len(nclusters)) { 
+        ref.prof <- mean.prof[[ref.col]]
+        cur.prof <- mean.prof[[clust]] 
+
+        # Filtering based on the mean of the per-cluster means (requires scaling for the library size).
+        ref.libsize <- mean.lib[[ref.col]]
+        cur.libsize <- mean.lib[[clust]]
+        to.use <- (cur.prof * cur.libsize + ref.prof * ref.libsize)/2 >= min.mean
+        if (!all(to.use)) { 
+            cur.prof <- cur.prof[to.use]
+            ref.prof <- ref.prof[to.use]
+        } 
+
+        # Adjusting for systematic differences between clusters.
+        rescaling[[clust]] <- median(cur.prof/ref.prof, na.rm=TRUE)
+    }
+    return(rescaling)
+}
+
+#############################################################
+# S4 method definitions.
+#############################################################
+
 setGeneric("computeSumFactors", function(x, ...) standardGeneric("computeSumFactors"))
 
 setMethod("computeSumFactors", "ANY", .computeSumFactors)
 
 setMethod("computeSumFactors", "SingleCellExperiment", 
-          function(x, ..., min.mean=1, subset.row=NULL, no.warn=FALSE, 
+          function(x, ..., min.mean=1, subset.row=NULL, 
                    assay.type="counts", get.spikes=FALSE, sf.out=FALSE) { 
  
     if (is.null(subset.row) && !is.null(min.mean)) {
@@ -178,7 +212,7 @@ setMethod("computeSumFactors", "SingleCellExperiment",
 
     subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
     sf <- .computeSumFactors(assay(x, i=assay.type), subset.row=subset.row, 
-                             min.mean=min.mean, no.warn=no.warn, ...) 
+                             min.mean=min.mean, ...) 
 
     if (sf.out) { 
         return(sf) 
