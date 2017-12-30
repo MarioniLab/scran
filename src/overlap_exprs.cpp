@@ -64,7 +64,7 @@ SEXP overlap_exprs_internal(const M mat, const Rcpp::List& groups, SEXP subset, 
             const size_t jsize=sources[j].size();
             if (i!=j) { 
                 if (isize && jsize) { 
-                    (*nIt) = (ncellpairs[counter] = jsize + isize);
+                    (*nIt) = (ncellpairs[counter] = double(jsize) * double(isize));
                 }
                 ++nIt;
             }
@@ -112,13 +112,10 @@ SEXP overlap_exprs_internal(const M mat, const Rcpp::List& groups, SEXP subset, 
                     while (c2_right < ncells2 && group2[c2_right] < right) { ++c2_right; } // c2_right points to first element out of range.
                     score += double(c2_left) + double(c2_right - c2_left)*0.5;
                 }
-                score/=double(ncells1)*double(ncells2);
 
-                // Accounting for the total number of cells.
-                const double& total_cells=ncellpairs[counter];
-                counter=i2*ngroups + i1; // Adding the symmetric value.
-                *(pptrs[counter]++)=(1-score) * total_cells;
-                score *= total_cells;
+                // Adding the symmetric value.
+                counter=i2*ngroups + i1; 
+                *(pptrs[counter]++)=(ncellpairs[counter] - score);
             }
         } 
     }
