@@ -88,29 +88,11 @@
         }
         colnames(all.lfc) <- paste0("logFC.", targets)
 
-        if (pval.type=="any") { 
-            # Computing Simes' p-value in a fully vectorised manner.
-            gene.id <- rep(seq_len(ngenes), ncon)
-            o <- order(gene.id, all.p)
-            penalty <- rep(ncon/seq_len(ncon), ngenes) 
-            com.p <- matrix(all.p[o]*penalty, ngenes, ncon, byrow=TRUE)
-            smallest <- (max.col(-com.p) - 1) * ngenes + seq_len(ngenes)
-            pval <- com.p[smallest]
-        } else {
-            # Computing the IUT p-value.
-            largest <- (max.col(all.p) - 1) * ngenes + seq_len(ngenes)
-            pval <- all.p[largest]
-        }
-
-        # Collating minimum ranks.
-        min.rank <- rep(ngenes, ngenes)
-        min.p <- rep(1, ngenes)
-        for (con in seq_len(ncon)) { 
-            cur.p <- all.p[,con]
-            cur.rank <- rank(cur.p, ties.method="first")
-            min.rank <- pmin(min.rank, cur.rank)
-            min.p <- pmin(min.p, cur.p)
-        }
+        # Collating p-values.
+        pval <- .combine_pvalues(all.p, pval.type)
+        rank.out <- .rank_top_genes(all.p)
+        min.rank <- rank.out$rank
+        min.p <- rank.out$value
 
         # Producing the output object.
         marker.set <- data.frame(Top=min.rank, Gene=rownames(x)[subset.row], 
@@ -123,6 +105,10 @@
 
     return(output)
 }
+
+###########################################################
+# Internal functions.
+###########################################################
 
 .fit_lm_internal <- function(x, subset.row, clusters, design) 
 # Fit a linear model and get coefficients (need to account for the fact that the matrix is pivoted).
@@ -168,6 +154,53 @@
     df.total <- pmin(df.total, df.pooled)
     return(list(var.post=eb.out$var.post, df.total=df.total))
 }
+
+.rank_top_genes <- function(metrics) 
+# This computes the rank and the minimum metric for each gene.
+{
+    ngenes <- nrow(metrics)
+    ncon <- ncol(metrics)
+    min.rank <- rep(ngenes, ngenes)
+    min.val <- rep(1, ngenes)
+
+    for (con in seq_len(ncon)) { 
+        cur.val <- metrics[,con]
+        cur.rank <- rank(cur.val, ties.method="first")
+        min.rank <- pmin(min.rank, cur.rank)
+        min.val <- pmin(min.val, cur.val)
+    }
+    
+    return(list(rank=min.rank, value=min.val))
+}
+
+.combine_pvalues <- function(all.p, pval.type) { 
+    ngenes <- nrow(all.p)
+    ncon <- ncol(all.p)
+
+    if (pval.type=="any") { 
+        # Computing Simes' p-value in a fully vectorised manner.
+        gene.id <- rep(seq_len(ngenes), ncon)
+        o <- order(gene.id, all.p)
+        penalty <- rep(ncon/seq_len(ncon), ngenes) 
+        com.p <- matrix(all.p[o]*penalty, ngenes, ncon, byrow=TRUE)
+        smallest <- (max.col(-com.p) - 1) * ngenes + seq_len(ngenes)
+        pval <- com.p[smallest]
+    } else {
+        # Computing the IUT p-value.
+        pval <- all.p[.find_largest_index(all.p)]
+    }
+
+    return(pval)
+}
+
+.find_largest_index <- function(metrics) {
+    ngenes <- nrow(metrics)
+    (max.col(metrics) - 1L) * ngenes + seq_len(ngenes)
+}
+
+###########################################################
+# S4 method definitions
+###########################################################
 
 setGeneric("findMarkers", function(x, ...) standardGeneric("findMarkers"))
 
