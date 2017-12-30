@@ -138,7 +138,7 @@
         } else {
             # Getting the smallest overlap and ranking by that.
             to.add <- current[.find_largest_index(metric)]
-            field.name <- "Minimum"
+            field.name <- "Best"
             o <- order(to.add)
         }
 

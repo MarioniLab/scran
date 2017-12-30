@@ -7,8 +7,10 @@
 \description{Compute the gene-specific overlap in expression profiles between two groups of cells.}
 
 \usage{
-\S4method{overlapExprs}{ANY}(x, groups, block=NULL, design=NULL, residuals=FALSE, 
-    tol=1e-8, BPPARAM=SerialParam(), subset.row=NULL, lower.bound=NULL)
+\S4method{overlapExprs}{ANY}(x, groups, block=NULL, design=NULL, 
+    rank.type=c("any", "all"), direction=c("any", "up", "down"),
+    tol=1e-8, BPPARAM=SerialParam(), subset.row=NULL, 
+    lower.bound=NULL, residuals=FALSE)
 
 \S4method{overlapExprs}{SingleCellExperiment}(x, ..., subset.row=NULL, lower.bound=NULL, 
     assay.type="logcounts", get.spikes=FALSE) 
@@ -24,11 +26,13 @@ A vector of group assignments for all cells.
 }
 \item{block}{A factor specifying the blocking level for each cell.}
 \item{design}{A numeric matrix containing blocking terms, i.e., uninteresting factors driving expression across cells.}
-\item{residuals}{A logical scalar indicating whether overlaps should be computed between residuals of a linear model.} 
+\item{rank.type}{A string specifying which comparisons should be used to rank genes in the output.}
+\item{direction}{A string specifying which direction of change in expression should be used to rank genes in the output.}
 \item{tol}{A numeric scalar specifying the tolerance with which ties are considered.}
 \item{BPPARAM}{A BiocParallelParam object to use in \code{bplapply} for parallel processing.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{lower.bound}{A numeric scalar specifying the theoretical lower bound of values in \code{x}, only used when \code{residuals=TRUE}.}
+\item{residuals}{A logical scalar indicating whether overlaps should be computed between residuals of a linear model.} 
 \item{...}{Additional arguments to pass to the matrix method.}
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
 \item{get.spikes}{A logical scalar specifying whether decomposition should be performed for spike-ins.}
@@ -41,15 +45,37 @@ Overlap proportions near 0 or 1 indicate that the expression distributions are w
 In particular, large proportions indicate that most cells of the first group (A) express the gene more highly than most cells of the second group (B).
 
 This function computes, for each gene, the overlap proportions between all pairs of groups in \code{groups}.
-It is designed to complement \code{\link{findMarkers}}, which reports the log-fold changes between groups.
-This is useful for prioritizing candidate markers that are distinctive to one group or another, without needing to plot the expression values.
+It will then rank the genes based on how well they differentiate between groups.
+\code{overlapExprs} is designed to complement \code{\link{findMarkers}}, which reports the log-fold changes between groups.
+This is useful for prioritizing candidate markers without needing to plot their expression values.
 
 Expression values that are tied between groups are considered to be 50\% likely to be greater in either group.
-Thus, if all values were tied, the overlap proportion would be 0.5.
+Thus, if all values were tied, the overlap proportion would be equal to 0.5.
 The tolerance with which ties are considered can be set by changing \code{tol}.
 
+Users can specify which subset of genes to perform these calculations on, by supplying a non-\code{NULL} value of \code{subset.row}.
 By default, spike-in transcripts are ignored in \code{overlapExprs,SingleCellExperiment-method} with \code{get.spikes=FALSE}.
-This is overridden by any non-\code{NULL} value of \code{subset.row}.
+If \code{get.spikes=FALSE} and \code{subset.row!=NULL}, the function will only use the non-spike-in transcripts in \code{subset.row}.
+}
+
+\section{Ranking genes in the output}{
+If \code{rank.type="any"}, the genes in each group-specific DataFrame are ranked using a similar logic to that in \code{\link{findMarkers}}.
+In the DataFrame for group A, a \code{Top} value is calculated for each gene, representing an aggregated ranking across all pairwise comparisons to the other groups.
+To illustrate, consider the set of all genes with \code{Top} values less than or equal to some integer X.
+This set is the union of the top X genes with the worst overlaps from each pairwise comparison between group A and every other group.
+Ranking genes based on the \code{Top} value prioritizes genes that exhibit low overlaps between group A and \emph{any} other group.
+
+If \code{rank.type="all"}, the genes in each group-specific DataFrame are ranked by the \code{Best} value instead.
+This is the proportion corresponding to the best overlap across all pairwise comparisons between group A and the other groups.
+By using this metric, genes can only achieve a high ranking if there exist poor overlaps between group A and \emph{all} other groups.
+This tends to be quite conservative but can be helpful for quickly identifying uniquely differentially expressed markers.
+
+By default, \code{direction="any"} means that any shift in the distribution between groups that reduces overlap will be considered during ranking.
+Thus, poor overlaps are defined by overlap proportions with the largest absolute difference from 0.5.
+Conversely, good overlaps are defined by overlap proportions closest to 0.5.
+If \code{direction="up"}, the function will instead focus on genes that shift upwards in A versus all other groups, 
+i.e., poor overlaps have large overlap proportions and good overlaps have small proportions.
+The opposite is true if \code{direction="down"}, where the function will focus on genes that shift downwards in A versus all other groups.
 }
 
 \section{Accounting for uninteresting variation}{
@@ -70,10 +96,15 @@ Where possible for one-way layouts, we suggest using \code{block} instead.
 }
 
 \value{
-A named list of numeric matrices.
-Each matrix corresponds to a group (A) in \code{groups} and contains one row per gene in \code{x} (or the subset specified by \code{subset.row}).
-Each column corresponds to another group (B) in \code{groups}.
-The matrix entries contain overlap proportions between groups A and B for each gene.
+A named list of DataFrames.
+Each DataFrame corresponds to a group in \code{groups} and contains one row per gene in \code{x} (or the subset specified by \code{subset.row}).
+Within the DataFrame for each group (e.g., group A), there are the following fields:
+\describe{
+\item{\code{Top}:}{Integer, the aggregated rank across all pairwise comparisons if \code{rank.type="any"}.}
+\item{\code{Best}:}{Numeric, the value of the best overlap proportion across all comparisons if \code{rank.type="all"}.}
+\item{\code{overlap.B}:}{Numeric for every other group B in \code{groups}, containing overlap proportions between groups A and B for that gene.}
+}
+Genes are ranked by the \code{Top} or \code{Best} column, depending on \code{rank.type}.
 } 
 
 \author{
