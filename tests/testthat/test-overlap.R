@@ -51,7 +51,7 @@ test_that("overlapExprs works in the simple case", {
     checkSymmetry(out)
     for (i1 in names(out)) { 
         obs <- out[[i1]]
-        expect_identical(colnames(obs), c("Top", paste0("overlap.", setdiff(names(out), i1))))
+        expect_identical(colnames(obs), c("Top", RENAME(setdiff(names(out), i1))))
 
         for (i2 in names(out)) { 
             if (i1==i2) { next }
@@ -137,9 +137,18 @@ test_that("overlapExprs responds to the request type", {
     checkValues(out, ref, ignore.first=TRUE)  
     for (i1 in names(out)) {
         current <- out[[i1]]
-        ref <- apply(current[,-1], 1, FUN=function(x) { x[which.max(0.5 - abs(0.5 - x))] })
-        expect_equal(names(ref), rownames(current))
-        expect_equal(unname(ref), current$Best)
+        gunk <- apply(current[,-1], 1, FUN=function(x) { x[which.max(defaultRank(x))] })
+        expect_equal(names(gunk), rownames(current))
+        expect_equal(unname(gunk), current$Best)
+    }
+
+    out <- overlapExprs(X, grouping, rank.type="all", direction="up")
+    checkValues(out, ref, ignore.first=TRUE)  
+    for (i1 in names(out)) {
+        current <- out[[i1]]
+        gunk <- apply(current[,-1], 1, FUN=function(x) { x[which.max(1-x)] })
+        expect_equal(names(gunk), rownames(current))
+        expect_equal(unname(gunk), current$Best)
     }
 })
 
@@ -200,7 +209,12 @@ test_that("overlapExprs works correctly with a blocking factor", {
     checkValues(out, ref)
     checkSymmetry(out)
     checkRanking(out, defaultRank) 
-    
+  
+    # Checking that the rankings are still operational here. 
+    out2 <- overlapExprs(X, grouping, block=block, direction="up")
+    checkValues(out, out2)
+    checkRanking(out2, function(x) { 1 - x })
+ 
     # Checking what happens when a group is only present in one blocking level.
     grouping <- rep(1:4, each=25)
     block <- factor(rep(rep(LETTERS[1:4], c(2, 5, 8, 10)), 4))
