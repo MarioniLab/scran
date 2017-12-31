@@ -33,8 +33,9 @@ REFFUN <- function(y, grouping, pval.type="any", direction="any")
         # Compiling the requested ordering. 
         combined.p <- do.call(cbind, collected.p)
         if (pval.type=="any") { 
-            all.ranks <- lapply(collected.p, rank, ties.method="first")
-            reordered <- order(do.call(pmin, all.ranks), do.call(pmin, collected.p))
+            all.ranks <- lapply(collected.p, rank, ties.method="first", na.last="keep")
+            reordered <- order(do.call(pmin, c(all.ranks, na.rm=TRUE)), 
+                               do.call(pmin, c(collected.p, na.rm=TRUE)))
             pval <- apply(combined.p, 1, FUN=function(x) { min(p.adjust(x, method="BH"), na.rm=TRUE) })
         } else {
             pval <- apply(combined.p, 1, FUN=max, na.rm=TRUE)
@@ -81,6 +82,7 @@ test_that("findMarkers works as expected without blocking or design matrices", {
     re.clust <- clust$cluster
     re.clust[1] <- 4
     re.clust <- factor(re.clust)
+
     REFFUN(exprs(X), re.clust)
     REFFUN(exprs(X), re.clust, pval.type="all")
 
@@ -90,6 +92,20 @@ test_that("findMarkers works as expected without blocking or design matrices", {
     re.clust <- factor(re.clust)
     REFFUN(exprs(X), re.clust)
     REFFUN(exprs(X), re.clust, pval.type="all")
+    
+    # Checking what happens if there is an empty level.
+    re.clusters <- clusters
+    levels(re.clusters) <- 1:4
+
+    out <- findMarkers(exprs(X), re.clusters)
+    ref <- findMarkers(exprs(X), clusters)
+    for (g in names(ref)) {
+        current <- ref[[g]]
+        counter <- out[[g]]
+        expect_equal(current, counter[,colnames(current)])
+        expect_true(all(is.na(counter[,"logFC.4"])))
+        expect_true(all(is.na(out[["4"]][,paste0("logFC.", g)])))
+    }
 })
 
 ###############################
@@ -143,7 +159,15 @@ test_that("findMarkers runs properly with blocking (part I)", {
     # Standard check for sensible log-fold changes.
     output <- findMarkers(X, clusters, blocked)
     LIMIT_CHECK(X, clusters, blocked, output)
-    
+   
+    # All values should be the same if one block contains only one group.
+    re.clusters <- clusters
+    re.clusters[blocked==1] <- 1
+    output <- findMarkers(X, re.clusters, blocked)
+    keep <- blocked!=1
+    ref <- findMarkers(X[,keep], re.clusters[keep], blocked[keep])
+    expect_equal(ref, output)
+
     # Gene ordering and p-values should be the same as an unblocked analysis with the other block,
     # if one block contains only one sample from each group.
     re.clusters <- clusters
@@ -161,7 +185,6 @@ test_that("findMarkers runs properly with blocking (part I)", {
         for (d in direction) { 
             output <- findMarkers(X, re.clusters, block=re.blocked, direction=d, pval.type=type)
             LIMIT_CHECK(X, re.clusters, re.blocked, output)
-
             ref <- findMarkers(X[,-(1:3)], re.clusters[-(1:3)], direction=d, pval.type=type)
             expect_equal(names(output), names(ref))
 
@@ -189,7 +212,6 @@ test_that("findMarkers runs properly with blocking (part I)", {
         for (d in direction) { 
             output <- findMarkers(X2, clusters2, block=blocked2, direction=d, pval.type=type)
             LIMIT_CHECK(X2, clusters2, blocked2, output)
-
             ref <- findMarkers(X, clusters, direction=d, pval.type=type)
             expect_equal(names(output), names(ref))
 
@@ -202,6 +224,7 @@ test_that("findMarkers runs properly with blocking (part I)", {
     }
 })
 
+set.seed(70000012)
 test_that("findMarkers runs properly with blocking (part II)", {
     # Checking that the combined log-fold changes follow the expected ratios,
     # for a multi-cluster comparison with three blocking levels but only 
@@ -249,6 +272,7 @@ test_that("findMarkers runs properly with blocking (part II)", {
     }
 })
 
+set.seed(70000012)
 test_that("findMarkers runs properly with blocking (part III)", {
     # Log-fold changes behave sensibly when one block is missing a group.
     re.clusters <- clusters
@@ -267,6 +291,7 @@ test_that("findMarkers runs properly with blocking (part III)", {
 
     output <- findMarkers(subX, subclust, subblock)
     for (i in names(output)) {
+        expect_true(all(is.na(output[[i]]$Top)))
         for (j in setdiff(names(output), i)) {
             cur.lfc <- output[[i]][,paste0("logFC.", j)]
             expect_equal(cur.lfc, unname(rowMeans(exprs(subX)[,subclust==i]) - rowMeans(exprs(subX)[,subclust==j])))
@@ -301,6 +326,8 @@ test_that("findMarkers runs properly with blocking (part III)", {
     
     # We correctly get NA values if block is confounded with group.
     # Importantly, these NA values should not effect anything else.
+    stuff <- matrix(rnorm(ngenes*ncells), nrow=ngenes)
+    rownames(stuff) <- 1:ngenes
     re.clusters <- as.character(clusters)
     re.block <- blocked
     re.clusters[re.block==1] <- "A"
@@ -312,9 +339,9 @@ test_that("findMarkers runs properly with blocking (part III)", {
     for (x in 1:3) {
         cur.out <- output[[x]]
         expect_true(all(is.na(cur.out$logFC.A)))
-#        expect_equal(cur.out[,setdiff(colnames(cur.out), "logFC.4")], ref[[x]])
+        expect_equal(cur.out[,setdiff(colnames(cur.out), "logFC.A")], ref[[x]])
         expect_true(all(is.na(output[["A"]][,paste0("logFC.", x)])))
-    }  
+    } 
 })
 
 ###############################

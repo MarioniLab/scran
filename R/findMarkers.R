@@ -330,14 +330,13 @@
 {
     ngenes <- nrow(metrics)
     ncon <- ncol(metrics)
-    min.rank <- rep(ngenes, ngenes)
-    min.val <- rep(1, ngenes)
+    min.rank <- min.val <- rep(NA_integer_, ngenes)
 
     for (con in seq_len(ncon)) { 
         cur.val <- metrics[,con]
-        cur.rank <- rank(cur.val, ties.method="first")
-        min.rank <- pmin(min.rank, cur.rank)
-        min.val <- pmin(min.val, cur.val)
+        cur.rank <- rank(cur.val, ties.method="first", na.last="keep")
+        min.rank <- pmin(min.rank, cur.rank, na.rm=TRUE)
+        min.val <- pmin(min.val, cur.val, na.rm=TRUE)
     }
     
     return(list(rank=min.rank, value=min.val))
