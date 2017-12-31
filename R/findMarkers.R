@@ -75,7 +75,7 @@
 
     for (b in seq_along(by.block)) {
         curblock <- by.block[[b]]       
-        by.cluster <- split(curblock - 1L, clusters, drop=FALSE)
+        by.cluster <- split(curblock - 1L, clusters[curblock], drop=FALSE)
         stopifnot(identical(names(by.cluster), clust.vals))
      
         # Calculating the statistics for each block.
@@ -111,7 +111,7 @@
         for (target in targets) {
             all.lfc <- matrix(0, ngenes, nblocks)
             all.left <- all.right <- all.weight <- all.lfc
-            all.s2 <- all.df <- numeric(ngenes)
+            all.rss <- all.df <- numeric(ngenes)
 
             # Performing the same pairwise t-test across all blocks.
             for (b in seq_len(nblocks)) { 
@@ -127,13 +127,13 @@
                 all.left[,b] <- pt(cur.t, df=cur.df, lower.tail=TRUE, log.p=TRUE)
                 all.right[,b] <- pt(cur.t, df=cur.df, lower.tail=FALSE, log.p=TRUE)
 
-                all.s2 <- all.s2 + t.out$s2 * t.out$residual.df
+                all.rss <- all.rss + t.out$rss 
                 all.df <- all.df + t.out$residual.df
             }
 
             # Combining the p-values and log-fold changes across blocks.
             com.p <- .combine_test_statistics(all.left, all.right, all.weight, direction)
-            com.lfc <- .combine_lfc(all.lfc, all.weight, all.s2/all.df)
+            com.lfc <- .combine_lfc(all.lfc, all.weight, all.rss/all.df)
             out.p[[host]][,target] <- com.p
             out.lfc[[host]][,target] <- com.lfc
 
@@ -164,13 +164,19 @@
         cur.df <- cur.err^2 / (host.err^2/host.df + target.err^2/target.df)
        
     } else {
-        # Try to perform Student's t-test, if possible.
-        if (host.df==0L) { 
-            cur.err <- target.s2 * (1 + 1/target.n)
-            cur.df <- target.df
+        if (host.n==0L || target.n==0L) { 
+            cur.err <- rep(NA_real_, length(host.s2))
+            cur.df <- NA_real_
+
         } else {
-            cur.err <- host.s2 * (1 + 1/host.n)
-            cur.df <- host.df
+            # Try to perform Student's t-test, if possible.
+            if (host.df==0L) {
+                cur.err <- target.s2 * (1 + 1/target.n)
+                cur.df <- target.df
+            } else {
+                cur.err <- host.s2 * (1 + 1/host.n)
+                cur.df <- host.df
+            }
         }
     }
   
@@ -179,8 +185,8 @@
 
     # Also computing some general variance statistics.
     residual.df <- host.df + target.df
-    sigma2 <- (host.s2 * host.df + target.s2 * target.df) / residual.df
-    return(list(err=cur.err, test.df=cur.df, s2=sigma2, residual.df=residual.df))
+    rss <- ifelse(is.na(host.s2), 0, host.s2) * host.df + ifelse(is.na(target.s2), 0, target.s2) * target.df 
+    return(list(err=cur.err, test.df=cur.df, rss=rss, residual.df=residual.df))
 }
 
 .combine_lfc <- function(lfc, weights, s2) 
@@ -190,15 +196,15 @@
 # for all groups.
 {
     if (length(weights) && is.na(max(weights))) {
-        s2[is.na(s2)] <- 1 # effectively ensures equal weights, if absolutely nothing was defined.
+        s2[is.na(s2)] <- 1 # effectively ensures equal weights, if no one has any residual d.f.
         for (i in seq_len(ncol(weights))) {
             curw <- weights[,i]
-            lost <- is.na(curw)
+            lost <- is.na(curw) & !is.na(lfc[,i])
             curw[lost] <- 1/(s2[lost] * 2) # SE^2 when n1=n2=1 with known SD (set to average across blocks).
             weights[,i] <- curw
         }
     }
-    rowSums(weights*lfc, na.rm=TRUE)/rowSums(weights)
+    rowSums(weights*lfc, na.rm=TRUE)/rowSums(weights, na.rm=TRUE)
 }
 
 .combine_test_statistics <- function(left, right, weights, direction) 
@@ -210,13 +216,13 @@
     if (direction!="up") { 
         Z.left <- qnorm(left, log.p=TRUE)
         final.left <- rowSums(Z.left*weights, na.rm=TRUE)/sum.weight
-        p.out <- p.left <- pnorm(Z.left)
+        p.out <- p.left <- pnorm(final.left)
     }
 
     if (direction!="down") { 
         Z.right <- qnorm(right, log.p=TRUE)
         final.right <- rowSums(Z.right*weights, na.rm=TRUE)/sum.weight
-        p.out <- p.right <- pnorm(Z.right)
+        p.out <- p.right <- pnorm(final.right)
     }
     
     if (direction=="any") {
