@@ -193,7 +193,7 @@ test_that("findMarkers runs properly with blocking: basic checks", {
                 expect_equal(rownames(output[[i]]), rownames(ref[[i]]))
                 expect_equal(output[[i]]$FDR, ref[[i]]$FDR)
                 expect_equal(output[[i]]$Top, ref[[i]]$Top)
-                expect_equal(output[[i]]$Worst, ref[[i]]$Worst)
+                expect_equal(output[[i]]$IUT.p, ref[[i]]$IUT.p)
             }
         }
     }
@@ -251,7 +251,7 @@ test_that("findMarkers runs properly with blocking: combining checks", {
 
     # Checking that the combined p-values follow the expected ratios
     # (only setting 1 pair of groups with pval.type="all", so that 
-    # "Worst" can be directly extracted as the p-value). Note that 
+    # "IUT.p" can be directly extracted as the p-value). Note that 
     # the log-fold change shift has to be small to avoid breaking qnorm.
     new.clusters <- sample(2, ncol(X), replace=TRUE)
     new.clusters3 <- rep(new.clusters, 3)
@@ -265,9 +265,9 @@ test_that("findMarkers runs properly with blocking: combining checks", {
         ref2 <- findMarkers(new.X, new.clusters, pval.type="all", direction=d)
 
         for (i in names(output)) {
-            cur.out <- output[[i]][rownames(X),"Worst"]
-            r.out1 <- ref1[[i]][rownames(X),"Worst"]
-            r.out2 <- ref2[[i]][rownames(X),"Worst"]
+            cur.out <- output[[i]][rownames(X),"IUT.p"]
+            r.out1 <- ref1[[i]][rownames(X),"IUT.p"]
+            r.out2 <- ref2[[i]][rownames(X),"IUT.p"]
             expect_equal(qnorm(cur.out), (qnorm(r.out1)*2+qnorm(r.out2))/3)
         }
     }

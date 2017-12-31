@@ -40,7 +40,7 @@
             preamble <- DataFrame(Top=min.rank)
         } else {
             o <- order(pval)
-            preamble <- DataFrame(Worst=pval)
+            preamble <- DataFrame(IUT.p=pval)
         }
 
         # Producing the output object.
