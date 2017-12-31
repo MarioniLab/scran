@@ -100,13 +100,13 @@ checkRanking <- function(out, FUN)
 { 
     for (i1 in names(out)) { 
         obs <- out[[i1]]
-        top.rank <- best.val <- rep(Inf, nrow(obs))
+        top.rank <- best.val <- rep(NA_real_, nrow(obs))
 
         for (i2 in names(out)) {
             if (i1==i2) { next }
             curval <- FUN(obs[rownames(X),RENAME(i2)])
-            top.rank <- pmin(top.rank, rank(curval, ties.method="first"))
-            best.val <- pmin(best.val, curval) 
+            top.rank <- pmin(top.rank, rank(curval, ties.method="first", na.last="keep"), na.rm=TRUE)
+            best.val <- pmin(best.val, curval, na.rm=TRUE) 
         }
 
         o <- order(top.rank, best.val)
@@ -139,7 +139,7 @@ test_that("overlapExprs responds to the request type", {
         current <- out[[i1]]
         gunk <- apply(current[,-1], 1, FUN=function(x) { x[which.max(defaultRank(x))] })
         expect_equal(names(gunk), rownames(current))
-        expect_equal(unname(gunk), current$Best)
+        expect_equal(unname(gunk), current$Worst)
     }
 
     out <- overlapExprs(X, grouping, rank.type="all", direction="up")
@@ -148,7 +148,7 @@ test_that("overlapExprs responds to the request type", {
         current <- out[[i1]]
         gunk <- apply(current[,-1], 1, FUN=function(x) { x[which.max(1-x)] })
         expect_equal(names(gunk), rownames(current))
-        expect_equal(unname(gunk), current$Best)
+        expect_equal(unname(gunk), current$Worst)
     }
 })
 
