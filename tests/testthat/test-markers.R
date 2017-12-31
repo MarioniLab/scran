@@ -111,7 +111,8 @@ test_that("findMarkers works as expected without blocking or design matrices", {
 ###############################
 # Checking that the blocking runs. Unfortunately, the output of unblocked
 # findMarkers cannot be easily used to evaluated the correctness of the blocked
-# version, as the results are not simple sums.
+# version, as the results are not simple sums. Instead, we have to set up 
+# scenarios where the output is easier to check.
 
 LIMIT_CHECK <- function(X, clusters, blocked, output)
 # This checks that the log-fold changes lie within the limits of 
@@ -155,7 +156,7 @@ clust <- kmeans(t(exprs(X)), centers=3)
 clusters <- as.factor(clust$cluster)
 blocked <- sample(3, ncells, replace=TRUE)
 
-test_that("findMarkers runs properly with blocking (part I)", {
+test_that("findMarkers runs properly with blocking: basic checks", {
     # Standard check for sensible log-fold changes.
     output <- findMarkers(X, clusters, blocked)
     LIMIT_CHECK(X, clusters, blocked, output)
@@ -225,7 +226,7 @@ test_that("findMarkers runs properly with blocking (part I)", {
 })
 
 set.seed(70000012)
-test_that("findMarkers runs properly with blocking (part II)", {
+test_that("findMarkers runs properly with blocking: combining checks", {
     # Checking that the combined log-fold changes follow the expected ratios,
     # for a multi-cluster comparison with three blocking levels but only 
     # two unique "X". Note we change the logFCs without altering the variance.
@@ -273,7 +274,7 @@ test_that("findMarkers runs properly with blocking (part II)", {
 })
 
 set.seed(70000012)
-test_that("findMarkers runs properly with blocking (part III)", {
+test_that("findMarkers runs properly with blocking: missing/singleton group checks", {
     # Log-fold changes behave sensibly when one block is missing a group.
     re.clusters <- clusters
     re.blocked <- blocked
