@@ -5,13 +5,17 @@
 # written by Aaron Lun
 # created 22 March 2017
 {
+    ncells <- ncol(x)
     clusters <- as.factor(clusters)
+    if (length(clusters)!=ncells) {
+        stop("length of 'clusters' does not equal 'ncol(x)'")
+    }
     pval.type <- match.arg(pval.type) 
     direction <- match.arg(direction)  
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
 
     # Estimating the parameters.
-    if (!is.null(block) || is.null(design)) { 
+    if (!is.null(block) || is.null(design)) {
         fit <- .test_block_internal(x, subset.row, clusters, block, direction)
     } else {
         fit <- .fit_lm_internal(x, subset.row, clusters, design, direction) 
@@ -61,10 +65,13 @@
 # This looks at every level of the blocking factor and performs
 # t-tests between pairs of clusters within each blocking level.
 {
-    ncells <- length(clusters)
+    ncells <- ncol(x)
     if (is.null(block)) {
         by.block <- list(`1`=seq_len(ncells))
     } else {
+        if (length(block)!=ncells) {
+            stop("length of 'block' does not equal 'ncol(x)'")
+        } 
         by.block <- split(seq_len(ncells), block)
     }
         
@@ -244,6 +251,9 @@
     colnames(full.design) <- clust.vals 
 
     # Removing terms to avoid linear dependencies on the intercept.
+    if (nrow(design)!=ncol(x)) { 
+        stop("'nrow(design)' is not equal to 'ncol(x)'")
+    }
     out <- qr.solve(design, cbind(rep(1, nrow(design))))
     to.drop <- abs(out) > 1e-8
     if (any(to.drop)) {
@@ -252,7 +262,7 @@
     full.design <- cbind(full.design, design) # Other linear dependencies will trigger errors in .ranksafe_QR. 
 
     # Getting coefficient estimates (need to undo column pivoting to get the actual estimates).
-    QR <- .ranksafe_qr(design)
+    QR <- .ranksafe_qr(full.design)
     resid.df <- nrow(full.design) - ncol(full.design)
     if (resid.df <= 0L) {
         stop("no residual d.f. in design matrix for variance estimation") 
