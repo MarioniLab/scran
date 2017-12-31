@@ -1,7 +1,130 @@
 # This tests the findMarkers function.
 # require(scran); require(testthat); source("test-markers.R")
 
+REFFUN <- function(y, grouping, pval.type="any", direction="any") 
+# A reference function using the t.test function.
+{ 
+    output <- findMarkers(y, grouping, pval.type=pval.type, direction=direction)
+    grouping <- factor(grouping)
+    clust.vals <- levels(grouping)
+
+    for (host in clust.vals) {
+        collected.lfc <- collected.p <- list()
+        host.y <- y[,grouping==host,drop=FALSE]
+
+        for (target in setdiff(clust.vals, host)) {
+            target.y <- y[,grouping==target,drop=FALSE]
+
+            if (ncol(host.y)!=1L || ncol(target.y)!=1L) {
+                pval <- numeric(nrow(y))
+                for (i in seq_along(pval)) {
+                    pval[i] <- t.test(host.y[i,], target.y[i,], 
+                        alternative=switch(direction, any="two.sided", up="greater", down="less"),
+                        var.equal=ncol(target.y)==1L || ncol(host.y)==1L)$p.value
+                }
+            } else {
+                pval <- rep(NA_real_, nrow(y))
+            }
+            
+            collected.lfc[[paste0("logFC.", target)]] <- rowMeans(host.y) - rowMeans(target.y)
+            collected.p[[target]] <- pval
+        }
+        
+        # Compiling the requested ordering. 
+        combined.p <- do.call(cbind, collected.p)
+        if (pval.type=="any") { 
+            all.ranks <- lapply(collected.p, rank, ties.method="first")
+            reordered <- order(do.call(pmin, all.ranks), do.call(pmin, collected.p))
+            pval <- apply(combined.p, 1, FUN=function(x) { min(p.adjust(x, method="BH"), na.rm=TRUE) })
+        } else {
+            pval <- apply(combined.p, 1, FUN=max, na.rm=TRUE)
+            reordered <- order(pval)
+        }
+       
+        # Running the requested checks.
+        cur.out <- output[[host]]
+        expect_identical(rownames(cur.out), rownames(y)[reordered])
+        expect_equal(as.matrix(cur.out[,-(1:2)]), do.call(cbind, collected.lfc)[reordered,,drop=FALSE])
+        adj.p <- p.adjust(pval, method="BH")
+        expect_equal(adj.p[reordered], cur.out$FDR)
+    }  
+    return(TRUE)
+}
+
 set.seed(70000)
+ncells <- 200
+ngenes <- 250
+means <- 2^runif(ngenes, -1, 5)
+dummy <- matrix(rnbinom(ngenes*ncells, mu=means, size=5), ncol=ncells, nrow=ngenes)
+
+rownames(dummy) <- paste0("X", seq_len(ngenes))
+X <- SingleCellExperiment(list(counts=dummy))
+sizeFactors(X) <- colSums(dummy)
+X <- normalize(X)
+
+set.seed(7000001)
+test_that("findMarkers works as expected without blocking or design matrices", {
+    clust <- kmeans(t(exprs(X)), centers=3)
+    clusters <- as.factor(clust$cluster)
+
+    # Vanilla runs.
+    REFFUN(exprs(X), clusters)
+    REFFUN(exprs(X), clusters, direction="up")
+    REFFUN(exprs(X), clusters, direction="down")
+
+    # Checking that the IUT calculation is correct.
+    REFFUN(exprs(X), clusters, pval.type="all")
+    REFFUN(exprs(X), clusters, direction="up", pval.type="all")
+    REFFUN(exprs(X), clusters, direction="down", pval.type="all")
+
+    # Checking what happens if one of the groups has only one element.
+    re.clust <- clust$cluster
+    re.clust[1] <- 4
+    re.clust <- factor(re.clust)
+    REFFUN(exprs(X), re.clust)
+    REFFUN(exprs(X), re.clust, pval.type="all")
+
+    # Checking what happens if two of the groups have only one element.
+    re.clust <- clust$cluster
+    re.clust[1:2] <- 4:5
+    re.clust <- factor(re.clust)
+    REFFUN(exprs(X), re.clust)
+    REFFUN(exprs(X), re.clust, pval.type="all")
+})
+
+###############################
+# Checking that the blocking runs. Unfortunately, the output of unblocked
+# findMarkers cannot be easily used to evaluated the correctness of the blocked
+# version, as the results are not simple sums.
+
+LIMIT_CHECK <- function(X, clusters, blocked, output)
+# This checks that the log-fold changes lie within the limits of 
+# the values from the individual blocks.
+{
+    ref.values <- list()   
+    for (b in unique(blocked)) {
+        chosen <- blocked==b
+        ref.values[[as.character(b)]] <- findMarkers(X[,chosen], clusters[chosen])
+    }
+
+    for (host in names(output)) { 
+        upper.lfc <- 0
+        lower.lfc <- Inf
+
+        for (b in names(ref.values)) { 
+            curlfc <- as.matrix(ref.values[[b]][[host]][rownames(X),-(1:2)])
+            upper.lfc <- pmax(upper.lfc, curlfc)
+            lower.lfc <- pmin(lower.lfc, curlfc)
+        }
+
+        check <- as.matrix(output[[host]][rownames(X),-(1:2)])
+        expect_true(all(check >= lower.lfc))
+        expect_true(all(check <= upper.lfc))
+    }
+    return(invisible(NULL))
+}
+
+set.seed(70000011)
 ncells <- 200
 ngenes <- 1000
 means <- 2^runif(ngenes, -1, 5)
@@ -12,13 +135,196 @@ X <- SingleCellExperiment(list(counts=dummy))
 sizeFactors(X) <- colSums(dummy)
 X <- normalize(X)
 
-# Setting up a reference function.
-library(limma)
-REFFUN <- function(y, design, clust.vals, output, pval.type="any", direction="any", min.mean=0.1) { 
-    lfit <- lmFit(y, design)
-    all.means <- rowMeans(y)
-    do.solo <- is.null(min.mean) || all(all.means >= min.mean) || !any(all.means >= min.mean)
+clust <- kmeans(t(exprs(X)), centers=3)
+clusters <- as.factor(clust$cluster)
+blocked <- sample(3, ncells, replace=TRUE)
 
+test_that("findMarkers runs properly with blocking (part I)", {
+    # Standard check for sensible log-fold changes.
+    output <- findMarkers(X, clusters, blocked)
+    LIMIT_CHECK(X, clusters, blocked, output)
+    
+    # Gene ordering and p-values should be the same as an unblocked analysis with the other block,
+    # if one block contains only one sample from each group.
+    re.clusters <- clusters
+    re.blocked <- rep(1, length(clusters))
+    re.clusters[1:3] <- 1:3
+    re.blocked[1:3] <- 2
+
+    for (type in c("any", "all")) {
+        if (type=="any") {
+            direction <- c("any", "up", "down")
+        } else {
+            direction <- "any"
+        }
+
+        for (d in direction) { 
+            output <- findMarkers(X, re.clusters, block=re.blocked, direction=d, pval.type=type)
+            LIMIT_CHECK(X, re.clusters, re.blocked, output)
+
+            ref <- findMarkers(X[,-(1:3)], re.clusters[-(1:3)], direction=d, pval.type=type)
+            expect_equal(names(output), names(ref))
+
+            for (i in names(output)) { 
+                expect_equal(rownames(output[[i]]), rownames(ref[[i]]))
+                expect_equal(output[[i]]$FDR, ref[[i]]$FDR)
+                expect_equal(output[[i]]$Top, ref[[i]]$Top)
+                expect_equal(output[[i]]$Worst, ref[[i]]$Worst)
+            }
+        }
+    }
+
+    # Ordering and log-fold changes should be the same if the block is duplicated.
+    clusters2 <- c(clusters, clusters)
+    blocked2 <- rep(1:2, each=length(clusters))
+    X2 <- cbind(X, X)
+
+    for (type in c("any", "all")) {
+        if (type=="any") {
+            direction <- c("any", "up", "down")
+        } else {
+            direction <- "any"
+        }
+
+        for (d in direction) { 
+            output <- findMarkers(X2, clusters2, block=blocked2, direction=d, pval.type=type)
+            LIMIT_CHECK(X2, clusters2, blocked2, output)
+
+            ref <- findMarkers(X, clusters, direction=d, pval.type=type)
+            expect_equal(names(output), names(ref))
+
+            for (i in names(output)) { 
+                expect_equal(rownames(output[[i]]), rownames(ref[[i]]))
+                expect_equal(output[[i]]$Top, ref[[i]]$Top)
+                expect_equal(output[[i]][,-(1:2)], ref[[i]][,-(1:2)])
+            }
+        }
+    }
+})
+
+test_that("findMarkers runs properly with blocking (part II)", {
+    # Checking that the combined log-fold changes follow the expected ratios,
+    # for a multi-cluster comparison with three blocking levels but only 
+    # two unique "X". Note we change the logFCs without altering the variance.
+    clusters3 <- rep(clusters, 3)
+    blocked3 <- rep(1:3, each=length(clusters))
+    new.X <- X
+    exprs(new.X) <- exprs(new.X) + outer(runif(ngenes), as.integer(clusters)) 
+    X3 <- cbind(X, X, new.X)
+
+    output <- findMarkers(X3, clusters3, block=blocked3)
+    ref1 <- findMarkers(X, clusters)
+    ref2 <- findMarkers(new.X, clusters)
+
+    for (i in names(output)) {
+        cur.out <- output[[i]][rownames(X),-(1:2)]
+        r.out1 <- ref1[[i]][rownames(X),-(1:2)]
+        r.out2 <- ref2[[i]][rownames(X),-(1:2)]
+        for (j in colnames(cur.out)) { 
+            expect_equal(cur.out[,j], (r.out1[,j]*2+r.out2[,j])/3)
+        }
+    }
+
+    # Checking that the combined p-values follow the expected ratios
+    # (only setting 1 pair of groups with pval.type="all", so that 
+    # "Worst" can be directly extracted as the p-value). Note that 
+    # the log-fold change shift has to be small to avoid breaking qnorm.
+    new.clusters <- sample(2, ncol(X), replace=TRUE)
+    new.clusters3 <- rep(new.clusters, 3)
+    new.X <- X
+    exprs(new.X) <- exprs(new.X) + outer(rnorm(ngenes, sd=0.01), as.integer(new.clusters))
+    new.X3 <- cbind(X, X, new.X)
+
+    for (d in c("up", "down")) { 
+        output <- findMarkers(new.X3, new.clusters3, block=blocked3, pval.type="all", direction=d)
+        ref1 <- findMarkers(X, new.clusters, pval.type="all", direction=d)
+        ref2 <- findMarkers(new.X, new.clusters, pval.type="all", direction=d)
+
+        for (i in names(output)) {
+            cur.out <- output[[i]][rownames(X),"Worst"]
+            r.out1 <- ref1[[i]][rownames(X),"Worst"]
+            r.out2 <- ref2[[i]][rownames(X),"Worst"]
+            expect_equal(qnorm(cur.out), (qnorm(r.out1)*2+qnorm(r.out2))/3)
+        }
+    }
+})
+
+test_that("findMarkers runs properly with blocking (part III)", {
+    # Log-fold changes behave sensibly when one block is missing a group.
+    re.clusters <- clusters
+    re.blocked <- blocked
+    re.clusters[re.blocked==1 & re.clusters==1] <- 2
+
+    output <- findMarkers(X, re.clusters, block=re.blocked)
+    keep <- re.blocked!=1
+    output2 <- findMarkers(X[,keep], re.clusters[keep], block=re.blocked[keep])
+    expect_equal(output[["1"]], output2[["1"]])
+
+    # Log-fold changes are just block averages if there are no residual d.f. anywhere.
+    subX <- X[,1:9]
+    subclust <- rep(1:3, each=3)
+    subblock <- rep(1:3, 3)
+
+    output <- findMarkers(subX, subclust, subblock)
+    for (i in names(output)) {
+        for (j in setdiff(names(output), i)) {
+            cur.lfc <- output[[i]][,paste0("logFC.", j)]
+            expect_equal(cur.lfc, unname(rowMeans(exprs(subX)[,subclust==i]) - rowMeans(exprs(subX)[,subclust==j])))
+        }
+    }
+
+    # Manufacturing a situation where the variance is easily calculated, to test the 
+    # inference of the standard error when there is no d.f. in one block.
+    stuff <- matrix(rnorm(ngenes*ncells), nrow=ngenes)
+    rownames(stuff) <- 1:ngenes
+    re.clusters <- rep(1:2, length.out=ncells)
+    re.block <- rep(1, ncells)
+    re.block[1:2] <- 2
+
+    output <- findMarkers(stuff, re.clusters, re.block) 
+    in.11 <- stuff[,re.block==1 & re.clusters==1]
+    in.12 <- stuff[,re.block==1 & re.clusters==2]
+    s2.c1 <- apply(in.11, 1, var) 
+    s2.c2 <- apply(in.12, 1, var)
+    s2 <- (s2.c1 + s2.c2)/2
+    w.b2 <- 1/(s2*2)
+    w.b1 <- 1/(s2.c1/ncol(in.11) + s2.c2/ncol(in.12))
+    expect_equal(output[[2]][rownames(stuff),]$logFC.1, 
+                 unname(((stuff[,2]-stuff[,1]) * w.b2 + 
+                         (rowMeans(in.12) - rowMeans(in.11)) * w.b1)/(w.b2 + w.b1))
+                 )
+    
+    re.clusters[] <- 2
+    re.clusters[1:2] <- 1:2
+    output <- findMarkers(stuff, re.clusters, re.block) # gets an s2 estimate from other blocks, even if there's nothing to compare to.
+    expect_equal(output[[2]]$logFC.1, unname(stuff[,2]-stuff[,1]))
+    
+    # We correctly get NA values if block is confounded with group.
+    # Importantly, these NA values should not effect anything else.
+    re.clusters <- as.character(clusters)
+    re.block <- blocked
+    re.clusters[re.block==1] <- "A"
+
+    output <- findMarkers(stuff, re.clusters, re.block) 
+    keep <- re.block != 1
+    ref <- findMarkers(stuff[,keep], re.clusters[keep], re.block[keep]) 
+
+    for (x in 1:3) {
+        cur.out <- output[[x]]
+        expect_true(all(is.na(cur.out$logFC.A)))
+#        expect_equal(cur.out[,setdiff(colnames(cur.out), "logFC.4")], ref[[x]])
+        expect_true(all(is.na(output[["A"]][,paste0("logFC.", x)])))
+    }  
+})
+
+###############################
+
+# Setting up a reference function for the log-fold changes ONLY.
+# This is because computing the p-values would require me to just
+# copy the R code over, which defeats the purpose.
+library(limma)
+REFFUN <- function(y, design, clust.vals, output) { 
+    lfit <- lmFit(y, design)
     for (host in clust.vals) {
         collected.lfc <- collected.p <- list()
         
@@ -26,122 +332,74 @@ REFFUN <- function(y, design, clust.vals, output, pval.type="any", direction="an
             con <- setNames(numeric(ncol(design)), colnames(design))
             con[[host]] <- 1
             con[[target]] <- -1
-            
+
+            # Skipping the eBayes step.
             fit2 <- contrasts.fit(lfit, con)
-            if (do.solo) {
-                fit2 <- eBayes(fit2, trend=TRUE, robust=TRUE)
-                res <- topTable(fit2, n=Inf, sort.by="none")
-            } else {
-                higher <- all.means >= min.mean
-                fit2a <- fit2[higher,]
-                fit2b <- fit2[!higher,]
-                fit2a <- eBayes(fit2a, trend=TRUE, robust=TRUE)
-                fit2b <- eBayes(fit2b, trend=TRUE, robust=TRUE)
-
-                resa <- topTable(fit2a, n=Inf, sort.by="none")
-                resb <- topTable(fit2b, n=Inf, sort.by="none")
-                res <- rbind(resa, resb)
-                res <- res[order(c(which(higher), which(!higher))),]                
-            }
-
-            if (direction=="up") {
-                is.up <- res$logFC > 0
-                res$P.Value[is.up] <- res$P.Value[is.up]/2
-                res$P.Value[!is.up] <- 1-res$P.Value[!is.up]/2
-            } else if (direction=="down") {
-                is.down <- res$logFC < 0
-                res$P.Value[is.down] <- res$P.Value[is.down]/2
-                res$P.Value[!is.down] <- 1-res$P.Value[!is.down]/2
-            }
-            
+            fit2 <- eBayes(fit2)
+            res <- topTable(fit2, n=Inf, sort.by="none")
             collected.lfc[[paste0("logFC.", target)]] <- res$logFC
-            collected.p[[target]] <- res$P.Value
         }
         
-        # Checking the value of 'top'.
-        all.ranks <- lapply(collected.p, rank, ties.method="first")
+        combined.lfc <- do.call(cbind, collected.lfc)
+        rownames(combined.lfc) <- rownames(y)
         cur.out <- output[[host]]
-        for (i in seq(1, ngenes, length.out=51)) {
-            current <- rownames(X)[unique(unlist(lapply(all.ranks, FUN=function(x) { which(x <= i) })))]
-            expect_identical(sort(current), sort(cur.out$Gene[cur.out$Top <= i]))
-        }
-       
-        reordered <- order(do.call(pmin, all.ranks), do.call(pmin, collected.p))
-        expect_identical(cur.out$Gene, rownames(y)[reordered])
-        
-        # Checking the log-fold changes.
-        for (target in names(collected.lfc)) {
-            expect_equal(collected.lfc[[target]][reordered], cur.out[[target]])
-        }
-        
-        # Checking the FDR, after Simes' or with the IUT.
-        combined.p <- do.call(cbind, collected.p)
-        if (pval.type=="any") { 
-            pval <- apply(combined.p, 1, FUN=function(x) { min(p.adjust(x, method="BH")) })
-        } else {
-            pval <- apply(combined.p, 1, FUN=max)
-        }
-        adj.p <- p.adjust(pval, method="BH")
-        expect_equal(adj.p[reordered], cur.out$FDR)
+        expect_equal(as.matrix(cur.out[rownames(y),-(1:2)]), combined.lfc)
     }  
     return(TRUE)
 }
 
-set.seed(7000001)
-test_that("findMarkers works as expected", {
-    clust <- kmeans(t(exprs(X)), centers=3)
-    out <- findMarkers(X, clusters=clust$cluster)
-    out2 <- findMarkers(exprs(X), clusters=clust$cluster)
-    expect_identical(out, out2)
-
-    clusters <- as.factor(clust$cluster)
-    design <- model.matrix(~0 + clusters)
-    colnames(design) <- levels(clusters)
-    REFFUN(exprs(X), design, levels(clusters), out)
-
-    # Checking that the IUT calculation is correct.
-    out <- findMarkers(X, clusters=clust$cluster, pval.type="all")
-    REFFUN(exprs(X), design, levels(clusters), out, pval.type="all")
-
-    # Checking that the directional calculations are correct.
-    out <- findMarkers(X, clusters=clust$cluster, direction="up")
-    REFFUN(exprs(X), design, levels(clusters), out, direction="up")
-    
-    out <- findMarkers(X, clusters=clust$cluster, direction="down")
-    REFFUN(exprs(X), design, levels(clusters), out, direction="down")
-
-    # Checking what happens if one or all groups have no residual d.f.
-    expect_error(findMarkers(X, clusters=1:ncol(X)), "no residual d.f.")
-
-    alt.cluster <- clust$cluster
-    alt.cluster[1] <- 100 # one group with no residual d.f.
-    alt.out <- findMarkers(X, clusters=alt.cluster)
-
-    alt.cluster <- factor(alt.cluster)
-    alt.design <- model.matrix(~0 + alt.cluster)
-    colnames(alt.design) <- levels(alt.cluster)
-    REFFUN(exprs(X), alt.design, levels(alt.cluster), alt.out)
-})
-
 set.seed(7000002)
+ncells <- 200
+ngenes <- 1000
+means <- 2^runif(ngenes, -1, 5)
+dummy <- matrix(rnbinom(ngenes*ncells, mu=means, size=5), ncol=ncells, nrow=ngenes)
+
+rownames(dummy) <- paste0("X", seq_len(ngenes))
+X <- SingleCellExperiment(list(counts=dummy))
+sizeFactors(X) <- colSums(dummy)
+X <- normalize(X)
+
 test_that("findMarkers works properly with a design matrix", {
     clust <- kmeans(t(exprs(X)), centers=3)
-    block <- factor(sample(2, ncol(X), replace=TRUE))
-    out.des <- findMarkers(X, clusters=clust$cluster, design=model.matrix(~block))
-    
     clusters <- as.factor(clust$cluster)
+
+    # Trying with an additive blocking factor.
+    block <- factor(sample(2, ncol(X), replace=TRUE))
     design <- model.matrix(~0 + clusters + block)
     colnames(design) <- c(levels(clusters), "block2")
+
+    out.des <- findMarkers(X, clusters=clust$cluster, design=model.matrix(~block))
+    REFFUN(exprs(X), design, levels(clusters), out.des)
+
+    # Trying with a real-value blocking factor.
+    covariates <- runif(ncells)
+    design <- model.matrix(~0 + clusters + covariates)
+    colnames(design) <- c(levels(clusters), "covariate")
+
+    out.des <- findMarkers(X, clusters=clust$cluster, design=model.matrix(~covariates))
     REFFUN(exprs(X), design, levels(clusters), out.des)
 
     # Checking for correct error upon having no residual d.f. in the design matrix.
     design0 <- matrix(1, ncol(X), 1)
     expect_error(findMarkers(X, clusters=1:ncol(X), design=design0), "no residual d.f.")
+
+    # Checking that block= takes priority.
+    outdes <- findMarkers(X, clusters=clust$cluster, block=block, design=model.matrix(~block))
+    outref <- findMarkers(X, clusters=clust$cluster, block=block)
+    expect_equal(outdes, outref)
 })
+
+###############################
 
 set.seed(7000003)
 test_that("findMarkers works correctly with subsetting and spikes", {   
+    # Works with an SCE object.
     clust <- kmeans(t(exprs(X)), centers=3)
+    out <- findMarkers(X, clusters=clust$cluster)
+    out2 <- findMarkers(exprs(X), clusters=clust$cluster)
+    expect_identical(out, out2)
+
+    # Works with subsetting and spikes.
     out <- findMarkers(X, clusters=clust$cluster, subset.row=100:1)
     out2 <- findMarkers(X[100:1,], clusters=clust$cluster)
     expect_identical(out, out2)
@@ -158,54 +416,23 @@ test_that("findMarkers works correctly with subsetting and spikes", {
     expect_identical(out.des, out.des2)
 })
 
-# Repeating with non-infinite d.f. to check shrinkage.
-
-set.seed(700001)
-test_that("findMarkers works with non-infinite prior d.f.", {
-    s2 <- 10/rchisq(1000, df=10)
-    y <- matrix(rnorm(1000*200, sd=sqrt(s2)), nrow=1000)
-    rownames(y) <- paste0("X", seq_len(1000))
-    clusters <- factor(sample(4, 200, replace=TRUE))
-    out <- findMarkers(y, clusters=clusters)
-    
-    design <- model.matrix(~0 + clusters)
-    colnames(design) <- levels(clusters)
-    REFFUN(y, design, levels(clusters), out)
-
-    # Trying again with fewer prior d.f.    
-    s2 <- 5/rchisq(1000, df=5)
-    y <- matrix(rnorm(1000*100, sd=sqrt(s2)), nrow=1000)
-    rownames(y) <- paste0("X", seq_len(1000))
-    clusters <- factor(sample(5, 100, replace=TRUE))
-    out <- findMarkers(y, clusters=clusters)
-    
-    design <- model.matrix(~0 + clusters)
-    colnames(design) <- levels(clusters)
-    REFFUN(y, design, levels(clusters), out)
-})
-
-# Testing the min.mean setting.
-
-set.seed(700002)
-test_that("findMarkers works with a variety of minimum means", {
-    s2 <- 10/rchisq(1000, df=10)
-    y <- matrix(rnorm(1000*200, sd=sqrt(s2)), nrow=1000)
-    rownames(y) <- paste0("X", seq_len(1000))
-    clusters <- factor(sample(3, 200, replace=TRUE))
-    
-    design <- model.matrix(~0 + clusters)
-    colnames(design) <- levels(clusters)
-    out <- findMarkers(y, clusters=clusters, min.mean=0)
-    REFFUN(y, design, levels(clusters), out, min.mean=0)
-
-    out <- findMarkers(y, clusters=clusters, min.mean=NULL)
-    REFFUN(y, design, levels(clusters), out, min.mean=NULL)
-})
-
 # Checking consistency upon silly inputs.
 
 test_that("findMarkers behaves sensibly with silly inputs", {
-    expect_error(findMarkers(exprs(X)[0,], clusters=rep(1:3, length.out=ncol(X))), "var is empty")
-    expect_error(findMarkers(exprs(X)[,0], clusters=integer(0)), "contrasts can be applied only to factors with 2 or more levels")
+    # No genes.
+    out <- findMarkers(exprs(X)[0,], clusters=rep(1:3, length.out=ncol(X)))
+    for (i in out) { expect_identical(nrow(i), 0L) }    
+    
+    # No cells.
+    out <- findMarkers(exprs(X)[,0], clusters=integer(0))
+    expect_identical(length(out), 0L)    
+    expect_error(findMarkers(exprs(X)[,0], clusters=integer(0), design=matrix(0,0,0)), 
+                 "contrasts can be applied only to factors with 2 or more levels")
+
+    # Mismatch in dimensions.
+    expect_error(findMarkers(exprs(X), clusters=1), "length of 'clusters' does not equal 'ncol(x)'", fixed=TRUE)
+    dummy <- sample(2, ncol(X), replace=TRUE)
+    expect_error(findMarkers(exprs(X), clusters=dummy, block=1), "length of 'block' does not equal 'ncol(x)'", fixed=TRUE)
+    expect_error(findMarkers(exprs(X), clusters=dummy, design=matrix(0,0,0)), "'nrow(design)' is not equal to 'ncol(x)'", fixed=TRUE)
 })
 
