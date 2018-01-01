@@ -59,27 +59,27 @@ If \code{get.spikes=FALSE} and \code{subset.row!=NULL}, the function will only u
 }
 
 \section{Ranking genes in the output}{
-We first define a test statistic for each overlap proportion.
-This definition depends on the specified \code{direction}:
+Each overlap proportion is first converted into a separation statistic.
+The definition of the seperation statistic depends on the specified \code{direction}:
 \itemize{
-\item If \code{direction="any"} (the default), the test statistic is defined as the absolute difference of the overlap statistic from zero or 1 (whichever is closer).
-Thus, if the overlap between the expression distributions for A and B is poor, the test statistic will be large.
-\item If \code{direction="up"}, the test statistic is defined as the difference of the overlap statistic from 1.
-This means that the test statistic will only be large when the distribution of A is shifted upwards compared to B.
-\item If \code{direction="down"}, the test statistic is defined as the difference of the overlap statistic from zero.
-This means that the test statistic will only be large when the distribution of A is shifted downwards compared to B.
+\item If \code{direction="any"} (the default), the separation statistic is defined as the absolute difference of the overlap proportion from zero or 1 (whichever is closer).
+Thus, if the overlap between the expression distributions for A and B is poor, the separation statistic will be large.
+\item If \code{direction="up"}, the separation statistic is defined as the difference of the overlap proportion from zero.
+Thus, the separation statistic will only be large when the distribution of A is shifted upwards compared to B.
+\item If \code{direction="down"}, the separation statistic is defined as the difference of the overlap proportion from 1. 
+Thus, the separation statistic will only be large when the distribution of A is shifted downwards compared to B.
 }
 
 If \code{rank.type="any"}, the genes in each group-specific DataFrame are ranked using a similar logic to that in \code{\link{findMarkers}}.
-This involves calculation of a \code{Top} value for each gene.
+This involves calculation of a \code{Top} value for each gene, representing the minimum ranking of the separation statistics across pairwise comparisons.
 To illustrate, consider the DataFrame for group A, and take the set of all genes with \code{Top} values less than or equal to some integer X.
-This set is the union of the top X genes with the largest test statistics from each pairwise comparison between group A and every other group.
+This set is the union of the top X genes with the largest separation statistics from each pairwise comparison between group A and every other group.
 Ranking genes based on the \code{Top} value prioritizes genes that exhibit low overlaps between group A and \emph{any} other group.
 
 If \code{rank.type="all"}, the genes in each group-specific DataFrame are ranked by the \code{Worst} value instead.
-This is the overlap proportion corresponding to the smallest test statistic across all pairwise comparisons between group A and the other groups.
+This is the overlap proportion corresponding to the smallest separation statistic across all pairwise comparisons between group A and the other groups.
 (In other words, this is the proportion for the pairwise comparison that exhibits the worst discrimination between distributions.)
-By using this metric, genes can only achieve a high ranking if the test statistics between group A and \emph{all} other groups are large.
+By using this metric, genes can only achieve a high ranking if the separation statistics between group A and \emph{all} other groups are large.
 This tends to be quite conservative but can be helpful for quickly identifying uniquely differentially expressed markers.
 }
 
@@ -106,7 +106,7 @@ Each DataFrame corresponds to a group in \code{groups} and contains one row per 
 Within the DataFrame for each group (e.g., group A), there are the following fields:
 \describe{
 \item{\code{Top}:}{Integer, the minimum rank across all pairwise comparisons if \code{rank.type="any"}.}
-\item{\code{Worst}:}{Numeric, the value of the overlap proportion with the largest test statistic across all comparisons if \code{rank.type="all"}.}
+\item{\code{Worst}:}{Numeric, the value of the overlap proportion corresponding to the smallest separation statistic across all comparisons if \code{rank.type="all"}.}
 \item{\code{overlap.B}:}{Numeric for every other group B in \code{groups}, containing overlap proportions between groups A and B for that gene.}
 }
 Genes are ranked by the \code{Top} or \code{Best} column, depending on \code{rank.type}.
