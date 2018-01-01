@@ -59,7 +59,7 @@ A t-test is then performed to identify DEGs between pairs of clusters, using the
 
 Note that \code{block} will override any \code{design} if both are specified.
 This reflects our preference for the former, which is more robust to misspecification of the clusters, 
-differences in the variance of expression in each cluster, and deflation of the variance due to zeroes.
+differences in the variance of expression in each cluster, and differences in the log-fold changes between clusters across blocks.
 Nonetheless, use of \code{design} is unavoidable when blocking on real-valued covariates.
 
 If \code{direction="any"}, genes will only be ranked based on their p-values, regardless of the direction of the log-fold change.
