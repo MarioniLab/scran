@@ -462,5 +462,14 @@ test_that("findMarkers behaves sensibly with silly inputs", {
     dummy <- sample(2, ncol(X), replace=TRUE)
     expect_error(findMarkers(exprs(X), clusters=dummy, block=1), "length of 'block' does not equal 'ncol(x)'", fixed=TRUE)
     expect_error(findMarkers(exprs(X), clusters=dummy, design=matrix(0,0,0)), "'nrow(design)' is not equal to 'ncol(x)'", fixed=TRUE)
+
+    # Checking that we get non-NA p-values with no variance.
+    clusters <- rep(1:2, each=ncells/2)
+    stuff <- matrix(clusters, ngenes, ncells, byrow=TRUE)
+    out <- findMarkers(stuff, clusters)
+    expect_true(all(out[[1]]$FDR < 0.01))
+    expect_true(all(out[[2]]$FDR < 0.01))
+    expect_equal(out[[1]]$logFC.2, rep(-1, ngenes))
+    expect_equal(out[[2]]$logFC.1, rep(1, ngenes))
 })
 

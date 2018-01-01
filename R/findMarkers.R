@@ -163,18 +163,30 @@
     host.df <- max(0L, host.n - 1L)
     target.df <- max(0L, target.n - 1L)
 
+    # Computing some general variance statistics.
+    residual.df <- host.df + target.df
+    rss <- numeric(length(host.s2))
+    if (host.df > 0L){ 
+        rss <- rss + host.s2 * host.df
+    } 
+    if (target.df > 0L) {
+        rss <- rss + target.s2 * target.df
+    }
+
+    # Avoid unlikely but potential problems with discreteness. 
+    host.s2 <- pmax(host.s2, 1e-8)
+    target.s2 <- pmax(target.s2, 1e-8)
+
     if (host.df > 0L && target.df > 0L) { 
         # Perform Welch's t-test here.
         host.err <- host.s2/host.n
         target.err <- target.s2/target.n
         cur.err <- host.err + target.err
         cur.df <- cur.err^2 / (host.err^2/host.df + target.err^2/target.df)
-       
     } else {
         if (host.n==0L || target.n==0L) { 
             cur.err <- rep(NA_real_, length(host.s2))
             cur.df <- NA_real_
-
         } else {
             # Try to perform Student's t-test, if possible.
             if (host.df==0L) {
@@ -186,13 +198,6 @@
             }
         }
     }
-  
-    # Avoid unlikely but potential problems with discreteness. 
-    cur.err <- pmax(cur.err, 1e-8) 
-
-    # Also computing some general variance statistics.
-    residual.df <- host.df + target.df
-    rss <- ifelse(is.na(host.s2), 0, host.s2) * host.df + ifelse(is.na(target.s2), 0, target.s2) * target.df 
     return(list(err=cur.err, test.df=cur.df, rss=rss, residual.df=residual.df))
 }
 
