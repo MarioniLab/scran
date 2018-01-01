@@ -199,9 +199,9 @@ test_that("findMarkers runs properly with blocking: basic checks", {
     }
 
     # Ordering and log-fold changes should be the same if the block is duplicated.
-    clusters2 <- c(clusters, clusters)
+    clusters2 <- rep(clusters, 2)
     blocked2 <- rep(1:2, each=length(clusters))
-    X2 <- cbind(X, X)
+    X2 <- BiocGenerics::cbind(X, X)
 
     for (type in c("any", "all")) {
         if (type=="any") {
@@ -234,7 +234,7 @@ test_that("findMarkers runs properly with blocking: combining checks", {
     blocked3 <- rep(1:3, each=length(clusters))
     new.X <- X
     exprs(new.X) <- exprs(new.X) + outer(runif(ngenes), as.integer(clusters)) 
-    X3 <- cbind(X, X, new.X)
+    X3 <- BiocGenerics::cbind(X, X, new.X)
 
     output <- findMarkers(X3, clusters3, block=blocked3)
     ref1 <- findMarkers(X, clusters)
@@ -257,7 +257,7 @@ test_that("findMarkers runs properly with blocking: combining checks", {
     new.clusters3 <- rep(new.clusters, 3)
     new.X <- X
     exprs(new.X) <- exprs(new.X) + outer(rnorm(ngenes, sd=0.01), as.integer(new.clusters))
-    new.X3 <- cbind(X, X, new.X)
+    new.X3 <- BiocGenerics::cbind(X, X, new.X)
 
     for (d in c("up", "down")) { 
         output <- findMarkers(new.X3, new.clusters3, block=blocked3, pval.type="all", direction=d)

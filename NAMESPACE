@@ -23,15 +23,21 @@ importFrom("Rcpp", sourceCpp)
 importFrom("scater", calcAverage, areSizeFactorsCentred)
 
 importFrom("dynamicTreeCut", cutreeDynamic)
-importFrom("Matrix", sparseMatrix, qr, qr.coef, qr.qty, t, which, colMeans)
+importFrom("Matrix", sparseMatrix, qr, qr.coef, t, which, colMeans)
 
 importFrom("edgeR", DGEList, "[.DGEList", designAsFactor, scaleOffset.DGEList)
-importFrom("limma", fitFDistRobustly, lmFit, contrasts.fit, squeezeVar)
+importFrom("limma", fitFDistRobustly, lmFit, contrasts.fit)
 
 importFrom("utils", combn)
-importFrom("stats", approx, as.dist, cor, fitted, hclust, loess, median, p.adjust, pchisq, pf, dist,
-           predict, quantile, coefficients, nls, nls.control, lm, pnorm, coef, var, prcomp, model.matrix, pt,
-           smooth.spline, runmed)
+importFrom("stats", quantile, median, var,
+            pf, pchisq, pt, pnorm, qnorm,
+            fitted, coefficients, coef, predict,
+            lm, model.matrix, 
+            loess, smooth.spline, runmed,
+            hclust, dist,
+            nls, nls.control,
+            prcomp,
+            p.adjust)
 
 importFrom("statmod", glmgam.fit)
 

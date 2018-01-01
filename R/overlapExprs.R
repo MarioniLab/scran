@@ -6,8 +6,8 @@
                           tol=1e-8, 
                           BPPARAM=SerialParam(), 
                           subset.row=NULL, 
-                          residuals=FALSE, 
-                          lower.bound=NULL)
+                          lower.bound=NULL,
+                          residuals=FALSE)
 # Computes the gene-specific overlap in expression profiles between two groups of cells.
 # This aims to determine whether two distributions of expression values are well-separated.    
 # 

@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.7.9}{\itemize{
+\section{Version 1.7.10}{\itemize{
 \item Modified decomposeVar() to return statistics (but not p-values) for spike-ins when get.spikes=NA.
 Added block= argument for mean/variance calculations within each level of a blocking factor.
 Added store.stats= argument to record stats in attributes for use in combineVar(). 
@@ -33,11 +33,17 @@ Deprecated the use of residuals=FALSE for one-way layouts in design=.
 
 \item Added block= argument to overlapExprs() to calculate overlaps within each level of a blocking factor.
 Deprecated the use of residuals=FALSE for one-way layouts in design=.
+Switched to automatic ranking of genes based on ability to discriminate between groups.
+Added rank.type= and direction= arguments to control ranking of genes.
 
 \item Modified combineVar() so that it is aware to the stats recorded in decomposeVar() with store.stats=TRUE.
 
 \item Modified the behaviour of min.mean= in computeSumFactors() when clusters!=NULL.
 Abundance filtering is now performed within each cluster and for pairs of clusters, rather than globally.
+
+\item Switched to pairwise t-tests in findMarkers(), rather than fitting a global linear model.
+Added block= argument for within-block t-tests, the results of which are combined across blocks via Stouffer's method.
+Removed empirical Bayes shrinkage as well as the min.mean= argument.
 }}
 
 \section{Version 1.6.0}{\itemize{
