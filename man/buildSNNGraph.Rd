@@ -89,7 +89,7 @@ and any setting of \code{d}, \code{subset.row} and \code{get.spikes} are ignored
 
 \value{
 An igraph-type graph, where nodes are cells and edges represent connections between nearest neighbors.
-For \code{buildSNNGraph}, these edges are weighted.
+For \code{buildSNNGraph}, these edges are weighted by the number of shared nearest neighbors.
 For \code{buildKNNGraph}, edges are not weighted but may be directed if \code{directed=TRUE}.
 }
 
@@ -112,6 +112,6 @@ Identification of cell types from single-cell transcriptomes using a novel clust
 exprs <- matrix(rnorm(100000), ncol=100)
 g <- buildSNNGraph(exprs)
 
-library(igraph) # lots of algorithms can be used
-clusters <- cluster_fast_greedy(g)$membership
+clusters <- igraph::cluster_fast_greedy(g)$membership
+table(clusters)
 }

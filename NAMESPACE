@@ -5,7 +5,8 @@ export(
     testVar, combineVar,
     correlateNull,
     selectorPlot, exploreData,
-    mnnCorrect
+    mnnCorrect,
+    clusterModularity
 )
 
 exportMethods(
