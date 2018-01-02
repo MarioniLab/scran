@@ -31,8 +31,7 @@ check <- function(vals, k=10) {
 
 set.seed(20000)
 ncells <- 200
-ngenes <- 1000
-means <- 2^runif(ngenes, -1, 5)
+ngenes <- 500
 
 test_that("buildSNNGraph gives same results as a reference", {
     dummy <- matrix(rnorm(ngenes*ncells), ncol=ncells, nrow=ngenes)

@@ -63,6 +63,7 @@ test_that("correlatePairs runs properly", {
     set.seed(100) 
     alt <- correlatePairs(X[1:10,], null=null)
     expect_equal(ref, alt)
+    
     set.seed(100) 
     alt <- correlatePairs(X[1:10,], null=null, cache.size=3)
     expect_equal(ref, alt)
@@ -75,6 +76,7 @@ test_that("correlatePairs runs properly", {
     set.seed(200) 
     alt <- correlatePairs(Y[20:50,], null=null)
     expect_equal(ref, alt)
+
     set.seed(200) 
     alt <- correlatePairs(Y[20:50,], null=null, cache.size=3)
     expect_equal(ref, alt)
@@ -95,5 +97,13 @@ test_that("buildSNNGraph with irlba runs properly on sparse matrices", {
     set.seed(100)
     g2 <- suppressWarnings(buildSNNGraph(X_, d=10, pc.approx=TRUE))
     expect_identical(g1[], g2[])
+})
 
+test_that("findMarkers and overlapExprs work properly", {
+    groups <- sample(2, ncol(X), replace=TRUE)
+    expect_equal(findMarkers(X, groups), findMarkers(X_, groups))
+    expect_equal(findMarkers(Y, groups), findMarkers(Y_, groups))
+
+    expect_equal(overlapExprs(X, groups), overlapExprs(X_, groups))
+    expect_equal(overlapExprs(Y, groups), overlapExprs(Y_, groups))
 })
