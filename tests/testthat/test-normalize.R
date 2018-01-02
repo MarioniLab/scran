@@ -63,7 +63,71 @@ test_that("subset and division is correct", {
     expect_equal(cur.out[[3]]*mean(cur.out[[1]]), scater::calcAverage(chosen))
 })
 
-# Creating an R-only implementation for comparison.
+# Checking the core function for creating the linear system.
+
+coreCheck <- function(x, sphere, pool.sizes) {
+    x <- t(t(x)/colSums(x))
+    ave.cell <- rowMeans(x)
+
+    #  Manually running through these.
+    all.mat <- all.vals <- vector("list", sum(pool.sizes)*ncells) 
+    i <- 1L
+    for (s in pool.sizes) {
+        for (w in seq_len(ncells)) {
+            chosen <- sphere[w+seq_len(s)-1L]
+
+            current <- integer(ncells)
+            current[chosen] <- 1L
+            all.mat[[i]] <- current
+
+            ratios <- rowSums(x[,chosen,drop=FALSE])/ave.cell
+            all.vals[[i]] <- median(ratios)
+            i <- i+1L
+        }
+    }
+
+    # Adding the low weight additional equations.
+    extra.mat <- diag(ncells)*sqrt(scran:::LOWWEIGHT)
+    extra.val <- apply(x/ave.cell, 2, median)*sqrt(scran:::LOWWEIGHT)
+    final.mat <- rbind(do.call(rbind, all.mat), extra.mat)
+    final.val <- c(unlist(all.vals), extra.val)
+ 
+    # Checking equality with the core output. 
+    core <- scran:::.create_linear_system(x, ave.cell=ave.cell, sphere=sphere, pool.sizes=pool.sizes)
+    last.set <- seq_len(ncells) + nrow(core$design) - ncells # need some reordering for the last set
+    core$design[last.set,][sphere[seq_len(ncells)],] <- core$design[last.set,]
+    core$output[last.set][sphere[seq_len(ncells)]] <- core$output[last.set]
+  
+    final.mat <- as(final.mat, "dgCMatrix")
+    expect_equal(final.mat, core$design)
+    expect_equal(final.val, core$output)
+}
+
+test_that("construction of the linear system agrees with a reference implementation", {
+    pool.sizes <- seq(20, 100, 5)
+    ngenes <- 250
+
+    set.seed(3000)
+    x <- matrix(rpois(ngenes*ncells, lambda=10), nrow=ngenes, ncol=ncells)
+    sphere <- scran:::.generateSphere(runif(ncells))
+    coreCheck(x, sphere=sphere, pool.sizes=pool.sizes)
+
+    # Repeating with even numbers of genes and no ties to check the median calculation.
+    set.seed(3001)
+    x <- matrix(rgamma(ngenes*ncells, 10, 10), nrow=ngenes, ncol=ncells)
+    sphere <- scran:::.generateSphere(runif(ncells))
+    coreCheck(x, sphere=sphere, pool.sizes=pool.sizes)
+    
+    # Repeating with odd numbers of genes and no ties.
+    set.seed(3002)
+    x <- matrix(rgamma((ngenes+1)*ncells, 10, 10), nrow=ngenes+1, ncol=ncells)
+    sphere <- scran:::.generateSphere(runif(ncells))
+    coreCheck(x, sphere=sphere, pool.sizes=pool.sizes)
+})
+
+####################################################################################################
+
+# Creating a quick R implementation for comparison.
 
 library(Matrix)
 sumInR <- function(x, sizes, center=TRUE, min.mean=0) {
@@ -76,38 +140,12 @@ sumInR <- function(x, sizes, center=TRUE, min.mean=0) {
     ncells <- length(lib.sizes)
     o <- scran:::.generateSphere(lib.sizes)
     all.mat <- all.vals <- vector("list", sum(sizes)*ncells) 
-    i <- 1L
 
-    for (s in sizes) {
-        for (w in seq_len(ncells)) {
-            chosen <- o[w+seq_len(s)-1L]
+    # Running the core function directly.
+    core <- scran:::.create_linear_system(x, ave.cell=ref, sphere=o, pool.sizes=sizes)
+    final.mat <- core$design
+    final.val <- core$output
 
-            current <- integer(ncells)
-            current[chosen] <- 1L
-            all.mat[[i]] <- current
-
-            ratios <- rowSums(x[,chosen,drop=FALSE])/ref
-            all.vals[[i]] <- median(ratios)
-            i <- i+1L
-        }
-    }
-
-    # Adding the low weight additional equations.
-    extra.mat <- diag(ncells)*sqrt(scran:::LOWWEIGHT)
-    extra.val <- apply(x/ref, 2, median)*sqrt(scran:::LOWWEIGHT)
-    final.mat <- rbind(do.call(rbind, all.mat), extra.mat)
-    final.val <- c(unlist(all.vals), extra.val)
-
-    # Checking equality with the core function.
-    final.mat <- as(final.mat, "dgCMatrix")
-    ref <- scran:::.create_linear_system(x, ave.cell=ref, sphere=o, pool.sizes=sizes)
-    last.set <- seq_len(ncells) + nrow(final.mat) - ncells # need some reordering for the last set
-    ref$design[last.set,][o[seq_len(ncells)],] <- ref$design[last.set,]
-    ref$output[last.set][o[seq_len(ncells)]] <- ref$output[last.set]
-    expect_equal(final.mat, ref$design)
-    expect_equal(final.val, ref$output)
-
-    # Avoid slight numerical differences between Matrix::qr and base::qr.
     nf <- Matrix::solve(Matrix::qr(final.mat), final.val)
     nf <- as.numeric(nf)
     sf <- nf * lib.sizes
@@ -199,8 +237,6 @@ test_that("computeSumFactors behaves correctly with clustering", {
     ref[clusters==2] <- ref2
     ref <- ref/mean(ref)
     expect_equal(ref, obs)
-
-    # Checking the core of the rescaling function.
 })
 
 test_that("computeSumFactors correctly subsets 'sizes' for small clusters", {
@@ -208,7 +244,7 @@ test_that("computeSumFactors correctly subsets 'sizes' for small clusters", {
     clusters <- rep(1:2, c(80, 120))
     sizes <- seq(20, 100, 5)
     expect_warning(obs <- computeSumFactors(dummy[,clusters==1], sizes=sizes, min.mean=0), "not enough cells in at least one cluster")
-    ref1 <- sumInR(dummy[,clusters==1], sizes[sizes<=80], center=FALSE) 
+    ref1 <- sumInR(dummy[,clusters==1], sizes[sizes<=sum(clusters==1)], center=FALSE) 
     expect_equal(ref1/mean(ref1), obs)
     
     expect_warning(obs <- computeSumFactors(dummy, sizes=sizes, cluster=clusters, min.mean=0), "not enough cells in at least one cluster")
