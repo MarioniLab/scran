@@ -1,6 +1,6 @@
 Package: scran
-Version: 1.7.10
-Date: 2018-01-01
+Version: 1.7.11
+Date: 2018-01-02
 Title: Methods for Single-Cell RNA-Seq Data Analysis
 Authors@R: c(person("Aaron", "Lun", role = c("aut", "cre"), email =
         "alun@wehi.edu.au"), person("Karsten", "Bach", role = "aut"),
@@ -18,10 +18,12 @@ Suggests: testthat, BiocStyle, knitr, beachmat, HDF5Array, limSolve,
         aroma.light
 biocViews: Normalization, Sequencing, RNASeq, Software, GeneExpression,
         Transcriptomics, SingleCell, Visualization, BatchEffect
-Description: Implements a variety of low-level analyses of single-cell 
+Description: Implements functions for low-level analyses of single-cell 
         RNA-seq data. Methods are provided for normalization of 
-        cell-specific biases, assignment of cell cycle phase, and 
-        detection of highly variable and significantly correlated genes.
+        cell-specific biases, assignment of cell cycle phase, 
+        detection of highly variable and significantly correlated genes,
+        correction of batch effects, identification of marker genes,
+        and other common tasks in single-cell analysis workflows.
 License: GPL-3
 NeedsCompilation: yes
 VignetteBuilder: knitr
