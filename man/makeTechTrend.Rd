@@ -6,7 +6,7 @@
 
 \usage{
 makeTechTrend(means, size.factors=1, tol=1e-6, dispersion=0, 
-    pseudo.count=1, sce=NULL) 
+    pseudo.count=1, x=NULL) 
 }
 
 \arguments{
@@ -19,7 +19,7 @@ Lower values result in greater accuracy.}
 \item{dispersion}{A numeric scalar specifying the dispersion for the NB distribution.
 If zero, this is equivalent to a Poisson distribution.}
 \item{pseudo.count}{A numeric scalar specifying the pseudo-count to be added to the scaled counts before log-transformation.}
-\item{sce}{A SingleCellExperiment object from which \code{size.factors} and \code{pseudo.count} are extracted,
+\item{x}{A SingleCellExperiment object from which \code{size.factors} and \code{pseudo.count} are extracted,
 and \code{means} can be automatically inferred.}
 }
 
@@ -35,9 +35,9 @@ The mean and variance is then computed for a composite distribution.
 
 Finally, a function is fitted to all of the computed variances, using the means of the log-values as the covariate.
 Note that the returned function accepts mean log-values as input, \emph{not} the mean counts that were supplied in \code{means}.
-This means that the function is directly usable as a replacement for the trend fitted by \code{\link{trendVar}}.
+This means that the function is directly usable as a replacement for the \code{trend} returned by \code{\link{trendVar}}.
 
-If \code{sce} is set, \code{pseudo.count} is overridden by \code{metadata(sce)$log.exprs.offset};
+If \code{x} is set, \code{pseudo.count} is overridden by \code{metadata(sce)$log.exprs.offset};
 \code{size.factors} is overridden by \code{sizeFactors(sce)} (or the column sums of \code{counts(sce)}, if no size factors are specified);
 and \code{means} is automatically determined from the range of row averages of \code{logcounts(sce)} (after undoing the log-transformation).
 }

@@ -588,23 +588,18 @@ test_that("makeTechTrend works correctly", {
 
     # Handles SCE inputs properly.
     X <- SingleCellExperiment(list(counts=matrix(1:5, ncol=2, nrow=5)))
-    expect_error(makeTechTrend(sce=X), "log.exprs.offset")
-
-    suppressWarnings(X <- normalize(X))
-    out <- makeTechTrend(sce=X)
-    ref <- makeTechTrend(2^seq(0, max(rowMeans(exprs(X))), length.out=100)-1)
-    expect_equal(out(0:10/2), ref(0:10/2))
+    expect_error(makeTechTrend(x=X), "log.exprs.offset")
 
     sizeFactors(X) <- c(0.9, 1.1)
     suppressWarnings(X <- normalize(X))
-    out <- makeTechTrend(sce=X)
+    out <- makeTechTrend(x=X)
     ref <- makeTechTrend(2^seq(0, max(rowMeans(exprs(X))), length.out=100)-1,
                          size.factors=sizeFactors(X))
     expect_equal(out(0:10/2), ref(0:10/2))
 
     X <- SingleCellExperiment(list(counts=matrix(1:10, ncol=2, nrow=5)))
     suppressWarnings(X <- normalize(X))
-    out <- makeTechTrend(sce=X)
+    out <- makeTechTrend(x=X)
     libsizes <- colSums(counts(X))
     ref <- makeTechTrend(2^seq(0, max(rowMeans(exprs(X))), length.out=100)-1,
                          size.factors=libsizes/mean(libsizes))

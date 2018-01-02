@@ -1,4 +1,4 @@
-makeTechTrend <- function(means, size.factors=1, tol=1e-6, dispersion=0, pseudo.count=1, sce=NULL) 
+makeTechTrend <- function(means, size.factors=1, tol=1e-6, dispersion=0, pseudo.count=1, x=NULL) 
 # This generates NB-distributed counts with the specified 
 # dispersion in order to fit the mean-variance trend to the
 # log-normalized counts. Designed for droplet data where
@@ -7,19 +7,19 @@ makeTechTrend <- function(means, size.factors=1, tol=1e-6, dispersion=0, pseudo.
 # written by Aaron Lun
 # created 2 January 2018
 {
-    if (!is.null(sce)) {
-        size.factors <- sizeFactors(sce)
+    if (!is.null(x)) {
+        size.factors <- sizeFactors(x)
         if (is.null(size.factors)) { 
-            size.factors <- colSums(counts(sce))
+            size.factors <- colSums(counts(x))
             size.factors <- size.factors/mean(size.factors)
         }
 
-        pseudo.count <- .get_log_offset(sce)
+        pseudo.count <- .get_log_offset(x)
         if (is.null(pseudo.count)) {
-            stop("'log.exprs.offset' not specified in 'metadata(sce)'")
+            stop("'log.exprs.offset' not specified in 'metadata(x)'")
         }
 
-        all.ave <- rowMeans(logcounts(sce))
+        all.ave <- rowMeans(logcounts(x))
         upper.value <- max(all.ave)
         means <- 2^seq(from=0, to=upper.value, length.out=100) - pseudo.count
     }
