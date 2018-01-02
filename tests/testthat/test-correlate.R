@@ -157,8 +157,8 @@ Ncells <- 100
 X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes) + 1)
 rownames(X) <- paste0("X", seq_len(Ngenes))
 
-test_that("correlatePairs works with a pre-specified null distribution", {
-    nulls <- sort(runif(1e6, -1, 1))
+test_that("correlatePairs works with or without a pre-specified null distribution", {
+    nulls <- sort(runif(1e5, -1, 1))
 
     set.seed(100)
     out <- correlatePairs(X, null.dist=nulls)
@@ -168,14 +168,6 @@ test_that("correlatePairs works with a pre-specified null distribution", {
     expect_equal(out$rho, ref$rho)
     expect_equal(out$p.value, ref$pvalue)
     expect_equal(out$FDR, ref$FDR)
-})
-
-test_that("correlatePairs works without a pre-specified distribution", {
-    set.seed(10001)
-    Ngenes <- 20
-    Ncells <- 100
-    X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes) + 1)
-    rownames(X) <- paste0("X", seq_len(Ngenes))
     
     set.seed(100)
     out <- correlatePairs(X)
@@ -193,12 +185,6 @@ grouping <- factor(rep(c(1,2), each=50))
 design <- model.matrix(~grouping)
 
 test_that("correlatePairs works with a design matrix", {
-    set.seed(10002)
-    Ngenes <- 20
-    Ncells <- 100
-    X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes) + 1)
-    rownames(X) <- paste0("X", seq_len(Ngenes))
-    
     set.seed(200)
     expect_warning(nulls <- correlateNull(design=design, iter=1e4, residuals=TRUE), "deprecated")
     expect_warning(correlatePairs(X[1:5,], design=NULL, null=nulls, residuals=TRUE), "'design' is not the same as that used to generate")
@@ -402,42 +388,43 @@ test_that("correlatePairs with pairs matrix works as expected", {
 
 ####################################################################################################
 
-# Checking that it works with 'per.gene=TRUE'.
-
 set.seed(100022)
 Ngenes <- 20
 Ncells <- 100
 X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes) + 1)
 rownames(X) <- paste0("X", seq_len(Ngenes))
-
 nulls <- correlateNull(ncells=ncol(X), iter=1e3, residuals=TRUE)
-set.seed(200)
-ref <- correlatePairs(X, nulls)
-set.seed(200)
-gref <- correlatePairs(X, nulls, per.gene=TRUE)
-expect_identical(gref$gene, rownames(X))
 
-for (x in rownames(X)) {
-    collected <- ref$gene1 == x | ref$gene2==x
-    simes.p <- min(p.adjust(ref$p.value[collected], method="BH"))
-    expect_equal(simes.p, gref$p.value[gref$gene==x])
-    max.i <- which.max(abs(ref$rho[collected]))
-    expect_equal(ref$rho[collected][max.i], gref$rho[gref$gene==x])
-}
+test_that("correlatePairs works with per.gene=TRUE", {
+    set.seed(200)
+    ref <- correlatePairs(X, nulls)
+    set.seed(200)
+    gref <- correlatePairs(X, nulls, per.gene=TRUE)
+    expect_identical(gref$gene, rownames(X))
+    
+    for (x in rownames(X)) {
+        collected <- ref$gene1 == x | ref$gene2==x
+        simes.p <- min(p.adjust(ref$p.value[collected], method="BH"))
+        expect_equal(simes.p, gref$p.value[gref$gene==x])
+        max.i <- which.max(abs(ref$rho[collected]))
+        expect_equal(ref$rho[collected][max.i], gref$rho[gref$gene==x])
+    }
+})
 
-# Checking the limits were computed properly.
+test_that("correlatePairs returns correct values for the limits", {
+    # Checking the limits were computed properly.
+    X <- rbind(1:Ncells, 1:Ncells, as.numeric(rbind(1:(Ncells/2), Ncells - 1:(Ncells/2) + 1L)))
+    out <- correlatePairs(X, null.dist=nulls)
+    expect_identical(out$gene1, c(1L, 1L, 2L))
+    expect_identical(out$gene2, c(2L, 3L, 3L))
+    expect_identical(out$limited, c(TRUE, FALSE, FALSE))
+    
+    out <- correlatePairs(X, null.dist=nulls, per.gene=TRUE)
+    expect_identical(out$gene, c(1L, 2L, 3L))
+    expect_identical(out$limited, c(TRUE, TRUE, FALSE))
+})
 
-X <- rbind(1:Ncells, 1:Ncells, as.numeric(rbind(1:(Ncells/2), Ncells - 1:(Ncells/2) + 1L)))
-out <- correlatePairs(X, null.dist=nulls)
-expect_identical(out$gene1, c(1L, 1L, 2L))
-expect_identical(out$gene2, c(2L, 3L, 3L))
-expect_identical(out$limited, c(TRUE, FALSE, FALSE))
-
-out <- correlatePairs(X, null.dist=nulls, per.gene=TRUE)
-expect_identical(out$gene, c(1L, 2L, 3L))
-expect_identical(out$limited, c(TRUE, TRUE, FALSE))
-
-# Checking that it works with a SCESet object.
+# Checking that it works with a SingleCellExperiment object.
 
 set.seed(10003)
 Ngenes <- 20
@@ -480,9 +467,10 @@ test_that("correlatePairs works correctly with SingleCellExperiment objects", {
 
 # Checking nonsense inputs.
 
-expect_error(correlatePairs(X[0,], nulls), "need at least two genes to compute correlations")
-expect_error(correlatePairs(X[,0], nulls), "number of cells should be greater than 2")
-expect_warning(correlatePairs(X, iters=1), "lower bound on p-values at a FDR of 0.05, increase 'iter'")
-expect_warning(out <- correlatePairs(X, numeric(0)), "lower bound on p-values at a FDR of 0.05, increase 'iter'")
-expect_equal(out$p.value, rep(1, nrow(out)))
-
+test_that("correlatePairs fails properly upon silly inputs", {
+    expect_error(correlatePairs(X[0,], nulls), "need at least two genes to compute correlations")
+    expect_error(correlatePairs(X[,0], nulls), "number of cells should be greater than 2")
+    expect_warning(correlatePairs(X, iters=1), "lower bound on p-values at a FDR of 0.05, increase 'iter'")
+    expect_warning(out <- correlatePairs(X, numeric(0)), "lower bound on p-values at a FDR of 0.05, increase 'iter'")
+    expect_equal(out$p.value, rep(1, nrow(out)))
+})

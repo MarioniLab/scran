@@ -73,76 +73,59 @@ markers <- list(G1=re.pairs[sample(nrow(re.pairs), 100),],
                  S=re.pairs[sample(nrow(re.pairs), 200),],
                G2M=re.pairs[sample(nrow(re.pairs), 500),])
 
-# Spawning live runs.
-
-set.seed(1000)
 Ncells <- 10
-X <- matrix(rnorm(Ngenes*Ncells), ncol=Ncells)
-rownames(X) <- all.names
+test_that("cyclone works correctly on various datatypes", {
+    # No ties.          
+    set.seed(1000)
+    X <- matrix(rnorm(Ngenes*Ncells), ncol=Ncells)
+    rownames(X) <- all.names
+    
+    set.seed(100)
+    reference <- refFUN(X, markers)
+    set.seed(100)
+    observed <- cyclone(X, markers)
+    
+    expect_identical(reference$phases, observed$phases)
+    expect_equal(reference$scores, observed$scores)
+    expect_equal(reference$normalized.scores, observed$normalized.scores)
 
-set.seed(100)
-reference <- refFUN(X, markers)
+    # Count data.
+    set.seed(1001)
+    X <- matrix(rpois(Ngenes*Ncells, lambda=10), ncol=Ncells)
+    rownames(X) <- all.names
+    
+    set.seed(100)
+    reference <- refFUN(X, markers)
+    set.seed(100)
+    observed <- cyclone(X, markers)
+    
+    expect_identical(reference$phases, observed$phases)
+    expect_equal(reference$scores, observed$scores)
+    expect_equal(reference$normalized.scores, observed$normalized.scores)
 
-set.seed(100)
-observed <- cyclone(X, markers)
-
-expect_identical(reference$phases, observed$phases)
-expect_equal(reference$scores, observed$scores)
-expect_equal(reference$normalized.scores, observed$normalized.scores)
-
-set.seed(1001)
-X <- matrix(rpois(Ngenes*Ncells, lambda=10), ncol=Ncells)
-rownames(X) <- all.names
-
-set.seed(100)
-reference <- refFUN(X, markers)
-
-set.seed(100)
-observed <- cyclone(X, markers)
-
-expect_identical(reference$phases, observed$phases)
-expect_equal(reference$scores, observed$scores)
-expect_equal(reference$normalized.scores, observed$normalized.scores)
-
-# Changing the names of the markers.
-
-re.markers <- markers
-names(re.markers) <- paste0("X", names(markers))
-set.seed(100)
-re.out <- cyclone(X, re.markers)
-expect_identical(re.out$phase, character(0))
-expect_identical(colnames(re.out$scores), names(re.markers))
-expect_equal(unname(re.out$scores), unname(observed$scores))
-
-# Low counts to induce more ties.
-
-set.seed(1002)
-X <- matrix(rpois(Ngenes*Ncells, lambda=5), ncol=Ncells)
-rownames(X) <- all.names
-
-set.seed(100)
-reference <- refFUN(X, markers)
-
-set.seed(100)
-observed <- cyclone(X, markers)
-
-expect_identical(reference$phases, observed$phases)
-expect_equal(reference$scores, observed$scores)
-expect_equal(reference$normalized.scores, observed$normalized.scores)
-
-set.seed(1003)
-X <- matrix(rpois(Ngenes*Ncells, lambda=1), ncol=Ncells)
-rownames(X) <- all.names
-
-set.seed(100)
-reference <- refFUN(X, markers)
-
-set.seed(100)
-observed <- cyclone(X, markers)
-
-expect_identical(reference$phases, observed$phases)
-expect_equal(reference$scores, observed$scores)
-expect_equal(reference$normalized.scores, observed$normalized.scores)
+    # Low counts to induce more ties.
+    set.seed(1002)
+    X <- matrix(rpois(Ngenes*Ncells, lambda=1), ncol=Ncells)
+    rownames(X) <- all.names
+    
+    set.seed(100)
+    reference <- refFUN(X, markers)
+    set.seed(100)
+    observed <- cyclone(X, markers)
+    
+    expect_identical(reference$phases, observed$phases)
+    expect_equal(reference$scores, observed$scores)
+    expect_equal(reference$normalized.scores, observed$normalized.scores)
+    
+    # Changing the names of the marker sets.
+    re.markers <- markers
+    names(re.markers) <- paste0("X", names(markers))
+    set.seed(100)
+    re.out <- cyclone(X, re.markers)
+    expect_identical(re.out$phase, character(0))
+    expect_identical(colnames(re.out$scores), names(re.markers))
+    expect_equal(unname(re.out$scores), unname(observed$scores))
+})
 
 # Checking that it also works with SCESet objects.
 
@@ -152,39 +135,41 @@ rownames(X) <- all.names
 
 test_that("Cyclone also works on SingleCellExperiment objects", {
     X2 <- SingleCellExperiment(list(counts=X))
+    suppressWarnings(X2 <- normalize(X2))
+
     set.seed(100)
     reference <- refFUN(X, markers)
     
     set.seed(100)
     observed1 <- cyclone(X, markers)
     expect_equal(reference, observed1)
-    
+   
+    # Doesn't matter whether you use the counts or logcounts. 
     set.seed(100)
-    observed2 <- cyclone(X2, markers, assay.type="counts")
+    observed2 <- cyclone(X2, markers, assay.type="logcounts")
     expect_equal(reference, observed2)
 })
 
-# Odd behaviour with no cells.
-
-out <- cyclone(X[,0], markers)
-expect_identical(out$phases, character(0))
-expect_identical(nrow(out$scores), 0L)
-expect_identical(colnames(out$scores), c("G1", "S", "G2M"))
-expect_identical(nrow(out$normalized.scores), 0L)
-expect_identical(colnames(out$normalized.scores), c("G1", "S", "G2M"))
-
-# Odd behaviour with no markers.
-
-no.markers <- list(G1=re.pairs[0,],
-                    S=re.pairs[0,],
-                  G2M=re.pairs[0,])
-out <- cyclone(X, no.markers)
-expect_true(all(is.na(out$phases)))
-expect_identical(colnames(out$scores), c("G1", "S", "G2M"))
-expect_identical(nrow(out$scores), ncol(X))
-expect_true(all(is.na(out$scores)))
-expect_identical(colnames(out$normalized.scores), c("G1", "S", "G2M"))
-expect_identical(nrow(out$normalized.scores), ncol(X))
-expect_true(all(is.na(out$normalized.scores)))
-
+test_that("cyclone behaves correctly without cells or markers", {
+    # Sensible behaviour with no cells.
+    out <- cyclone(X[,0], markers)
+    expect_identical(out$phases, character(0))
+    expect_identical(nrow(out$scores), 0L)
+    expect_identical(colnames(out$scores), c("G1", "S", "G2M"))
+    expect_identical(nrow(out$normalized.scores), 0L)
+    expect_identical(colnames(out$normalized.scores), c("G1", "S", "G2M"))
+    
+    # Sensible behaviour with no markers.
+    no.markers <- list(G1=re.pairs[0,],
+                        S=re.pairs[0,],
+                      G2M=re.pairs[0,])
+    out <- cyclone(X, no.markers)
+    expect_true(all(is.na(out$phases)))
+    expect_identical(colnames(out$scores), c("G1", "S", "G2M"))
+    expect_identical(nrow(out$scores), ncol(X))
+    expect_true(all(is.na(out$scores)))
+    expect_identical(colnames(out$normalized.scores), c("G1", "S", "G2M"))
+    expect_identical(nrow(out$normalized.scores), ncol(X))
+    expect_true(all(is.na(out$normalized.scores)))
+})
 

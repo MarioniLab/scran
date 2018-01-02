@@ -82,7 +82,6 @@ test_that("findMarkers works as expected without blocking or design matrices", {
     re.clust <- clust$cluster
     re.clust[1] <- 4
     re.clust <- factor(re.clust)
-
     REFFUN(exprs(X), re.clust)
     REFFUN(exprs(X), re.clust, pval.type="all")
 
@@ -114,33 +113,6 @@ test_that("findMarkers works as expected without blocking or design matrices", {
 # version, as the results are not simple sums. Instead, we have to set up 
 # scenarios where the output is easier to check.
 
-LIMIT_CHECK <- function(X, clusters, blocked, output)
-# This checks that the log-fold changes lie within the limits of 
-# the values from the individual blocks.
-{
-    ref.values <- list()   
-    for (b in unique(blocked)) {
-        chosen <- blocked==b
-        ref.values[[as.character(b)]] <- findMarkers(X[,chosen], clusters[chosen])
-    }
-
-    for (host in names(output)) { 
-        upper.lfc <- 0
-        lower.lfc <- Inf
-
-        for (b in names(ref.values)) { 
-            curlfc <- as.matrix(ref.values[[b]][[host]][rownames(X),-(1:2)])
-            upper.lfc <- pmax(upper.lfc, curlfc)
-            lower.lfc <- pmin(lower.lfc, curlfc)
-        }
-
-        check <- as.matrix(output[[host]][rownames(X),-(1:2)])
-        expect_true(all(check >= lower.lfc))
-        expect_true(all(check <= upper.lfc))
-    }
-    return(invisible(NULL))
-}
-
 set.seed(70000011)
 ncells <- 200
 ngenes <- 1000
@@ -157,10 +129,6 @@ clusters <- as.factor(clust$cluster)
 blocked <- sample(3, ncells, replace=TRUE)
 
 test_that("findMarkers runs properly with blocking: basic checks", {
-    # Standard check for sensible log-fold changes.
-    output <- findMarkers(X, clusters, blocked)
-    LIMIT_CHECK(X, clusters, blocked, output)
-   
     # All values should be the same if one block contains only one group.
     re.clusters <- clusters
     re.clusters[blocked==1] <- 1
@@ -169,8 +137,8 @@ test_that("findMarkers runs properly with blocking: basic checks", {
     ref <- findMarkers(X[,keep], re.clusters[keep], blocked[keep])
     expect_equal(ref, output)
 
-    # Gene ordering and p-values should be the same as an unblocked analysis with the other block,
-    # if one block contains only one sample from each group.
+    # If one block contains only one sample from each group, gene ordering and p-values 
+    # should be the same as an unblocked analysis with the other block,
     re.clusters <- clusters
     re.blocked <- rep(1, length(clusters))
     re.clusters[1:3] <- 1:3
@@ -185,7 +153,6 @@ test_that("findMarkers runs properly with blocking: basic checks", {
 
         for (d in direction) { 
             output <- findMarkers(X, re.clusters, block=re.blocked, direction=d, pval.type=type)
-            LIMIT_CHECK(X, re.clusters, re.blocked, output)
             ref <- findMarkers(X[,-(1:3)], re.clusters[-(1:3)], direction=d, pval.type=type)
             expect_equal(names(output), names(ref))
 
@@ -212,7 +179,6 @@ test_that("findMarkers runs properly with blocking: basic checks", {
 
         for (d in direction) { 
             output <- findMarkers(X2, clusters2, block=blocked2, direction=d, pval.type=type)
-            LIMIT_CHECK(X2, clusters2, blocked2, output)
             ref <- findMarkers(X, clusters, direction=d, pval.type=type)
             expect_equal(names(output), names(ref))
 
@@ -351,7 +317,7 @@ test_that("findMarkers runs properly with blocking: missing/singleton group chec
 # This is because computing the p-values would require me to just
 # copy the R code over, which defeats the purpose.
 library(limma)
-REFFUN <- function(y, design, clust.vals, output) { 
+LMFUN <- function(y, design, clust.vals, output) { 
     lfit <- lmFit(y, design)
     for (host in clust.vals) {
         collected.lfc <- collected.p <- list()
@@ -361,7 +327,6 @@ REFFUN <- function(y, design, clust.vals, output) {
             con[[host]] <- 1
             con[[target]] <- -1
 
-            # Skipping the eBayes step.
             fit2 <- contrasts.fit(lfit, con)
             fit2 <- eBayes(fit2)
             res <- topTable(fit2, n=Inf, sort.by="none")
@@ -397,7 +362,7 @@ test_that("findMarkers works properly with a design matrix", {
     colnames(design) <- c(levels(clusters), "block2")
 
     out.des <- findMarkers(X, clusters=clust$cluster, design=model.matrix(~block))
-    REFFUN(exprs(X), design, levels(clusters), out.des)
+    LMFUN(exprs(X), design, levels(clusters), out.des)
 
     # Trying with a real-value blocking factor.
     covariates <- runif(ncells)
@@ -405,7 +370,7 @@ test_that("findMarkers works properly with a design matrix", {
     colnames(design) <- c(levels(clusters), "covariate")
 
     out.des <- findMarkers(X, clusters=clust$cluster, design=model.matrix(~covariates))
-    REFFUN(exprs(X), design, levels(clusters), out.des)
+    LMFUN(exprs(X), design, levels(clusters), out.des)
 
     # Checking for correct error upon having no residual d.f. in the design matrix.
     design0 <- matrix(1, ncol(X), 1)
