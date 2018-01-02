@@ -261,6 +261,33 @@ test_that("computeSumFactors correctly subsets 'sizes' for small clusters", {
     expect_equal(ref, obs)
 })
 
+set.seed(20004)
+test_that("computeSumFactors is correct with clustering in majority-DE cases", {
+    ncells <- 600
+    ngenes <- 200
+    count.sizes <- rnbinom(ncells, mu=100, size=5)
+    multiplier <- seq_len(ngenes)/100
+    dummy <- outer(multiplier, count.sizes)
+
+    # Most genes (120 out of 200) are DE in at least one cluster.
+    known.clusters <- sample(3, ncells, replace=TRUE)
+    dummy[1:40,known.clusters==1L] <- 0
+    dummy[41:80,known.clusters==2L] <- 0  
+    dummy[81:120,known.clusters==3L] <- 0
+    
+    out <- computeSumFactors(dummy, cluster=known.clusters)
+    expect_equal(out, count.sizes/mean(count.sizes)) # Even though there is a majority of DE, each pair of clusters is still okay.
+    
+    out1 <- computeSumFactors(dummy, cluster=known.clusters, ref=1)
+    expect_equal(out, out1)
+    out2 <- computeSumFactors(dummy, cluster=known.clusters, ref=2)
+    expect_equal(out, out2)
+    out3 <- computeSumFactors(dummy, cluster=known.clusters, ref=3)
+    expect_equal(out, out3)
+    
+    expect_error(computeSumFactors(dummy, cluster=known.clusters, ref=0), "'ref.clust' value not in 'clusters'")
+})
+
 # Trying it out on a SingleCellExperiment object.
 
 set.seed(20001)

@@ -112,43 +112,37 @@ test_that("quickCluster with igraph works with min.size settings", {
     expect_identical(factor(out$membership), obs)
 })
 
-# Seeing how it interacts with the normalization method.
 
-set.seed(300003)
+# Creating an example where quickCluster should behave correctly.
+
+ncells <- 600
+ngenes <- 200
 count.sizes <- rnbinom(ncells, mu=100, size=5)
 multiplier <- seq_len(ngenes)/100
 dummy <- outer(multiplier, count.sizes)
 
 known.clusters <- sample(3, ncells, replace=TRUE)
-dummy[1:300,known.clusters==1L] <- 0
-dummy[301:600,known.clusters==2L] <- 0  
-dummy[601:900,known.clusters==3L] <- 0
+dummy[1:40,known.clusters==1L] <- 0
+dummy[41:80,known.clusters==2L] <- 0  
+dummy[81:120,known.clusters==3L] <- 0
 
-out <- computeSumFactors(dummy, cluster=known.clusters)
-expect_equal(out, count.sizes/mean(count.sizes)) # Even though there is a majority of DE, each pair of clusters is still okay.
+test_that("quickCluster reports the correct clusters", {
+    out <- quickCluster(dummy)          
+    expect_identical(length(unique(paste(out, known.clusters))), 3L)
+}) 
 
-out1 <- computeSumFactors(dummy, cluster=known.clusters, ref=1)
-expect_equal(out, out1)
-out2 <- computeSumFactors(dummy, cluster=known.clusters, ref=2)
-expect_equal(out, out2)
-out3 <- computeSumFactors(dummy, cluster=known.clusters, ref=3)
-expect_equal(out, out3)
+test_that("quickCluster warns or fails on silly inputs", {
+    expect_error(quickCluster(dummy[0,]), "rank variances of zero detected for a cell")
+    expect_error(quickCluster(dummy[,0]), "fewer cells than the minimum cluster size")
 
-expect_error(computeSumFactors(dummy, cluster=known.clusters, ref=0), "'ref.clust' value not in 'clusters'")
-
-# Checking out what happens with silly inputs.
-
-expect_error(quickCluster(dummy[0,]), "rank variances of zero detected for a cell")
-expect_error(quickCluster(dummy[,0]), "fewer cells than the minimum cluster size")
-
-leftovers <- 100
-expect_warning(forced <- quickCluster(dummy[,c(which(known.clusters==1), 
-                                               which(known.clusters==2), 
-                                               which(known.clusters==3)[seq_len(leftovers)])]), 
-               sprintf("%i cells were not assigned to any cluster", leftovers))
-expect_identical(as.character(tail(forced, leftovers)), rep("0", leftovers))
-
-# Trying it out on a SCESet object.
+    # Checking for a warning upon unassigned cells.    
+    leftovers <- 100
+    expect_warning(forced <- quickCluster(dummy[,c(which(known.clusters==1), 
+                                                   which(known.clusters==2), 
+                                                   which(known.clusters==3)[seq_len(leftovers)])]), 
+                   sprintf("%i cells were not assigned to any cluster", leftovers))
+    expect_identical(as.character(tail(forced, leftovers)), rep("0", leftovers))
+})
 
 set.seed(20002)
 test_that("quickCluster works on SingleCellExperiment objects", {
