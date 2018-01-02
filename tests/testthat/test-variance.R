@@ -560,3 +560,54 @@ test_that("combineVar works correctly", {
     expect_error(res <- combineVar(dec, dec4), "inputs should come from decomposeVar() with store.stats=TRUE", fixed=TRUE)
 })
 
+####################################################################################################
+
+set.seed(20004)
+test_that("makeTechTrend works correctly", {
+    # Testing out all the options.
+    out <- makeTechTrend(c(1, 5), pseudo.count=2, size.factors=c(0.5, 1.5))
+    log.values <- c(log2(rpois(1e6, lambda=0.5)/0.5 + 2),
+                    log2(rpois(1e6, lambda=1.5)/1.5 + 2))
+    expect_true(abs(out(mean(log.values)) - var(log.values)) < 5e-3)
+    log.values <- c(log2(rpois(1e6, lambda=0.5*5)/0.5 + 2),
+                    log2(rpois(1e6, lambda=1.5*5)/1.5 + 2))
+    expect_true(abs(out(mean(log.values)) - var(log.values)) < 5e-3)
+
+    out <- makeTechTrend(c(1, 5), dispersion=0.1)
+    log.values <- log2(rnbinom(1e6, mu=1, size=10) + 1)
+    expect_true(abs(out(mean(log.values)) - var(log.values)) < 5e-3)
+    log.values <- log2(rnbinom(1e6, mu=5, size=10) + 1)
+    expect_true(abs(out(mean(log.values)) - var(log.values)) < 5e-3)
+
+    # Handles zeroes properly.
+    out <- makeTechTrend(0:5)
+    expect_equal(out(0), 0)
+
+    # Chucks an error when size factors are not centred.
+    expect_error(makeTechTrend(0:5, size.factors=1:5), "centred at unity") 
+
+    # Handles SCE inputs properly.
+    X <- SingleCellExperiment(list(counts=matrix(1:5, ncol=2, nrow=5)))
+    expect_error(makeTechTrend(sce=X), "log.exprs.offset")
+
+    suppressWarnings(X <- normalize(X))
+    out <- makeTechTrend(sce=X)
+    ref <- makeTechTrend(2^seq(0, max(rowMeans(exprs(X))), length.out=100)-1)
+    expect_equal(out(0:10/2), ref(0:10/2))
+
+    sizeFactors(X) <- c(0.9, 1.1)
+    suppressWarnings(X <- normalize(X))
+    out <- makeTechTrend(sce=X)
+    ref <- makeTechTrend(2^seq(0, max(rowMeans(exprs(X))), length.out=100)-1,
+                         size.factors=sizeFactors(X))
+    expect_equal(out(0:10/2), ref(0:10/2))
+
+    X <- SingleCellExperiment(list(counts=matrix(1:10, ncol=2, nrow=5)))
+    suppressWarnings(X <- normalize(X))
+    out <- makeTechTrend(sce=X)
+    libsizes <- colSums(counts(X))
+    ref <- makeTechTrend(2^seq(0, max(rowMeans(exprs(X))), length.out=100)-1,
+                         size.factors=libsizes/mean(libsizes))
+    expect_equal(out(0:10/2), ref(0:10/2))
+})
+

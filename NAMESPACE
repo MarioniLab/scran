@@ -1,7 +1,8 @@
 useDynLib(scran, .registration=TRUE, .fixes="cxx_")
 
 export(
-    DM, testVar, combineVar,
+    DM, makeTechTrend,
+    testVar, combineVar,
     correlateNull,
     selectorPlot, exploreData,
     mnnCorrect
@@ -10,7 +11,7 @@ export(
 exportMethods(
     quickCluster, buildSNNGraph, buildKNNGraph,
     computeSumFactors, computeSpikeFactors, 
-    trendVar, decomposeVar, technicalCV2, improvedCV2,
+    trendVar, decomposeVar, technicalCV2, improvedCV2, 
     sandbag, cyclone,
     correlatePairs,
     denoisePCA,
@@ -23,17 +24,19 @@ importFrom("Rcpp", sourceCpp)
 importFrom("scater", calcAverage, areSizeFactorsCentred)
 
 importFrom("dynamicTreeCut", cutreeDynamic)
-importFrom("Matrix", sparseMatrix, qr, qr.coef, t, which, colMeans)
+importFrom("Matrix", sparseMatrix, qr, qr.coef, t, which, colMeans, rowMeans)
 
 importFrom("edgeR", DGEList, "[.DGEList", designAsFactor, scaleOffset.DGEList)
 importFrom("limma", fitFDistRobustly, lmFit, contrasts.fit)
 
 importFrom("utils", combn)
 importFrom("stats", quantile, median, var,
-            pf, pchisq, pt, pnorm, qnorm,
+            pf, pchisq, pt, pnorm, 
+            qnorm, qpois, qnbinom,
+            dpois, dnbinom, 
             fitted, coefficients, coef, predict,
             lm, model.matrix, 
-            loess, smooth.spline, runmed,
+            loess, smooth.spline, runmed, splinefun,
             hclust, dist,
             nls, nls.control,
             prcomp,
