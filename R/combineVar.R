@@ -1,4 +1,4 @@
-combineVar <- function(..., method=c("fisher", "simes", "berger")) 
+combineVar <- function(..., method=c("z", "simes", "berger")) 
 # Combines decomposeVar() results, typically from multiple batches.
 #
 # written by Aaron Lun
@@ -9,8 +9,8 @@ combineVar <- function(..., method=c("fisher", "simes", "berger"))
     for (x in all.results) {
         if (is.null(ref)) {
             ref <- rownames(x)
-        } else {
-            stopifnot(identical(ref, rownames(x)))
+        } else if (!identical(ref, rownames(x))) {
+            stop("gene identities should be the same for all arguments in '...'")
         }
     }
 
@@ -29,21 +29,20 @@ combineVar <- function(..., method=c("fisher", "simes", "berger"))
         output[[val]] <- .weighted_average_vals(cur.vals, resid.df)
     }
 
-    # Combining the p-values.
+    # Combining the one-sided p-values.
     p.combine <- lapply(all.results, FUN="[[", i="p.value")
-    p.combine <- do.call(cbind, p.combine)
 
     method <- match.arg(method)
-    if (method=="fisher") {
-        logp <- -2*rowSums(log(p.combine))
-        p.final <- pchisq(logp, df=2*ncol(p.combine), lower.tail=FALSE)
-    } else if (method=="simes") {
-        p.final <- apply(p.combine, 1, FUN=function(p) { min(p.adjust(p, method="BH")) })
-    } else if (method=="berger") {
-        p.final <- apply(p.combine, 1, FUN=max)
+    if (method=="z") {
+        all.z <- lapply(p.combine, FUN=qnorm)
+        Z <- .weighted_average_vals(all.z, resid.df)
+        p.final <- pnorm(Z)
+    } else {
+        p.final <- .combine_pvalues(do.call(cbind, p.combine), 
+                                    pval.type=ifelse(method=="simes", "any", "all"))
     }
 
-    output <- do.call(data.frame, output)
+    output <- do.call(DataFrame, output)
     output$p.value <- p.final
     output$FDR <- p.adjust(p.final, method="BH")
     rownames(output) <- ref
@@ -57,7 +56,14 @@ combineVar <- function(..., method=c("fisher", "simes", "berger"))
         if (is.null(cur.w)) {
             stop("inputs should come from decomposeVar() with store.stats=TRUE")
         }
-        output[[x]] <- cur.w 
+        if (!is.null(names(cur.w))) { 
+            cur.w <- cur.w[rownames(tabs[[x]])] 
+            if (any(is.na(cur.w))) {
+                stop("gene names in 'rownames' not in 'decomposeVar.stats$resid.df'")
+            }
+            cur.w <- unname(cur.w)
+        }
+        output[[x]] <- cur.w
     } 
     names(output) <- names(tabs)
     return(output)

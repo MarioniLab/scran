@@ -5,7 +5,7 @@
 \description{Combine the results of multiple variance decompositions, usually generated for the same genes across separate batches of cells.}
 
 \usage{
-combineVar(..., method=c("fisher", "simes", "berger"))
+combineVar(..., method=c("z", "simes", "berger"))
 }
 
 \arguments{
@@ -18,10 +18,12 @@ This function is designed to merge results from multiple calls to \code{\link{de
 Separate variance decompositions are necessary in cases where different concentrations of spike-in have been added to the cells in each batch.
 This affects the technical mean-variance relationship and precludes the use of a common trend fit.
 
-The default setting is to use \code{method="fisher"}, where Fisher's method is used to combine p-values across batches.
+The default setting is to use \code{method="z"}, where Stouffer's Z-score method is used to combine p-values across batches.
 This aims to detect genes that are highly variable in \emph{any} batch and assumes that the test outcome is independent between batches.
+Each batch is weighted according to the residual d.f. used to perform the test.
+
 If independence does not hold, Simes' method should be used by setting \code{method="simes"}, as it is more robust to correlations between tests.
-To identify genes that are detected as highly variable in \emph{all} batches, Berger's IUT can be used by setting \code{method="simes"}.
+To identify genes that are detected as highly variable in \emph{all} batches, Berger's IUT can be used by setting \code{method="berger"}.
 }
 
 \value{
@@ -47,9 +49,9 @@ Berger RL and Hsu JC (1996).
 Bioequivalence trials, intersection-union tests and equivalence confidence sets.
 \emph{Statist. Sci.} 11, 283-319.
 
-Fisher, R.A. (1925). 
-\emph{Statistical Methods for Research Workers.}
-Oliver and Boyd (Edinburgh).
+Whitlock MC (2005). 
+Combining probability from independent tests: the weighted Z-method is superior to Fisher's approach. 
+\emph{J. Evol. Biol.} 18, 5:1368-73.
 }
 
 \examples{

@@ -534,17 +534,15 @@ test_that("combineVar works correctly", {
     dec3 <- decomposeVar(alt.d, out3, store.stats=TRUE)
 
     # Checking averaging of stats.
+    N <- c(ncells, ncol(sub.d), ncol(alt.d))
+    DF <- c(ncells - 1L, ncol(sub.d) - 3L, ncol(alt.d) - 2L)
     res <- combineVar(dec, dec2, dec3)
-    expect_equal(res$mean, (dec$mean * ncells + 
-                            dec2$mean * ncol(sub.d) + 
-                            dec3$mean * ncol(alt.d)) / (ncells + ncol(sub.d) + ncol(alt.d)))
-    expect_equal(res$total, (dec$total * (ncells - 1) + 
-                             dec2$total * (ncol(sub.d) - 3) + 
-                             dec3$total * (ncol(alt.d) - 2)) / (ncells -1 + ncol(sub.d) - 3 + ncol(alt.d) - 2))
+    expect_equal(res$mean, drop(cbind(dec$mean, dec2$mean, dec3$mean) %*% N / sum(N)))
+    expect_equal(res$total, drop(cbind(dec$total, dec2$total, dec3$total) %*% DF) / sum(DF))
 
     # Checking proper calculation of combined p-values.
     expect_equal(res$p.value, apply(cbind(dec$p.value, dec2$p.value, dec3$p.value),
-                                    1, FUN=function(p) { pchisq(-sum(log(p))*2, df=2*length(p), lower.tail=FALSE) }))
+                                    1, FUN=function(p) { pnorm(sum(qnorm(p) * DF)/sum(DF)) }))
 
     res2 <- combineVar(dec, dec2, dec3, method="simes")
     expect_equal(res[,c("mean", "total", "tech", "bio")], res2[,c("mean", "total", "tech", "bio")])
@@ -555,9 +553,21 @@ test_that("combineVar works correctly", {
     expect_equal(res[,c("mean", "total", "tech", "bio")], res3[,c("mean", "total", "tech", "bio")])
     expect_equal(res3$p.value, apply(cbind(dec$p.value, dec2$p.value, dec3$p.value), 1, max))
 
-    # Checking fail when you miss store.stats.
-    dec4 <- decomposeVar(alt.d, out3)
+    # Same results upon subsetting.
+    reres <- combineVar(dec[1:10,], dec2[1:10,], dec3[1:10,])
+    rescheck <- res[1:10,]
+    rescheck$FDR <- p.adjust(rescheck$p.value, method="BH")
+    expect_equal(reres, rescheck)
+
+    # Checking fails: 
+    dec4 <- decomposeVar(alt.d, out3)  # when you miss store.stats.
     expect_error(res <- combineVar(dec, dec4), "inputs should come from decomposeVar() with store.stats=TRUE", fixed=TRUE)
+    expect_error(res <- combineVar(dec, dec2[rev(rownames(dec)),]), "gene identities should be the same") # when you switch up the order.
+
+    redec <- dec
+    redec2 <- dec2
+    rownames(redec) <- rownames(redec2) <- paste0(rownames(dec), "Y")
+    expect_error(res <- combineVar(redec, redec2), "gene names")
 })
 
 ####################################################################################################
