@@ -439,7 +439,7 @@ test_that("decomposeVar works with blocking", {
                     df=rep(resid.df, each=nrow(X)))
     dim(pval) <- dim(mean.mat)
     pval[isSpike(X),] <- NA
-    expect_equal(out3$p.value, pchisq(-2*rowSums(log(pval)), 2*ncol(pval), lower.tail=FALSE))
+    expect_equal(out3$p.value, as.numeric(pnorm(qnorm(pval) %*% resid.df/sum(resid.df))))
 
     # Checking out what happens when I use a normal trend but use block= in decomposeVar only.
     out2a <- decomposeVar(X, fit, block=block)
@@ -475,6 +475,8 @@ observed <- trended * qchisq(true.p, df=df, lower.tail=FALSE)/df
 test_that("testVar's chi-squared test works as expected", {
     pvals <- testVar(observed, trended, df=df)
     expect_equal(pvals, true.p)
+    pvals <- testVar(observed, trended, df=df, log.p=TRUE)
+    expect_equal(pvals, log(true.p))
     
     design <- model.matrix(~factor(rep(c(1,2), each=11)))
     pvals <- testVar(observed, trended, design=design)
@@ -495,7 +497,12 @@ test_that("testVar's F-test works as expected", {
     df1 <- ncells - 1L
     ffit <- limma::fitFDistRobustly(rat[fit$var > 0 & fit$mean >= 0.1], df=df1) # filtering out zero-variance, low-abundance genes.
     expect_equal(pvals, pf(rat/ffit$scale, df1=df1, df2=ffit$df2, lower.tail=FALSE))
+
+    # Testing log-transformation.
+    lpvals <- testVar(fit$var, fit$trend(fit$mean), df=ncells-1, second.df=fit$df2, test='f', log.p=TRUE)
+    expect_equal(log(pvals), lpvals)
     
+    # Checking for error upon no df.2
     expect_error(testVar(fit$var, fit$trend(fit$mean), df=ncells-1, test='f'),
                  "second df from trendVar() must be specified for test='f'", fixed=TRUE)
 })

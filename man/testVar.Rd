@@ -5,7 +5,7 @@
 \description{Test for whether the total variance exceeds that expected under some null hypothesis, for sample variances estimated from normally distributed observations.}
 
 \usage{
-testVar(total, null, df, design=NULL, test=c("chisq", "f"), second.df=NULL)
+testVar(total, null, df, design=NULL, test=c("chisq", "f"), second.df=NULL, log.p=FALSE)
 }
 
 \arguments{
@@ -26,6 +26,9 @@ A string specifying the type of test to perform.
 }
 \item{second.df}{
 A numeric scalar specifying the second degrees of freedom for the F-distribution when \code{test="f"}.
+}
+\item{log.p}{
+A logical scalar indicating whether log-transformed p-values should be returned.
 }
 }
 

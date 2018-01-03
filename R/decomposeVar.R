@@ -30,11 +30,11 @@
 
         # Need to do some work to calculate the technical component separately for each block.
         block.tech.var <- fit$trend(as.vector(lmeans))
-        block.pval <- testVar(as.vector(lvar), null=block.tech.var, df=as.vector(resid.df), second.df=fit$df2, ...)
+        block.pval <- testVar(as.vector(lvar), null=block.tech.var, df=as.vector(resid.df), second.df=fit$df2, log.p=TRUE, ...)
         dim(block.pval) <- dim(block.tech.var) <- dim(lmeans)
 
         # Aggregating variances together, using the weighted mean of residual d.f. 
-        # (we set na.rm=TRUE for situations when no resid. d.f. are available).
+        # (we set na.rm=TRUE to ignore blocks where no resid. d.f. are available).
         total.resid.df <- rowSums(resid.df)
         lvar <- rowSums(lvar * resid.df, na.rm=TRUE)/total.resid.df
         tech.var <- rowSums(block.tech.var * resid.df)/total.resid.df
@@ -43,9 +43,9 @@
         num.per.block <- table(block)
         lmeans <- lmeans %*% num.per.block[colnames(lmeans)]/ncol(x)
 
-        # Combining p-values using Fisher's method (independent observations).
-        logp <- -2*rowSums(log(block.pval))
-        pval <- pchisq(logp, df=2*ncol(block.pval), lower.tail=FALSE)
+        # Combining p-values using Stouffer's method (independent observations).
+        Z <- rowSums(qnorm(block.pval, log.p=TRUE) * resid.df)/total.resid.df
+        pval <- pnorm(Z)
         resid.df <- total.resid.df
 
     } else {

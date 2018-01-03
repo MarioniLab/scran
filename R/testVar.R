@@ -1,4 +1,4 @@
-testVar <- function(total, null, df, design=NULL, test=c("chisq", "f"), second.df=NULL)
+testVar <- function(total, null, df, design=NULL, test=c("chisq", "f"), second.df=NULL, log.p=FALSE)
 # Tests that total > null given variances estimated on 'df' degrees of freedom.
 # You can also give it the design matrix directly if you can't be bothered estimating 'df'.
 # Obviously there's an assumption of normality here, regarding the observations from which estimation was performed.
@@ -12,7 +12,7 @@ testVar <- function(total, null, df, design=NULL, test=c("chisq", "f"), second.d
 
     test <- match.arg(test)
     if (test=="chisq") {
-        p <- pchisq(total/null*df, df=df, lower.tail=FALSE)
+        p <- pchisq(total/null*df, df=df, lower.tail=FALSE, log.p=log.p)
     } else {
         if (is.null(second.df)) { stop("second df from trendVar() must be specified for test='f'") }
 
@@ -25,7 +25,7 @@ testVar <- function(total, null, df, design=NULL, test=c("chisq", "f"), second.d
         scaling <- null/mean.adj 
 
         # Assumes that the scaled inverse-chisq distribution for true variances is the same for incoming genes.
-        p <- pf(total/scaling, df1=df, df2=second.df, lower.tail=FALSE) 
+        p <- pf(total/scaling, df1=df, df2=second.df, lower.tail=FALSE, log.p=log.p) 
     }
     return(p)
 }
