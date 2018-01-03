@@ -136,8 +136,8 @@
             field.name <- "Top"
             o <- order(to.add, rank.out$value)
         } else {
-            # Getting the smallest overlap and ranking by that.
-            to.add <- current[.find_largest_index(metric)]
+            # Getting the worst overlap and ranking by that.
+            to.add <- current[.find_largest_col(metric)]
             field.name <- "Worst"
             o <- order(to.add)
         }

@@ -3,7 +3,7 @@
 Rcpp::IntegerVector check_subset_vector(SEXP subvec, size_t len) {
     Rcpp::IntegerVector sout(subvec);
     for (const auto& s : sout) {
-        if (ISNA(s) || s < 0 || s >= len) {
+        if (isNA(s) || s < 0 || s >= len) {
             throw std::runtime_error("subset indices out of range");
         }
     }
@@ -17,7 +17,7 @@ bool isNA(int x) {
 }
 
 bool isNA(double x) {
-    return ISNA(x);
+    return ISNAN(x);
 }
 
 

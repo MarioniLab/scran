@@ -348,33 +348,23 @@
 }
 
 .combine_pvalues <- function(all.p, pval.type) { 
-    # Getting rid of NA's.
     ngenes <- nrow(all.p)
-    if (ngenes) {
-        discard <- is.na(all.p[1,])
-        all.p <- all.p[,!discard,drop=FALSE]
-    }
     ncon <- ncol(all.p)
-
     if (pval.type=="any") { 
-        # Computing Simes' p-value in a fully vectorised manner.
-        gene.id <- rep(seq_len(ngenes), ncon)
-        o <- order(gene.id, all.p)
-        penalty <- rep(ncon/seq_len(ncon), ngenes) 
-        com.p <- matrix(all.p[o]*penalty, ngenes, ncon, byrow=TRUE)
-        smallest <- (max.col(-com.p) - 1) * ngenes + seq_len(ngenes)
-        pval <- com.p[smallest]
+        # Computing the Simes p-value (with NA protection).
+        pval <- .Call(cxx_combine_simes, all.p)
     } else {
         # Computing the IUT p-value.
-        pval <- all.p[.find_largest_index(all.p)]
+        pval <- all.p[.find_largest_col(all.p)]
     }
 
     return(pval)
 }
 
-.find_largest_index <- function(metrics) {
-    ngenes <- nrow(metrics)
-    (max.col(metrics) - 1L) * ngenes + seq_len(ngenes)
+.find_largest_col <- function(metrics) {
+    metrics[is.na(metrics)] <- -Inf # protection against NAs.
+    largest <- max.col(metrics)
+    cbind(seq_along(largest), largest)
 }
 
 ###########################################################
