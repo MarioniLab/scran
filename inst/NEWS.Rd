@@ -2,10 +2,12 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.7.10}{\itemize{
+\section{Version 1.7.11}{\itemize{
 \item Modified decomposeVar() to return statistics (but not p-values) for spike-ins when get.spikes=NA.
-Added block= argument for mean/variance calculations within each level of a blocking factor.
+Added block= argument for mean/variance calculations within each level of a blocking factor, 
+followed by reporting of weighted averages (using weighted Stouffer's method for p-values).
 Added store.stats= argument to record stats in attributes for use in combineVar(). 
+Switched output to a DataFrame object for consistency with other functions.
 
 \item Allowed passing of arguments to irlba() in denoisePCA() to assist convergence.
 Reported low-rank approximations for all genes, regardless of whether they were used in the SVD.
@@ -37,6 +39,7 @@ Switched to automatic ranking of genes based on ability to discriminate between 
 Added rank.type= and direction= arguments to control ranking of genes.
 
 \item Modified combineVar() so that it is aware to the stats recorded in decomposeVar() with store.stats=TRUE.
+Switched from Fisher's method to Stouffer's method with residual d.f.-weighted Z-scores.
 
 \item Modified the behaviour of min.mean= in computeSumFactors() when clusters!=NULL.
 Abundance filtering is now performed within each cluster and for pairs of clusters, rather than globally.
@@ -44,6 +47,10 @@ Abundance filtering is now performed within each cluster and for pairs of cluste
 \item Switched to pairwise t-tests in findMarkers(), rather than fitting a global linear model.
 Added block= argument for within-block t-tests, the results of which are combined across blocks via Stouffer's method.
 Removed empirical Bayes shrinkage as well as the min.mean= argument.
+
+\item Added the makeTechTrend() function for generating a mean-variance trend under Poisson technical noise.
+
+\item Added the clusterModularity() function for assessing the cluster-wise modularity after graph-based clustering.
 }}
 
 \section{Version 1.6.0}{\itemize{
