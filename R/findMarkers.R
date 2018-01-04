@@ -1,4 +1,5 @@
-.findMarkers <- function(x, clusters, block=NULL, design=NULL, pval.type=c("any", "all"), direction=c("any", "up", "down"), subset.row=NULL)
+.findMarkers <- function(x, clusters, block=NULL, design=NULL, pval.type=c("any", "all"), direction=c("any", "up", "down"), 
+                         lfc=0, log.p=FALSE, subset.row=NULL)
 # Uses limma to find the markers that are differentially expressed between clusters,
 # given a log-expression matrix and some blocking factors in 'design'.
 #
@@ -16,9 +17,9 @@
 
     # Estimating the parameters.
     if (!is.null(block) || is.null(design)) {
-        fit <- .test_block_internal(x, subset.row, clusters, block, direction)
+        fit <- .test_block_internal(x, subset.row, clusters, block=block, direction=direction, lfc=lfc, log.p=log.p)
     } else {
-        fit <- .fit_lm_internal(x, subset.row, clusters, design, direction) 
+        fit <- .fit_lm_internal(x, subset.row, clusters, design=design, direction=direction, lfc=lfc, log.p=log.p) 
     }
 
     # Figuring out how to rank within each DataFrame.
@@ -28,7 +29,7 @@
     names(output) <- names(all.p)
 
     for (host in names(all.p)) {
-        pval <- .combine_pvalues(all.p[[host]], pval.type)
+        pval <- .combine_pvalues(all.p[[host]], pval.type, log.p=log.p)
         lfc <- all.lfc[[host]]
         colnames(lfc) <- sprintf("logFC.%s", colnames(lfc))
 
@@ -36,11 +37,18 @@
             rank.out <- .rank_top_genes(all.p[[host]])
             min.rank <- rank.out$rank
             min.p <- rank.out$value
-            o <- order(min.rank, min.p)
+            gene.order <- order(min.rank, min.p)
             preamble <- DataFrame(Top=min.rank)
         } else {
-            o <- order(pval)
+            gene.order <- order(pval)
             preamble <- DataFrame(IUT.p=pval)
+        }
+
+        # Performing a log-transformed version of the FDR correction, if desired.
+        if (log.p) {
+            preamble$log.FDR <- .logBH(pval)
+        } else {
+            preamble$FDR <- p.adjust(pval, method="BH")
         }
 
         # Producing the output object.
@@ -48,9 +56,8 @@
         if (is.null(gene.names)) { 
             gene.names <- subset.row
         }
-        marker.set <- DataFrame(preamble, FDR=p.adjust(pval, method="BH"), lfc,
-                                check.names=FALSE, row.names=gene.names)
-        marker.set <- marker.set[o,,drop=FALSE]
+        marker.set <- DataFrame(preamble, lfc, check.names=FALSE, row.names=gene.names)
+        marker.set <- marker.set[gene.order,,drop=FALSE]
         output[[host]] <- marker.set
     }
 
@@ -61,7 +68,7 @@
 # Internal functions (blocking)
 ###########################################################
 
-.test_block_internal <- function(x, subset.row, clusters, block, direction) 
+.test_block_internal <- function(x, subset.row, clusters, block=NULL, direction="any", lfc=0, log.p=FALSE) 
 # This looks at every level of the blocking factor and performs
 # t-tests between pairs of clusters within each blocking level.
 {
@@ -113,7 +120,11 @@
     nblocks <- length(by.block)
     for (i in seq_along(clust.vals)) {
         host <- clust.vals[i]
-        targets <- clust.vals[seq_len(i-1L)]
+        if (lfc==0 || direction=="any") { 
+            targets <- clust.vals[seq_len(i-1L)]
+        } else {
+            targets <- clust.vals[-i]
+        }
 
         for (target in targets) {
             all.lfc <- matrix(0, ngenes, nblocks)
@@ -127,7 +138,7 @@
                                             host.n=out.n[[b]][host], target.n=out.n[[b]][target])
                 cur.err <- t.out$err
                 cur.df <- t.out$test.df
-                cur.t <- cur.lfc/sqrt(cur.err)
+                cur.t <- .adjust_test_lfc(cur.lfc, lfc, direction=direction)/sqrt(cur.err)
 
                 all.lfc[,b] <- cur.lfc
                 all.weight[,b] <- 1/cur.err
@@ -139,17 +150,18 @@
             }
 
             # Combining the p-values and log-fold changes across blocks.
-            com.p <- .combine_test_statistics(all.left, all.right, all.weight, direction)
+            com.p <- .combine_stouffer(all.left, all.right, all.weight, direction=direction, log.p=log.p)
             com.lfc <- .combine_lfc(all.lfc, all.weight, all.rss/all.df)
             out.p[[host]][,target] <- com.p
             out.lfc[[host]][,target] <- com.lfc
 
-            # Filling in the other values due to symmetry. 
+            # Filling in the other values due to symmetry, except when lfc!=0; this requires explicit recalculation of 'cur.t'. 
             out.lfc[[target]][,host] <- -com.lfc
             if (direction=="any") { 
                 out.p[[target]][,host] <- com.p
-            } else {
-                out.p[[target]][,host] <- .combine_test_statistics(all.right, all.left, all.weight, direction)
+            } else if (lfc==0) {
+                symm.p <- .combine_stouffer(all.right, all.left, all.weight, direction=direction, log.p=log.p)
+                out.p[[target]][,host] <- symm.p
             }
         }
     }
@@ -219,35 +231,46 @@
     rowSums(weights*lfc, na.rm=TRUE)/rowSums(weights, na.rm=TRUE)
 }
 
-.combine_test_statistics <- function(left, right, weights, direction) 
+.combine_stouffer <- function(left, right, weights, direction="any", log.p=FALSE) 
 # This uses the inverse errors as the weights to combine the 
 # various statistics. It uses Stouffer's method to combine 
 # the p-values on either side.
 {
     sum.weight <- rowSums(weights, na.rm=TRUE)
     if (direction!="up") { 
-        Z.left <- qnorm(left, log.p=TRUE)
-        final.left <- rowSums(Z.left*weights, na.rm=TRUE)/sum.weight
-        p.out <- p.left <- pnorm(final.left)
+        p.left <- .run_stouffer(left, weights, sum.weight, log.p=log.p)
+    } else {
+        p.left <- NULL
     }
 
     if (direction!="down") { 
-        Z.right <- qnorm(right, log.p=TRUE)
-        final.right <- rowSums(Z.right*weights, na.rm=TRUE)/sum.weight
-        p.out <- p.right <- pnorm(final.right)
+        p.right <- .run_stouffer(right, weights, sum.weight, log.p=log.p)
+    } else {
+        p.right <- NULL
     }
-    
-    if (direction=="any") {
-        p.out <- pmin(p.left, p.right)*2
+
+    .combine_leftright_pvalues(p.left, p.right, direction=direction, log.p=log.p)
+}
+
+.run_stouffer <- function(log.pvals, weights, sum.weight, log.p=FALSE) {
+    if (ncol(log.pvals)>1L) {
+        Z <- qnorm(log.pvals, log.p=TRUE)
+        final <- rowSums(Z*weights, na.rm=TRUE)/sum.weight
+        P <- pnorm(final, log.p=log.p)
+    } else {
+        P <- log.pvals
+        if (!log.p) {
+            P <- exp(log.pvals)
+        }
     }
-    return(p.out)
+    return(P)
 }
 
 ###########################################################
 # Internal functions (linear modelling)
 ###########################################################
 
-.fit_lm_internal <- function(x, subset.row, clusters, design, direction) 
+.fit_lm_internal <- function(x, subset.row, clusters, design, direction="any", lfc=0, log.p=FALSE) 
 # This fits a linear model to each gene and performs a t-test for 
 # differential expression between clusters.
 {
@@ -308,15 +331,11 @@
         for (con in seq_len(ncon)) { 
             cur.lfc <- ref.coef - coefficients[not.h[con],]
             all.lfc[,con] <- cur.lfc
-            cur.t <- cur.lfc/(lfit2$stdev.unscaled[con]*sqrt(sigma2))
-            cur.p <- 2 * pt(-abs(cur.t), df=resid.df)
+            cur.t <- .adjust_test_lfc(cur.lfc, lfc, direction=direction)/(lfit2$stdev.unscaled[con]*sqrt(sigma2))
 
-            if (direction=="up") { 
-                cur.p <- ifelse(cur.lfc > 0, cur.p/2, 1-cur.p/2)
-            } else if (direction=="down") {
-                cur.p <- ifelse(cur.lfc < 0, cur.p/2, 1-cur.p/2)
-            }
-            all.p[,con] <- cur.p
+            left.p <- pt(cur.t, df=resid.df, log.p=log.p, lower.tail=TRUE)
+            right.p <- pt(cur.t, df=resid.df, log.p=log.p, lower.tail=FALSE)
+            all.p[,con] <- .combine_leftright_pvalues(left.p, right.p, direction=direction, log.p=log.p)
         }
 
         colnames(all.p) <- colnames(all.lfc) <- targets
@@ -324,6 +343,68 @@
         out.lfc[[host]] <- all.lfc
     }
     return(list(p.value=out.p, logFC=out.lfc))
+}
+
+###########################################################
+# Internal functions (p-value calculations)
+###########################################################
+
+.adjust_test_lfc <- function(cur.lfc, thresh.lfc, direction="any")
+# Adjusting the log-FC for the proposed test threshold. The logic
+# is that the null log-fold changes are distributed on the closer
+# boundary, if direction="any"; and on the corresponding positive/
+# negative boundary for other values of 'direction'.
+{
+    if (thresh.lfc==0) {
+        return(cur.lfc)
+    }
+    thresh.lfc <- abs(thresh.lfc)
+    if (direction=="any") {
+        adj <- sign(cur.lfc) * pmin(thresh.lfc, abs(cur.lfc))
+    } else if (direction=="up") {
+        adj <- thresh.lfc
+    } else if (direction=="down") {
+        adj <- -thresh.lfc
+    }
+    cur.lfc - adj
+}
+
+.combine_leftright_pvalues <- function(left, right, direction="any", log.p=FALSE) {
+    if (direction=="up") { 
+        return(right)
+    } else if (direction=="down") {
+        return(left)
+    } else if (direction=="any") {
+        p.out <- pmin(left, right)
+        if (log.p) {
+            p.out <- p.out + log(2)
+        } else {
+            p.out <- p.out * 2            
+        }
+        return(p.out)
+    }
+}
+
+.combine_pvalues <- function(all.p, pval.type, log.p=FALSE) { 
+    ngenes <- nrow(all.p)
+    ncon <- ncol(all.p)
+    if (pval.type=="any") { 
+        # Computing the Simes p-value (with NA protection).
+        pval <- .Call(cxx_combine_simes, all.p, log.p)
+    } else {
+        # Computing the IUT p-value.
+        pval <- all.p[.find_largest_col(all.p)]
+    }
+
+    return(pval)
+}
+
+.logBH <- function(pval) {
+    o <- order(pval)
+    repval <- pval[o] + log(length(o)/seq_along(o))
+    repval <- rev(cummin(rev(repval)))
+    repval[o] <- repval
+    return(repval)
 }
 
 ###########################################################
@@ -345,20 +426,6 @@
     }
     
     return(list(rank=min.rank, value=min.val))
-}
-
-.combine_pvalues <- function(all.p, pval.type) { 
-    ngenes <- nrow(all.p)
-    ncon <- ncol(all.p)
-    if (pval.type=="any") { 
-        # Computing the Simes p-value (with NA protection).
-        pval <- .Call(cxx_combine_simes, all.p)
-    } else {
-        # Computing the IUT p-value.
-        pval <- all.p[.find_largest_col(all.p)]
-    }
-
-    return(pval)
 }
 
 .find_largest_col <- function(metrics) {
