@@ -43,7 +43,7 @@ SEXP fit_linear_model(SEXP, SEXP, SEXP, SEXP, SEXP);
 
 SEXP fit_oneway(SEXP, SEXP, SEXP);
 
-SEXP combine_simes(SEXP);
+SEXP combine_simes(SEXP, SEXP);
 
 // Miscellaneous functions.
 
