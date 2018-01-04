@@ -7,6 +7,7 @@ REFFUN <- function(y, grouping, pval.type="any", direction="any")
     output <- findMarkers(y, grouping, pval.type=pval.type, direction=direction)
     grouping <- factor(grouping)
     clust.vals <- levels(grouping)
+    alt.hyp <- switch(direction, any="two.sided", up="greater", down="less")
 
     for (host in clust.vals) {
         collected.lfc <- collected.p <- list()
@@ -16,11 +17,10 @@ REFFUN <- function(y, grouping, pval.type="any", direction="any")
             target.y <- y[,grouping==target,drop=FALSE]
 
             if (ncol(host.y)!=1L || ncol(target.y)!=1L) {
+                use.student <- ncol(target.y)==1L || ncol(host.y)==1L
                 pval <- numeric(nrow(y))
                 for (i in seq_along(pval)) {
-                    pval[i] <- t.test(host.y[i,], target.y[i,], 
-                        alternative=switch(direction, any="two.sided", up="greater", down="less"),
-                        var.equal=ncol(target.y)==1L || ncol(host.y)==1L)$p.value
+                    pval[i] <- t.test(host.y[i,], target.y[i,], alternative=alt.hyp, var.equal=use.student)$p.value
                 }
             } else {
                 pval <- rep(NA_real_, nrow(y))
@@ -64,7 +64,7 @@ sizeFactors(X) <- colSums(dummy)
 X <- normalize(X)
 
 set.seed(7000001)
-test_that("findMarkers works as expected without blocking or design matrices", {
+test_that("findmarkers works as expected without blocking or design matrices", {
     clust <- kmeans(t(exprs(X)), centers=3)
     clusters <- as.factor(clust$cluster)
 
@@ -104,6 +104,52 @@ test_that("findMarkers works as expected without blocking or design matrices", {
         expect_equal(current, counter[,colnames(current)])
         expect_true(all(is.na(counter[,"logFC.4"])))
         expect_true(all(is.na(out[["4"]][,paste0("logFC.", g)])))
+    }
+})
+
+test_that("findmarkers works with a log-fold change threshold", {
+    clusters <- rep(1:2, ncells/2)             
+    exprs(X) <- exprs(X) + outer(rnorm(ngenes, sd=1), as.integer(clusters))
+
+    # Log-fold change with direction="any".
+    out <- findMarkers(exprs(X), clusters, lfc=1, pval.type="all")
+    N <- ncol(out[[1]])
+    for (xx in out) {
+        expect_true(any(xx$IUT.p < 0.5 | abs(xx[[N]]) < 1)) # checking we have a diversity of p-values and log-fold changes
+        expect_true(!any(xx$IUT.p < 0.5 & abs(xx[[N]]) < 1)) # no p-values with small log-fold changes should get close.
+        expect_true(any(xx$IUT.p < 0.05 | abs(xx[[N]]) > 1.5)) # again, just checking we have low p-values and high log-fold changes
+        expect_true(all((xx$IUT.p < 0.05)[abs(xx[[N]]) > 1.5])) # all p-values with extreme log-fold changes should be significant.
+    }
+    out <- findMarkers(exprs(X), clusters, lfc=50, pval.type="all")
+    for (xx in out) {
+        expect_equal(xx$IUT.p, rep(1, ngenes)) 
+    }
+
+    # Log-fold change with direction="up".
+    out <- findMarkers(exprs(X), clusters, lfc=1, direction="up", pval.type="all")
+    for (xx in out) {
+        expect_true(any(xx$IUT.p < 0.5 | xx[[N]] < 1)) 
+        expect_true(!any(xx$IUT.p < 0.5 & xx[[N]] < 1)) 
+        expect_true(any(xx$IUT.p < 0.05 | xx[[N]] > 1.5))
+        expect_true(all((xx$IUT.p < 0.05)[xx[[N]] > 1.5]))
+    }
+    out <- findMarkers(exprs(X), clusters, lfc=50, direction="up", pval.type="all")
+    for (xx in out) {
+        expect_equal(xx$IUT.p, rep(1, ngenes)) 
+    }
+
+    # Log-fold change with direction="down".
+    out <- findMarkers(exprs(X), clusters, lfc=1, direction="down", pval.type="all")
+    for (xx in out) {
+        expect_true(any(xx$IUT.p < 0.5 | xx[[N]] > -1)) 
+        expect_true(!any(xx$IUT.p < 0.5 & xx[[N]] > -1)) 
+        expect_true(any(xx$IUT.p < 0.05 | xx[[N]] < -1.5))
+        expect_true(all((xx$IUT.p < 0.05)[xx[[N]] < -1.5]))
+    }
+
+    out <- findMarkers(exprs(X), clusters, lfc=50, direction="down", pval.type="all")
+    for (xx in out) {
+        expect_equal(xx$IUT.p, rep(1, ngenes)) 
     }
 })
 
@@ -407,6 +453,45 @@ test_that("findMarkers works correctly with subsetting and spikes", {
     out.des <- findMarkers(exprs(X), clusters=clust$cluster, design=model.matrix(~block), subset.row=100:1)
     out.des2 <- findMarkers(exprs(X)[100:1,,drop=FALSE], clusters=clust$cluster, design=model.matrix(~block))
     expect_identical(out.des, out.des2)
+})
+
+test_that("log-transformed p-values in findMarkers works correctly", {
+    # Checking that the log-transformed argument works.
+    default <- findMarkers(exprs(X), clusters)
+    logged <- findMarkers(exprs(X), clusters, log.p=TRUE)
+    expect_identical(names(default), names(logged))
+    for (i in names(default)) {
+        expect_identical(rownames(default[[i]]), rownames(logged[[i]]))
+        expect_equal(log(default[[i]]$FDR), logged[[i]]$log.FDR)
+    }
+
+    default <- findMarkers(exprs(X), clusters, direction="up")
+    logged <- findMarkers(exprs(X), clusters, log.p=TRUE, direction="up")
+    expect_identical(names(default), names(logged))
+    for (i in names(default)) {
+        expect_identical(rownames(default[[i]]), rownames(logged[[i]]))
+        expect_equal(log(default[[i]]$FDR), logged[[i]]$log.FDR)
+    }
+
+    default <- findMarkers(exprs(X), clusters, pval.type="all")
+    logged <- findMarkers(exprs(X), clusters, log.p=TRUE, pval.type="all")
+    expect_identical(names(default), names(logged))
+    for (i in names(default)) {
+        expect_identical(rownames(default[[i]]), rownames(logged[[i]]))
+        expect_equal(log(default[[i]]$IUT.p), logged[[i]]$IUT.p)
+        expect_equal(log(default[[i]]$FDR), logged[[i]]$log.FDR)
+    }
+    
+    # Also for linear models.
+    block <- factor(sample(2, ncol(X), replace=TRUE))
+    design <- model.matrix(~block)
+    default <- findMarkers(exprs(X), clusters, design=design)
+    logged <- findMarkers(exprs(X), clusters, log.p=TRUE, design=design)
+    expect_identical(names(default), names(logged))
+    for (i in names(default)) {
+        expect_identical(rownames(default[[i]]), rownames(logged[[i]]))
+        expect_equal(log(default[[i]]$FDR), logged[[i]]$log.FDR)
+    }
 })
 
 # Checking consistency upon silly inputs.
