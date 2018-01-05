@@ -37,6 +37,15 @@ REFFUN <- function(y, grouping, pval.type="any", direction="any")
             reordered <- order(do.call(pmin, c(all.ranks, na.rm=TRUE)), 
                                do.call(pmin, c(collected.p, na.rm=TRUE)))
             pval <- apply(combined.p, 1, FUN=function(x) { min(p.adjust(x, method="BH"), na.rm=TRUE) })
+
+            # Checking that the ordering is consistent with the ranking for each p.value set.
+            standard <- output[[host]]
+            orderings <- lapply(collected.p, FUN=function(p) { order(p, na.last=NA) })
+            for (best in seq(1, 101, by=5)) { 
+                best.in.each <- lapply(orderings, "[", i=seq_len(best))
+                expect_identical(sort(rownames(standard)[standard$Top <= best]),
+                                 sort(rownames(y)[unique(unlist(best.in.each))]))
+            }
         } else {
             pval <- apply(combined.p, 1, FUN=max, na.rm=TRUE)
             reordered <- order(pval)
@@ -115,10 +124,8 @@ test_that("findmarkers works with a log-fold change threshold", {
     out <- findMarkers(exprs(X), clusters, lfc=1, pval.type="all")
     N <- ncol(out[[1]])
     for (xx in out) {
-        expect_true(any(xx$IUT.p < 0.5 | abs(xx[[N]]) < 1)) # checking we have a diversity of p-values and log-fold changes
-        expect_true(!any(xx$IUT.p < 0.5 & abs(xx[[N]]) < 1)) # no p-values with small log-fold changes should get close.
-        expect_true(any(xx$IUT.p < 0.05 | abs(xx[[N]]) > 1.5)) # again, just checking we have low p-values and high log-fold changes
-        expect_true(all((xx$IUT.p < 0.05)[abs(xx[[N]]) > 1.5])) # all p-values with extreme log-fold changes should be significant.
+        tab <- table(xx$IUT.p < 0.5, abs(xx[[N]]) > 1)
+        expect_identical(sum(diag(tab)), nrow(xx))
     }
     out <- findMarkers(exprs(X), clusters, lfc=50, pval.type="all")
     for (xx in out) {
@@ -128,10 +135,8 @@ test_that("findmarkers works with a log-fold change threshold", {
     # Log-fold change with direction="up".
     out <- findMarkers(exprs(X), clusters, lfc=1, direction="up", pval.type="all")
     for (xx in out) {
-        expect_true(any(xx$IUT.p < 0.5 | xx[[N]] < 1)) 
-        expect_true(!any(xx$IUT.p < 0.5 & xx[[N]] < 1)) 
-        expect_true(any(xx$IUT.p < 0.05 | xx[[N]] > 1.5))
-        expect_true(all((xx$IUT.p < 0.05)[xx[[N]] > 1.5]))
+        tab <- table(xx$IUT.p < 0.5, xx[[N]] > 1)
+        expect_identical(sum(diag(tab)), nrow(xx))
     }
     out <- findMarkers(exprs(X), clusters, lfc=50, direction="up", pval.type="all")
     for (xx in out) {
@@ -141,12 +146,9 @@ test_that("findmarkers works with a log-fold change threshold", {
     # Log-fold change with direction="down".
     out <- findMarkers(exprs(X), clusters, lfc=1, direction="down", pval.type="all")
     for (xx in out) {
-        expect_true(any(xx$IUT.p < 0.5 | xx[[N]] > -1)) 
-        expect_true(!any(xx$IUT.p < 0.5 & xx[[N]] > -1)) 
-        expect_true(any(xx$IUT.p < 0.05 | xx[[N]] < -1.5))
-        expect_true(all((xx$IUT.p < 0.05)[xx[[N]] < -1.5]))
+        tab <- table(xx$IUT.p < 0.5, xx[[N]] < -1)
+        expect_identical(sum(diag(tab)), nrow(xx))
     }
-
     out <- findMarkers(exprs(X), clusters, lfc=50, direction="down", pval.type="all")
     for (xx in out) {
         expect_equal(xx$IUT.p, rep(1, ngenes)) 
@@ -426,6 +428,47 @@ test_that("findMarkers works properly with a design matrix", {
     outdes <- findMarkers(X, clusters=clust$cluster, block=block, design=model.matrix(~block))
     outref <- findMarkers(X, clusters=clust$cluster, block=block)
     expect_equal(outdes, outref)
+})
+
+test_that("findMarkers with a design matrix responds to log-fold change thresholds", {
+    clusters <- rep(1:2, ncells/2)             
+    exprs(X) <- exprs(X) + outer(rnorm(ngenes, sd=1), as.integer(clusters))
+    block <- factor(sample(2, ncol(X), replace=TRUE))
+    design <- model.matrix(~block)
+
+    # Log-fold change with direction="any".
+    out <- findMarkers(exprs(X), clusters, lfc=1, pval.type="all", design=design)
+    N <- ncol(out[[1]])
+    for (xx in out) {
+        tab <- table(xx$IUT.p < 0.5, abs(xx[[N]]) > 1)
+        expect_identical(sum(diag(tab)), nrow(xx))
+    }
+    out <- findMarkers(exprs(X), clusters, lfc=50, pval.type="all", design=design)
+    for (xx in out) {
+        expect_equal(xx$IUT.p, rep(1, ngenes)) 
+    }
+
+    # Log-fold change with direction="up".
+    out <- findMarkers(exprs(X), clusters, lfc=1, direction="up", pval.type="all", design=design)
+    for (xx in out) {
+        tab <- table(xx$IUT.p < 0.5, xx[[N]] > 1)
+        expect_identical(sum(diag(tab)), nrow(xx))
+    }
+    out <- findMarkers(exprs(X), clusters, lfc=50, direction="up", pval.type="all", design=design)
+    for (xx in out) {
+        expect_equal(xx$IUT.p, rep(1, ngenes)) 
+    }
+
+    # Log-fold change with direction="down".
+    out <- findMarkers(exprs(X), clusters, lfc=1, direction="down", pval.type="all", design=design)
+    for (xx in out) {
+        tab <- table(xx$IUT.p < 0.5, xx[[N]] < -1)
+        expect_identical(sum(diag(tab)), nrow(xx))
+    }
+    out <- findMarkers(exprs(X), clusters, lfc=50, direction="down", pval.type="all", design=design)
+    for (xx in out) {
+        expect_equal(xx$IUT.p, rep(1, ngenes)) 
+    }
 })
 
 ###############################
