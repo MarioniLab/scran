@@ -46,6 +46,8 @@ Abundance filtering is now performed within each cluster and for pairs of cluste
 
 \item Switched to pairwise t-tests in findMarkers(), rather than fitting a global linear model.
 Added block= argument for within-block t-tests, the results of which are combined across blocks via Stouffer's method.
+Added lfc= argument for testing against a log-fold change threshold.
+Added log.p= argument to return log-transformed p-values/FDRs.
 Removed empirical Bayes shrinkage as well as the min.mean= argument.
 
 \item Added the makeTechTrend() function for generating a mean-variance trend under Poisson technical noise.

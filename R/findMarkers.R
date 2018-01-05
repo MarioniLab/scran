@@ -33,22 +33,17 @@
         log.p.val <- all.log.pval[[host]]
         colnames(lfc) <- sprintf("logFC.%s", colnames(lfc))
 
-        if (pval.type=="any") {
-            # Computing the Simes p-value (with NA protection).
-            pval <- .Call(cxx_combine_simes, log.p.val, TRUE)
-            if (!log.p) { pval <- exp(pval) }
+        # Computing the combined p-value somehow.
+        pval <- .combine_pvalues(log.p.val, pval.type=pval.type, log.p.in=TRUE, log.p.out=log.p)
 
-            # ... but ranking by position within each gene list.
+        if (pval.type=="any") {
+            # Ranking by position within each gene list.
             rank.out <- .rank_top_genes(log.p.val)
             min.rank <- rank.out$rank
             min.p <- rank.out$value
             gene.order <- order(min.rank, min.p)
             preamble <- DataFrame(Top=min.rank)
         } else {
-            # Computing the IUT p-value.
-            pval <- log.p.val[.find_largest_col(log.p.val)]
-            if (!log.p) { pval <- exp(pval) }
-
             gene.order <- order(pval)
             preamble <- DataFrame(IUT.p=pval)
         }
@@ -386,6 +381,27 @@
         log.p.out <- pmin(left, right) + log(2)
         return(log.p.out)
     }
+}
+
+.combine_pvalues <- function(P, pval.type="any", log.p.in=FALSE, log.p.out=FALSE) 
+# This function combines the p-values using Simes' method or via the IUT.
+# Additional arguments are involved to specify whether the input/output should be logged.
+{
+    if (pval.type=="any") { 
+        # Computing the Simes p-value (with NA protection).
+        P <- .Call(cxx_combine_simes, P, log.p.in)
+    } else {
+        # Computing the IUT p-value.
+        P <- P[.find_largest_col(P)]
+    }
+
+    # Deciding what to return (at this point, P is the same log-status as it was supplied).
+    if (log.p.in && !log.p.out) { 
+        P <- exp(P) 
+    } else if (!log.p.in && log.p.out) {
+        P <- log(P)
+    }
+    return(P)
 }
 
 .logBH <- function(log.p.val) 
