@@ -7,12 +7,12 @@ find.markers <- function(current.data, other.data, gene.names, fraction=0.5)
     if (length(gene.names)!=Ngenes) {
         stop("length of 'gene.names' vector must be equal to 'x' nrows")
     }
-    other.Ngenes <- sapply(other.data, ncol)
+    other.Ngenes <- vapply(other.data, ncol, FUN.VALUE=0L)
     if (any(other.Ngenes!=Ngenes)) { 
         stop("number of genes in each class must be the same")
     }
     Ncells <- nrow(current.data)
-    other.Ncells <- sapply(other.data, nrow)
+    other.Ncells <- vapply(other.data, nrow, FUN.VALUE=0L)
     if (Ncells==0L || any(other.Ncells==0L)) {
         stop("each class must have at least one cell")
     }

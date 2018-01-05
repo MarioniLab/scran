@@ -203,11 +203,11 @@
 
     # Getting a rough 'n' estimate with a grid search.
     grid.pts <- seq(from=0, to=grid.max, length.out=grid.length)
-    grid.ss <- sapply(grid.pts, FUN=function(i) {
+    grid.ss <- vapply(grid.pts, FUN=function(i) {
         n <- 2^i
         resid <- vars - (getA(n)*means)/(means^n + getB(n))
         sum(resid^2)
-    })
+    }, FUN.VALUE=0)
 
     n <- 2^grid.pts[which.min(grid.ss)]
     b <- unname(getB(n))

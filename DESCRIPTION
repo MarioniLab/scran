@@ -17,7 +17,8 @@ Suggests: testthat, BiocStyle, knitr, beachmat, HDF5Array, limSolve,
         org.Mm.eg.db, DESeq2, monocle, Rtsne, pracma, Biobase, irlba,
         aroma.light
 biocViews: Normalization, Sequencing, RNASeq, Software, GeneExpression,
-        Transcriptomics, SingleCell, Visualization, BatchEffect
+        Transcriptomics, SingleCell, Visualization, BatchEffect,
+        Clustering
 Description: Implements functions for low-level analyses of single-cell 
         RNA-seq data. Methods are provided for normalization of 
         cell-specific biases, assignment of cell cycle phase, 
