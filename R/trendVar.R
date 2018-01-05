@@ -256,8 +256,8 @@
     spline.args <- as.list(spline.call)[-1]
 
     df <- .warn_and_set_default(df, "df", 4, "spline.args")
-    altogether <- c(spline.args, list(df=df))
-    keep <- !duplicated(names(altogether)) 
+    altogether <- c(spline.args, list(df=df, method="symmetric"))
+    keep <- !duplicated(names(altogether))  # spline.args are favoured.
     return(altogether[keep])
 }
 
@@ -277,7 +277,7 @@
                   N=log(pmax(1e-8, raw.start$n-1))) # reflects enforced positivity in formula.
 
     altogether <- c(nls.args, list(control=control, start=start))
-    keep <- !duplicated(names(altogether)) 
+    keep <- !duplicated(names(altogether)) # nls.args are favoured.
     return(altogether[keep])
 }
 
