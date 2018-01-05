@@ -9,7 +9,7 @@
 \usage{
 \S4method{findMarkers}{ANY}(x, clusters, block=NULL, design=NULL,
     pval.type=c("any", "all"), direction=c("any", "up", "down"), 
-    subset.row=NULL)
+    lfc=0, log.p=FALSE, subset.row=NULL)
 
 \S4method{findMarkers}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", 
     get.spikes=FALSE) 
@@ -27,6 +27,8 @@ A vector of cluster identities for all cells.
 \item{design}{A numeric matrix containing blocking terms, i.e., uninteresting factors driving expression across cells.}
 \item{pval.type}{A string specifying the type of combined p-value to be computed, i.e., Simes' or IUT.}
 \item{direction}{A string specifying the direction of log-fold changes to be considered for each cluster.}
+\item{lfc}{A positive numeric scalar specifying the log-fold change threshold to be tested against.}
+\item{log.p}{A logical scalar indicating if log-transformed p-values/FDRs should be returned.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to the matrix method.}
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
@@ -61,10 +63,27 @@ Note that \code{block} will override any \code{design} if both are specified.
 This reflects our preference for the former, which is more robust to misspecification of the clusters, 
 differences in the variance of expression in each cluster, and differences in the log-fold changes between clusters across blocks.
 Nonetheless, use of \code{design} is unavoidable when blocking on real-valued covariates.
+}
 
-If \code{direction="any"}, genes will only be ranked based on their p-values, regardless of the direction of the log-fold change.
-Otherwise, one-sided tests in the specified direction will be used to compute p-values for each gene in each pairwise comparison.
+\section{Direction and magnitude of the log-fold change}{ 
+If \code{direction="any"}, two-sided tests will be performed for each pairwise comparisons between clusters.
+Otherwise, one-sided tests in the specified direction will be used to compute p-values for each gene.
 This can be used to focus on genes that are upregulated in each cluster of interest, which is often easier to interpret.
+
+To interpret the setting of \code{direction}, consider the DataFrame for cluster X, in which we are comparing to another cluster Y.
+If \code{direction="up"}, genes will only be significant in this DataFrame if they are upregulated in cluster X compared to Y.
+If \code{direction="down"}, genes will only be significant if they are downregulated in cluster X compared to Y.
+
+The magnitude of the log-fold changes can also be tested by setting \code{lfc}.
+By default, \code{lfc=0} meaning that we will reject the null upon detecting any differential expression.
+If this is set to some other positive value, the null hypothesis will change depending on \code{direction}:
+\itemize{
+\item If \code{direction="any"}, the null hypothesis is that the true log-fold change is either \code{-lfc} or \code{lfc} with equal probability.
+A two-sided p-value is computed against this composite null.
+\item If \code{direction="up"}, the null hypothesis is that the true log-fold change is \code{lfc}, and a one-sided p-value is computed.
+\item If \code{direction="down"}, the null hypothesis is that the true log-fold change is \code{-lfc}, and a one-sided p-value is computed.
+}
+This is similar to the approach used in \code{\link[limma]{treat}} and allows users to focus on genes with strong log-fold changes.
 }
 
 \section{Consolidating p-values into a ranking}{
@@ -94,6 +113,9 @@ The weight is computed from the standard error, as described above.
 Unlike p-values, though, this calculation will use blocking levels where both clusters contain only one cell.
 For these log-fold changes, the squared standard error is defined using an average variance estimate across all blocking levels for the two clusters involved.
 This ensures that information is used from all blocks when computing the log-fold changes.
+
+If \code{log.p=TRUE}, log-transformed p-values and FDRs will be reported.
+This may be useful in over-powered studies with many cells, where directly reporting the raw p-values would result in many zeroes due to the limits of machine precision.
 }
 
 \value{
