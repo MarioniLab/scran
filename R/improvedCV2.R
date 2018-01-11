@@ -14,14 +14,25 @@
     } else {
         is.spike <- .subset_to_index(is.spike, x, byrow=TRUE)
     }
+    if (length(is.spike) < 2L) {
+        stop("need at least 2 spike-ins for trend fitting")
+    }
 
     # Extracting statistics.
     if (is.null(log.prior)) {
         is.cell <- seq_len(nrow(x))[-is.spike]
-        if (is.null(sf.cell)) sf.cell <- 1
+
+        if (is.null(sf.cell)) {
+            sf.cell <- 1
+        } 
         sf.cell <- rep(sf.cell, length.out=ncol(x))
-        if (is.null(sf.spike)) sf.spike <- 1
+        sf.cell <- sf.cell/mean(sf.cell)
+
+        if (is.null(sf.spike)) {
+            sf.spike <- 1
+        }
         sf.spike <- rep(sf.spike, length.out=ncol(x))
+        sf.spike <- sf.spike/mean(sf.spike)
 
         spike.stats <- .Call(cxx_compute_CV2, x, is.spike-1L, sf.spike, NULL)
         cell.stats <- .Call(cxx_compute_CV2, x, is.cell-1L, sf.cell, NULL)
@@ -109,12 +120,7 @@ setMethod("improvedCV2", "SingleCellExperiment",
         }
     }
     
-    if (normalized) {
-        prep <- list(is.spike=isSpike(x, type=spike.type))
-    } else {
-        prep <- .prepare_cv2_data(x, spike.type=spike.type)
-    }
-
+    prep <- .prepare_cv2_data(x, spike.type=spike.type)
     .improvedCV2(assay(x, i=assay.type), is.spike=prep$is.spike, 
                  sf.cell=prep$sf.cell, sf.spike=prep$sf.spike, log.prior=log.prior, ...)          
 })

@@ -31,11 +31,18 @@
     } else {
         sf.cell <- rep(sf.cell, length.out=ncol(x))
     }
+    sf.cell <- sf.cell/mean(sf.cell)
+
     if (is.null(sf.spike)) {
-        sf.spike <- DESeq2::estimateSizeFactorsForMatrix(x[is.spike,,drop=FALSE])
+        if (length(is.spike)) { 
+            sf.spike <- DESeq2::estimateSizeFactorsForMatrix(x[is.spike,,drop=FALSE])
+        } else {
+            sf.spike <- rep(1, ncol(x))
+        }
     } else {
         sf.spike <- rep(sf.spike, length.out=ncol(x))
     }
+    sf.spike <- sf.spike/mean(sf.spike)
 
     # Computing the statistics.
     cell.out <- .Call(cxx_compute_CV2, x, is.cell-1L, sf.cell, NULL)
