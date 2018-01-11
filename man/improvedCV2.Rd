@@ -70,7 +70,7 @@ Size factors for endogenous genes are automatically extracted via \code{\link{si
 Spike-in-specific size factors for \code{spike.type} are extracted from \code{x}, if available; otherwise they are set to the size factors for the endogenous genes.
 Note that the spike-in-specific factors must be the same for each set in \code{spike.type}.
 
-Users can also set \code{is.spike} to \code{NA} in \code{improvedCV2,ANY-method}; or \code{spike.type} to \code{NA} in \code{decomposeCV2,SingleCellExperiment-method}.
+Users can also set \code{is.spike} to \code{NA} in \code{improvedCV2,ANY-method}; or \code{spike.type} to \code{NA} in \code{improvedCV2,SingleCellExperiment-method}.
 In such cases, all rows will be used for trend fitting, and (adjusted) p-values will be reported for all rows.
 This should be used in cases where there are no spike-ins.
 Here, the assumption is that most endogenous genes do not exhibit high biological variability and thus can be used to model decompose variation. 
