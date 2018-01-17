@@ -19,14 +19,18 @@ This is intended to be a more stable version of \code{\link{technicalCV2}}.
 
 \arguments{
 \item{x}{
-    A numeric matrix of counts or log-expression values, where each column corresponds to a cell and each row corresponds to a spike-in transcript.
+    A numeric matrix of counts, normalized counts or normalized log-expression values, where each column corresponds to a cell and each row corresponds to a spike-in transcript.
     Alternatively, a SingleCellExperiment object that contains such values.
 }
 \item{is.spike}{A vector indicating which rows of \code{x} correspond to spike-in transcripts.}
-\item{sf.cell}{A numeric vector containing size factors for endogenous genes.}
-\item{sf.spike}{A numeric vector containing size factors for spike-in transcripts.}
+\item{sf.cell}{A numeric vector containing size factors for endogenous genes.
+If this is not specified, counts for endogenous genes are assumed to already be normalized.
+This is ignored if \code{log.prior!=NULL}.}
+\item{sf.spike}{A numeric vector containing size factors for spike-in transcripts.
+If this is not specified, counts for the spike-in transcripts are assumed to already be normalized.
+This is ignored if \code{log.prior!=NULL}.}
 \item{log.prior}{A numeric scalar specifying the pseudo-count added prior to log-transformation.
-If this is set, \code{x} is assumed to contain log-expression values, otherwise it is assumed to contain counts.}
+If this is set, \code{x} is assumed to contain normalized log-expression values, otherwise it is assumed to contain counts.}
 \item{df}{An integer scalar indicating the number of degrees of freedom for the spline fit with \code{\link[stats]{smooth.spline}}.}
 \item{robust}{A logical scalar indicating whether robust fitting should be performed with \code{\link[aroma.light]{robustSmoothSpline}}.}
 \item{use.spikes}{A logical scalar indicating whether p-values should be returned for spike-in transcripts.}
