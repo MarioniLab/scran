@@ -560,6 +560,11 @@ test_that("combineVar works correctly", {
     expect_equal(res[,c("mean", "total", "tech", "bio")], res3[,c("mean", "total", "tech", "bio")])
     expect_equal(res3$p.value, apply(cbind(dec$p.value, dec2$p.value, dec3$p.value), 1, max))
 
+    res4 <- combineVar(dec, dec2, dec3, method="fisher")
+    expect_equal(res[,c("mean", "total", "tech", "bio")], res4[,c("mean", "total", "tech", "bio")])
+    expect_equal(res4$p.value, pchisq(-2*rowSums(log(cbind(dec$p.value, dec2$p.value, dec3$p.value))),
+                                      df=6, lower.tail=FALSE))
+
     # Same results upon subsetting.
     reres <- combineVar(dec[1:10,], dec2[1:10,], dec3[1:10,])
     rescheck <- res[1:10,]
@@ -568,7 +573,7 @@ test_that("combineVar works correctly", {
 
     # Checking fails: 
     dec4 <- decomposeVar(alt.d, out3)  # when you miss store.stats.
-    expect_error(res <- combineVar(dec, dec4), "inputs should come from decomposeVar() with store.stats=TRUE", fixed=TRUE)
+    expect_warning(res <- combineVar(dec, dec4), "inputs should come from decomposeVar() with store.stats=TRUE", fixed=TRUE)
     expect_error(res <- combineVar(dec, dec2[rev(rownames(dec)),]), "gene identities should be the same") # when you switch up the order.
 
     redec <- dec

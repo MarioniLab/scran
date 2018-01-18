@@ -1,4 +1,4 @@
-combineVar <- function(..., method=c("z", "simes", "berger")) 
+combineVar <- function(..., method=c("z", "fisher", "simes", "berger")) 
 # Combines decomposeVar() results, typically from multiple batches.
 #
 # written by Aaron Lun
@@ -37,6 +37,9 @@ combineVar <- function(..., method=c("z", "simes", "berger"))
         all.z <- lapply(p.combine, FUN=qnorm)
         Z <- .weighted_average_vals(all.z, resid.df)
         p.final <- pnorm(Z)
+    } else if (method=="fisher") {
+        all.logp <- lapply(p.combine, FUN=log)
+        p.final <- pchisq(-2*Reduce("+", all.logp), df=2*length(all.logp), lower.tail=FALSE)
     } else {
         p.final <- .combine_pvalues(do.call(cbind, p.combine), 
                                     pval.type=ifelse(method=="simes", "any", "all"))
@@ -54,7 +57,8 @@ combineVar <- function(..., method=c("z", "simes", "berger"))
     for (x in seq_along(tabs)) { 
         cur.w <- attr(tabs[[x]], "decomposeVar.stats")[[field]]
         if (is.null(cur.w)) {
-            stop("inputs should come from decomposeVar() with store.stats=TRUE")
+            warning("inputs should come from decomposeVar() with store.stats=TRUE")
+            cur.w <- 1
         }
         if (!is.null(names(cur.w))) { 
             cur.w <- cur.w[rownames(tabs[[x]])] 

@@ -39,7 +39,7 @@ Switched to automatic ranking of genes based on ability to discriminate between 
 Added rank.type= and direction= arguments to control ranking of genes.
 
 \item Modified combineVar() so that it is aware to the stats recorded in decomposeVar() with store.stats=TRUE.
-Switched from Fisher's method to Stouffer's method with residual d.f.-weighted Z-scores.
+Switched the default from Fisher's method to Stouffer's method with residual d.f.-weighted Z-scores.
 
 \item Modified the behaviour of min.mean= in computeSumFactors() when clusters!=NULL.
 Abundance filtering is now performed within each cluster and for pairs of clusters, rather than globally.
