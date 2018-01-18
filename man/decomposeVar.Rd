@@ -30,7 +30,7 @@
 For \code{decomposeVar,matrix,list-method}, additional arguments to pass to \code{\link{testVar}}.
 For \code{decomposeVar,SingleCellExperiment,list-method}, additional arguments to pass to the matrix method.
 }
-\item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
+\item{assay.type}{A string specifying which assay values to use from \code{x}.}
 \item{get.spikes}{A logical scalar specifying whether decomposition should be performed for spike-ins.}
 }
 

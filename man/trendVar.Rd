@@ -34,7 +34,7 @@
 \item{min.mean}{A numeric scalar specifying the minimum mean log-expression in order for a gene to be used for trend fitting.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to \code{trendVar,ANY-method}.}
-\item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
+\item{assay.type}{A string specifying which assay values in \code{x} to use.}
 \item{use.spikes}{A logical scalar specifying whether the trend should be fitted to variances for spike-in transcripts or endogenous genes.}
 }
 
@@ -46,7 +46,7 @@ It also allows the fitted trend to be applied in downstream procedures that use 
 
 The mean and variance of the normalized log-counts is calculated for each spike-in transcript, and a trend is fitted to the variance against the mean for all transcripts.
 The fitted value of this trend represents technical variability due to sequencing, drop-outs during capture, etc. at a given mean.
-This assumes that a constant amount of spike-in RNA was added to each cell, such that the differences in counts are purely due to measurement error.
+This assumes that a constant amount of spike-in RNA was added to each cell, such that any differences in observed expression are purely due to measurement error.
 Variance decomposition to biological and technical components for endogenous genes can then be performed later with \code{\link{decomposeVar}}.
 }
 
