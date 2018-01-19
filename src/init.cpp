@@ -39,8 +39,6 @@ static const R_CallMethodDef all_call_entries[] = {
 
     REGISTER(overlap_exprs, 4),
 
-    REGISTER(sum_spikes, 2),
-
     // MNN calculations.
     REGISTER(find_mutual_nns, 2),
     REGISTER(cosine_norm, 2),
