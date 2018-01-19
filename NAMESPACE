@@ -48,6 +48,8 @@ importFrom("statmod", glmgam.fit)
 importFrom("FNN", get.knn, get.knnx)
 importFrom("igraph", make_graph, simplify, E, "E<-", cluster_fast_greedy, modularity)
 
+importFrom("DelayedMatrixStats", colSums2)
+
 # Graphical stuff:
 
 importFrom("shiny", actionButton, brushOpts, brushedPoints, column, fluidPage, fluidRow, observeEvent, 

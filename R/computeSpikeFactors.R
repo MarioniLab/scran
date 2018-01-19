@@ -22,7 +22,7 @@ setMethod("computeSpikeFactors", "SingleCellExperiment",
     }
 
     # Computing spike-in size factors.
-    out <- .Call(cxx_sum_spikes, assay(x, i=assay.type), which(is.spike)-1L)
+    out <- colSums2(DelayedArray(assay(x, i=assay.type)), rows=is.spike)
     if (any(out < 1e-8)) { 
         warning("zero spike-in counts during spike-in normalization")
     } 
