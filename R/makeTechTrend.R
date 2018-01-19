@@ -24,7 +24,7 @@ makeTechTrend <- function(means, size.factors=1, tol=1e-6, dispersion=0, pseudo.
         means <- 2^seq(from=0, to=upper.value, length.out=100) - pseudo.count
     }
 
-    if (mean(size.factors)!=1) {
+    if (abs(mean(size.factors) - 1) > 1e-6) {
         stop("size factors should be centred at unity") 
     }
 
