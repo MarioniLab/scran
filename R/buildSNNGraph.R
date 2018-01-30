@@ -1,6 +1,6 @@
 .buildSNNGraph <- function(x, k=10, d=50, transposed=FALSE, pc.approx=FALSE,
-                           rand.seed=1000, irlba.args=list(), subset.row=NULL, 
-                           BPPARAM=SerialParam()) 
+                           rand.seed=1000, irlba.args=list(), knn.args=list(),
+                           subset.row=NULL, BPPARAM=SerialParam()) 
 # Builds a shared nearest-neighbor graph, where edges are present between each 
 # cell and any other cell with which it shares at least one neighbour. Each edges 
 # is weighted based on the ranks of the shared nearest neighbours of the two cells, 
@@ -12,7 +12,7 @@
 { 
     nn.out <- .setup_knn_data(x=x, subset.row=subset.row, d=d, transposed=transposed,
         pc.approx=pc.approx, rand.seed=rand.seed, irlba.args=irlba.args, 
-        k=k, BPPARAM=BPPARAM) 
+        k=k, knn.args=knn.args, BPPARAM=BPPARAM) 
 
     # Building the SNN graph.
     g.out <- .Call(cxx_build_snn, nn.out$nn.index)
@@ -57,7 +57,7 @@
 # Internal functions #
 ######################
 
-.setup_knn_data <- function(x, subset.row, d, transposed, pc.approx, rand.seed, irlba.args, k, BPPARAM) {
+.setup_knn_data <- function(x, subset.row, d, transposed, pc.approx, rand.seed, irlba.args, k, knn.args, BPPARAM) {
     ncells <- ncol(x)
     if (!is.null(subset.row)) {
         x <- x[.subset_to_index(subset.row, x, byrow=TRUE),,drop=FALSE]
@@ -81,7 +81,7 @@
     }
    
     # Finding the KNNs. 
-    .find_knn(x, k=k, BPPARAM=BPPARAM, algorithm="cover_tree") 
+    do.call(.find_knn, c(list(x, k=k, BPPARAM=BPPARAM), knn.args))
 }
 
 .find_knn <- function(incoming, k, BPPARAM, ..., force=FALSE) {
