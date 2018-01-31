@@ -21,7 +21,7 @@
 
 \S4method{buildKNNGraph}{ANY}(x, k=10, d=50, directed=FALSE, transposed=FALSE, 
     pc.approx=FALSE, rand.seed=1000, irlba.args=list(), 
-    subset.row=NULL, BPPARAM=SerialParam())
+    knn.args=list(), subset.row=NULL, BPPARAM=SerialParam())
 
 \S4method{buildKNNGraph}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", 
     get.spikes=FALSE, use.dimred=NULL)
@@ -36,8 +36,8 @@ If it is matrix, it can also be transposed.}
 \item{transposed}{A logical scalar indicating whether \code{x} is transposed (i.e., rows are cells).}
 \item{pc.approx}{A logical scalar indicating whether approximate PCA should be performed.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
-\item{irlba.args}{A named list of additional arguments to pass to \code{\link{prcomp_irlba}} when \code{pc.approx=TRUE}.}
-\item{knn.args}{A named list of additional arguments to pass to \code{\link{get.knn}}, usually \code{algorithm}.}
+\item{irlba.args}{A named list of additional arguments to pass to \code{\link[irlba]{prcomp_irlba}} when \code{pc.approx=TRUE}.}
+\item{knn.args}{A named list of additional arguments to pass to \code{\link[FNN]{get.knn}}, usually \code{algorithm}.}
 \item{rand.seed}{A numeric scalar specifying the seed for approximate PCA when \code{pc.approx=TRUE}.
 This can be set to \code{NA} to use the existing session seed.}
 \item{BPPARAM}{A BiocParallelParam object to use in \code{bplapply} for parallel processing.}
