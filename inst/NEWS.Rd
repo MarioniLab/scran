@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.7.11}{\itemize{
+\section{Version 1.7.14}{\itemize{
 \item Modified decomposeVar() to return statistics (but not p-values) for spike-ins when get.spikes=NA.
 Added block= argument for mean/variance calculations within each level of a blocking factor, 
 followed by reporting of weighted averages (using weighted Stouffer's method for p-values).
@@ -15,6 +15,7 @@ Added block= argument for technical component estimation within each level of th
 Supported use of a vector in technical= instead of a function.
 
 \item Allowed passing of arguments to prcomp_irlba() in buildSNNGraph() to assist convergence.
+Allowed passing of arguments to get.knn(), switched default algorithm back to a kd-tree.
 
 \item Added the buildKNNGraph() function to construct a simple k-nearest-neighbours graph.
 
