@@ -30,7 +30,7 @@
     }
 
     # Getting the kNNs.
-    nn.out <- .find_knn(x, k=k, BPPARAM=BPPARAM, algorithm="cover_tree") 
+    nn.out <- .find_knn(x, k=k, BPPARAM=BPPARAM)
 
     # Building the SNN graph.
     g.out <- .Call(cxx_build_snn, nn.out$nn.index)
