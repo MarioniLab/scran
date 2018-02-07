@@ -9,7 +9,7 @@
 \usage{
 \S4method{findMarkers}{ANY}(x, clusters, block=NULL, design=NULL,
     pval.type=c("any", "all"), direction=c("any", "up", "down"), 
-    lfc=0, log.p=FALSE, subset.row=NULL)
+    lfc=0, log.p=FALSE, full.stats=FALSE, subset.row=NULL)
 
 \S4method{findMarkers}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", 
     get.spikes=FALSE) 
@@ -29,6 +29,7 @@ A vector of cluster identities for all cells.
 \item{direction}{A string specifying the direction of log-fold changes to be considered for each cluster.}
 \item{lfc}{A positive numeric scalar specifying the log-fold change threshold to be tested against.}
 \item{log.p}{A logical scalar indicating if log-transformed p-values/FDRs should be returned.}
+\item{full.stats}{A logical scalar indicating whether all statistics (i.e., raw and BH-adjusted p-values) should be returned for each pairwise comparison.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to the matrix method.}
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
@@ -125,7 +126,11 @@ Within the DataFrame for each cluster (e.g., cluster X), there are the following
 \describe{
 \item{\code{Top}:}{Integer, the minimum rank across all pairwise comparisons if \code{rank.type="any"}.}
 \item{\code{IUT.p}:}{Numeric, the IUT p-value across all comparisons if \code{rank.type="all"}.}
-\item{\code{logFC.Y}:}{Numeric for every other cluster Y in \code{clusters}, containing the log-fold change of X over Y.}
+\item{\code{logFC.Y}:}{Numeric for every other cluster Y in \code{clusters}, containing the log-fold change of X over Y when \code{full.stats=FALSE}.}
+\item{\code{stats.Y}:}{DataFrame for every other cluster Y in \code{clusters}, returned when \code{full.stats=TRUE}.
+This contains the numeric fields \code{logFC}, the log-fold change of X over Y; 
+\code{p.value}, the p-value for the pairwise comparison between X and Y;
+and \code{FDR}, the BH-adjusted p-value.}
 }
 Genes are ranked by the \code{Top} or \code{IUT.p} column, depending on \code{rank.type}.
 } 

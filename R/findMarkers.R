@@ -1,7 +1,7 @@
 .findMarkers <- function(x, clusters, block=NULL, design=NULL, pval.type=c("any", "all"), direction=c("any", "up", "down"), 
-                         lfc=0, log.p=FALSE, subset.row=NULL)
+                         lfc=0, log.p=FALSE, full.stats=FALSE, subset.row=NULL)
 # Uses limma to find the markers that are differentially expressed between clusters,
-# given a log-expression matrix and some blocking factors in 'design'.
+# given a log-expression matrix and some blocking factors in 'design' or 'block'.
 #
 # written by Aaron Lun
 # created 22 March 2017
@@ -17,23 +17,27 @@
 
     # Estimating the parameters.
     if (!is.null(block) || is.null(design)) {
-        fit <- .test_block_internal(x, subset.row, clusters, block=block, direction=direction, lfc=lfc)
+        fit <- .test_block_internal(x, subset.row, clusters, block=block, direction=direction, lfc=lfc, full.stats=full.stats)
     } else {
-        fit <- .fit_lm_internal(x, subset.row, clusters, design=design, direction=direction, lfc=lfc)
+        fit <- .fit_lm_internal(x, subset.row, clusters, design=design, direction=direction, lfc=lfc, full.stats=full.stats)
     }
 
     # Figuring out how to rank within each DataFrame.
     all.log.pval <- fit$p.value
-    all.lfc <- fit$logFC
-    output <- vector("list", length(all.lfc))
-    names(output) <- names(all.lfc)
+    all.stats <- fit$stats
+    output <- vector("list", length(all.stats))
+    names(output) <- names(all.stats)
 
     for (host in names(output)) {
-        lfc <- all.lfc[[host]]
-        log.p.val <- all.log.pval[[host]]
-        colnames(lfc) <- sprintf("logFC.%s", colnames(lfc))
+        stat.df <- do.call(DataFrame, c(all.stats[[host]], list(check.names=FALSE)))
+        if (!full.stats) {
+            colnames(stat.df) <- sprintf("logFC.%s", colnames(stat.df))
+        } else {
+            colnames(stat.df) <- sprintf("stats.%s", colnames(stat.df))
+        }
 
         # Computing the combined p-value somehow.
+        log.p.val <- do.call(cbind, all.log.pval[[host]])
         pval <- .combine_pvalues(log.p.val, pval.type=pval.type, log.p.in=TRUE, log.p.out=log.p)
 
         if (pval.type=="any") {
@@ -60,7 +64,7 @@
         if (is.null(gene.names)) { 
             gene.names <- subset.row
         }
-        marker.set <- DataFrame(preamble, lfc, check.names=FALSE, row.names=gene.names)
+        marker.set <- DataFrame(preamble, stat.df, check.names=FALSE, row.names=gene.names)
         marker.set <- marker.set[gene.order,,drop=FALSE]
         output[[host]] <- marker.set
     }
@@ -72,7 +76,7 @@
 # Internal functions (blocking)
 ###########################################################
 
-.test_block_internal <- function(x, subset.row, clusters, block=NULL, direction="any", lfc=0) 
+.test_block_internal <- function(x, subset.row, clusters, block=NULL, direction="any", lfc=0, full.stats=FALSE) 
 # This looks at every level of the blocking factor and performs
 # t-tests between pairs of clusters within each blocking level.
 {
@@ -107,21 +111,12 @@
         out.n[[b]] <- lengths(by.cluster)
     }
 
-    # Setting up output containers.
-    out.lfc <- vector("list", length(clust.vals))
-    names(out.lfc) <- clust.vals  
-    out.p <- out.lfc
+    # Setting up the output containers.
+    out.p <- out.stats <- .create_output_container(clust.vals) 
+    nblocks <- length(by.block)
     ngenes <- length(subset.row)
-    for (i in seq_along(clust.vals)) {
-        targets <- clust.vals[-i]
-        collected <- matrix(0, ngenes, length(targets))
-        colnames(collected) <- targets
-        host <- clust.vals[i]
-        out.p[[host]] <- out.lfc[[host]] <- collected
-    }
 
     # Running through all pairs of comparisons.
-    nblocks <- length(by.block)
     for (i in seq_along(clust.vals)) {
         host <- clust.vals[i]
         targets <- clust.vals[seq_len(i-1L)]
@@ -155,16 +150,24 @@
             com.right <- stouffer.out$right
 
             # Flipping left/right to get the p-value from the reversed comparison.
-            out.p[[host]][,target] <- .choose_leftright_pvalues(com.left, com.right, direction=direction) 
-            out.p[[target]][,host] <- .choose_leftright_pvalues(com.right, com.left, direction=direction)
+            hvt.p <- .choose_leftright_pvalues(com.left, com.right, direction=direction) 
+            out.p[[host]][[target]] <- hvt.p 
+            tvh.p <- .choose_leftright_pvalues(com.right, com.left, direction=direction)
+            out.p[[target]][[host]] <- tvh.p
 
-            # Symmetrical log-fold changes.
+            # Symmetrical log-fold changes, hence the -1.
             com.lfc <- .combine_lfc(all.lfc, all.weight, all.rss/all.df)
-            out.lfc[[host]][,target] <- com.lfc
-            out.lfc[[target]][,host] <- -com.lfc
+            if (!full.stats) { 
+                out.stats[[host]][[target]] <- com.lfc
+                out.stats[[target]][[host]] <- -com.lfc
+            } else {
+                # Alternatively, saving all of the stats as a DataFrame.
+                out.stats[[host]][[target]] <- I(DataFrame(logFC=com.lfc, p.value=hvt.p, FDR=p.adjust(hvt.p, method="BH")))
+                out.stats[[target]][[host]] <- I(DataFrame(logFC=-com.lfc, p.value=tvh.p, FDR=p.adjust(tvh.p, method="BH")))
+            }
         }
     }
-    return(list(p.value=out.p, logFC=out.lfc))    
+    return(list(p.value=out.p, stats=out.stats))    
 }
 
 .get_t_test_stats <- function(host.s2, target.s2, host.n, target.n) 
@@ -254,7 +257,7 @@
 # Internal functions (linear modelling)
 ###########################################################
 
-.fit_lm_internal <- function(x, subset.row, clusters, design, direction="any", lfc=0) 
+.fit_lm_internal <- function(x, subset.row, clusters, design, direction="any", lfc=0, full.stats=FALSE) 
 # This fits a linear model to each gene and performs a t-test for 
 # differential expression between clusters.
 {
@@ -285,17 +288,8 @@
     sigma2 <- stats[[3]]
 
     # Setting up output containers.
-    out.lfc <- vector("list", length(clust.vals))
-    names(out.lfc) <- clust.vals  
-    out.p <- out.lfc
+    out.p <- out.stats <- .create_output_container(clust.vals) 
     ngenes <- length(subset.row)
-    for (i in seq_along(clust.vals)) {
-        targets <- clust.vals[-i]
-        collected <- matrix(0, ngenes, length(targets))
-        colnames(collected) <- targets
-        host <- clust.vals[i]
-        out.p[[host]] <- out.lfc[[host]] <- collected
-    }
 
     # Doing a dummy fit, to avoid having to manually calculate standard errors.
     lfit <- lmFit(rbind(seq_len(nrow(full.design))), full.design)
@@ -315,20 +309,41 @@
         for (tdex in seq_len(h-1L)) { 
             target <- clust.vals[tdex]
             cur.lfc <- ref.coef - coefficients[tdex,]
-            out.lfc[[host]][,target] <- cur.lfc
-            out.lfc[[target]][,host] <- -cur.lfc
 
             test.out <- .run_t_test(cur.lfc, lfit2$stdev.unscaled[tdex]*sqrt(sigma2), resid.df, thresh.lfc=lfc, direction=direction)
-            out.p[[host]][,target] <- .choose_leftright_pvalues(test.out$left, test.out$right, direction=direction)
-            out.p[[target]][,host] <- .choose_leftright_pvalues(test.out$right, test.out$left, direction=direction)
+            hvt.p <- .choose_leftright_pvalues(test.out$left, test.out$right, direction=direction)
+            out.p[[host]][[target]] <- hvt.p
+            tvh.p <- .choose_leftright_pvalues(test.out$right, test.out$left, direction=direction)
+            out.p[[target]][[host]] <- tvh.p 
+
+            if (!full.stats) {
+                out.stats[[host]][[target]] <- cur.lfc
+                out.stats[[target]][[host]] <- -cur.lfc
+            } else {
+                out.stats[[host]][[target]] <- I(DataFrame(logFC=com.lfc, p.value=hvt.p, FDR=p.adjust(hvt.p, method="BH")))
+                out.stats[[target]][[host]] <- I(DataFrame(logFC=-com.lfc, p.value=tvh.p, FDR=p.adjust(tvh.p, method="BH")))
+            }
         }
     }
-    return(list(p.value=out.p, logFC=out.lfc))
+    return(list(p.value=out.p, stats=out.stats))
 }
 
 ###########################################################
 # Internal functions (p-value calculations)
 ###########################################################
+
+.create_output_container <- function(clust.vals) {
+    out <- vector("list", length(clust.vals))
+    names(out) <- clust.vals  
+    for (i in seq_along(clust.vals)) {
+        targets <- clust.vals[-i]
+        collected <- vector("list", length(targets))
+        names(collected) <- targets
+        host <- clust.vals[i]
+        out[[host]] <- collected
+    }
+    return(out)
+}
 
 .run_t_test <- function(cur.lfc, cur.err, cur.df, thresh.lfc=0, direction="any") 
 # This runs the t-test given the relevant statistics. We use the TREAT method

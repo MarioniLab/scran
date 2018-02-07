@@ -48,6 +48,7 @@ importFrom("statmod", glmgam.fit)
 importFrom("FNN", get.knn, get.knnx)
 importFrom("igraph", make_graph, simplify, E, "E<-", cluster_fast_greedy, modularity)
 
+importFrom("DelayedArray", DelayedArray)
 importFrom("DelayedMatrixStats", colSums2)
 
 # Graphical stuff:
