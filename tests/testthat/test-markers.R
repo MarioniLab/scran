@@ -1,10 +1,10 @@
 # This tests the findMarkers function.
 # require(scran); require(testthat); source("test-markers.R")
 
-REFFUN <- function(y, grouping, pval.type="any", direction="any") 
+REFFUN <- function(y, grouping, pval.type="any", direction="any", full.stats=FALSE) 
 # A reference function using the t.test function.
 { 
-    output <- findMarkers(y, grouping, pval.type=pval.type, direction=direction)
+    output <- findMarkers(y, grouping, pval.type=pval.type, direction=direction, full.stats=full.stats)
     grouping <- factor(grouping)
     clust.vals <- levels(grouping)
     alt.hyp <- switch(direction, any="two.sided", up="greater", down="less")
@@ -54,9 +54,19 @@ REFFUN <- function(y, grouping, pval.type="any", direction="any")
         # Running the requested checks.
         cur.out <- output[[host]]
         expect_identical(rownames(cur.out), rownames(y)[reordered])
-        expect_equal(as.matrix(cur.out[,-(1:2)]), do.call(cbind, collected.lfc)[reordered,,drop=FALSE])
         adj.p <- p.adjust(pval, method="BH")
         expect_equal(adj.p[reordered], cur.out$FDR)
+
+        if (!full.stats) {
+            expect_equal(as.matrix(cur.out[,-(1:2)]), do.call(cbind, collected.lfc)[reordered,,drop=FALSE])
+        } else {
+            for (target in setdiff(clust.vals, host)) {
+                cur.stats <- cur.out[,paste0("stats.", target)]
+                expect_equal(cur.stats$logFC, unname(collected.lfc[[paste0("logFC.", target)]][reordered]))
+                expect_equal(cur.stats$p.value, collected.p[[target]][reordered])
+                expect_equal(cur.stats$FDR, p.adjust(collected.p[[target]][reordered], method="BH"))
+            }
+        }
     }  
     return(TRUE)
 }
@@ -81,6 +91,7 @@ test_that("findmarkers works as expected without blocking or design matrices", {
     REFFUN(exprs(X), clusters)
     REFFUN(exprs(X), clusters, direction="up")
     REFFUN(exprs(X), clusters, direction="down")
+    REFFUN(exprs(X), clusters, full.stats=TRUE)
 
     # Checking that the IUT calculation is correct.
     REFFUN(exprs(X), clusters, pval.type="all")
@@ -521,8 +532,22 @@ test_that("log-transformed p-values in findMarkers works correctly", {
     expect_identical(names(default), names(logged))
     for (i in names(default)) {
         expect_identical(rownames(default[[i]]), rownames(logged[[i]]))
-        expect_equal(log(default[[i]]$IUT.p), logged[[i]]$IUT.p)
+        expect_equal(log(default[[i]]$IUT.p), logged[[i]]$log.IUT.p)
         expect_equal(log(default[[i]]$FDR), logged[[i]]$log.FDR)
+    }
+
+    # Checking that the log-transforming works for full.stats=TRUE.
+    default <- findMarkers(exprs(X), clusters, full.stats=TRUE)
+    logged <- findMarkers(exprs(X), clusters, log.p=TRUE, full.stats=TRUE)
+    expect_identical(names(default), names(logged))
+    for (i in names(default)) {
+        curdefault <- default[[i]]
+        curlogged <- logged[[i]]
+        expect_identical(rownames(curdefault), rownames(curlogged))
+        for (j in grep("^stats", colnames(curdefault))) {
+            expect_equal(log(default[[i]][[j]]$FDR), logged[[i]][[j]]$log.FDR)
+            expect_equal(log(default[[i]][[j]]$p.value), logged[[i]][[j]]$log.p.value)
+        }
     }
     
     # Also for linear models.
