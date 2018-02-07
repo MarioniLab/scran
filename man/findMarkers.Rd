@@ -102,9 +102,9 @@ Ranking based on the IUT p-value will focus on genes that are uniquely DE in tha
 }
 
 \section{Further details}{
-When \code{pval.type="any"}, the \code{FDR} value is calculated by consolidating p-values across contrasts for each gene using Simes' method.
+When \code{pval.type="any"}, a combined p-value is calculated by consolidating p-values across contrasts for each gene using Simes' method.
 This represents the evidence against the null hypothesis is that the gene is not DE in any of the contrasts.
-The BH method is then applied on the combined p-values across all genes.
+The BH method is then applied on the combined p-values across all genes to obtain the \code{FDR} field.
 The same procedure is done with \code{pval.type="all"}, but using the IUT p-values across genes instead.
 In both cases, the reported FDRs are intended only as a rough measure of significance.
 Properly correcting for multiple testing is not generally possible when \code{clusters} is determined from the same \code{x} used for DE testing.
@@ -125,12 +125,16 @@ Each DataFrame corresponds to a cluster in \code{clusters}, where rows correspon
 Within the DataFrame for each cluster (e.g., cluster X), there are the following fields:
 \describe{
 \item{\code{Top}:}{Integer, the minimum rank across all pairwise comparisons if \code{rank.type="any"}.}
-\item{\code{IUT.p}:}{Numeric, the IUT p-value across all comparisons if \code{rank.type="all"}.}
+\item{\code{IUT.p}:}{Numeric, the IUT p-value across all comparisons if \code{rank.type="all"}.
+This is log-transformed and reported as \code{log.IUT.p} if \code{log.p=TRUE}.}
+\item{\code{FDR}:}{Numeric, the BH-adjusted p-value for each gene.
+This is log-transformed and reported as \code{log.FDR} if \code{log.p=TRUE}.}
 \item{\code{logFC.Y}:}{Numeric for every other cluster Y in \code{clusters}, containing the log-fold change of X over Y when \code{full.stats=FALSE}.}
 \item{\code{stats.Y}:}{DataFrame for every other cluster Y in \code{clusters}, returned when \code{full.stats=TRUE}.
 This contains the numeric fields \code{logFC}, the log-fold change of X over Y; 
-\code{p.value}, the p-value for the pairwise comparison between X and Y;
-and \code{FDR}, the BH-adjusted p-value.}
+\code{p.value} or \code{log.p.value}, the (log-transformed) p-value for the pairwise comparison between X and Y;
+and \code{FDR} or \code{log.FDR}, the (log-transformed) BH-adjusted p-value.
+Setting \code{log.p=TRUE} will yield the log-transformed output.}
 }
 Genes are ranked by the \code{Top} or \code{IUT.p} column, depending on \code{rank.type}.
 } 

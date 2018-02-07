@@ -49,7 +49,11 @@
             preamble <- DataFrame(Top=min.rank)
         } else {
             gene.order <- order(pval)
-            preamble <- DataFrame(IUT.p=pval)
+            if (log.p) {
+                preamble <- DataFrame(log.IUT.p=pval)
+            } else {
+                preamble <- DataFrame(IUT.p=pval)
+            }
         }
 
         # Performing a log-transformed version of the FDR correction, if desired.
@@ -57,6 +61,22 @@
             preamble$log.FDR <- .logBH(pval)
         } else {
             preamble$FDR <- p.adjust(pval, method="BH")
+        }
+
+        # Running through all stats lists and computing the FDR.
+        if (full.stats) {
+            if (log.p) {
+                for (target in names(stat.df)) {
+                    stat.df[[target]]$log.FDR <- .logBH(stat.df[[target]]$log.p.value)
+                }
+            } else {
+                for (target in names(stat.df)) {
+                    cur.p <- exp(stat.df[[target]]$log.p.value)
+                    stat.df[[target]]$p.value <- cur.p
+                    stat.df[[target]]$log.p.value <- NULL
+                    stat.df[[target]]$FDR <- p.adjust(cur.p, method="BH")
+                }
+            } 
         }
 
         # Producing the output object.
@@ -162,8 +182,8 @@
                 out.stats[[target]][[host]] <- -com.lfc
             } else {
                 # Alternatively, saving all of the stats as a DataFrame.
-                out.stats[[host]][[target]] <- I(DataFrame(logFC=com.lfc, p.value=hvt.p, FDR=p.adjust(hvt.p, method="BH")))
-                out.stats[[target]][[host]] <- I(DataFrame(logFC=-com.lfc, p.value=tvh.p, FDR=p.adjust(tvh.p, method="BH")))
+                out.stats[[host]][[target]] <- .create_full_stats(com.lfc, hvt.p)
+                out.stats[[target]][[host]] <- .create_full_stats(-com.lfc, tvh.p)
             }
         }
     }
@@ -257,7 +277,7 @@
 # Internal functions (linear modelling)
 ###########################################################
 
-.fit_lm_internal <- function(x, subset.row, clusters, design, direction="any", lfc=0, full.stats=FALSE) 
+.fit_lm_internal <- function(x, subset.row, clusters, design, direction="any", lfc=0, full.stats=FALSE)
 # This fits a linear model to each gene and performs a t-test for 
 # differential expression between clusters.
 {
@@ -320,8 +340,8 @@
                 out.stats[[host]][[target]] <- cur.lfc
                 out.stats[[target]][[host]] <- -cur.lfc
             } else {
-                out.stats[[host]][[target]] <- I(DataFrame(logFC=com.lfc, p.value=hvt.p, FDR=p.adjust(hvt.p, method="BH")))
-                out.stats[[target]][[host]] <- I(DataFrame(logFC=-com.lfc, p.value=tvh.p, FDR=p.adjust(tvh.p, method="BH")))
+                out.stats[[host]][[target]] <- .create_full_stats(cur.lfc, hvt.p)
+                out.stats[[target]][[host]] <- .create_full_stats(-cur.lfc, tvh.p)
             }
         }
     }
@@ -331,19 +351,6 @@
 ###########################################################
 # Internal functions (p-value calculations)
 ###########################################################
-
-.create_output_container <- function(clust.vals) {
-    out <- vector("list", length(clust.vals))
-    names(out) <- clust.vals  
-    for (i in seq_along(clust.vals)) {
-        targets <- clust.vals[-i]
-        collected <- vector("list", length(targets))
-        names(collected) <- targets
-        host <- clust.vals[i]
-        out[[host]] <- collected
-    }
-    return(out)
-}
 
 .run_t_test <- function(cur.lfc, cur.err, cur.df, thresh.lfc=0, direction="any") 
 # This runs the t-test given the relevant statistics. We use the TREAT method
@@ -434,6 +441,19 @@
 # Internal functions (other)
 ###########################################################
 
+.create_output_container <- function(clust.vals) {
+    out <- vector("list", length(clust.vals))
+    names(out) <- clust.vals  
+    for (i in seq_along(clust.vals)) {
+        targets <- clust.vals[-i]
+        collected <- vector("list", length(targets))
+        names(collected) <- targets
+        host <- clust.vals[i]
+        out[[host]] <- collected
+    }
+    return(out)
+}
+
 .rank_top_genes <- function(metrics) 
 # This computes the rank and the minimum metric for each gene.
 {
@@ -455,6 +475,10 @@
     metrics[is.na(metrics)] <- -Inf # protection against NAs.
     largest <- max.col(metrics)
     cbind(seq_along(largest), largest)
+}
+
+.create_full_stats <- function(cur.lfc, cur.p) {
+    I(DataFrame(logFC=cur.lfc, log.p.value=as.vector(cur.p), check.names=FALSE))
 }
 
 ###########################################################
