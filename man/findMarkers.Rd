@@ -53,7 +53,7 @@ If both of the clusters contain only one cell, no p-value will be reported for u
 
 If \code{block} is specified, the same t-tests are performed between clusters within each level of \code{block}.
 For each pair of clusters, the p-values for each gene across all levels of \code{block} are combined using Stouffer's Z-score method.
-The p-value for each level is weighted by the reciprocal of the squared standard error of the log-fold change.
+The p-value for each level is assigned a weight inversely proportional to the expected variance of the log-fold change estimate for that level.
 Blocking levels are ignored if no p-value was reported.
 
 If \code{design} is specified, a linear model is instead fitted to the expression profile for each gene.
@@ -101,22 +101,31 @@ This yields a \code{IUT.p} field instead of a \code{Top} field in the output tab
 Ranking based on the IUT p-value will focus on genes that are uniquely DE in that cluster.
 }
 
-\section{Further details}{
+\section{Correcting for multiple testing}{
 When \code{pval.type="any"}, a combined p-value is calculated by consolidating p-values across contrasts for each gene using Simes' method.
 This represents the evidence against the null hypothesis is that the gene is not DE in any of the contrasts.
 The BH method is then applied on the combined p-values across all genes to obtain the \code{FDR} field.
 The same procedure is done with \code{pval.type="all"}, but using the IUT p-values across genes instead.
-In both cases, the reported FDRs are intended only as a rough measure of significance.
-Properly correcting for multiple testing is not generally possible when \code{clusters} is determined from the same \code{x} used for DE testing.
-
-When \code{block} is specified, the reported log-fold change for each gene is a weighted average of log-fold changes from each pairwise comparison.
-The weight is computed from the standard error, as described above.
-Unlike p-values, though, this calculation will use blocking levels where both clusters contain only one cell.
-For these log-fold changes, the squared standard error is defined using an average variance estimate across all blocking levels for the two clusters involved.
-This ensures that information is used from all blocks when computing the log-fold changes.
 
 If \code{log.p=TRUE}, log-transformed p-values and FDRs will be reported.
 This may be useful in over-powered studies with many cells, where directly reporting the raw p-values would result in many zeroes due to the limits of machine precision.
+
+Note that the reported FDRs are intended only as a rough measure of significance.
+Properly correcting for multiple testing is not generally possible when \code{clusters} is determined from the same \code{x} used for DE testing.
+}
+
+\section{Weighting across blocking levels}{
+When \code{block} is specified, the weight for the p-value in a particular level is defined as \eqn{(1/Nx + 1/Ny)^{-1}}, 
+where \eqn{Nx} and \eqn{Ny} are the number of cells in clusters X and Y, respectively, for that level. 
+This is inversely proportional to the expected variance of the log-fold change, provided that all clusters and blocking levels have the same variance.
+
+In theory, a better weighting scheme would be to use the estimated standard error of the log-fold change to compute the weight.
+This would be more responsive to differences in variance between blocking levels, focusing on levels with low variance and high power.
+However, this is not safe in practice as genes with many zeroes can have very low standard errors, dominating the results inappropriately.
+
+Like the p-values, the reported log-fold change for each gene is a weighted average of log-fold changes from all levels of the blocking factor. 
+The weight for each log-fold change is inversely proportional to the expected variance of the log-fold change in that level.
+Unlike p-values, though, this calculation will use blocking levels where both clusters contain only one cell.
 }
 
 \value{

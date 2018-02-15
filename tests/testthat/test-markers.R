@@ -197,7 +197,7 @@ test_that("findMarkers runs properly with blocking: basic checks", {
     expect_equal(ref, output)
 
     # If one block contains only one sample from each group, gene ordering and p-values 
-    # should be the same as an unblocked analysis with the other block,
+    # should be the same as an unblocked analysis with the other block.
     re.clusters <- clusters
     re.blocked <- rep(1, length(clusters))
     re.clusters[1:3] <- 1:3
@@ -335,11 +335,8 @@ test_that("findMarkers runs properly with blocking: missing/singleton group chec
     output <- findMarkers(stuff, re.clusters, re.block) 
     in.11 <- stuff[,re.block==1 & re.clusters==1]
     in.12 <- stuff[,re.block==1 & re.clusters==2]
-    s2.c1 <- apply(in.11, 1, var) 
-    s2.c2 <- apply(in.12, 1, var)
-    s2 <- (s2.c1 + s2.c2)/2
-    w.b2 <- 1/(s2*2)
-    w.b1 <- 1/(s2.c1/ncol(in.11) + s2.c2/ncol(in.12))
+    w.b2 <- 1/2
+    w.b1 <- 1/(1/ncol(in.11) + 1/ncol(in.12))
     expect_equal(output[[2]][rownames(stuff),]$logFC.1, 
                  unname(((stuff[,2]-stuff[,1]) * w.b2 + 
                          (rowMeans(in.12) - rowMeans(in.11)) * w.b1)/(w.b2 + w.b1))
@@ -347,11 +344,11 @@ test_that("findMarkers runs properly with blocking: missing/singleton group chec
     
     re.clusters[] <- 2
     re.clusters[1:2] <- 1:2
-    output <- findMarkers(stuff, re.clusters, re.block) # gets an s2 estimate from other blocks, even if there's nothing to compare to.
+    output <- findMarkers(stuff, re.clusters, re.block) 
     expect_equal(output[[2]]$logFC.1, unname(stuff[,2]-stuff[,1]))
     
     # We correctly get NA values if block is confounded with group.
-    # Importantly, these NA values should not effect anything else.
+    # Importantly, these NA values should not affect anything else.
     stuff <- matrix(rnorm(ngenes*ncells), nrow=ngenes)
     rownames(stuff) <- 1:ngenes
     re.clusters <- as.character(clusters)
