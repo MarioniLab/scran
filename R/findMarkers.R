@@ -142,32 +142,39 @@
         targets <- clust.vals[seq_len(i-1L)]
 
         for (target in targets) {
-            all.lfc <- matrix(0, ngenes, nblocks)
-            all.left <- all.right <- all.weight <- all.lfc
-            all.rss <- all.df <- numeric(ngenes)
+            all.lfc <- all.weight <- all.left <- all.right <- matrix(0, ngenes, nblocks)
+            valid.test <- logical(nblocks) 
 
             # Performing the same pairwise t-test across all blocks.
             for (b in seq_len(nblocks)) { 
+                host.n <- out.n[[b]][host]
+                target.n <- out.n[[b]][target]
                 t.out <- .get_t_test_stats(host.s2=out.s2[[b]][,host], target.s2=out.s2[[b]][,target],
-                                           host.n=out.n[[b]][host], target.n=out.n[[b]][target])
-                all.rss <- all.rss + t.out$rss 
-                all.df <- all.df + t.out$residual.df
+                                           host.n=host.n, target.n=target.n)
                 
                 cur.err <- t.out$err
                 cur.df <- t.out$test.df
                 cur.lfc <- out.means[[b]][,host] - out.means[[b]][,target]
                 p.out <- .run_t_test(cur.lfc, cur.err, cur.df, thresh.lfc=lfc, direction=direction)
 
+                valid.test[b] <- all(!is.na(cur.df))
                 all.lfc[,b] <- cur.lfc
-                all.weight[,b] <- 1/cur.err
                 all.left[,b] <- p.out$left
                 all.right[,b] <- p.out$right
+
+                # Weights are inversely proportional to the squared error of the log-fold change,
+                # assuming equal variance across blocks and groups for simplicity.
+                # (Using the actual variance is dangerous as some blocks have zero variance
+                # with a defined log-fold change, if there are many zeroes.)
+                all.weight[,b] <- 1/(1/host.n + 1/target.n)
             }
 
             # Combining the p-values and log-fold changes across blocks.
-            stouffer.out <- .combine_stouffer(all.left, all.right, all.weight)
-            com.left <- stouffer.out$left
-            com.right <- stouffer.out$right
+            # Note that weights may have been defined for invalid tests, they need to be disabled here.
+            test.weight <- all.weight
+            test.weight[,!valid.test] <- NA_real_
+            com.left <- .run_stouffer(all.left, test.weight)
+            com.right <- .run_stouffer(all.right, test.weight)
 
             # Flipping left/right to get the p-value from the reversed comparison.
             hvt.p <- .choose_leftright_pvalues(com.left, com.right, direction=direction) 
@@ -176,14 +183,14 @@
             out.p[[target]][[host]] <- tvh.p
 
             # Symmetrical log-fold changes, hence the -1.
-            com.lfc <- .combine_lfc(all.lfc, all.weight, all.rss/all.df)
+            com.lfc <- rowSums(all.weight * all.lfc, na.rm=TRUE)/rowSums(all.weight, na.rm=TRUE)
             if (!full.stats) { 
                 out.stats[[host]][[target]] <- com.lfc
                 out.stats[[target]][[host]] <- -com.lfc
             } else {
                 # Alternatively, saving all of the stats as a DataFrame.
-                out.stats[[host]][[target]] <- .create_full_stats(com.lfc, hvt.p)
-                out.stats[[target]][[host]] <- .create_full_stats(-com.lfc, tvh.p)
+                out.stats[[host]][[target]] <- .create_full_stats(com.lfc, hvt.p, rownames(x))
+                out.stats[[target]][[host]] <- .create_full_stats(-com.lfc, tvh.p, rownames(x))
             }
         }
     }
@@ -197,16 +204,6 @@
     host.df <- max(0L, host.n - 1L)
     target.df <- max(0L, target.n - 1L)
 
-    # Computing some general variance statistics.
-    residual.df <- host.df + target.df
-    rss <- numeric(length(host.s2))
-    if (host.df > 0L){ 
-        rss <- rss + host.s2 * host.df
-    } 
-    if (target.df > 0L) {
-        rss <- rss + target.s2 * target.df
-    }
-
     # Avoid unlikely but potential problems with discreteness. 
     host.s2 <- pmax(host.s2, 1e-8)
     target.s2 <- pmax(target.s2, 1e-8)
@@ -218,58 +215,29 @@
         cur.err <- host.err + target.err
         cur.df <- cur.err^2 / (host.err^2/host.df + target.err^2/target.df)
     } else {
-        if (host.n==0L || target.n==0L) { 
-            cur.err <- rep(NA_real_, length(host.s2))
-            cur.df <- NA_real_
-        } else {
-            # Try to perform Student's t-test, if possible.
-            if (host.df==0L) {
-                cur.err <- target.s2 * (1 + 1/target.n)
-                cur.df <- target.df
-            } else {
-                cur.err <- host.s2 * (1 + 1/host.n)
-                cur.df <- host.df
-            }
+        cur.err <- cur.df <- NA_real_
+
+        # Try to perform Student's t-test, if possible.
+        if (target.df > 0L) {
+            cur.err <- target.s2 * (1 + 1/target.n)
+            cur.df <- target.df
+        } else if (host.df > 0L) {
+            cur.err <- host.s2 * (1 + 1/host.n)
+            cur.df <- host.df
         }
     }
-    return(list(err=cur.err, test.df=cur.df, rss=rss, residual.df=residual.df))
+    return(list(err=cur.err, test.df=cur.df))
 }
 
-.combine_lfc <- function(lfc, weights, s2) 
-# This computes the weighted average log-fold change across all batches.
-# Weighting is usually based on the squared error of the log-fold change,
-# so some finesse is required to use information from batches with n=1
-# for all groups - namely, by using the average variance 's2' as the known SD.
+.run_stouffer <- function(log.pvals, weights) 
+# Uses Stouffer's method to combine the one-sided p-values, 
+# with weights for each column.
 {
-    if (length(weights) && is.na(max(weights))) {
-        s2[is.na(s2)] <- 1 # effectively ensures equal weights, if no one has any residual d.f.
-        for (i in seq_len(ncol(weights))) {
-            curw <- weights[,i]
-            lost <- is.na(curw) & !is.na(lfc[,i])
-            curw[lost] <- 1/(s2[lost] * 2) # SE^2 when n1=n2=1 with known SD (set to average across blocks).
-            weights[,i] <- curw
-        }
-    }
-    rowSums(weights*lfc, na.rm=TRUE)/rowSums(weights, na.rm=TRUE)
-}
-
-.combine_stouffer <- function(left, right, weights) 
-# This uses the inverse errors as the weights to combine the 
-# various statistics. It uses Stouffer's method to combine 
-# the one-sided p-values, with weights for each column.
-{
-    sum.weight <- rowSums(weights, na.rm=TRUE)
-    p.left <- .run_stouffer(left, weights, sum.weight)
-    p.right <- .run_stouffer(right, weights, sum.weight)
-    return(list(left=p.left, right=p.right))
-}
-
-.run_stouffer <- function(log.pvals, weights, sum.weight) {
     if (ncol(log.pvals)==1L) {
         return(log.pvals)
     }
     Z <- qnorm(log.pvals, log.p=TRUE)
-    final <- rowSums(Z*weights, na.rm=TRUE)/sum.weight
+    final <- rowSums(Z*weights, na.rm=TRUE)/rowSums(weights, na.rm=TRUE)
     pnorm(final, log.p=TRUE)
 }
 
@@ -340,8 +308,8 @@
                 out.stats[[host]][[target]] <- cur.lfc
                 out.stats[[target]][[host]] <- -cur.lfc
             } else {
-                out.stats[[host]][[target]] <- .create_full_stats(cur.lfc, hvt.p)
-                out.stats[[target]][[host]] <- .create_full_stats(-cur.lfc, tvh.p)
+                out.stats[[host]][[target]] <- .create_full_stats(cur.lfc, hvt.p, rownames(x))
+                out.stats[[target]][[host]] <- .create_full_stats(-cur.lfc, tvh.p, rownames(x))
             }
         }
     }
@@ -477,8 +445,9 @@
     cbind(seq_along(largest), largest)
 }
 
-.create_full_stats <- function(cur.lfc, cur.p) {
-    I(DataFrame(logFC=cur.lfc, log.p.value=as.vector(cur.p), check.names=FALSE))
+.create_full_stats <- function(cur.lfc, cur.p, gene.names) {
+    I(DataFrame(logFC=cur.lfc, log.p.value=as.vector(cur.p), 
+                check.names=FALSE, row.names=gene.names))
 }
 
 ###########################################################
