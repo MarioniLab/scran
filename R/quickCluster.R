@@ -1,14 +1,17 @@
-.quick_cluster <- function(x, min.size=200, max.size=NULL, subset.row=NULL, get.ranks=FALSE, 
-                           method=c("hclust", "igraph"), pc.approx=TRUE, ...)  
+.quick_cluster <- function(x, min.size=200, max.size=NULL, method=c("hclust", "igraph"),
+                           pc.approx=TRUE, get.ranks=FALSE, subset.row=NULL, min.mean=1, ...)
 # This function generates a cluster vector containing the cluster number assigned to each cell.
 # It takes the counts matrix and a minimum number of Cells per cluster as input.
 # The minimum number should be at least twice as large as the largest group used for summation.
 #
 # written by Karsten Bach, with modifications by Aaron Lun
 # created 1 December 2015
-# last modified 3 October 2017
 {   
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
+    if (!is.null(min.mean) && all(dim(x)>0L)) {
+        further.subset <- calcAverage(x, subset_row=subset.row) >= min.mean
+        subset.row <- subset.row[further.subset]
+    }
 
     # Obtaining scaled/centred ranks to compute cosine distances.
     # Using this instead of colRanks to support dgCMatrix, HDF5Array objects.
