@@ -55,15 +55,15 @@ combineVar <- function(..., method=c("z", "fisher", "simes", "berger"))
 .extract_weightings <- function(tabs, field) {
     output <- vector("list", length(tabs))
     for (x in seq_along(tabs)) { 
-        cur.w <- attr(tabs[[x]], "decomposeVar.stats")[[field]]
+        cur.w <- metadata(tabs[[x]])[[field]]
         if (is.null(cur.w)) {
-            warning("inputs should come from decomposeVar() with store.stats=TRUE")
+            warning("inputs should come from decomposeVar()")
             cur.w <- 1
         }
         if (!is.null(names(cur.w))) { 
             cur.w <- cur.w[rownames(tabs[[x]])] 
             if (any(is.na(cur.w))) {
-                stop("gene names in 'rownames' not in 'decomposeVar.stats$resid.df'")
+                stop("gene names in 'rownames' not in 'metadata(...)$resid.df'")
             }
             cur.w <- unname(cur.w)
         }
