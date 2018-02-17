@@ -76,6 +76,12 @@ test_that("quickCluster functions correctly with subsetting", {
     htree <- hclust(distM, method='ward.D2')
     clusters <- unname(dynamicTreeCut::cutreeDynamic(htree, minClusterSize=50, distM=refM, verbose=0))
     expect_identical(clusters, as.integer(obs))
+
+    # Handles the mean.
+    obs <- quickCluster(mat, min.size=50, min.mean=5)
+    expect_identical(obs, quickCluster(mat, min.size=50, subset.row=scater::calcAverage(mat) >= 5))
+    rnks <- quickCluster(mat, get.ranks=TRUE, min.mean=5)
+    expect_identical(rnks, quickCluster(mat, get.ranks=TRUE, subset.row=scater::calcAverage(mat) >= 5))
 })
 
 # Checking that we're executing the igraph methods correctly.

@@ -7,8 +7,9 @@
 \description{Cluster similar cells based on rank correlations in their gene expression profiles.}
 
 \usage{
-\S4method{quickCluster}{ANY}(x, min.size=200, max.size=NULL, subset.row=NULL, 
-    get.ranks=FALSE, method=c("hclust", "igraph"), pc.approx=TRUE, ...)
+\S4method{quickCluster}{ANY}(x, min.size=200, max.size=NULL, get.ranks=FALSE, 
+    method=c("hclust", "igraph"), pc.approx=TRUE,
+    subset.row=NULL, min.mean=1, ...)
 
 \S4method{quickCluster}{SingleCellExperiment}(x, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE)
 }
@@ -20,10 +21,12 @@
 }
 \item{min.size}{An integer scalar specifying the minimum size of each cluster.}
 \item{max.size}{An integer scalar specifying the maximum size of each cluster.}
-\item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{get.ranks}{A logical scalar specifying whether a matrix of adjusted ranks should be returned.}
 \item{method}{A string specifying the clustering method to use.}
 \item{pc.approx}{Argument passed to \code{\link{buildSNNGraph}} when \code{method="igraph"}, otherwise ignored.}
+\item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
+\item{min.mean}{A numeric scalar specifying the filter to be applied on the average count for each filter prior to computing ranks.
+Disabled by setting to \code{NULL}.}
 \item{...}{
     For \code{quickCluster,ANY-method}, additional arguments to be passed to \code{\link{cutreeDynamic}} for \code{method="hclust"}, 
         or \code{\link{buildSNNGraph}} for \code{method="igraph"}.
@@ -68,12 +71,18 @@ This is done arbitrarily, without any use of cell-cell similarities within each 
 The aim of this parameter is to reduce cluster sizes for easier computational processing (e.g., in \code{\link{computeSumFactors}}), rather than to define meaningful subclusters.
 }
 
-\section{Gene selection for SingleCellExperiment inputs}{
+\section{Gene selection}{
 In \code{quickCluster,SingleCellExperiment-method}, spike-in transcripts are not used by default as they provide little information on the biological similarities between cells.
 This may not be the case if subpopulations differ by total RNA content, in which case setting \code{get.spikes=TRUE} may provide more discriminative power.
+
 Users can also set \code{subset.row} to specify which rows of \code{x} are to be used to calculate correlations.
 This is equivalent to but more efficient than subsetting \code{x} directly, as it avoids constructing a (potentially large) temporary matrix.
-Note that if \code{subset.row} is specified, it will overwrite any setting of \code{get.spikes}.
+Note that if \code{subset.row} is specified, it will intersect with any setting of \code{get.spikes}.
+
+By default, the function will also filter out genes with average counts (as defined by \code{\link{calcAverage}}) below \code{min.mean}.
+This removes low-abundance genes with many tied ranks, especially due to zeros, which may reduce the precision of the clustering.
+We suggest setting \code{min.mean} to 1 for read count data and 0.1 for UMI data.
+This can be disabled completely by setting it to \code{NULL}.
 }
 
 \section{Obtaining the scaled and centred ranks}{
