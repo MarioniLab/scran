@@ -7,9 +7,9 @@
 \description{Cluster similar cells based on rank correlations in their gene expression profiles.}
 
 \usage{
-\S4method{quickCluster}{ANY}(x, min.size=200, max.size=NULL, get.ranks=FALSE, 
+\S4method{quickCluster}{ANY}(x, min.size=200, max.size=NULL, 
     method=c("hclust", "igraph"), pc.approx=TRUE,
-    subset.row=NULL, min.mean=1, ...)
+    get.ranks=FALSE, subset.row=NULL, min.mean=1, ...)
 
 \S4method{quickCluster}{SingleCellExperiment}(x, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE)
 }
