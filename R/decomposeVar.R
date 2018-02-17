@@ -1,24 +1,36 @@
-.decompose_var <- function(x, fit, block=NA, design=NA, subset.row=NULL, store.stats=FALSE, ...)
+.decompose_var <- function(x, fit, block=NA, design=NA, subset.row=NULL, ...)
 # Computes the biological variability of the log-CPMs by subtracting the
 # inferred technical variance from the total variance.
 #
 # written by Aaron Lun
 # created 21 January 2016 
 {   
-    if (length(block)==1L && is.na(block)) {
-        block <- fit$block
-    }
-    if (length(design)==1L && is.na(design)) {
-        design <- fit$design
-    }
-
-    # Extracting statistics.
     if (missing(x)) {
+        # Extracting statistics from an existing fit.
         lmeans <- fit$mean
         lvar <- fit$var
         resid.df <- fit$resid.df
+
+        block <- fit$block
+        design <- fit$design
+        if (!is.null(block)) { 
+            ncells <- length(block)
+        } else if (!is.null(design)) {
+            ncells <- nrow(design)
+        } else {
+            ncells <- unname(resid.df + 1L)[1]
+        }
            
     } else {
+        # Computing statistics fresh.
+        if (length(block)==1L && is.na(block)) {
+            block <- fit$block
+        }
+        if (length(design)==1L && is.na(design)) {
+            design <- fit$design
+        }
+
+        ncells <- ncol(x)
         stats.out <- .get_var_stats(x, block=block, design=design, subset.row=subset.row)
         lmeans <- stats.out$means
         lvar <- stats.out$var
@@ -41,7 +53,7 @@
         
         # Aggregating means together (effectively rowMeans(x), without having to recompute it from 'x').
         num.per.block <- table(block)
-        lmeans <- lmeans %*% num.per.block[colnames(lmeans)]/ncol(x)
+        lmeans <- lmeans %*% num.per.block[colnames(lmeans)]/length(block)
 
         # Combining p-values using Stouffer's method (independent observations).
         Z <- rowSums(qnorm(block.pval, log.p=TRUE) * resid.df)/total.resid.df
@@ -53,14 +65,16 @@
         tech.var <- fit$trend(lmeans)
         pval <- testVar(total=lvar, null=tech.var, df=resid.df, second.df=fit$df2, ...)
     }
-
+    
+    pval <- as.numeric(pval)
+    lvar <- as.numeric(lvar)
+    tech.var <- as.numeric(tech.var)
     bio.var <- lvar - tech.var
-    out <- data.frame(mean=lmeans, total=lvar, bio=bio.var, tech=tech.var,
-                      p.value=pval, FDR=p.adjust(pval, method="BH"),
-                      row.names=gnames)
-    if (store.stats) { 
-        attr(out, "decomposeVar.stats") <- list(num.cells=ncol(x), resid.df=resid.df)
-    }
+    out <- DataFrame(mean=as.numeric(lmeans), 
+                     total=lvar, bio=bio.var, tech=tech.var,
+                     p.value=pval, FDR=p.adjust(pval, method="BH"),
+                     row.names=gnames)
+    metadata(out) <- list(num.cells=ncells, resid.df=resid.df)
     return(out)
 }
 
