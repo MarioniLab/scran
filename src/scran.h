@@ -45,6 +45,8 @@ SEXP fit_oneway(SEXP, SEXP, SEXP);
 
 SEXP combine_simes(SEXP, SEXP);
 
+SEXP calc_log_count_stats(SEXP, SEXP, SEXP, SEXP, SEXP);
+
 // Miscellaneous functions.
 
 SEXP get_residuals(SEXP, SEXP, SEXP, SEXP, SEXP);

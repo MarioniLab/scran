@@ -27,6 +27,7 @@ static const R_CallMethodDef all_call_entries[] = {
     REGISTER(fit_linear_model, 5),
     REGISTER(fit_oneway, 3),
     REGISTER(combine_simes, 2),
+    REGISTER(calc_log_count_stats, 5),
 
     // Miscellaneous functions.
     REGISTER(get_residuals, 5),
