@@ -7,8 +7,7 @@
 \description{Decompose the gene-specific variance into biological and technical components for single-cell RNA-seq data.}
 
 \usage{
-\S4method{decomposeVar}{ANY,list}(x, fit, block=NA, design=NA, subset.row=NULL, 
-    store.stats=FALSE, ...)
+\S4method{decomposeVar}{ANY,list}(x, fit, block=NA, design=NA, subset.row=NULL, ...)
 
 \S4method{decomposeVar}{SingleCellExperiment,list}(x, fit, subset.row=NULL, ..., 
     assay.type="logcounts", get.spikes=NA)
@@ -25,7 +24,6 @@
 \item{block}{A factor containing the level of a blocking factor for each cell.}
 \item{design}{A numeric matrix describing the uninteresting factors contributing to expression in each cell.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
-\item{store.stats}{A logical scalar indicating whether additional statistics should be stored in the attributes of the output, see \code{?\link{combineVar}}.}
 \item{...}{
 For \code{decomposeVar,matrix,list-method}, additional arguments to pass to \code{\link{testVar}}.
 For \code{decomposeVar,SingleCellExperiment,list-method}, additional arguments to pass to the matrix method.
@@ -45,6 +43,10 @@ Unlike other methods for decomposition, this approach estimates the variance of 
 The log-transformation blunts the impact of large positive outliers and ensures that HVGs are driven by strong log-fold changes between cells, not differences in counts.
 Interpretation is not compromised -- HVGs will still be so, regardless of whether counts or log-counts are considered.
 
+If \code{assay.type="logcounts"} and the size factors are not centred at unity, a warning will be raised - see \code{?\link{trendVar}} for details.
+}
+
+\section{Accounting for uninteresting factors}{
 To account for uninteresting factors of variation, either \code{block} or \code{design} can be specified:
 \itemize{
 \item Setting \code{block} will estimate the mean and variance of each gene for cells in each group (i.e., each level of \code{block}) separately.
@@ -60,7 +62,9 @@ This approach is useful for covariates or additive models that cannot be express
 If either of these arguments are \code{NA}, they will be extracted from \code{fit}, assuming that the same cells were used to fit the trend.
 If \code{block} is specified, this will override any setting of \code{design}.
 Use of \code{block} is generally favoured as group-specific means result in a better estimate of the technical component than an average mean across all groups.
+}
 
+\section{Feature selection}{
 If \code{get.spikes=NA} in \code{decomposeVar,SingleCellExperiment-method}, the p-value and FDR will not be returned for spike-in transcripts.
 This is the default as it returns the other variance statistics for diagnostic purposes, but ensures that the spike-ins are not treated as candidate HVGs.
 If \code{get.spikes=FALSE}, spike-in transcripts are filtered out from \code{x} and no statistics are returned.
@@ -69,11 +73,13 @@ If \code{get.spikes=TRUE}, all statistics are computed for all rows, regardless 
 Users can also directly specify which rows to use with \code{subset.row}.
 This is equivalent to running \code{decomposeVar} on \code{x[subset.row,]}, but is more efficient as it avoids the construction of large temporary matrices.
 
-If \code{assay.type="logcounts"} and the size factors are not centred at unity, a warning will be raised - see \code{?\link{trendVar}} for details.
+If \code{x} is not supplied, all genes used to fit the trend in \code{fit} will be used instead for the variance decomposition.
+This may be useful when a trend is fitted to all genes in \code{\link{trendVar}}, such that the statistics for all genes will already be available in \code{fit}.
+By not specifying \code{x}, users can avoid redundant calculations, which is particularly helpful for very large data sets.
 }
 
 \value{
-A data frame is returned where each row corresponds to and is named after a row of \code{x} 
+A DataFrame is returned where each row corresponds to and is named after a row of \code{x} 
 (if \code{subset.row=NULL}; otherwise, each row corresponds to an element of \code{subset.row}).
 This contains the numeric fields:
 \describe{
@@ -85,8 +91,7 @@ This contains the numeric fields:
 }
 If \code{get.spikes=NA}, the \code{p.value} and \code{FDR} fields will be set to \code{NA} for rows corresponding to spike-in transcripts.
 
-If \code{store.stats=TRUE}, the attributes of the output will contain a \code{"decomposeVar.stats"} field.
-This holds a list of two elements - \code{num.cells}, an integer scalar storing the number of cells in \code{x}; 
+The metadata field of the output DataFrame also contains \code{num.cells}, an integer scalar storing the number of cells in \code{x}; 
 and \code{resid.df}, an integer vector containing the residual d.f. used for variance estimation of each gene in the output data frame.
 }
 

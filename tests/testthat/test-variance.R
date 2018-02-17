@@ -300,6 +300,10 @@ test_that("Variance decomposition is working correctly", {
     expect_equivalent(out.all$tech, fit$trend(ref.mean))
     expect_equivalent(out.all$bio, out.all$total-out.all$tech)
 
+    # Checking that stats are correctly stored.
+    expect_equal(metadata(out.all)$num.cells, ncells)
+    expect_equal(unname(metadata(out.all)$resid.df), rep(ncells-1L, ngenes))
+
     # Checking that the p-value calculation is correct.
     ref.p <- testVar(out.all$total, out.all$tech, df=ncells-1)
     expect_equivalent(ref.p, out.all$p.value)
@@ -315,12 +319,9 @@ test_that("Variance decomposition is working correctly", {
     out.all$FDR <- p.adjust(out.all$p.value, method="BH")
     expect_identical(ref2, out.all)
 
-    # Checking that stats are correctly stored.
-    out2 <- decomposeVar(X, fit, get.spikes=TRUE, store.stats=TRUE)
-    expect_equal(attr(out2, "decomposeVar.stats")$num.cells, ncells)
-    expect_equal(unname(attr(out2, "decomposeVar.stats")$resid.df), rep(ncells-1L, ngenes))
-    attr(out2, "decomposeVar.stats") <- NULL
-    expect_equal(out2, decomposeVar(X, fit, get.spikes=TRUE))
+    expect_equal(metadata(out)$num.cells, ncells)
+    expect_equal(unname(metadata(out)$resid.df), rep(ncells-1L, sum(!isSpike(X))))
+
 })
    
 test_that("decomposeVar behaves correctly with subsetting", {
@@ -365,6 +366,18 @@ test_that("decomposeVar works with all genes", {
     # Using only the elements in the fit object, and checking we get the same result.
     all.dec2 <- decomposeVar(fit=all.fit)
     expect_equal(all.dec, all.dec2)
+
+    # Checking that it ignores any other value of 'block' or 'design' or 'subset.row'.
+    blocking <- rep(1:3, length.out=ncol(X))
+    expect_equal(all.dec2, decomposeVar(fit=all.fit, block=blocking))
+    expect_equal(all.dec2, decomposeVar(fit=all.fit, design=model.matrix(~factor(blocking))))
+    expect_equal(all.dec2, decomposeVar(fit=all.fit, subset.row=1:10))
+
+    # Specifying 'fit' also works with blocking.
+    all.fit.b <- trendVar(X, use.spikes=NA, block=blocking)
+    all.dec.b <- decomposeVar(X, all.fit.b, get.spikes=TRUE)
+    all.dec.b2 <- decomposeVar(fit=all.fit.b)
+    expect_equal(all.dec.b, all.dec.b2)
 })
 
 test_that("decomposeVar works with design matrices", {
@@ -528,17 +541,17 @@ test_that("combineVar works correctly", {
     X <- normalize(X)
     d <- exprs(X)
     out <- trendVar(d)
-    dec <- decomposeVar(d, out, store.stats=TRUE)
+    dec <- decomposeVar(d, out)
     
     sub.d <- d[,seq_len(ncells/2)]
     block <- sample(3, replace=TRUE, ncol(sub.d))
     out2 <- trendVar(sub.d, block=block)
-    dec2 <- decomposeVar(sub.d, out2, store.stats=TRUE)
+    dec2 <- decomposeVar(sub.d, out2)
 
     alt.d <- d[,ncells/2+1:50]
     design <- model.matrix(~runif(ncol(alt.d)))    
     out3 <- trendVar(alt.d, design=design)
-    dec3 <- decomposeVar(alt.d, out3, store.stats=TRUE)
+    dec3 <- decomposeVar(alt.d, out3)
 
     # Checking averaging of stats.
     N <- c(ncells, ncol(sub.d), ncol(alt.d))
@@ -572,8 +585,9 @@ test_that("combineVar works correctly", {
     expect_equal(reres, rescheck)
 
     # Checking fails: 
-    dec4 <- decomposeVar(alt.d, out3)  # when you miss store.stats.
-    expect_warning(res <- combineVar(dec, dec4), "inputs should come from decomposeVar() with store.stats=TRUE", fixed=TRUE)
+    dec4 <- dec3
+    metadata(dec4) <- list()
+    expect_warning(res <- combineVar(dec, dec4), "inputs should come from decomposeVar()", fixed=TRUE)
     expect_error(res <- combineVar(dec, dec2[rev(rownames(dec)),]), "gene identities should be the same") # when you switch up the order.
 
     redec <- dec
