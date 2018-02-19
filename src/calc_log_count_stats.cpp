@@ -2,6 +2,7 @@
 
 struct FUN {
     FUN(double lim) : limit(lim) {}
+    virtual ~FUN() {};
     virtual double q(double, bool)=0;
     virtual double d(int, double)=0;
 protected:
@@ -9,7 +10,8 @@ protected:
 };
 
 struct pois : public FUN {
-    pois(double lim) : FUN(lim) {};
+    pois(double lim) : FUN(lim) {}
+    ~pois() {}
     double q(double m, bool lower) {
         R::qpois(limit, m, lower, 0);
     }
@@ -19,7 +21,8 @@ struct pois : public FUN {
 };
 
 struct nbinom : public FUN {
-    nbinom(double lim, double disp): FUN(lim), size(1/disp) {};
+    nbinom(double lim, double disp): FUN(lim), size(1/disp) {}
+    ~nbinom() {}
     double q(double m, bool lower) {
         R::qnbinom_mu(limit, size, m, lower, 0);
     }
