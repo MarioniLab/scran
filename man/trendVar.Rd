@@ -78,18 +78,25 @@ When extrapolating to values above the largest observed mean, the output functio
 }
 
 \section{Handling uninteresting factors of variation}{
-There are two approaches to handling unwanted factors of variation.
+There are three approaches to handling unwanted factors of variation.
 The simplest approach is to use a design matrix containing the uninteresting factors can be specified in \code{design}.
 This will fit a linear model to the log-expression values for each gene, yielding an estimate for the residual variance.
 The trend is then fitted to the residual variance against the mean for each spike-in transcripts.
 
-The other approach is to use \code{block}, where all cells in each level are treated as a separate group.
+Another approach is to use \code{block}, where all cells in each level of the blocking factor are treated as a separate group.
 Means and variances are estimated within each group and the resulting sets of means/variances are pooled across all groups.
 The trend is then fitted to the pooled observations, where observations from different levels are weighted according to the residual d.f. used for variance estimation.
 This effectively multiplies the number of points by the number of levels in \code{block}.
-\code{block} will take priority and \code{design} will be ignored if both arguments are specified.
+If both \code{block} and \code{design} are specified, \code{block} will take priority and \code{design} will be ignored.
 
-We suggest using \code{block} wherever possible, as this preserves differences in the means/variances between levels of the factor. 
+The final approach is to subset the data set for each level of the blocking factor, re-run \code{\link{normalize}} for each subset to centre the size factors (see below),
+and run \code{\link{trendVar}} and \code{\link{decomposeVar}} for each subset separately.
+Results from all levels are then consolidated using the \code{\link{combineVar}} function.
+This is the most correct approach if there are systematic differences in the size factors (spike-in or endogenous) between levels.
+With the other two methods, such differences would be normalized out in the full log-expression matrix, preventing proper estimation of the level-specific abundance.
+
+Assuming there are no differences in the size factors between levels, we suggest using \code{block} wherever possible instead of \code{design}.
+This is because the use of \code{block} preserves differences in the means/variances between levels of the factor. 
 In contrast, using \code{design} will effectively compute an average mean/variance.
 This may yield an inaccurate representation of the trend, as the fitted value at an average mean may not be equal to the average variance for non-linear trends.
 Nonetheless, we still support \code{design} as it can accommodate additive models, whereas \code{block} only handles one-way layouts.
@@ -129,8 +136,10 @@ This is because different size factors are typically used for endogenous genes a
 If these size factor sets are not centred at the same value, there will be systematic differences in abundance between these features.
 This precludes the use of a spike-in fitted trend with abundances for endogenous genes in \code{\link{decomposeVar}}.
 
-For other expression values and in \code{trendVar,ANY-method}, the onus is on the user to ensure that normalization preserves differences in abundance.
-In other words, the scaling factors used to normalize each feature should have the same mean.
+For other expression values and in \code{trendVar,ANY-method}, the onus is on the user to ensure that normalization 
+(i) does not introduce differences in abundance between spike-in and endogenous features, while
+(ii) preserving differences in abundance within the set of endogenous or spike-in features.
+In short, the scaling factors used to normalize each feature should have the same mean across all cells.
 This ensures that spurious differences in abundance are not introduced by the normalization process.
 
 % Forcibly recomputing the "logcounts" values within trendVar() is arguably safer, as normalize() enforces centring.
