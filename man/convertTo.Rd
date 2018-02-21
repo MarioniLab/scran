@@ -82,6 +82,6 @@ y$other <- sample(LETTERS, ncells, replace=TRUE)
 # Converting to various objects.
 convertTo(y, type="edgeR")
 convertTo(y, type="DESeq2")
-convertTo(y, type="monocle")
+#convertTo(y, type="monocle")
 }
 
