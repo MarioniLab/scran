@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.7.14}{\itemize{
+\section{Version 1.7.19}{\itemize{
 \item Modified decomposeVar() to return statistics (but not p-values) for spike-ins when get.spikes=NA.
 Added block= argument for mean/variance calculations within each level of a blocking factor, 
 followed by reporting of weighted averages (using weighted Stouffer's method for p-values).

@@ -13,10 +13,10 @@ struct pois : public FUN {
     pois(double lim) : FUN(lim) {}
     ~pois() {}
     double q(double m, bool lower) {
-        R::qpois(limit, m, lower, 0);
+        return R::qpois(limit, m, lower, 0);
     }
     double d(int y, double m) {
-        R::dpois(y, m, 0);
+        return R::dpois(y, m, 0);
     }
 };
 
@@ -24,10 +24,10 @@ struct nbinom : public FUN {
     nbinom(double lim, double disp): FUN(lim), size(1/disp) {}
     ~nbinom() {}
     double q(double m, bool lower) {
-        R::qnbinom_mu(limit, size, m, lower, 0);
+        return R::qnbinom_mu(limit, size, m, lower, 0);
     }
     double d(int y, double m) {
-        R::dnbinom_mu(y, size, m, 0);
+        return R::dnbinom_mu(y, size, m, 0);
     }
 protected:
     double size;
