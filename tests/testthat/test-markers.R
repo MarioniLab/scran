@@ -16,11 +16,10 @@ REFFUN <- function(y, grouping, pval.type="any", direction="any", full.stats=FAL
         for (target in setdiff(clust.vals, host)) {
             target.y <- y[,grouping==target,drop=FALSE]
 
-            if (ncol(host.y)!=1L || ncol(target.y)!=1L) {
-                use.student <- ncol(target.y)==1L || ncol(host.y)==1L
+            if (ncol(host.y)>1L && ncol(target.y)>1L) {
                 pval <- numeric(nrow(y))
                 for (i in seq_along(pval)) {
-                    pval[i] <- t.test(host.y[i,], target.y[i,], alternative=alt.hyp, var.equal=use.student)$p.value
+                    pval[i] <- t.test(host.y[i,], target.y[i,], alternative=alt.hyp, var.equal=FALSE)$p.value
                 }
             } else {
                 pval <- rep(NA_real_, nrow(y))

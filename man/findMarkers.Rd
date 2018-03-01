@@ -48,22 +48,29 @@ If this is set, it will intersect with any non-\code{NULL} value of \code{subset
 
 \section{Explanation of the hypothesis tests}{
 By default, this function will perform a Welch t-test to identify DEGs between each pair of clusters.
-If one of the clusters contains only one cell, a Student's t-test will be performed instead.
-If both of the clusters contain only one cell, no p-value will be reported for use in ranking (see below).
+If one of the clusters contains fewer than two cells, no p-value will be reported for this comparison.
+In theory, we could perform Student's t-test in situations where there is only one cell in one of the groups.
+However, we do not do so as it is often compromised by discreteness in scRNA-seq data.
+If the group with many cells contains only zero counts, the sample variance becomes zero, which would be incorrect. 
 
 If \code{block} is specified, the same t-tests are performed between clusters within each level of \code{block}.
 For each pair of clusters, the p-values for each gene across all levels of \code{block} are combined using Stouffer's Z-score method.
 The p-value for each level is assigned a weight inversely proportional to the expected variance of the log-fold change estimate for that level.
-Blocking levels are ignored if no p-value was reported.
+Blocking levels are ignored if no p-value was reported, e.g., if there were insufficient cells for a cluster in a particular level. 
 
 If \code{design} is specified, a linear model is instead fitted to the expression profile for each gene.
 This linear model will include the \code{clusters} as well as any blocking factors in \code{design}.
 A t-test is then performed to identify DEGs between pairs of clusters, using the values of the relevant coefficients and the gene-wise residual variance.
 
 Note that \code{block} will override any \code{design} if both are specified.
-This reflects our preference for the former, which is more robust to misspecification of the clusters, 
-differences in the variance of expression in each cluster, and differences in the log-fold changes between clusters across blocks.
+This reflects our preference for the former, which accommodates differences in the variance of expression in each cluster via Welch's t-test.
+As a result, it is more robust to misspecification of the clusters, as misspecified clusters (and inflated variances) do not affect the inferences for other clusters.
+Use of \code{block} also avoids assuming additivity of effects between the blocking factors and the cluster identities.
+
 Nonetheless, use of \code{design} is unavoidable when blocking on real-valued covariates.
+It is also useful for ensuring that log-fold changes/p-values are computed for comparisons between all pairs of clusters
+(assuming that \code{design} is not confounded with the cluster identities).
+This may not be the case with \code{block} if a pair of clusters never co-occur in a single blocking level. 
 }
 
 \section{Direction and magnitude of the log-fold change}{ 
