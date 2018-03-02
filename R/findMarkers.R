@@ -216,15 +216,6 @@
         cur.df <- cur.err^2 / (host.err^2/host.df + target.err^2/target.df)
     } else {
         cur.err <- cur.df <- NA_real_
-
-        # Try to perform Student's t-test, if possible.
-        if (target.df > 0L) {
-            cur.err <- target.s2 * (1 + 1/target.n)
-            cur.df <- target.df
-        } else if (host.df > 0L) {
-            cur.err <- host.s2 * (1 + 1/host.n)
-            cur.df <- host.df
-        }
     }
     return(list(err=cur.err, test.df=cur.df))
 }

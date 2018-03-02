@@ -16,11 +16,10 @@ REFFUN <- function(y, grouping, pval.type="any", direction="any", full.stats=FAL
         for (target in setdiff(clust.vals, host)) {
             target.y <- y[,grouping==target,drop=FALSE]
 
-            if (ncol(host.y)!=1L || ncol(target.y)!=1L) {
-                use.student <- ncol(target.y)==1L || ncol(host.y)==1L
+            if (ncol(host.y)>1L && ncol(target.y)>1L) {
                 pval <- numeric(nrow(y))
                 for (i in seq_along(pval)) {
-                    pval[i] <- t.test(host.y[i,], target.y[i,], alternative=alt.hyp, var.equal=use.student)$p.value
+                    pval[i] <- t.test(host.y[i,], target.y[i,], alternative=alt.hyp)$p.value
                 }
             } else {
                 pval <- rep(NA_real_, nrow(y))
@@ -32,25 +31,28 @@ REFFUN <- function(y, grouping, pval.type="any", direction="any", full.stats=FAL
         
         # Compiling the requested ordering. 
         combined.p <- do.call(cbind, collected.p)
-        if (pval.type=="any") { 
-            all.ranks <- lapply(collected.p, rank, ties.method="first", na.last="keep")
-            reordered <- order(do.call(pmin, c(all.ranks, na.rm=TRUE)), 
-                               do.call(pmin, c(collected.p, na.rm=TRUE)))
-            pval <- apply(combined.p, 1, FUN=function(x) { min(p.adjust(x, method="BH"), na.rm=TRUE) })
+        if (all(is.na(combined.p))) { 
+            pval <- rep(NA_real_, nrow(combined.p))
+            reordered <- seq_along(pval)
+        } else if (pval.type=="any") { 
+           all.ranks <- lapply(collected.p, rank, ties.method="first", na.last="keep")
+           reordered <- order(do.call(pmin, c(all.ranks, na.rm=TRUE)), 
+                              do.call(pmin, c(collected.p, na.rm=TRUE)))
+           pval <- apply(combined.p, 1, FUN=function(x) { min(p.adjust(x, method="BH"), na.rm=TRUE) })
 
-            # Checking that the ordering is consistent with the ranking for each p.value set.
-            standard <- output[[host]]
-            orderings <- lapply(collected.p, FUN=function(p) { order(p, na.last=NA) })
-            for (best in seq(1, 101, by=5)) { 
-                best.in.each <- lapply(orderings, "[", i=seq_len(best))
-                expect_identical(sort(rownames(standard)[standard$Top <= best]),
-                                 sort(rownames(y)[unique(unlist(best.in.each))]))
-            }
+           # Checking that the ordering is consistent with the ranking for each p.value set
+           standard <- output[[host]]
+           orderings <- lapply(collected.p, FUN=function(p) { order(p, na.last=NA) })
+           for (best in seq(1, 101, by=5)) { 
+               best.in.each <- lapply(orderings, "[", i=seq_len(best))
+               expect_identical(sort(rownames(standard)[standard$Top <= best]),
+                                sort(rownames(y)[unique(unlist(best.in.each))]))
+           }
         } else {
             pval <- apply(combined.p, 1, FUN=max, na.rm=TRUE)
             reordered <- order(pval)
         }
-       
+        
         # Running the requested checks.
         cur.out <- output[[host]]
         expect_identical(rownames(cur.out), rownames(y)[reordered])
