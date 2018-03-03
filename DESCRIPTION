@@ -1,6 +1,6 @@
 Package: scran
-Version: 1.7.19
-Date: 2018-02-22
+Version: 1.7.20
+Date: 2018-03-03
 Title: Methods for Single-Cell RNA-Seq Data Analysis
 Authors@R: c(person("Aaron", "Lun", role = c("aut", "cre"), email =
         "alun@wehi.edu.au"), person("Karsten", "Bach", role = "aut"),
@@ -33,3 +33,4 @@ SystemRequirements: C++11
 LinkingTo: beachmat, Rcpp, Rhdf5lib
 Author: Aaron Lun [aut, cre], Karsten Bach [aut], Jong Kyoung Kim [ctb],
         Antonio Scialdone [ctb], Laleh Haghverdi [ctb]
+RoxygenNote: 6.0.1
