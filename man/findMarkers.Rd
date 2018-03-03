@@ -48,10 +48,8 @@ If this is set, it will intersect with any non-\code{NULL} value of \code{subset
 
 \section{Explanation of the hypothesis tests}{
 By default, this function will perform a Welch t-test to identify DEGs between each pair of clusters.
-If one of the clusters contains fewer than two cells, no p-value will be reported for this comparison.
-In theory, we could perform Student's t-test in situations where there is only one cell in one of the groups.
-However, we do not do so as it is often compromised by discreteness in scRNA-seq data.
-If the group with many cells contains only zero counts, the sample variance becomes zero, which would be incorrect. 
+This is simple, fast and performs quite well for single-cell count data (Soneson and Robinson, 2018).
+However, if one of the clusters contains fewer than two cells, no p-value will be reported for this comparison.
 
 If \code{block} is specified, the same t-tests are performed between clusters within each level of \code{block}.
 For each pair of clusters, the p-values for each gene across all levels of \code{block} are combined using Stouffer's Z-score method.
@@ -175,6 +173,10 @@ Bioequivalence trials, intersection-union tests and equivalence confidence sets.
 Whitlock MC (2005). 
 Combining probability from independent tests: the weighted Z-method is superior to Fisher's approach. 
 \emph{J. Evol. Biol.} 18, 5:1368-73.
+
+Soneson C and Robinson MD (2018). 
+Bias, robustness and scalability in single-cell differential expression analysis. 
+\emph{Nat. Methods}
 }
 
 \examples{
