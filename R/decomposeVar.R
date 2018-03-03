@@ -1,3 +1,5 @@
+#' @importFrom S4Vectors DataFrame metadata
+#' @importFrom stats qnorm pnorm p.adjust
 .decompose_var <- function(x, fit, block=NA, design=NA, subset.row=NULL, ...)
 # Computes the biological variability of the log-CPMs by subtracting the
 # inferred technical variance from the total variance.
@@ -78,10 +80,15 @@
     return(out)
 }
 
+#' @export
 setGeneric("decomposeVar", function(x, fit, ...) standardGeneric("decomposeVar"))
 
+#' @export
 setMethod("decomposeVar", c("ANY", "list"), .decompose_var)
 
+#' @importFrom SummarizedExperiment assay
+#' @importFrom stats p.adjust
+#' @export
 setMethod("decomposeVar", c("SingleCellExperiment", "list"), 
           function(x, fit, subset.row=NULL, ..., assay.type="logcounts", get.spikes=NA) {
               

@@ -1,3 +1,4 @@
+#' @export
 clusterModularity <- function(graph, clusters, get.values=FALSE) 
 # Computes the cluster-wise modularity scores, for use in 
 # assessing the quality of graph-based clustering.

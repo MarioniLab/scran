@@ -1,3 +1,6 @@
+#' @importFrom stats pnorm pchisq qnorm p.adjust
+#' @importFrom S4Vectors DataFrame metadata
+#' @export
 combineVar <- function(..., method=c("z", "fisher", "simes", "berger")) 
 # Combines decomposeVar() results, typically from multiple batches.
 #
@@ -84,5 +87,3 @@ combineVar <- function(..., method=c("z", "fisher", "simes", "berger"))
     }
     combined/total.weight
 }
-
-

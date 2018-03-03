@@ -59,8 +59,10 @@ find.markers <- function(current.data, other.data, gene.names, fraction=0.5)
     return(data.frame(first=g1, second=g2, stringsAsFactors=FALSE))
 }
 
+#' @export
 setGeneric("sandbag", function(x, ...) standardGeneric("sandbag"))
 
+#' @export
 setMethod("sandbag", "ANY", function(x, phases, gene.names=rownames(x), fraction=0.5, subset.row=NULL) 
 # Identifies the relevant pairs before running 'cyclone'.
 # Basically runs through all combinations of 'find.markers' for each phase. 
@@ -68,7 +70,6 @@ setMethod("sandbag", "ANY", function(x, phases, gene.names=rownames(x), fraction
 # written by Aaron Lun
 # based on code by Antonio Scialdone
 # created 22 January 2016 
-# last modified 16 December 2016
 {
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     gene.names <- gene.names[subset.row]
@@ -87,6 +88,7 @@ setMethod("sandbag", "ANY", function(x, phases, gene.names=rownames(x), fraction
     return(marker.pairs)
 })
 
+#' @importFrom SummarizedExperiment assay
 setMethod("sandbag", "SingleCellExperiment", 
           function(x, phases, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE) {
 

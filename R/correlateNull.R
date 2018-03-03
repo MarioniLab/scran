@@ -1,3 +1,4 @@
+#' @export
 correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, residuals=FALSE) 
 # This builds a null distribution for the modified Spearman's rho.
 #

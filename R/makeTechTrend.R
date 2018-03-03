@@ -1,3 +1,8 @@
+#' @importFrom BiocGenerics sizeFactors counts
+#' @importFrom Matrix colSums rowMeans
+#' @importFrom SingleCellExperiment logcounts
+#' @importFrom stats splinefun
+#' @export
 makeTechTrend <- function(means, size.factors=1, tol=1e-6, dispersion=0, pseudo.count=1, x=NULL) 
 # This generates NB-distributed counts with the specified 
 # dispersion in order to fit the mean-variance trend to the

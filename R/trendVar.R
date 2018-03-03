@@ -1,3 +1,5 @@
+#' @importFrom stats nls loess predict 
+#' @importFrom limma fitFDistRobustly
 .trend_var <- function(x, method=c("loess", "spline"), parametric=FALSE, 
                        loess.args=list(), spline.args=list(), nls.args=list(),
                        span=NULL, family=NULL, degree=NULL, df=NULL, start=NULL, 
@@ -178,6 +180,7 @@
 # Computing NLS starting points for parametric fitting. #
 #########################################################
 
+#' @importFrom stats coef lm
 .get_nls_starts <- function(vars, means, grad.prop=0.5, grid.length=100, grid.max=10) {
     lvars <- log2(vars)
     fit <- loess(lvars ~ means, degree=1)
@@ -228,6 +231,7 @@
     }
 }
 
+#' @importFrom stats loess
 .setup_loess_args <- function(loess.args, span, family, degree) {
     if (is.null(loess.args)) { 
         return(list())
@@ -261,6 +265,7 @@
     return(altogether[keep])
 }
 
+#' @importFrom stats nls nls.control
 .setup_nls_args <- function(nls.args, start.args) {
     if (is.null(nls.args)) { 
         return(list())
@@ -285,10 +290,14 @@
 # Setting up S4 methods #
 #########################
 
+#' @export
 setGeneric("trendVar", function(x, ...) standardGeneric("trendVar"))
 
+#' @export
 setMethod("trendVar", "ANY", .trend_var)
 
+#' @importFrom SummarizedExperiment assay
+#' @importFrom SingleCellExperiment isSpike
 setMethod("trendVar", "SingleCellExperiment", function(x, subset.row=NULL, ..., assay.type="logcounts", use.spikes=TRUE) {
     .check_centered_SF(x, assay.type=assay.type)
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)

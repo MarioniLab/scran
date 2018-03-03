@@ -1,3 +1,8 @@
+#' @importFrom BiocGenerics sizeFactors as.data.frame
+#' @importFrom SummarizedExperiment rowData colData assay
+#' @importFrom SingleCellExperiment isSpike
+#' @importFrom S4Vectors "mcols<-" 
+#' @importFrom edgeR DGEList "[.DGEList" scaleOffset.DGEList
 .convert_to <- function(x, type=c("edgeR", "DESeq2", "monocle"),
                         row.fields=NULL, col.fields=NULL, ..., assay.type, use.all.sf=TRUE, normalize=TRUE, 
                         subset.row=NULL, get.spikes=FALSE) 
@@ -94,7 +99,9 @@
     }
 }
 
+#' @export
 setGeneric("convertTo", function(x, ...) standardGeneric("convertTo"))
 
+#' @export
 setMethod("convertTo", "SingleCellExperiment", .convert_to)
 

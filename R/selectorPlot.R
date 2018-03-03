@@ -1,10 +1,11 @@
+#' @importFrom shiny fluidPage fluidRow column plotOutput actionButton observeEvent shinyApp runApp hr brushOpts brushedPoints
+#' @export
 selectorPlot <- function(x, y, persist=FALSE, plot.width=5, plot.height=500, run=TRUE, pch=16, ...)
 # This generates an interactive plot where x/y coordinates can be selected
 # for further examination within R.
 #
 # created by Aaron Lun
 # written 8 June 2016
-# last modified 11 November 2016
 {
     N <- length(x)
     if (length(y)!=N) { stop("length of x and y vectors should be equal") }
@@ -99,6 +100,7 @@ resetValues <- function(collected, coords=NULL) {
     collected$all.selected <- list()
 }
 
+#' @importFrom graphics plot
 generatePlot1 <- function(output, collected, ...) {
     output$plot1 <- renderPlot({
         cols <- rep("grey", length(collected$current.selected))
@@ -110,6 +112,8 @@ generatePlot1 <- function(output, collected, ...) {
     })
 }
 
+#' @importFrom graphics plot text
+#' @importFrom grDevices grey.colors
 generatePlot2 <- function(output, collected, ...) {
     output$plot2 <- renderPlot({
         n <- length(collected$all.selected)

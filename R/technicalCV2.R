@@ -1,12 +1,13 @@
+#' @importFrom stats quantile coefficients
+#' @importFrom statmod glmgam.fit
 .technicalCV2 <- function(x, is.spike, sf.cell=NULL, sf.spike=NULL, 
                           cv2.limit=0.3, cv2.tol=0.8, min.bio.disp=0.25) 
 # This implements Brennecke's method for fitting spike-ins to the CV2 of various genes.
 # The output can also be plotted fairly easily.
 #
 # written by Aaron Lun
-# based on code by Phillipe Brennecke et al. (2013).
+# based on code by Brennecke et al. (2013).
 # created 11 July 2016
-# last modified 6 June 2017
 {
     if (any(!is.na(is.spike))) { 
         if (any(is.na(is.spike))) { 
@@ -114,10 +115,14 @@
                       p.value=output.p, FDR=p.adjust(output.p, method="BH"), row.names=rownames(x)))
 }
 
+#' @export
 setGeneric("technicalCV2", function(x, ...) standardGeneric("technicalCV2"))
 
+#' @export
 setMethod("technicalCV2", "ANY", .technicalCV2)
 
+#' @importFrom SummarizedExperiment assay
+#' @export
 setMethod("technicalCV2", "SingleCellExperiment", function(x, spike.type=NULL, ..., assay.type="counts") {
     prep <- .prepare_cv2_data(x, spike.type=spike.type)
     .technicalCV2(assay(x, i=assay.type), is.spike=prep$is.spike, 

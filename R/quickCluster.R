@@ -1,3 +1,7 @@
+#' @importFrom stats hclust dist
+#' @importFrom dynamicTreeCut cutreeDynamic
+#' @importFrom scater calcAverage
+#' @importFrom igraph cluster_fast_greedy
 .quick_cluster <- function(x, min.size=200, max.size=NULL, method=c("hclust", "igraph"),
                            pc.approx=TRUE, get.ranks=FALSE, subset.row=NULL, min.mean=1, ...)
 # This function generates a cluster vector containing the cluster number assigned to each cell.
@@ -52,6 +56,7 @@
     return(clusters)
 }
 
+#' @importFrom igraph modularity E 
 .merge_closest_graph <- function(g, clusters, min.size) {
     repeat {
         all.sizes <- table(clusters)
@@ -113,10 +118,14 @@
     return(new.clusters)
 }
 
+#' @export
 setGeneric("quickCluster", function(x, ...) standardGeneric("quickCluster"))
 
+#' @export
 setMethod("quickCluster", "ANY", .quick_cluster)
 
+#' @importFrom SingleCellExperiment assay
+#' @export
 setMethod("quickCluster", "SingleCellExperiment", 
           function(x, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE) { 
 

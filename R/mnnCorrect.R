@@ -1,3 +1,6 @@
+#' @importFrom S4Vectors DataFrame Rle
+#' @importFrom BiocParallel SerialParam
+#' @export
 mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE, 
                        svd.dim=0L, var.adj=TRUE, compute.angle=FALSE,
                        subset.row=NULL, order=NULL, pc.approx=FALSE, irlba.args=list(),
@@ -8,7 +11,6 @@ mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE,
 # written by Laleh Haghverdi
 # with modifications by Aaron Lun
 # created 7 April 2017
-# last modified 6 November 2017
 {
     batches <- list(...) 
     nbatches <- length(batches) 
@@ -241,7 +243,7 @@ adjust.shift.variance <- function(data1, data2, correction, sigma, subset.row=NU
     }
     return(S)
 }
- 
+
 get.bio.span <- function(exprs, ndim, subset.row=NULL, pc.approx=FALSE, irlba.args=list())
 # Computes the basis matrix of the biological subspace of 'exprs'.
 # The first 'ndim' dimensions are assumed to capture the biological subspace.
@@ -336,6 +338,7 @@ cosine.norm <- function(X, mode=c("matrix", "all", "l2norm"))
     switch(mode, all=out, matrix=out$matrix, l2norm=out$l2norm)
 }
 
+#' @importFrom BiocParallel bpworkers bplapply
 bpl.get.knnx <- function(data, query, k, BPPARAM) 
 # Splits up the query and searches for nearest neighbors in the data.
 {

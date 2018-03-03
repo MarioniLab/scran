@@ -1,5 +1,7 @@
+#' @export
 setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
 
+#' @importFrom BiocParallel SerialParam bplapply
 .cyclone <- function(x, pairs, gene.names=rownames(x), iter=1000, min.iter=100, min.pairs=50, 
                      BPPARAM=SerialParam(), verbose=FALSE, subset.row=NULL)
 # Takes trained pairs and test data, and predicts the cell cycle phase from that. 
@@ -7,7 +9,6 @@ setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
 # written by Antonio Scialdone
 # with modifications by Aaron Lun
 # created 22 January 2016    
-# last modified 6 June 2017
 { 
     if (length(gene.names)!=nrow(x)) {
         stop("length of 'gene.names' must be equal to 'x' nrows")
@@ -72,8 +73,11 @@ setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
     .Call(cxx_shuffle_scores, to.use, exprs, pairings$first, pairings$second, pairings$index, iter, min.iter, min.pairs) 
 }
 
+#' @export
 setMethod("cyclone", "ANY", .cyclone)
 
+#' @importFrom SummarizedExperiment assay
+#' @export
 setMethod("cyclone", "SingleCellExperiment", 
           function(x, pairs, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE) {
 

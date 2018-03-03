@@ -1,3 +1,5 @@
+#' @importFrom stats runmed
+#' @export
 DM <- function(mean, cv2, win.size=51) 
 # Computes the distance to median for the CV2 values across all genes, 
 # after fitting an abundance-dependent trend.
@@ -5,7 +7,6 @@ DM <- function(mean, cv2, win.size=51)
 # written by Jong Kyoung Kim
 # with modifications by Aaron Lun
 # created 12 March 2015 
-# last modified 2 December 2017
 {
     keep <- mean > 0 & !is.na(cv2) & cv2 > 0
     mean.expr <- log10(mean[keep])

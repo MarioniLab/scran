@@ -1,3 +1,11 @@
+#' @import methods
+#' @import BiocParallel
+#' @import SingleCellExperiment
+#' @importFrom Matrix t which colSums rowMeans
+#' @useDynLib scran, .registration=TRUE, .fixes="cxx_"
+NULL
+
+#' @importFrom SingleCellExperiment isSpike
 .spike_subset <- function(x, get.spikes) {
     if (!get.spikes) {
         nokeep <- isSpike(x)
@@ -56,6 +64,7 @@
     return(list(design=design))
 }
 
+#' @importFrom scater areSizeFactorsCentred
 .check_centered_SF <- function(x, assay.type) 
 # Checks if 'logcounts' was requested, and if it could have been computed from counts,
 # If so, then it checks if the size factors are centered.
@@ -68,6 +77,8 @@
     return(NULL)
 }
 
+#' @importFrom BiocGenerics sizeFactors
+#' @importFrom SingleCellExperiment spikeNames isSpike
 .prepare_cv2_data <- function(x, spike.type) 
 # Prepares data for calculation of CV2.
 # In particular, extracting spike-ins and their size factors.    
@@ -119,6 +130,7 @@
 
 #################################################
 
+#' @importFrom BiocParallel bpworkers
 .worker_assign <- function(njobs, BPPARAM)
 # Assigns jobs to workers.
 {
@@ -131,6 +143,7 @@
 
 #################################################
 
+#' @importFrom edgeR designAsFactor
 .is_one_way <- function(design) 
 # Checks if design matrix is a one-way layout.
 {
@@ -192,6 +205,7 @@
     return(lower.bound)
 }
 
+#' @importFrom S4Vectors metadata
 .get_log_offset <- function(x) 
 # Helper function to get the log-offset value.
 {

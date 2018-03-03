@@ -1,10 +1,10 @@
+#' @importFrom stats smooth.spline pnorm predict median
 .improvedCV2 <- function(x, is.spike, sf.cell=NULL, sf.spike=NULL, log.prior=NULL, 
                          df=4, robust=FALSE, use.spikes=FALSE)
 # Fits a spline to the log-CV2 values and computes a p-value for its deviation.
 #
 # written by Aaron Lun
 # created 9 February 2017
-# last modified 23 November 2017
 {
     # Figuring out what rows to fit to.
     all.genes <- seq_len(nrow(x))
@@ -91,10 +91,14 @@
                       p.value=p, FDR=p.adjust(p, method="BH"), row.names=rownames(x)))
 }
 
+#' @export
 setGeneric("improvedCV2", function(x, ...) standardGeneric("improvedCV2"))
 
+#' @export
 setMethod("improvedCV2", "ANY", .improvedCV2)
 
+#' @importFrom SummarizedExperiment assay
+#' @export
 setMethod("improvedCV2", "SingleCellExperiment", 
           function(x, spike.type=NULL, ..., assay.type="logcounts", logged=NULL, normalized=NULL) {
 

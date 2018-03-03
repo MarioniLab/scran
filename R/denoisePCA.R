@@ -1,3 +1,4 @@
+#' @importFrom scater calcAverage
 .denoisePCA <- function(x, technical, block=NULL, design=NULL, subset.row=NULL,
                         value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100, 
                         approximate=FALSE, rand.seed=1000, irlba.args=list())
@@ -166,6 +167,7 @@
     return(list(output=out.val, variance=var.exp))
 }
 
+#' @importFrom stats prcomp
 .exact_denoisePCA <- function(y, min.rank, max.rank, value, technical, centering) { 
     ncells <- ncol(y)
     max.rank <- min(dim(y), max.rank)
@@ -216,10 +218,15 @@
 # S4 method definitions here #
 ##############################
 
+#' @export
 setGeneric("denoisePCA", function(x, ...) standardGeneric("denoisePCA"))
 
+#' @export
 setMethod("denoisePCA", "ANY", .denoisePCA)
 
+#' @importFrom SummarizedExperiment assay "assay<-"
+#' @importFrom SingleCellExperiment reducedDim isSpike
+#' @export
 setMethod("denoisePCA", "SingleCellExperiment", 
           function(x, ..., subset.row=NULL, value=c("pca", "n", "lowrank"), 
                    assay.type="logcounts", get.spikes=FALSE, sce.out=TRUE) {

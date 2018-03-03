@@ -1,3 +1,5 @@
+#' @importFrom igraph make_graph E simplify "E<-"
+#' @importFrom BiocParallel SerialParam
 .buildSNNGraph <- function(x, k=10, d=50, transposed=FALSE, pc.approx=FALSE,
                            rand.seed=1000, irlba.args=list(), knn.args=list(),
                            subset.row=NULL, BPPARAM=SerialParam()) 
@@ -25,6 +27,8 @@
     return(g)
 }
 
+#' @importFrom igraph make_graph simplify
+#' @importFrom BiocParallel SerialParam
 .buildKNNGraph <- function(x, k=10, d=50, directed=FALSE, transposed=FALSE, pc.approx=FALSE,
                            rand.seed=1000, irlba.args=list(), knn.args=list(), 
                            subset.row=NULL, BPPARAM=SerialParam()) 
@@ -56,6 +60,7 @@
 # Internal functions #
 ######################
 
+#' @importFrom stats prcomp 
 .setup_knn_data <- function(x, subset.row, d, transposed, pc.approx, rand.seed, irlba.args, k, knn.args, BPPARAM) {
     ncells <- ncol(x)
     if (!is.null(subset.row)) {
@@ -83,6 +88,8 @@
     do.call(.find_knn, c(list(x, k=k, BPPARAM=BPPARAM), knn.args))
 }
 
+#' @importFrom FNN get.knn get.knnx
+#' @importFrom BiocParallel bplapply
 .find_knn <- function(incoming, k, BPPARAM, ..., force=FALSE) {
     # Some checks to avoid segfaults in get.knn(x).
     ncells <- nrow(incoming)
@@ -133,10 +140,15 @@
 # S4 method definitions #
 #########################
 
+#' @export
 setGeneric("buildSNNGraph", function(x, ...) standardGeneric("buildSNNGraph"))
 
+#' @export
 setMethod("buildSNNGraph", "ANY", .buildSNNGraph)
 
+#' @importFrom SummarizedExperiment assay
+#' @importFrom SingleCellExperiment reducedDim 
+#' @export
 setMethod("buildSNNGraph", "SingleCellExperiment", 
           function(x, ..., subset.row=NULL, assay.type="logcounts", get.spikes=FALSE, use.dimred=NULL) {
               
@@ -149,10 +161,15 @@ setMethod("buildSNNGraph", "SingleCellExperiment",
     return(out)
 })
 
+#' @export
 setGeneric("buildKNNGraph", function(x, ...) standardGeneric("buildKNNGraph"))
 
+#' @export
 setMethod("buildKNNGraph", "ANY", .buildKNNGraph)
 
+#' @importFrom SummarizedExperiment assay
+#' @importFrom SingleCellExperiment reducedDim 
+#' @export
 setMethod("buildKNNGraph", "SingleCellExperiment", 
           function(x, ..., subset.row=NULL, assay.type="logcounts", get.spikes=FALSE, use.dimred=NULL) {
               

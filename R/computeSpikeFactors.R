@@ -1,12 +1,17 @@
+#' @export
 setGeneric("computeSpikeFactors", function(x, ...) { standardGeneric("computeSpikeFactors") })
 
+#' @importFrom SingleCellExperiment isSpike spikeNames
+#' @importFrom BiocGenerics sizeFactors
+#' @importFrom DelayedArray DelayedArray
+#' @importFrom DelayedMatrixStats colSums2
+#' @export
 setMethod("computeSpikeFactors", "SingleCellExperiment", 
           function(x, type=NULL, assay.type="counts", sf.out=FALSE, general.use=TRUE) 
 # Uses the mean-centred total of spike-in transcripts as the size factor.
 #
 # written by Aaron Lun
 # created 17 February 2016
-# last modified 24 July 2017
 {
     if (is.null(type)) { 
         is.spike <- isSpike(x)

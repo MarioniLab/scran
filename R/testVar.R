@@ -1,3 +1,5 @@
+#' @importFrom stats pchisq pf
+#' @export
 testVar <- function(total, null, df, design=NULL, test=c("chisq", "f"), second.df=NULL, log.p=FALSE)
 # Tests that total > null given variances estimated on 'df' degrees of freedom.
 # You can also give it the design matrix directly if you can't be bothered estimating 'df'.
@@ -5,7 +7,6 @@ testVar <- function(total, null, df, design=NULL, test=c("chisq", "f"), second.d
 #
 # written by Aaron Lun
 # created 9 February 2016
-# last modified 10 February 2017
 {
     if (missing(df)) { df <- nrow(design) - qr(design)$rank }
     if (!length(null) || !length(df)) { return(rep(NA_real_, length(total))) }

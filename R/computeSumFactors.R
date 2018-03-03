@@ -1,3 +1,4 @@
+#' @importFrom Matrix qr qr.coef
 .computeSumFactors <- function(x, sizes=seq(20, 100, 5), clusters=NULL, ref.clust=NULL, 
                                positive=FALSE, errors=FALSE, min.mean=1, subset.row=NULL)
 # This contains the function that performs normalization on the summed counts.
@@ -131,6 +132,7 @@
 
 LOWWEIGHT <- 0.000001
 
+#' @importFrom Matrix sparseMatrix
 .create_linear_system <- function(cur.exprs, ave.cell, sphere, pool.sizes) {
     sphere <- sphere - 1L # zero-indexing in C++.
 
@@ -162,6 +164,7 @@ LOWWEIGHT <- 0.000001
     return(list(design=design, output=output))
 }
 
+#' @importFrom stats median
 .rescale_clusters <- function(mean.prof, mean.lib, ref.clust, min.mean, clust.names) {
     # Picking the cluster with the median library size as the reference.
     if (is.null(ref.clust)) {
@@ -198,10 +201,15 @@ LOWWEIGHT <- 0.000001
 # S4 method definitions.
 #############################################################
 
+#' @export
 setGeneric("computeSumFactors", function(x, ...) standardGeneric("computeSumFactors"))
 
+#' @export
 setMethod("computeSumFactors", "ANY", .computeSumFactors)
 
+#' @importFrom SummarizedExperiment assay 
+#' @importFrom BiocGenerics sizeFactors
+#' @export
 setMethod("computeSumFactors", "SingleCellExperiment", 
           function(x, ..., min.mean=1, subset.row=NULL, 
                    assay.type="counts", get.spikes=FALSE, sf.out=FALSE) { 

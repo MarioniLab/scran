@@ -1,9 +1,12 @@
+#' @importFrom shiny actionButton brushOpts brushedPoints column fluidPage fluidRow observeEvent plotOutput renderPlot shinyApp stopApp runApp hr titlePanel sidebarLayout sidebarPanel inputPanel selectInput mainPanel tabsetPanel splitLayout tabPanel
+#' @import ggplot2
+#' @importFrom DT datatable renderDataTable dataTableOutput
+#' @export
 exploreData <- function(x, cell.data, gene.data, red.dim, run=TRUE) 
 # This function creates an interactive shiny app to explore expression data.
 #
 # created by Karsten Bach
 # written 11 April 2017
-# last modified 11 April 2017
 {
     # Check on gene and cell names.
     xr <- rownames(x)

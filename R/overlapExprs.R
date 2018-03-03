@@ -1,3 +1,4 @@
+#' @importFrom BiocParallel SerialParam bplapply
 .overlapExprs <- function(x, groups, 
                           block=NULL, 
                           design=NULL, 
@@ -108,6 +109,7 @@
     .Call(cxx_overlap_exprs, x, subset.row, by.group, tol)
 }
 
+#' @importFrom S4Vectors DataFrame
 .prepare_overlap_output <- function(overlaps, direction, rank.type, gene.names) 
 # This handles the final part of the function; ordering and 
 # preparing the output values.
@@ -154,10 +156,14 @@
 # S4 method definitions
 ###########################################################
 
+#' @export
 setGeneric("overlapExprs", function(x, ...) standardGeneric("overlapExprs"))
 
+#' @export
 setMethod("overlapExprs", "ANY", .overlapExprs)
 
+#' @importFrom SummarizedExperiment assay
+#' @export
 setMethod("overlapExprs", "SingleCellExperiment", 
           function(x, ..., subset.row=NULL, lower.bound=NULL, assay.type="logcounts", get.spikes=FALSE) {
 

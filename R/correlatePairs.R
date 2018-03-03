@@ -1,3 +1,4 @@
+#' @importFrom BiocParallel bplapply SerialParam
 .correlate_pairs <- function(x, null.dist=NULL, tol=1e-8, iters=1e6, 
                              block=NULL, design=NULL, residuals=FALSE, lower.bound=NULL, 
                              use.names=TRUE, subset.row=NULL, pairings=NULL, per.gene=FALSE, 
@@ -128,7 +129,7 @@
     return(list(null=null.dist, blocks=blocks))
 }
 
-
+#' @importFrom utils combn
 .construct_pair_indices <- function(subset.row, x, pairings, cache.size=100) 
 # This returns a new subset-by-row vector, along with the pairs of elements
 # indexed along that vector (i.e., "1" refers to the first element of subset.row,
@@ -243,10 +244,14 @@
     invisible(NULL)
 }
 
+#' @export
 setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
 
+#' @export
 setMethod("correlatePairs", "ANY", .correlate_pairs)
 
+#' @importFrom SummarizedExperiment assay
+#' @export
 setMethod("correlatePairs", "SingleCellExperiment", 
           function(x, ..., use.names=TRUE, subset.row=NULL, per.gene=FALSE, 
                    lower.bound=NULL, assay.type="logcounts", get.spikes=FALSE) {

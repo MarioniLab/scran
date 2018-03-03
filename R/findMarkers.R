@@ -1,3 +1,5 @@
+#' @importFrom S4Vectors DataFrame
+#' @importFrom stats p.adjust
 .findMarkers <- function(x, clusters, block=NULL, design=NULL, pval.type=c("any", "all"), direction=c("any", "up", "down"), 
                          lfc=0, log.p=FALSE, full.stats=FALSE, subset.row=NULL)
 # Uses limma to find the markers that are differentially expressed between clusters,
@@ -220,6 +222,7 @@
     return(list(err=cur.err, test.df=cur.df))
 }
 
+#' @importFrom stats qnorm pnorm
 .run_stouffer <- function(log.pvals, weights) 
 # Uses Stouffer's method to combine the one-sided p-values, 
 # with weights for each column.
@@ -236,6 +239,8 @@
 # Internal functions (linear modelling)
 ###########################################################
 
+#' @importFrom stats model.matrix
+#' @importFrom limma lmFit contrasts.fit
 .fit_lm_internal <- function(x, subset.row, clusters, design, direction="any", lfc=0, full.stats=FALSE)
 # This fits a linear model to each gene and performs a t-test for 
 # differential expression between clusters.
@@ -311,6 +316,7 @@
 # Internal functions (p-value calculations)
 ###########################################################
 
+#' @importFrom stats pt
 .run_t_test <- function(cur.lfc, cur.err, cur.df, thresh.lfc=0, direction="any") 
 # This runs the t-test given the relevant statistics. We use the TREAT method
 # when thresh.lfc!=0, which tests against a null where the log-fold change is
@@ -436,6 +442,7 @@
     cbind(seq_along(largest), largest)
 }
 
+#' @importFrom S4Vectors DataFrame
 .create_full_stats <- function(cur.lfc, cur.p, gene.names) {
     I(DataFrame(logFC=cur.lfc, log.p.value=as.vector(cur.p), 
                 check.names=FALSE, row.names=gene.names))
@@ -445,10 +452,14 @@
 # S4 method definitions
 ###########################################################
 
+#' @export
 setGeneric("findMarkers", function(x, ...) standardGeneric("findMarkers"))
 
+#' @export
 setMethod("findMarkers", "ANY", .findMarkers)
 
+#' @importFrom SummarizedExperiment assay
+#' @export
 setMethod("findMarkers", "SingleCellExperiment", 
           function(x, ..., subset.row=NULL, assay.type="logcounts", get.spikes=FALSE) {
 
