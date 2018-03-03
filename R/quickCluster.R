@@ -78,7 +78,7 @@
             if (other==failed) { next }
             next.clust <- clusters
             next.clust[to.merge] <- other
-            next.m <- modularity(g, next.clust)
+            next.m <- modularity(g, next.clust, weights=E(g)$weight)
             if (max.m < next.m) {
                 max.m <- next.m 
                 max.clust <- next.clust
@@ -124,7 +124,7 @@ setGeneric("quickCluster", function(x, ...) standardGeneric("quickCluster"))
 #' @export
 setMethod("quickCluster", "ANY", .quick_cluster)
 
-#' @importFrom SingleCellExperiment assay
+#' @importFrom SummarizedExperiment assay
 #' @export
 setMethod("quickCluster", "SingleCellExperiment", 
           function(x, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE) { 
