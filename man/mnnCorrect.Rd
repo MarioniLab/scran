@@ -112,7 +112,7 @@ with modifications by Aaron Lun
 }
 
 \seealso{
-\code{\link[FNN]{get.knnx}}
+\code{\link{get.knnx}}
 \code{\link[irlba]{irlba}}
 }
 

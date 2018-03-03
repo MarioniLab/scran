@@ -40,7 +40,8 @@
 
 \details{
 This function fits an abundance-dependent trend to the variance of the log-normalized expression for the spike-in transcripts.
-For SingleCellExperiment objects, these expression values are computed by \code{\link{normalize}} after setting the size factors, e.g., with \code{\link{computeSpikeFactors}}.
+For SingleCellExperiment objects, these expression values are computed by \code{\link[=normalize,SingleCellExperiment-method]{normalize}} after setting the size factors, 
+e.g., with \code{\link{computeSpikeFactors}}.
 Log-transformed values are used as these are more robust to genes/transcripts with strong expression in only one or two outlier cells.
 It also allows the fitted trend to be applied in downstream procedures that use log-transformed counts.
 

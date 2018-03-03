@@ -24,15 +24,15 @@ while the \code{expected} matrix contains the expected sum of edge weights under
 }
 
 \details{
-This function computes a modularity score in the same manner as that from \code{\link[igraph]{modularity}}.
+This function computes a modularity score in the same manner as that from \code{\link{modularity}}.
 The modularity is defined as the difference between the observed and expected number of edges between nodes in the same cluster.
 The expected number of edges is defined by a null model where edges are randomly distributed among nodes.
 The same logic applies for weighted graphs, replacing the number of edges with the summed weight of edges.
 
-Whereas \code{\link[igraph]{modularity}} returns a modularity score for the entire graph, \code{clusterModularity} provides scores for the individual clusters.
+Whereas \code{\link{modularity}} returns a modularity score for the entire graph, \code{clusterModularity} provides scores for the individual clusters.
 This allows users to determine which clusters are enriched for intra-cluster edges based on their high modularity scores.
 For comparison, \code{clusterModularity} also reports the modularity scores between pairs of clusters.
-The sum of the diagonal elements of the output matrix should be equal to the output of \code{\link[igraph]{modularity}} (after supplying weights to the latter, if necessary).
+The sum of the diagonal elements of the output matrix should be equal to the output of \code{\link{modularity}} (after supplying weights to the latter, if necessary).
 }
 
 \author{
@@ -41,7 +41,7 @@ Aaron Lun
 
 \seealso{
 \code{\link{buildSNNGraph}},
-\code{\link[igraph]{modularity}}
+\code{\link{modularity}}
 }
 
 \examples{

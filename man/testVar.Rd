@@ -50,7 +50,7 @@ Selecting HVGs on p-values is better than using \code{total - null}, as the latt
 If \code{test="f"}, the true variance of each spike-in transcript is assumed to be sampled from a scaled inverse chi-squared distribution.
 This accounts for any inflated scatter around the trend due to differences in amplification efficiency between transcripts.
 As a result, the gene-wise variance estimates are should be F-distributed around the trend under the null.
-The second degrees of freedom is estimated from the scatter around the trend in \code{\link{trendVar}} using \code{\link[limma]{fitFDistRobustly}},
+The second degrees of freedom is estimated from the scatter around the trend in \code{\link{trendVar}} using \code{\link{fitFDistRobustly}},
 and needs to be supplied to \code{second.df} to calculate an appropriate p-value.
 
 % Each transcript is treated as a random variable; thus, while error may not be controlled for a specific transcript, it will be controlled over all transcripts.
@@ -63,7 +63,7 @@ A numeric vector of p-values for all genes.
 \seealso{
 \code{\link{trendVar}},
 \code{\link{decomposeVar}},
-\code{\link[limma]{fitFDistRobustly}}
+\code{\link{fitFDistRobustly}}
 }
 
 \author{

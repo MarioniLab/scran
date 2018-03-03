@@ -23,7 +23,7 @@ This is equivalent to normalizing to equalize spike-in coverage between cells.
 Size factors are scaled so that the mean of all size factors is unity, for standardization purposes if one were to compare different sets of size factors.
 
 Spike-in counts are assumed to be stored in the rows specified by \code{isSpike(x)}.
-This specification should have been performed by supplying the names of the spike-in sets -- see \code{?\link[SingleCellExperiment]{isSpike}} for more details.
+This specification should have been performed by supplying the names of the spike-in sets -- see \code{?\link{isSpike}} for more details.
 By default, if multiple spike-in sets are available, all of them will be used to compute the size factors.
 The function can be restricted to a subset of the spike-ins by specifying the names of the desired spike-in sets in \code{type}.
 An error will be raised if no spike-in rows are detected.
@@ -31,7 +31,7 @@ An error will be raised if no spike-in rows are detected.
 By default, the function will store several copies of the same size factors in the output object.
 One copy will also be stored in \code{sizeFactors(x, type=s)}, where \code{s} is the name of each spike-in set in \code{type}.
 (If \code{type=NULL}, a copy is stored for every spike-in set, as all of them would be used to compute the size factors.)
-Separate storage allows spike-in-specific normalization in \code{\link[scater]{normalize,SingleCellExperiment-method}}.
+Separate storage allows spike-in-specific normalization in \code{\link[=normalize,SingleCellExperiment-method]{normalize}}.
 If \code{general.use=TRUE}, a copy will also be stored in \code{sizeFactors(x)} for normalization of all genes.
 }
 

@@ -30,7 +30,7 @@
 
 \details{
 This function will estimate the squared coefficient of variation (CV2) and mean for each spike-in transcript.
-A mean-dependent trend is fitted to the CV2 values for the transcripts using a Gamma GLM with \code{\link[statmod]{glmgam.fit}}.
+A mean-dependent trend is fitted to the CV2 values for the transcripts using a Gamma GLM with \code{\link{glmgam.fit}}.
 Only high-abundance transcripts are used for stable trend fitting.
 (Specifically, a mean threshold is selected by taking all transcripts with CV2 above \code{cv2.limit}, and taking the quantile of this subset at \code{cv2.tol}.
 A warning will be thrown and all spike-ins will be used if the subset is empty.)
@@ -76,7 +76,7 @@ Note that the fitted value is reported for all genes and transcripts, but the tr
 }
 
 \seealso{
-\code{\link[statmod]{glmgam.fit}},
+\code{\link{glmgam.fit}},
 \code{\link[DESeq2]{estimateSizeFactorsForMatrix}}
 }
 

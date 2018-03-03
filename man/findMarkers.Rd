@@ -89,7 +89,7 @@ A two-sided p-value is computed against this composite null.
 \item If \code{direction="up"}, the null hypothesis is that the true log-fold change is \code{lfc}, and a one-sided p-value is computed.
 \item If \code{direction="down"}, the null hypothesis is that the true log-fold change is \code{-lfc}, and a one-sided p-value is computed.
 }
-This is similar to the approach used in \code{\link[limma]{treat}} and allows users to focus on genes with strong log-fold changes.
+This is similar to the approach used in \code{\link[limma:eBayes]{treat}} and allows users to focus on genes with strong log-fold changes.
 }
 
 \section{Consolidating p-values into a ranking}{
