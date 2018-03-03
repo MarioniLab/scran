@@ -1,4 +1,4 @@
-#' @importFrom S4Vectors DataFrame metadata
+#' @importFrom S4Vectors DataFrame "metadata<-"
 #' @importFrom stats qnorm pnorm p.adjust
 .decompose_var <- function(x, fit, block=NA, design=NA, subset.row=NULL, ...)
 # Computes the biological variability of the log-CPMs by subtracting the

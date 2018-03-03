@@ -208,7 +208,7 @@ setGeneric("computeSumFactors", function(x, ...) standardGeneric("computeSumFact
 setMethod("computeSumFactors", "ANY", .computeSumFactors)
 
 #' @importFrom SummarizedExperiment assay 
-#' @importFrom BiocGenerics sizeFactors
+#' @importFrom BiocGenerics "sizeFactors<-"
 #' @export
 setMethod("computeSumFactors", "SingleCellExperiment", 
           function(x, ..., min.mean=1, subset.row=NULL, 

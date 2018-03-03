@@ -2,7 +2,7 @@
 setGeneric("computeSpikeFactors", function(x, ...) { standardGeneric("computeSpikeFactors") })
 
 #' @importFrom SingleCellExperiment isSpike spikeNames
-#' @importFrom BiocGenerics sizeFactors
+#' @importFrom BiocGenerics sizeFactors "sizeFactors<-"
 #' @importFrom DelayedArray DelayedArray
 #' @importFrom DelayedMatrixStats colSums2
 #' @export

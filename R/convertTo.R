@@ -1,4 +1,4 @@
-#' @importFrom BiocGenerics sizeFactors as.data.frame
+#' @importFrom BiocGenerics sizeFactors as.data.frame "sizeFactors<-"
 #' @importFrom SummarizedExperiment rowData colData assay
 #' @importFrom SingleCellExperiment isSpike
 #' @importFrom S4Vectors "mcols<-" 

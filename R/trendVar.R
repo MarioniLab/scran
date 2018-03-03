@@ -1,4 +1,4 @@
-#' @importFrom stats nls loess predict 
+#' @importFrom stats nls loess predict fitted
 #' @importFrom limma fitFDistRobustly
 .trend_var <- function(x, method=c("loess", "spline"), parametric=FALSE, 
                        loess.args=list(), spline.args=list(), nls.args=list(),
@@ -180,7 +180,7 @@
 # Computing NLS starting points for parametric fitting. #
 #########################################################
 
-#' @importFrom stats coef lm
+#' @importFrom stats coef lm fitted
 .get_nls_starts <- function(vars, means, grad.prop=0.5, grid.length=100, grid.max=10) {
     lvars <- log2(vars)
     fit <- loess(lvars ~ means, degree=1)

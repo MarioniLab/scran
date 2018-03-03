@@ -1,5 +1,6 @@
 #' @importFrom shiny actionButton brushOpts brushedPoints column fluidPage fluidRow observeEvent plotOutput renderPlot shinyApp stopApp runApp hr titlePanel sidebarLayout sidebarPanel inputPanel selectInput mainPanel tabsetPanel splitLayout tabPanel
 #' @import ggplot2
+#' @importFrom viridis scale_color_viridis
 #' @importFrom DT datatable renderDataTable dataTableOutput
 #' @export
 exploreData <- function(x, cell.data, gene.data, red.dim, run=TRUE) 

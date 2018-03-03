@@ -64,6 +64,7 @@ NULL
     return(list(design=design))
 }
 
+#' @importFrom SummarizedExperiment assayNames
 #' @importFrom scater areSizeFactorsCentred
 .check_centered_SF <- function(x, assay.type) 
 # Checks if 'logcounts' was requested, and if it could have been computed from counts,
