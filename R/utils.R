@@ -1,10 +1,3 @@
-#' @import methods
-#' @import BiocParallel
-#' @import SingleCellExperiment
-#' @importFrom Matrix t which colSums rowMeans
-#' @useDynLib scran, .registration=TRUE, .fixes="cxx_"
-NULL
-
 #' @importFrom SingleCellExperiment isSpike
 .spike_subset <- function(x, get.spikes) {
     if (!get.spikes) {
