@@ -69,7 +69,7 @@ Aaron Lun
 
 \seealso{
 \code{\link[edgeR]{DGEList}},
-\code{\link[DESeq2:DESeqDataSet-class]{DESeqDataSetFromMatrix}},
+\code{\link[DESeq2:DESeqDataSet]{DESeqDataSetFromMatrix}},
 \code{\link[monocle]{newCellDataSet}}
 }
 
