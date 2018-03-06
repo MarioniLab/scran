@@ -43,7 +43,7 @@ find.markers <- function(current.data, other.data, gene.names, fraction=0.5)
             cur.neg.above.threshold <- colSums(cur.diff < 0) >= Nthr.cur
             other.pos.above.threshold <- mapply(function(odata, thr) { colSums(odata > 0) >= thr}, 
                                                 other.diff, Nthr.other, SIMPLIFY=FALSE, USE.NAMES=FALSE)
-            chosen.flip <- others[cur.neg.above.threshold & do.call(`&`, other.pos.above.threshold)]
+            chosen.flip <- others[cur.neg.above.threshold & Reduce(`&`, other.pos.above.threshold)]
             if (length(chosen.flip)) { 
                 collected[[i*2+1]] <- cbind(chosen.flip, i)
             }
