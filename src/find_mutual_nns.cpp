@@ -47,11 +47,7 @@ SEXP cosine_norm_internal (M mat, SEXP original, SEXP return_mat) {
     const size_t& ncol=mat->get_ncol();
 
     // Deciding whether or not to return the matrix.
-    Rcpp::LogicalVector retmat(return_mat);
-    if (retmat.size()!=1) { 
-        throw std::runtime_error("return matrix specification should be a logical vector");
-    }
-    bool mat_return=retmat[0];
+    bool mat_return=check_logical_scalar(return_mat, "return matrix specification");
     
     beachmat::numeric_output* optr=NULL;
     std::vector<std::unique_ptr<beachmat::numeric_output> > holder;
@@ -156,12 +152,7 @@ SEXP smooth_gaussian_kernel(SEXP vect, SEXP index, SEXP data, SEXP sigma) {
     auto mat=beachmat::create_numeric_matrix(data);
     const int ncells=mat->get_ncol();
     const int ngenes_for_dist=mat->get_nrow();
-
-    Rcpp::NumericVector _sigma(sigma);
-    if (_sigma.size()!=1) {
-        throw std::runtime_error("sigma should be a double-precision scalar");
-    }
-    const double s2=_sigma[0];
+    const double s2=check_numeric_vector(sigma, "sigma");
 
     // Setting up output constructs.
     Rcpp::NumericMatrix output(ngenes, ncells); // yes, this is 'ngenes' not 'ngenes_for_dist'.
@@ -257,12 +248,7 @@ SEXP adjust_shift_variance(SEXP data1, SEXP data2, SEXP vect, SEXP sigma) {
     if (ncells2!=_vect.nrow()) {
         throw std::runtime_error("number of cells do not match up between matrices");
     }        
-
-    Rcpp::NumericVector _sigma(sigma);
-    if (_sigma.size()!=1) {
-        throw std::runtime_error("sigma should be a double-precision scalar");
-    }
-    const double s2=_sigma[0];
+    const double s2=check_numeric_vector(sigma, "sigma");
 
     std::vector<double> grad(ngenes), working(ngenes);
     std::vector<std::pair<double, double> > distance1(ncells1); 

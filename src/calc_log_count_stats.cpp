@@ -35,22 +35,21 @@ protected:
 
 SEXP calc_log_count_stats (SEXP means, SEXP sf, SEXP tol, SEXP disp, SEXP offset) {
     BEGIN_RCPP
-    Rcpp::NumericVector Means(means), Sizes(sf), 
-        Tol(tol), Disp(disp), Offset(offset);
+    Rcpp::NumericVector Means(means), Sizes(sf);
 
-    if (Tol.size()!=1 || Tol[0] <= 0) { 
+    const double lim=check_numeric_scalar(tol, "tolerance");    
+    const double phi=check_numeric_scalar(disp, "dispersion");    
+    const double pseudo=check_numeric_scalar(offset, "offset");    
+
+    if (lim <= 0) {
         throw std::runtime_error("tolerance must be a positive double-precision value");
     }
-    if (Disp.size()!=1 || Disp[0] < 0) { 
+    if (phi < 0) { 
         throw std::runtime_error("dispersion must be a non-negative double-precision value");
     }
-    if (Offset.size()!=1 || Offset[0] <= 0) { 
+    if (pseudo <= 0) { 
         throw std::runtime_error("offset must be a positive double-precision value");
     }
-
-    const double lim=Tol[0];
-    const double phi=Disp[0];
-    const double pseudo=Offset[0];
 
     // Defining quantile function and PDFs.
     FUN* ptr=NULL;

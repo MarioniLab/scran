@@ -19,11 +19,7 @@ SEXP compute_CV2_internal(const M mat, SEXP subset_row, SEXP size_factors, SEXP 
     Rcpp::NumericVector sizefacs;
     double lp=0;
     if (to_unlog) { 
-        Rcpp::NumericVector logp(log_prior);
-        if (logp.size()!=1) {
-            throw std::runtime_error("prior count should be a double-precision scalar");
-        }
-        lp=logp[0];
+        lp=check_numeric_scalar(log_prior, "prior count");
         if (size_factors!=R_NilValue){ 
             throw std::runtime_error("size factors cannot be specified for log-expression input");
         }
