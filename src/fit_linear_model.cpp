@@ -16,11 +16,7 @@ SEXP fit_linear_model_internal (SEXP qr, SEXP qraux, M emat, SEXP subset, SEXP g
     auto subout=check_subset_vector(subset, emat->get_nrow());
     const size_t slen=subout.size();
     
-    Rcpp::LogicalVector gcoef(get_coefs);
-    if (gcoef.size()!=1) {
-        throw std::runtime_error("'get_coefs' should be a logical scalar");
-    }
-    const bool coef_out=gcoef[0];
+    const bool coef_out=check_logical_scalar(get_coefs, "coefficient return specification");
 
     // Setting up output objects.
     Rcpp::NumericVector means(slen), vars(slen);

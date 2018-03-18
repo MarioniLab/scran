@@ -28,12 +28,9 @@ SEXP shuffle_scores_internal (M mat_ptr,
     if (npairs!=marker2.size()) { throw std::runtime_error("vectors of markers must be of the same length"); }
     const size_t nused=used.size();
 
-    if (iter.size()!=1) { throw std::runtime_error("number of iterations must be an integer scalar"); }
-    const int nit=iter[0];
-    if (miniter.size()!=1) { throw std::runtime_error("minimum number of iterations must be an integer scalar"); }
-    const int minit=miniter[0];
-    if (minpair.size()!=1) { throw std::runtime_error("minimum number of pairs must be an integer scalar"); }
-    const int minp=minpair[0];
+    const int nit=check_integer_scalar(iter, "number of iterations");
+    const int minit=check_integer_scalar(miniter, "minimum number of iterations");
+    const int minp=check_integer_scalar(minpair, "minimum number of pairs");
 
     // Checking marker sanity.    
     auto m2It=marker2.begin();

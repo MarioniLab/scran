@@ -21,11 +21,7 @@ SEXP get_residuals(SEXP exprs, SEXP qr, SEXP qraux, SEXP subset, SEXP lower_boun
     const int ncoefs=multQ1.get_ncoefs();
 
     // Checking the lower bound.
-    Rcpp::NumericVector lb(lower_bound);
-    if (lb.size()!=1) {
-        throw std::runtime_error("lower bound should be a numeric scalar");
-    }
-    const double lbound=lb[0];
+    const double lbound=check_numeric_scalar(lower_bound, "lower bound");
     const bool check_lower=R_FINITE(lbound);
 
     auto omat=beachmat::create_numeric_output(slen, ncells, beachmat::output_param(exprs, true, false));

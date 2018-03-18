@@ -9,11 +9,7 @@ SEXP average_ranks_internal(const M mat, SEXP intype, SEXP subset, SEXP transpos
     const size_t slen=SS.size();
 
     // Checking if we should transpose or not.
-    Rcpp::LogicalVector tr(transpose);
-    if (tr.size()!=1) { 
-        throw std::runtime_error("transpose specification should be a logical scalar");
-    }
-    const bool do_transpose=tr[0];
+    const bool do_transpose=check_logical_scalar(transpose, "transpose specification");
     int out_nr=(do_transpose ? ncells : slen);
     int out_nc=(do_transpose ? slen : ncells);
 

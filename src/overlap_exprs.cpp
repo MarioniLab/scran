@@ -131,18 +131,12 @@ SEXP overlap_exprs(SEXP exprs, SEXP subset, SEXP bygroup, SEXP tolerance) {
     int rtype=beachmat::find_sexp_type(exprs);
     if (rtype==INTSXP) {
         auto mat=beachmat::create_integer_matrix(exprs);
-        Rcpp::IntegerVector tol(tolerance);
-        if (tol.size()!=1) { 
-            throw std::runtime_error("tolerance should be an integer scalar");
-        }
-        return overlap_exprs_internal<int, Rcpp::IntegerVector>(mat.get(), bygroup, subset, tol[0]);
+        const int _tol=check_integer_scalar(tol, "tolerance");
+        return overlap_exprs_internal<int, Rcpp::IntegerVector>(mat.get(), bygroup, subset, _tol);
     } else {
         auto mat=beachmat::create_numeric_matrix(exprs);
-        Rcpp::NumericVector tol(tolerance);
-        if (tol.size()!=1) { 
-            throw std::runtime_error("tolerance should be a double-precision scalar");
-        }
-        return overlap_exprs_internal<double, Rcpp::NumericVector>(mat.get(), bygroup, subset, tol[0]);
+        const double _tol=check_numeric_scalar(tol, "tolerance");
+        return overlap_exprs_internal<double, Rcpp::NumericVector>(mat.get(), bygroup, subset, _tol);
     }
     END_RCPP
 }
