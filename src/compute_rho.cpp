@@ -11,18 +11,10 @@ SEXP get_null_rho (SEXP cells, SEXP iters) {
     BEGIN_RCPP
 
     // Pulling out input values.
-    Rcpp::IntegerVector NC(cells);
-    if (NC.size()!=1) { 
-        throw std::runtime_error("number of cells should be an integer scalar"); 
-    }
-    const int Ncells=NC[0];
+    const int Ncells=check_integer_scalar(cells, "number of cells");
     if (Ncells <= 1) { throw std::runtime_error("number of cells should be greater than 2"); }
 
-    Rcpp::IntegerVector Iters(iters);
-    if (Iters.size()!=1)  {
-        throw std::runtime_error("number of iterations should be an integer scalar"); 
-    }
-    const int Niters=Iters[0];
+    const int Niters=check_integer_scalar(iters, "number of iterations");
     if (Niters <= 0) { throw std::runtime_error("number of iterations should be positive"); }
 
     // Filling rank vector.
@@ -52,11 +44,7 @@ SEXP get_null_rho (SEXP cells, SEXP iters) {
 
 SEXP get_null_rho_design(SEXP qr, SEXP qraux, SEXP iters) {
     BEGIN_RCPP
-    Rcpp::IntegerVector Iters(iters);
-    if (Iters.size()!=1)  {
-        throw std::runtime_error("number of iterations should be an integer scalar"); 
-    }
-    const int Niters=Iters[0];
+    const int Niters=check_integer_scalar(iters, "number of iterations");
     if (Niters <= 0) { throw std::runtime_error("number of iterations should be positive"); }
 
     // Setting up to multiply by the Q matrix.
@@ -183,19 +171,13 @@ SEXP rank_subset(SEXP exprs, SEXP subset_row, SEXP subset_col, SEXP tol) {
 
     if (rtype==INTSXP) { 
         auto mat=beachmat::create_integer_matrix(exprs);
-        Rcpp::IntegerVector tolerance(tol);
-        if (tolerance.size()!=1) { 
-            throw std::runtime_error("tolerance should be an integer scalar");
-        }
-        return rank_subset_internal<int, Rcpp::IntegerVector>(mat.get(), exprs, subset_row, subset_col, tolerance[0]);
+        const int tolerance=check_integer_scalar(tol, "tolerance");
+        return rank_subset_internal<int, Rcpp::IntegerVector>(mat.get(), exprs, subset_row, subset_col, tolerance);
 
     } else {
         auto mat=beachmat::create_numeric_matrix(exprs);
-        Rcpp::NumericVector tolerance(tol);
-        if (tolerance.size()!=1) { 
-            throw std::runtime_error("tolerance should be an double-precision scalar");
-        }
-        return rank_subset_internal<double, Rcpp::NumericVector>(mat.get(), exprs, subset_row, subset_col, tolerance[0]);
+        const double tolerance=check_numeric_scalar(tol, "tolerance");
+        return rank_subset_internal<double, Rcpp::NumericVector>(mat.get(), exprs, subset_row, subset_col, tolerance);
     }
     END_RCPP
 }
@@ -216,12 +198,8 @@ SEXP compute_rho(SEXP g1, SEXP g2, SEXP rankings, SEXP block_size) {
     if (Npairs!=second.size()) { 
         throw std::runtime_error("gene index vectors must be of the same length"); 
     }
-    
-    Rcpp::IntegerVector bsize(block_size);
-    if (bsize.size()!=1) { 
-        throw std::runtime_error("block size should be an integer scalar");
-    }
-    const int BLOCK=bsize[0];
+
+    const int BLOCK=check_integer_scalar(block_size, "block size");
     
     /* Setting up the cache, to avoid repeatedly copying/reading from file with rmat->get_col().
      * We round up the number of genes to a multiple of BLOCK to make things easier when using
@@ -336,11 +314,7 @@ SEXP combine_corP (SEXP ng, SEXP g1, SEXP g2, SEXP rho, SEXP pval, SEXP limited,
     BEGIN_RCPP
 
     // Checking inputs.
-    Rcpp::IntegerVector NG(ng);
-    if (NG.size()!=1) { 
-        throw std::runtime_error("number of genes must be an integer scalar");
-    }
-    const int Ngenes=NG[0];
+    const int Ngenes=check_integer_scalar(ng, "number of genes");
     if (Ngenes < 0) { throw std::runtime_error("number of genes should be non-zero"); }
 
     Rcpp::IntegerVector first(g1), second(g2);

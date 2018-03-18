@@ -152,7 +152,7 @@ SEXP smooth_gaussian_kernel(SEXP vect, SEXP index, SEXP data, SEXP sigma) {
     auto mat=beachmat::create_numeric_matrix(data);
     const int ncells=mat->get_ncol();
     const int ngenes_for_dist=mat->get_nrow();
-    const double s2=check_numeric_vector(sigma, "sigma");
+    const double s2=check_numeric_scalar(sigma, "sigma");
 
     // Setting up output constructs.
     Rcpp::NumericMatrix output(ngenes, ncells); // yes, this is 'ngenes' not 'ngenes_for_dist'.
@@ -248,7 +248,7 @@ SEXP adjust_shift_variance(SEXP data1, SEXP data2, SEXP vect, SEXP sigma) {
     if (ncells2!=_vect.nrow()) {
         throw std::runtime_error("number of cells do not match up between matrices");
     }        
-    const double s2=check_numeric_vector(sigma, "sigma");
+    const double s2=check_numeric_scalar(sigma, "sigma");
 
     std::vector<double> grad(ngenes), working(ngenes);
     std::vector<std::pair<double, double> > distance1(ncells1); 
