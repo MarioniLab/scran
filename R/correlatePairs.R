@@ -75,8 +75,7 @@
     gene1 <- final.names[gene1]
     gene2 <- final.names[gene2]
     out <- DataFrame(gene1=gene1, gene2=gene2, rho=all.rho, p.value=all.pval, 
-                     FDR=p.adjust(all.pval, method="BH"), 
-                     limited=limited, stringsAsFactors=FALSE)
+                     FDR=p.adjust(all.pval, method="BH"), limited=limited)
     if (reorder) {
         out <- out[order(out$p.value, -abs(out$rho)),]
         rownames(out) <- NULL
@@ -153,10 +152,8 @@
         s2 <- s2[keep]
 
         subset.row <- sort(unique(c(s1, s2)))
-        m1 <- match(s1, subset.row)
-        m2 <- match(s2, subset.row)
-        gene1 <- pmin(m1, m2)
-        gene2 <- pmax(m1, m2)
+        gene1 <- match(s1, subset.row)
+        gene2 <- match(s2, subset.row)
         reorder <- FALSE
 
     } else if (is.list(pairings)) {
@@ -176,8 +173,10 @@
         m1 <- match(converted[[1]], subset.row)
         m2 <- match(converted[[2]], subset.row)
         all.pairs <- expand.grid(m1, m2)
-        gene1 <- all.pairs[,1]
-        gene2 <- all.pairs[,2]
+
+        keep <- all.pairs[,1]!=all.pairs[,2]
+        gene1 <- all.pairs[keep,1]
+        gene2 <- all.pairs[keep,2]
 
     } else if (is.null(pairings)) {
         # Otherwise, it's assumed to be a single pool, and we're just correlating between pairs within it.
