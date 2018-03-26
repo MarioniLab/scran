@@ -14,7 +14,7 @@
 
     # Checking which pairwise correlations should be computed.
     cache.size <- as.integer(cache.size)
-    pair.out <- .construct_pair_indices(subset.row=subset.row, x=x, pairings=pairings, cache.size=cache.size)
+    pair.out <- .construct_pair_indices(subset.row=subset.row, x=x, pairings=pairings)
     subset.row <- pair.out$subset.row
     gene1 <- pair.out$gene1
     gene2 <- pair.out$gene2
@@ -44,7 +44,8 @@
     for (subset.col in by.block) { 
         ranked.exprs <- .Call(cxx_rank_subset, use.x, use.subset.row, subset.col - 1L, as.double(tol))
         out <- bpmapply(FUN=.get_correlation, gene1=sgene1, gene2=sgene2, 
-                        MoreArgs=list(ranked.exprs=ranked.exprs, cache.size=cache.size), BPPARAM=BPPARAM)
+                        MoreArgs=list(ranked.exprs=ranked.exprs, cache.size=cache.size), 
+                        BPPARAM=BPPARAM, SIMPLIFY=FALSE)
         current.rho <- unlist(out)
         all.rho <- all.rho + current.rho * length(subset.col)/ncol(x)
     }
@@ -73,9 +74,9 @@
     # Otherwise, returning the pairs themselves.
     gene1 <- final.names[gene1]
     gene2 <- final.names[gene2]
-    out <- data.frame(gene1=gene1, gene2=gene2, rho=all.rho, p.value=all.pval, 
-                      FDR=p.adjust(all.pval, method="BH"), 
-                      limited=limited, stringsAsFactors=FALSE)
+    out <- DataFrame(gene1=gene1, gene2=gene2, rho=all.rho, p.value=all.pval, 
+                     FDR=p.adjust(all.pval, method="BH"), 
+                     limited=limited, stringsAsFactors=FALSE)
     if (reorder) {
         out <- out[order(out$p.value, -abs(out$rho)),]
         rownames(out) <- NULL
@@ -130,13 +131,13 @@
 }
 
 #' @importFrom utils combn
-.construct_pair_indices <- function(subset.row, x, pairings, cache.size=100) 
+.construct_pair_indices <- function(subset.row, x, pairings) 
 # This returns a new subset-by-row vector, along with the pairs of elements
 # indexed along that vector (i.e., "1" refers to the first element of subset.row,
 # rather than the first element of "x").
 {
-    is.ordered <- FALSE 
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
+    reorder <- TRUE
 
     if (is.matrix(pairings)) {
         # If matrix, we're using pre-specified pairs.
@@ -156,7 +157,7 @@
         m2 <- match(s2, subset.row)
         gene1 <- pmin(m1, m2)
         gene2 <- pmax(m1, m2)
-        is.ordered <- TRUE
+        reorder <- FALSE
 
     } else if (is.list(pairings)) {
         # If list, we're correlating between one gene selected from each of two pools.
@@ -175,18 +176,8 @@
         m1 <- match(converted[[1]], subset.row)
         m2 <- match(converted[[2]], subset.row)
         all.pairs <- expand.grid(m1, m2)
-        gene1 <- pmin(all.pairs[,1], all.pairs[,2])
-        gene2 <- pmax(all.pairs[,1], all.pairs[,2])
-
-        # Pruning out redundant pairs. 
-        if (length(intersect(m1, m2))!=0L) {
-            o <- order(gene1, gene2)
-            gene1 <- gene1[o]
-            gene2 <- gene2[o]
-            keep <- c(TRUE, diff(gene1)!=0L | diff(gene2)!=0L) & gene1!=gene2
-            gene1 <- gene1[keep]
-            gene2 <- gene2[keep]
-        }
+        gene1 <- all.pairs[,1]
+        gene2 <- all.pairs[,2]
 
     } else if (is.null(pairings)) {
         # Otherwise, it's assumed to be a single pool, and we're just correlating between pairs within it.
@@ -204,12 +195,7 @@
         stop("pairings should be a list, matrix or NULL")
     }
 
-    # Ordering by blocksize. This will be used to reduce the number of reads from the matrix in C++,
-    # by caching the expression profiles of a number of genes rather than re-reading them per pair.
-    block.order <- order(floor((gene1-1L)/cache.size), floor((gene2-1L)/cache.size))
-    gene1 <- gene1[block.order]
-    gene2 <- gene2[block.order]
-    return(list(subset.row=subset.row, gene1=gene1, gene2=gene2, reorder=!is.ordered))
+    return(list(subset.row=subset.row, gene1=gene1, gene2=gene2, reorder=reorder))
 }
 
 .get_correlation <- function(gene1, gene2, ranked.exprs, cache.size) 
