@@ -86,7 +86,7 @@ Setting \code{per.gene=TRUE} is useful for identifying correlated genes without 
 For \code{correlateNull}, a numeric vector of length \code{iters} is returned containing the sorted correlations under the null hypothesis of no correlations.
 Arguments to \code{design} and \code{residuals} are stored in the attributes.
 
-For \code{correlatePairs} with \code{per.gene=FALSE}, a dataframe is returned with one row per gene pair and the following fields:
+For \code{correlatePairs} with \code{per.gene=FALSE}, a DataFrame is returned with one row per gene pair and the following fields:
 \describe{
 \item{\code{gene1, gene2}:}{
     Character or integer fields specifying the genes in the pair.
@@ -135,11 +135,18 @@ It is automatically taken from \code{metadata(x)$log.exprs.offset} if \code{x} i
 }
 
 \section{Gene selection}{
-By default, correlations will be computed between all genes with \code{pairings=NULL}.
-If \code{pairings} is a list of two vectors, correlations will be computed between one gene in the first vector and another gene in the second vector.
+The \code{pairings} argument specifies the pairs of genes to compute correlations for:
+\itemize{
+\item By default, correlations will be computed between all pairs of genes with \code{pairings=NULL}.
+Genes that occur earlier in \code{x} are labelled as \code{gene1} in the output DataFrame.
+Redundant permutations are not reported.
+\item If \code{pairings} is a list of two vectors, correlations will be computed between one gene in the first vector and another gene in the second vector.
 This improves efficiency if the only correlations of interest are those between two pre-defined sets of genes.
-Alternatively, if \code{pairings} is an integer/character matrix of two columns, each row is assumed to specify a gene pair.
+Genes in the first vector are always reported as \code{gene1}.
+\item If \code{pairings} is an integer/character matrix of two columns, each row is assumed to specify a gene pair.
 Correlations will then be computed for only those gene pairs, and the returned dataframe will \emph{not} be sorted by p-value.
+Genes in the first column of the matrix are always reported as \code{gene1}.
+}
 
 If \code{subset.row} is not \code{NULL}, only the genes in the selected subset are used to compute correlations.
 This will iteract properly with \code{pairings}, such that genes in \code{pairings} and not in \code{subset.row} will be ignored.
