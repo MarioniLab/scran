@@ -187,10 +187,9 @@ SEXP rank_subset(SEXP exprs, SEXP subset_row, SEXP subset_col, SEXP tol) {
 struct cache_manager {
 public:
     cache_manager(Rcpp::RObject r, Rcpp::RObject cs) : rankings(beachmat::create_integer_matrix(r)), 
-            cache_size(check_integer_scalar(cs, "block size")), ncells(rankings->get_ncol()),
+            cache_size(check_integer_scalar(cs, "block size")), ncells(rankings->get_nrow()),
             cache1(ncells, cache_size), cache2(ncells, cache_size), 
             current_cache1(0), current_cache2(0) {
-        
         if (ncells <= 1) { 
             throw std::runtime_error("number of cells should be greater than 2"); 
         }
@@ -208,35 +207,38 @@ public:
             std::fill(cache1.filled.begin(), cache1.filled.end(), 0);
         }
 
-	    auto it=cache1.store.begin() + actual * ncells;	
+        auto& loc=cache1.location[actual];
 	    auto& loaded=cache1.filled[actual];
         if (!loaded) {
-            rankings->get_col(index, it);
+            loc=rankings->get_const_col(index, cache1.store.begin() + actual * ncells);
             loaded=1;
         }
-	    return it;
+	    return loc;
     }
 
     Rcpp::IntegerVector::iterator get2(size_t index) {
 	    const size_t actual=index % cache_size;
         const size_t cache_num=index / cache_size;
+
+        // It is important to clear the cache2.filled before skipping to cache1, as we will not get another opportunity;
+        // this will result in an incorrect assumption that cache2 is loaded, the next time we need to use it.
         if (cache_num!=current_cache2) {
             current_cache2=cache_num;
             std::fill(cache2.filled.begin(), cache2.filled.end(), 0);
         }
 
         // Checking if the first cache has the index, in which case we can avoid loading it in the second cache.
-        // However, it is important to clear the cache2.filled before doing so, as we will not get another opportunity
-        // when we skip to another cache (resulting in an incorrect assumption that it is loaded).
+        // Note that this assumes that get2() is always called _after_ get1().
         const bool use_first=(cache_num==current_cache1);
         rank_cache& curcache=(use_first ? cache1 : cache2);
-        auto it=curcache.store.begin() + actual*ncells;
+
+        auto& loc=curcache.location[actual];
         auto& loaded=curcache.filled[actual];
         if (!loaded) {
-            rankings->get_col(index, it);
+            loc=rankings->get_const_col(index, curcache.store.begin() + actual*ncells);
             loaded=1;
         }
-	    return it;
+	    return loc;
     }
 
     std::vector<size_t> reorder(Rcpp::IntegerVector g1, Rcpp::IntegerVector g2) {
@@ -279,9 +281,10 @@ public:
     }
 private:
     struct rank_cache {
-        rank_cache(const size_t ncells, const size_t ncached) : store(ncells*ncached), filled(ncached) {}
+        rank_cache(const size_t ncells, const size_t ncached) : store(ncells*ncached), filled(ncached), location(ncached) {}
         Rcpp::LogicalVector filled;
         Rcpp::IntegerVector store;
+        std::vector<Rcpp::IntegerVector::iterator> location;
     };
 
     std::unique_ptr<beachmat::integer_matrix> rankings;
