@@ -228,9 +228,9 @@ public:
         }
 
         // Checking if the first cache has the index, in which case we can avoid loading it in the second cache.
-        // Note that this assumes that get2() is always called _after_ get1().
-        const bool use_first=(cache_num==current_cache1);
-        rank_cache& curcache=(use_first ? cache1 : cache2);
+        // Note that this assumes that get2() is always called _after_ get1(), otherwise cache1 might be set by get2() 
+        // but cleared and overwritten upon get1(), which would result in incorrect values.
+        rank_cache& curcache=(cache_num==current_cache1 ? cache1 : cache2);
 
         auto& loc=curcache.location[actual];
         auto& loaded=curcache.filled[actual];
@@ -306,6 +306,7 @@ SEXP compute_rho(SEXP g1, SEXP g2, SEXP rankings, SEXP block_size) {
     Rcpp::NumericVector output(order.size());
 
     for (const auto& o : order) {
+        // get1() must be called before get2(), see above.
         auto it1=cache.get1(gene1[o]);
         auto it2=cache.get2(gene2[o]);
 
