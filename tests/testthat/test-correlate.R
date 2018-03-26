@@ -289,6 +289,12 @@ test_that("correlatePairs works with a variety of cache sizes", {
     expect_equal(out$rho, out2$rho)
     expect_equal(out$p.value, out2$p.value)
     expect_equal(out$FDR, out2$FDR)
+
+    set.seed(100)
+    out2 <- correlatePairs(X, null.dist=nulls, cache.size=1)
+    expect_equal(out$rho, out2$rho)
+    expect_equal(out$p.value, out2$p.value)
+    expect_equal(out$FDR, out2$FDR)
 })
 
 ####################################################################################################
@@ -304,7 +310,6 @@ rownames(X) <- paste0("X", seq_len(Ngenes))
 set.seed(200)
 nulls <- correlateNull(ncells=ncol(X), iter=1e3, residuals=TRUE)
 ref <- correlatePairs(X, nulls)
-ref.names <- paste0(ref$gene1, ".", ref$gene2)
 
 test_that("correlatePairs works with subset.row values", {
     # Vanilla subsetting of genes; taking the correlations between all pairs of subsetted genes. 
@@ -322,11 +327,19 @@ test_that("correlatePairs works with subset.row values", {
 })
 
 test_that("correlatePairs works with list-based pairing", {
-    for (attempt in 1:2) {
+    ref2 <- ref
+    ref2$gene1 <- ref$gene2
+    ref2$gene2 <- ref$gene1
+    ref.com <- rbind(ref, ref2)
+    ref.names <- paste0(ref.com$gene1, ".", ref.com$gene2)
+
+    for (attempt in 1:3) {
         if (attempt==1L) {
             pairs <- list(1:10, 5:15)
-        } else {
+        } else if (attempt==2L) {
             pairs <- list(1:10, 11:20)
+        } else {
+            pairs <- list(20:10, 15:11)
         }
     
         lsubbed <- correlatePairs(X, nulls, pairings=pairs)
@@ -334,11 +347,11 @@ test_that("correlatePairs works with list-based pairing", {
         expect_true(all(lsubbed$gene1!=lsubbed$gene2) && all(lsubbed$gene1 %in% rownames(X)[pairs[[1]]])
                     && all(lsubbed$gene2 %in% rownames(X)[pairs[[2]]]))
         overlap <- length(intersect(pairs[[1]], pairs[[2]]))
-        expect_true(nrow(lsubbed) == length(pairs[[1]]) * length(pairs[[2]]) - overlap * (overlap + 1L)/2L)
+        expect_true(nrow(lsubbed) == length(pairs[[1]]) * length(pairs[[2]]) - overlap)
     
         lsub.names <- paste0(lsubbed$gene1, ".", lsubbed$gene2)
         expect_true(!any(duplicated(lsub.names)))
-        lsub.ref <- ref[match(lsub.names, ref.names),]
+        lsub.ref <- ref.com[match(lsub.names, ref.names),]
         lsub.ref$FDR <- p.adjust(lsub.ref$p.value, method="BH")
         rownames(lsub.ref) <- NULL
         expect_equal(lsub.ref, lsubbed)
@@ -358,28 +371,44 @@ test_that("correlatePairs works with list-based pairing", {
 # Subsetting to specify matrix of specific pairs.
 
 test_that("correlatePairs with pairs matrix works as expected", {
-    pairs <- cbind(1:10, 2:11)
-    msubbed <- correlatePairs(X, nulls, pairings=pairs)
-    expect_identical(rownames(X)[pairs[,1]], msubbed$gene1)
-    expect_identical(rownames(X)[pairs[,2]], msubbed$gene2)
+    ref2 <- ref
+    ref2$gene1 <- ref$gene2
+    ref2$gene2 <- ref$gene1
+    ref.com <- rbind(ref, ref2)
+    ref.names <- paste0(ref.com$gene1, ".", ref.com$gene2)
 
-    msub.names <- paste0(msubbed$gene1, ".", msubbed$gene2)
-    msub.ref <- ref[match(msub.names, ref.names),]
-    msub.ref$FDR <- p.adjust(msub.ref$p.value, method="BH")
-    rownames(msub.ref) <- NULL
-    expect_equal(msub.ref, msubbed)
+    for (attempt in 1:3) { 
+        if (attempt==1L) {
+            pairs <- cbind(1:10, 2:11)
+        } else if (attempt==2L) {
+            pairs <- cbind(20:6, 5:19)
+        } else {
+            choices <- which(!diag(nrow(X)), arr.ind=TRUE)
+            pairs <- choices[sample(nrow(choices), 20),]
+        }
 
-    pairs2 <- rownames(X)[pairs]
-    dim(pairs2) <- dim(pairs)
-    msubbed2 <- correlatePairs(X, nulls, pairings=pairs2)
-    expect_equal(msubbed, msubbed2)
-
-    # Checking for proper interaction with subset.row
-    keep <- 1:5
-    lsub2 <- correlatePairs(X, nulls, pairings=pairs, subset.row=keep)
-    repairs <- pairs[pairs[,1] %in% keep & pairs[,2] %in% keep,]
-    lexpected <- correlatePairs(X, nulls, pairings=repairs)
-    expect_equal(lexpected, lsub2)
+        msubbed <- correlatePairs(X, nulls, pairings=pairs)
+        expect_identical(rownames(X)[pairs[,1]], msubbed$gene1)
+        expect_identical(rownames(X)[pairs[,2]], msubbed$gene2)
+    
+        msub.names <- paste0(msubbed$gene1, ".", msubbed$gene2)
+        msub.ref <- ref.com[match(msub.names, ref.names),]
+        msub.ref$FDR <- p.adjust(msub.ref$p.value, method="BH")
+        rownames(msub.ref) <- NULL
+        expect_equal(msub.ref, msubbed)
+    
+        pairs2 <- rownames(X)[pairs]
+        dim(pairs2) <- dim(pairs)
+        msubbed2 <- correlatePairs(X, nulls, pairings=pairs2)
+        expect_equal(msubbed, msubbed2)
+    
+        # Checking for proper interaction with subset.row
+        keep <- 1:5
+        lsub2 <- correlatePairs(X, nulls, pairings=pairs, subset.row=keep)
+        repairs <- pairs[pairs[,1] %in% keep & pairs[,2] %in% keep,]
+        lexpected <- correlatePairs(X, nulls, pairings=repairs)
+        expect_equal(lexpected, lsub2)
+    }
 
     expect_error(correlatePairs(X, nulls, pairings=matrix(0, 0, 0)), "'pairings' should be a numeric/character matrix with 2 columns")
     expect_error(correlatePairs(X, nulls, pairings=cbind(1,2,3)), "'pairings' should be a numeric/character matrix with 2 columns")
