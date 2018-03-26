@@ -1,6 +1,6 @@
 Package: scran
-Version: 1.7.24
-Date: 2018-03-20
+Version: 1.7.25
+Date: 2018-03-26
 Title: Methods for Single-Cell RNA-Seq Data Analysis
 Authors@R: c(person("Aaron", "Lun", role = c("aut", "cre"), email =
         "alun@wehi.edu.au"), person("Karsten", "Bach", role = "aut"),
@@ -15,7 +15,7 @@ Imports: SummarizedExperiment, S4Vectors, BiocGenerics,
         shiny, statmod, ggplot2, DT, viridis, DelayedArray,
         DelayedMatrixStats
 Suggests: testthat, BiocStyle, knitr, beachmat, HDF5Array, limSolve, 
-        org.Mm.eg.db, DESeq2, monocle, Rtsne, pracma, Biobase, irlba,
+        org.Mm.eg.db, DESeq2, monocle, pracma, Biobase, irlba,
         aroma.light
 biocViews: Normalization, Sequencing, RNASeq, Software, GeneExpression,
         Transcriptomics, SingleCell, Visualization, BatchEffect,

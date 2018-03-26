@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.7.19}{\itemize{
+\section{Version 1.7.25}{\itemize{
 \item Modified decomposeVar() to return statistics (but not p-values) for spike-ins when get.spikes=NA.
 Added block= argument for mean/variance calculations within each level of a blocking factor, 
 followed by reporting of weighted averages (using weighted Stouffer's method for p-values).
@@ -33,6 +33,7 @@ Switched from ns() to smooth.spline() or robustSmoothSpline() to avoid bugs.
 
 \item Added block= argument to correlatePairs() to calculate correlations within each level of a blocking factor.
 Deprecated the use of residuals=FALSE for one-way layouts in design=.
+Preserve input order of paired genes in the gene1/gene2 output when pairings!=NULL.
 
 \item Added block= argument to overlapExprs() to calculate overlaps within each level of a blocking factor.
 Deprecated the use of residuals=FALSE for one-way layouts in design=.
