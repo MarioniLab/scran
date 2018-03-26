@@ -7,6 +7,8 @@ selectorPlot <- function(x, y, persist=FALSE, plot.width=5, plot.height=500, run
 # created by Aaron Lun
 # written 8 June 2016
 {
+    .Deprecated(new="iSEE::iSEE")
+
     N <- length(x)
     if (length(y)!=N) { stop("length of x and y vectors should be equal") }
     collected <- new.env()

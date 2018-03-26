@@ -9,6 +9,8 @@ exploreData <- function(x, cell.data, gene.data, red.dim, run=TRUE)
 # created by Karsten Bach
 # written 11 April 2017
 {
+    .Deprecated(new="iSEE::iSEE")
+
     # Check on gene and cell names.
     xr <- rownames(x)
     gd <- rownames(gene.data)
