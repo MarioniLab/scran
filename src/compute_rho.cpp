@@ -184,124 +184,136 @@ SEXP rank_subset(SEXP exprs, SEXP subset_row, SEXP subset_col, SEXP tol) {
 
 /*** Estimating correlations (without expanding into a matrix to do so via 'cor'). ***/
 
+struct cache_manager {
+public:
+    cache_manager(Rcpp::RObject r, Rcpp::RObject cs) : rankings(beachmat::create_integer_matrix(r)), 
+            cache_size(check_integer_scalar(cs, "block size")), ncells(rankings->get_ncol()),
+            cache1(ncells, cache_size), cache2(ncells, cache_size), 
+            current_cache1(0), current_cache2(0) {
+        
+        if (ncells <= 1) { 
+            throw std::runtime_error("number of cells should be greater than 2"); 
+        }
+    }
+
+    size_t get_ncells() const {
+        return ncells;
+    }
+   
+    Rcpp::IntegerVector::iterator get1(size_t index) {
+	    const size_t actual=index % cache_size;
+        const size_t cache_num=index / cache_size;
+        if (cache_num!=current_cache1) {
+            current_cache1=cache_num;
+            std::fill(cache1.filled.begin(), cache1.filled.end(), 0);
+        }
+
+	    auto it=cache1.store.begin() + actual * ncells;	
+	    auto& loaded=cache1.filled[actual];
+        if (!loaded) {
+            rankings->get_col(index, it);
+            loaded=1;
+        }
+	    return it;
+    }
+
+    Rcpp::IntegerVector::iterator get2(size_t index) {
+	    const size_t actual=index % cache_size;
+        const size_t cache_num=index / cache_size;
+        if (cache_num!=current_cache2) {
+            current_cache2=cache_num;
+            std::fill(cache2.filled.begin(), cache2.filled.end(), 0);
+        }
+
+        // Checking if the first cache has the index, in which case we can avoid loading it in the second cache.
+        // However, it is important to clear the cache2.filled before doing so, as we will not get another opportunity
+        // when we skip to another cache (resulting in an incorrect assumption that it is loaded).
+        const bool use_first=(cache_num==current_cache1);
+        rank_cache& curcache=(use_first ? cache1 : cache2);
+        auto it=curcache.store.begin() + actual*ncells;
+        auto& loaded=curcache.filled[actual];
+        if (!loaded) {
+            rankings->get_col(index, it);
+            loaded=1;
+        }
+	    return it;
+    }
+
+    std::vector<size_t> reorder(Rcpp::IntegerVector g1, Rcpp::IntegerVector g2) {
+        const size_t npairs=g1.size();
+        if (npairs!=g2.size()) {
+            throw std::runtime_error("gene index vectors should be of the same length");
+        }
+
+        std::vector<std::pair<size_t, size_t> > pairings;
+        pairings.reserve(npairs);
+        const size_t Ngenes=rankings->get_nrow();
+
+        // Running through and checking the indices for validity.
+        auto it1=g1.begin(), it2=g2.begin();
+        for (size_t i=0; i<npairs; ++i, ++it1, ++it2) {
+            const int g1x=*it1;
+            const int g2x=*it2;
+            if (g1x < 0 || g1x >= Ngenes) {
+                throw std::runtime_error("first gene index is out of range");
+            }
+            if (g2x < 0 || g2x >= Ngenes) {
+                throw std::runtime_error("second gene index is out of range");
+            }
+            pairings.push_back(std::pair<size_t, size_t>(g1x/cache_size, g2x/cache_size));
+        }
+
+        // Sorting in a manner so that all pairs of elements in the same cache pair are together.
+        std::vector<size_t> output(npairs);
+        std::iota(output.begin(), output.end(), 0);
+        std::sort(output.begin(), output.end(), [&](const size_t left, const size_t right) {
+            const size_t left1=pairings[left].first, right1=pairings[right].first;
+            if (left1 < right1) { 
+                return true; 
+            } else if (left1==right1) {
+                return pairings[left].second < pairings[right].second;
+            }
+            return false;
+        });
+        return output;
+    }
+private:
+    struct rank_cache {
+        rank_cache(const size_t ncells, const size_t ncached) : store(ncells*ncached), filled(ncached) {}
+        Rcpp::LogicalVector filled;
+        Rcpp::IntegerVector store;
+    };
+
+    std::unique_ptr<beachmat::integer_matrix> rankings;
+    const size_t cache_size, ncells;
+    rank_cache cache1, cache2;
+
+    size_t current_cache1, current_cache2;
+};
+
 SEXP compute_rho(SEXP g1, SEXP g2, SEXP rankings, SEXP block_size) {
     BEGIN_RCPP
 
-    // Checking inputs.
-    auto rmat=beachmat::create_integer_matrix(rankings);
-    const size_t& Ncells=rmat->get_nrow();
-    if (Ncells <= 1) { throw std::runtime_error("number of cells should be greater than 2"); }
-    const size_t& Ngenes=rmat->get_ncol();
+    Rcpp::IntegerVector gene1(g1), gene2(g2);
+    cache_manager cache(rankings, block_size);
+    auto order=cache.reorder(gene1, gene2);
 
-    Rcpp::IntegerVector first(g1), second(g2);
-    const size_t Npairs=first.size();
-    if (Npairs!=second.size()) { 
-        throw std::runtime_error("gene index vectors must be of the same length"); 
-    }
-
-    const int BLOCK=check_integer_scalar(block_size, "block size");
-    
-    /* Setting up the cache, to avoid repeatedly copying/reading from file with rmat->get_col().
-     * We round up the number of genes to a multiple of BLOCK to make things easier when using
-     * std::fill to indicate that particular genes are no longer in memory.
-     */
-    Rcpp::IntegerVector cache1(BLOCK*Ncells), cache2(BLOCK*Ncells);
-    const int roundedNgenes=BLOCK*int(Ngenes/BLOCK + 1); 
-    std::deque<bool> filled1(roundedNgenes, false), filled2(roundedNgenes, false);
-    std::vector<Rcpp::IntegerVector::const_iterator> locations1(roundedNgenes), locations2(roundedNgenes); 
-    Rcpp::IntegerVector::iterator b1It=cache1.begin(), b2It=cache2.begin();
-    int current_block1=0, current_block2=0;
-
+    const size_t Ncells=cache.get_ncells();
     const double mult=rho_mult(Ncells); 
-    Rcpp::NumericVector output(Npairs);
+    Rcpp::NumericVector output(order.size());
 
-    auto fIt=first.begin(), sIt=second.begin();
-    for (auto oIt=output.begin(); oIt!=output.end(); ++oIt, ++fIt, ++sIt) { 
-        const int& g1x=(*fIt);
-        const int& g2x=(*sIt);
-        if (g1x < 0 || g1x >= Ngenes) {
-            throw std::runtime_error("first gene index is out of range");
-        }
-        if (g2x < 0 || g2x >= Ngenes) {
-            throw std::runtime_error("second gene index is out of range");
-        }
-
-        // Figuring out whether we need to update the blocks stored in the cache, starting with the first block.
-        const int block1=int(g1x/BLOCK);
-        const bool updated1=(block1!=current_block1);
-        if (updated1) {
-            if (block1 < current_block1) { 
-                throw std::runtime_error("pairs should be arranged in increasing block order");
-            }
-            auto old_filled=filled1.begin()+current_block1*BLOCK;
-            std::fill(old_filled, old_filled+BLOCK, false); 
-            current_block1=block1;
-            b1It=cache1.begin();          
-        }
-        auto& start1=locations1[g1x]; 
-        if (!filled1[g1x]) {
-            if (b1It==cache1.end()) { 
-                throw std::runtime_error("first block cache exceeded");
-            }
-            start1=rmat->get_const_col(g1x, b1It);
-            b1It+=Ncells;
-            filled1[g1x]=true;
-        }
-
-        // Repeating for the second block. If this is the same as the first block, we just update that instead.
-        const int block2=int(g2x/BLOCK);
-        Rcpp::IntegerVector::const_iterator start2_copy;
-        if (block2==block1) { 
-            if (updated1) { 
-                /* No need to discard the existing cache1, this would have already been done above. 
-                 * We do, however, have to update current_block2 and discard cache2 (we can't do this
-                 * later as old_start would no longer be correct with an updated current_block2).
-                 */
-                auto old_start=filled2.begin()+current_block2*BLOCK;
-                std::fill(old_start, old_start+BLOCK, false);
-                current_block2=block2;
-                b2It=cache2.begin();
-            }
-            auto& restart1=locations1[g2x]; 
-            if (!filled1[g2x]) {
-                if (b1It==cache1.end()) { 
-                    throw std::runtime_error("first block cache exceeded");
-                }
-                restart1=rmat->get_const_col(g2x, b1It);
-                b1It+=Ncells;
-                filled1[g2x]=true;
-            }
-            start2_copy=restart1;
-        } else {
-            if (block2!=current_block2) {
-                if (!updated1 && block2 < current_block2) { 
-                    throw std::runtime_error("pairs should be arranged in increasing block order");
-                }
-                auto old_start=filled2.begin()+current_block2*BLOCK;
-                std::fill(old_start, old_start+BLOCK, false);
-                current_block2=block2;
-                b2It=cache2.begin();          
-            } 
-            auto& start2=locations2[g2x]; 
-            if (!filled2[g2x]) { 
-                if (b2It==cache2.end()) { 
-                    throw std::runtime_error("second block cache exceeded");
-                }
-                start2=rmat->get_const_col(g2x, b2It);
-                b2It+=Ncells;
-                filled2[g2x]=true;
-            }
-            start2_copy=start2;
-        }
+    for (const auto& o : order) {
+        auto it1=cache.get1(gene1[o]);
+        auto it2=cache.get2(gene2[o]);
 
         // Computing the correlation.
         double working=0;
-        auto start1_copy=start1;
-        for (size_t c=0; c<Ncells; ++c, ++start1_copy, ++start2_copy) { 
-            const double tmp=(*start1_copy) - (*start2_copy);
+        for (size_t c=0; c<Ncells; ++c, ++it1, ++it2) { 
+            const double tmp=(*it1) - (*it2);
             working+=tmp*tmp;
         }
-        (*oIt)=1 - working*mult;
+
+        output[o]=1 - working*mult;
     }
 
     return output;
