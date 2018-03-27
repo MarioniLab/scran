@@ -13,7 +13,7 @@ are_PCs_equal <- function(first, second, tol=1e-8) {
 set.seed(1000)
 ngenes <- 1000
 npops <- 10
-ncells <- 100
+ncells <- 200
 means <- 2^runif(ngenes, -1, 10)
 pops <- matrix(2^rnorm(npops * ngenes), ncol=npops) * means
 
@@ -23,7 +23,6 @@ in.pop <- sample(npops, ncells, replace=TRUE)
 true.means <- pops[,in.pop,drop=FALSE]
 
 dispersions <- 10/means + 0.2
-ncells <- 100
 counts <- matrix(rnbinom(ngenes*ncells, mu=true.means, size=1/dispersions), ncol=ncells)
 rownames(counts) <- paste0("Gene", seq_len(ngenes))
 
@@ -44,12 +43,15 @@ test_that("denoisePCA works as expected", {
         # Chosen number of PCs should be at the technical threshold.
         expect_true(sum(var.exp[(npcs+1):ncol(lcounts)]) < tech.total) 
         expect_true(sum(var.exp[(npcs):ncol(lcounts)]) > tech.total)
+    
+        reported <- attr(npcs, "percentVar")
+        exp.var <- sdev^2
+        expect_equal(reported, exp.var[seq_along(reported)]/sum(exp.var))
     }
 
     tech.var <- fit$trend(rowMeans(lcounts))
     total.tech <- sum(tech.var[keep])
     verify_npcs(npcs, pc.out$sdev, total.tech)
-    expect_equal(attr(npcs, "percentVar"), pc.out$sdev^2/sum(pc.out$sdev^2))
 
     # Checking with different values for the technical noise, just in case.
     lower.fun <- function(x) { fit$trend(x) - 0.1 }
@@ -62,7 +64,6 @@ test_that("denoisePCA works as expected", {
     total.tech2 <- sum(tech.var2[keep2])
 
     verify_npcs(npcs2, pc.out2$sdev, total.tech2)
-    expect_equal(attr(npcs2, "percentVar"), pc.out2$sdev^2/sum(pc.out2$sdev^2))
 
     # And again.
     even.lower.fun <- function(x) { fit$trend(x) - 0.2 }
@@ -75,7 +76,6 @@ test_that("denoisePCA works as expected", {
     total.tech3 <- sum(tech.var3[keep3])
 
     verify_npcs(npcs3, pc.out3$sdev, total.tech3)
-    expect_equal(attr(npcs3, "percentVar"), pc.out3$sdev^2/sum(pc.out3$sdev^2))
 
     # Checking that the PC selection is correct.
     pcs <- denoisePCA(lcounts, technical=fit$trend, value="pca")
@@ -135,92 +135,28 @@ test_that("denoisePCA works with different settings", {
     expect_identical(pcs[,], ref[,-ncol(ref)])
 })
 
-test_that("denoisePCA works with design matrices", {
-    # Checking that the output is the same with constant design.
-    pcs <- denoisePCA(lcounts, technical=fit$trend)
-    pcs3 <- denoisePCA(lcounts, technical=fit$trend, design=cbind(rep(1, ncells)))
-    are_PCs_equal(pcs, pcs3)
-
-    pcs <- denoisePCA(lcounts, technical=fit$trend, subset.row=is.spike)
-    pcs3 <- denoisePCA(lcounts, technical=fit$trend, subset.row=is.spike, design=cbind(rep(1, ncells)))
-    are_PCs_equal(pcs, pcs3)
-
-    # Checking for sensible handling of design matrices.
-    design <- model.matrix(~factor(in.pop))
-    dfit <- trendVar(lcounts, subset.row=is.spike, design=design)
-    pcs <- denoisePCA(lcounts, design=design, technical=dfit$trend)
-    
-    alt <- lm.fit(y=t(lcounts), x=design)
-    true.var <- colMeans(alt$effects[-seq_len(alt$rank),]^2)
-    obs.var <- apply(alt$residuals, 2, var)
-    new.x <- t(t(alt$residuals) * sqrt(true.var/obs.var)) # critical: make sure rescaling is correct.
-    
-    tech.var <- dfit$trend(rowMeans(lcounts))
-    keep <- true.var > tech.var
-    alt.pc <- prcomp(new.x[,keep])
-
-    expect_equal(ncol(pcs), scran:::.get_npcs_to_keep(alt.pc$sdev^2, sum(tech.var[keep])))
-    expect_equal(attr(pcs, "percentVar"), alt.pc$sdev^2/sum(alt.pc$sdev^2))
-    are_PCs_equal(alt.pc$x[,seq_len(ncol(pcs)),drop=FALSE], pcs)
-})
-
-test_that("desnoisePCA works with blocking", {
-    # Checking that the output is the same with trivial blocking.
-    pcs <- denoisePCA(lcounts, technical=fit$trend)
-    pcs3 <- denoisePCA(lcounts, technical=fit$trend, block=rep("YAY", ncol(lcounts)))
-    are_PCs_equal(pcs, pcs3)
-
-    pcs <- denoisePCA(lcounts, technical=fit$trend, subset.row=is.spike)
-    pcs3 <- denoisePCA(lcounts, technical=fit$trend, subset.row=is.spike, block=rep("YAY", ncol(lcounts)))
-    are_PCs_equal(pcs, pcs3)
-
-    # Checking for correct handling of blocking factors.
-    set.seed(10009)
-    block <- factor(sample(3, ncol(lcounts), replace=TRUE))
-    pcs <- denoisePCA(lcounts, technical=fit$trend, block=block)
-
-    design <- model.matrix(~0 + block)
-    colnames(design) <- levels(block)
-    alt <- lm.fit(y=t(lcounts), x=design)
-    true.var <- colMeans(alt$effects[-seq_len(alt$rank),]^2)
-    obs.var <- apply(alt$residuals, 2, var)
-    new.x <- t(t(alt$residuals) * sqrt(true.var/obs.var)) # critical: make sure rescaling is correct.
-
-    block.means <- t(alt$coefficients)
-    block.tech.var <- fit$trend(as.vector(block.means))
-    dim(block.tech.var) <- dim(block.means)
-    resid.df <- table(block)[colnames(block.means)] - 1L
-    tech.var <- block.tech.var %*% resid.df/sum(resid.df)
-
-    keep <- true.var > tech.var
-    alt.pc <- prcomp(new.x[,keep])
-    
-    expect_equal(ncol(pcs), scran:::.get_npcs_to_keep(alt.pc$sdev^2, sum(tech.var[keep])))
-    expect_equal(attr(pcs, "percentVar"), alt.pc$sdev^2/sum(alt.pc$sdev^2))
-    are_PCs_equal(alt.pc$x[,seq_len(ncol(pcs)),drop=FALSE], pcs)
-})
-
-
 test_that("denoisePCA works with IRLBA", {
     # Checking choice of number of PCs.
     keep <- dec$bio > 0
     posbio <- lcounts[keep,]
     df0 <- ncol(posbio)-1
-    max.cells <- min(df0, formals(scran:::.denoisePCA)$max.rank) # using the upper limit in denoisePCA.
+    max.cells <- formals(scran:::.denoisePCA)$max.rank # using the upper limit in denoisePCA.
     current <- t(posbio - rowMeans(posbio))
     
     npcs <- suppressWarnings(denoisePCA(lcounts, technical=fit$trend, value="n", approximate=TRUE, rand.seed=100))
     set.seed(100)
     e1 <- suppressWarnings(irlba::irlba(current, nu=0, nv=max.cells))
-    expect_equal(npcs[1], scran:::.get_npcs_to_keep(e1$d^2/df0, sum(dec$tech[keep])))
-    expect_equal(attr(npcs, "percentVar"), e1$d^2/df0/sum(apply(current, 2, var)))
+
+    total.var <- sum(dec$total[keep])
+    expect_equal(npcs[1], scran:::.get_npcs_to_keep(e1$d^2/df0, sum(dec$tech[keep]), total=total.var))
+    expect_equal(attr(npcs, "percentVar"), e1$d^2/df0/total.var)
     
     # Checking the actual PCs themselves.
     pca <- suppressWarnings(denoisePCA(lcounts, technical=fit$trend, value="pca", approximate=TRUE, rand.seed=200))
     set.seed(200)
     epc <- suppressWarnings(irlba::prcomp_irlba(current, n=max.cells, center=FALSE, scale.=FALSE))
     are_PCs_equal(pca, epc$x[,seq_len(npcs),drop=FALSE]) 
-    expect_equal(attr(pca, "percentVar"), epc$sdev^2/sum(apply(current, 2, var)))
+    expect_equal(attr(pca, "percentVar"), epc$sdev^2/total.var)
     
     # Checking the low-rank approximations.
     lr <- suppressWarnings(denoisePCA(lcounts, technical=fit$trend, value="lowrank", approximate=TRUE, rand.seed=300))
@@ -237,7 +173,7 @@ test_that("denoisePCA works with IRLBA", {
 test_that("denoisePCA throws errors correctly", {
     # Checking invalid specifications.
     expect_error(denoisePCA(lcounts[0,], fit$trend), "a dimension is zero")
-    expect_error(denoisePCA(lcounts[,0], fit$trend), "no residual d.f. in 'x' for variance estimation")
+    expect_error(denoisePCA(lcounts[,0], fit$trend), "a dimension is zero")
 })
 
 test_that("denoisePCA works with SingleCellExperiment inputs", {
