@@ -63,7 +63,7 @@
     npcs <- max(npcs, min.rank)
 
     # Processing remaining aspects.
-    out.val <- .convert_to_output(original, npcs, value, x, scale, subset.row)
+    out.val <- .convert_to_output(original, npcs, value, x, scale, use.rows)
     attr(out.val, "percentVar") <- var.exp/sum(all.var)
     return(out.val)
 } 

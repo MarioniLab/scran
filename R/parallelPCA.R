@@ -1,4 +1,3 @@
-#' @export
 #' @importFrom BiocParallel bplapply SerialParam
 #' @importFrom DelayedArray DelayedArray
 #' @importFrom DelayedMatrixStats rowVars
@@ -86,8 +85,13 @@
     return(out)
 }
 
-.irlba_svd <- function(y, max.rank, value, ...) {
-    irlba::irlba(y, nv=max.rank, nu=max.rank, scale.=FALSE, center=TRUE, ...)
+.irlba_svd <- function(y, max.rank, value, extra.args=list()) {
+    arg.max <- pmatch(names(extra.args), "maxit")
+    if (all(is.na(arg.max))) { 
+        extra.args$maxit <- max(1000, max.rank*10)
+    }
+    all.args <- c(list(A=y, nv=max.rank, nu=max.rank, scale.=FALSE, center=TRUE), extra.args)
+    do.call(irlba::irlba, all.args)
 }
 
 .parallel_PA <- function(svdfun, args, ...) {
@@ -98,8 +102,8 @@
 }
 
 #' @importFrom DelayedArray DelayedArray
-#' @importFrom DelayedMatrixStats rowMeans
-.convert_to_output <- function(svd.out, ncomp, value, x0, scale0, subset.row) {
+#' @importFrom DelayedMatrixStats rowMeans2
+.convert_to_output <- function(svd.out, ncomp, value, original.mat, original.scale, subset.row) {
     if (value=="n") {
         return(ncomp)
     } 
@@ -110,36 +114,43 @@
 
     # Pulling out the PCs (column-multiplying the left eigenvectors).
     pcs <- sweep(U, 2L, D, FUN="*", check.margin = FALSE)
-    if (value=="pcs") {
-        rownames(pcs) <- colnames(x0)
+    if (value=="pca") {
+        colnames(pcs) <- sprintf("PC%i", ix)
         return(pcs)
     }
 
-    # Creating a low-rank approximation.
-    hits <- tcrossprod(pcs, V)
+    # Creating a low-rank approximation by reforming UDV'. 
+    # Note that we transpose to match dimensions, so it's really V(UD)'.
+    V <- svd.out$v[,ix,drop=FALSE]
+    hits <- tcrossprod(V, pcs)
 
-    if (!is.null(subset.row)) {
-        output <- x0
-        output[] <- 0
+    all.means <- rowMeans2(DelayedArray(original.mat))
+
+    if (is.null(subset.row)) {
+        output <- hits
+        dimnames(output) <- dimnames(original.mat)
+    } else {
+        output <- original.mat
         output[subset.row,] <- hits
 
         # The idea is that after our SVD, we have X=UDV' where each column of X is a gene. 
         # Leftover genes are new columns in X, which are projected on the space of U by doing U'X.
         # This can be treated as new columns in DV', which can be multiplied by U to give denoised values.
         # I've done a lot of implicit transpositions here, hence the code does not tightly follow the logic above.
-        leftovers <- !logical(nrow(x0))
+        leftovers <- !logical(nrow(original.mat))
         leftovers[subset.row] <- FALSE 
-        left.x <- x0[leftovers,,drop=FALSE]
-        left.scale <- scale0[leftovers]
-        left.means <- rowMeans(DelayedArray(left.x))
 
-        left.x <- left.x - left.mean
-        left.x <- left.x * left.scale
-        new.vals <- tcrossprod(left.x %*% U, U)
-        new.vals <- new.vals / left.scale
-        new.vals <- new.vals + left.means
-        output[leftovers,] <- new.vals
+        left.x <- original.mat[leftovers,,drop=FALSE] - all.means[leftovers]
+        if (!is.null(original.scale)) { 
+            left.x <- left.x * original.scale[leftovers]
+        }
+
+        output[leftovers,] <- tcrossprod(left.x %*% U, U)
     }
-
+    
+    if (!is.null(original.scale)) {
+        output <- output / original.scale
+    }
+    output <- output + all.means
     return(output)
 }
