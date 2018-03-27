@@ -117,7 +117,7 @@ test_that("Low-rank approximations work as expected", {
     expect_equal(lrout[,], lcounts)
 }) 
 
-test_that("denoisePCA works with different settings", {
+test_that("denoisePCA works with subsetting", {
     # Checking proper behaviour with subsetting.
     not.spike <- setdiff(seq_len(ngenes), is.spike)
     pcs <- denoisePCA(lcounts, technical=fit$trend, subset.row=not.spike)
@@ -127,8 +127,10 @@ test_that("denoisePCA works with different settings", {
     lr1 <- denoisePCA(lcounts, technical=fit$trend, subset.row=not.spike, value="lowrank")
     lr2 <- denoisePCA(lcounts[not.spike,], technical=fit$trend, value="lowrank")
     expect_equal(lr1[not.spike,], lr2[,])
+})
 
-    # Checking that it responds correctly to min and max settings.
+test_that("denoisePCA works with min/max rank settings", {
+    # Setting the min/max at around ncol(ref) to force it to a predictable number of pcs.
     ref <- denoisePCA(lcounts, technical=fit$trend)
     pcs <- denoisePCA(lcounts, technical=fit$trend, min.rank=ncol(ref)+1)
     expect_identical(ncol(pcs), ncol(ref)+1L)
@@ -138,11 +140,41 @@ test_that("denoisePCA works with different settings", {
     expect_identical(ncol(pcs), ncol(ref)-1L)
     expect_identical(pcs[,], ref[,-ncol(ref)])
 
+    # Stress-testing some gibberish min/max settings.
     pcs <- denoisePCA(lcounts, technical=fit$trend, min.rank=ncol(lcounts), max.rank=ncol(ref))
     expect_identical(ncol(pcs), ncol(ref))
     pcs <- denoisePCA(lcounts, technical=fit$trend, min.rank=ncol(ref), max.rank=Inf)
     expect_identical(ncol(pcs), ncol(ref))
+    pcs <- denoisePCA(lcounts, technical=fit$trend, min.rank=-Inf, max.rank=Inf)
+    expect_identical(ncol(pcs), ncol(ref))
 })
+
+test_that("denoisePCA works with a DataFrame input", {
+    ref <- denoisePCA(lcounts, technical=fit$trend, value="pca")
+    pcs <- denoisePCA(lcounts, technical=dec, value="pca")
+    expect_equal(ref, pcs)
+
+    ref.lr <- denoisePCA(lcounts, technical=fit$trend, value="lowrank")
+    lr <- denoisePCA(lcounts, technical=dec, value="lowrank")
+    expect_equal(ref.lr, lr)
+
+    # Works with subsetting.
+    set.seed(9191)
+    chosen <- sample(nrow(lcounts), 100)
+    ref2 <- denoisePCA(lcounts, technical=fit$trend, subset.row=chosen, value="pca")
+    pcs2 <- denoisePCA(lcounts, technical=dec, subset.row=chosen, value="pca")
+    expect_equal(ref2, pcs2)
+
+    # Rescaling is handled correctly. 
+    rescaled <- runif(nrow(lcounts))
+    lcountsX <- lcounts * rescaled
+    pcs3 <- denoisePCA(lcountsX, technical=dec, value="pca")
+    expect_equal(ref, pcs3)
+
+    lr3 <- denoisePCA(lcountsX, technical=dec, value="lowrank")
+    expect_equal(ref.lr * rescaled, lr3)
+})
+
 
 test_that("denoisePCA works with IRLBA", {
     # Checking choice of number of PCs.
