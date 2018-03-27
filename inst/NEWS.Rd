@@ -11,8 +11,8 @@ Switched output to a DataFrame object for consistency with other functions.
 
 \item Allowed passing of arguments to irlba() in denoisePCA() to assist convergence.
 Reported low-rank approximations for all genes, regardless of whether they were used in the SVD.
-Added block= argument for technical component estimation within each level of the blocking factor.
-Supported use of a vector in technical= instead of a function.
+Deprecated design= argument in favour of manual external correction of confounding effects.
+Supported use of a vector or DataFrame in technical= instead of a function.
 
 \item Allowed passing of arguments to prcomp_irlba() in buildSNNGraph() to assist convergence.
 Allowed passing of arguments to get.knn(), switched default algorithm back to a kd-tree.
