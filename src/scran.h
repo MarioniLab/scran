@@ -43,21 +43,27 @@ SEXP fit_linear_model(SEXP, SEXP, SEXP, SEXP, SEXP);
 
 SEXP fit_oneway(SEXP, SEXP, SEXP);
 
+SEXP calc_log_count_stats(SEXP, SEXP, SEXP, SEXP, SEXP);
+
+// DE analysis functions.
+
 SEXP combine_simes(SEXP, SEXP);
 
-SEXP calc_log_count_stats(SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP overlap_exprs(SEXP, SEXP, SEXP, SEXP);
+
+// Clustering functions.
+
+SEXP get_scaled_ranks(SEXP, SEXP, SEXP);
+
+SEXP build_snn(SEXP);
 
 // Miscellaneous functions.
 
 SEXP get_residuals(SEXP, SEXP, SEXP, SEXP, SEXP);
 
-SEXP get_scaled_ranks(SEXP, SEXP, SEXP);
-
 SEXP compute_CV2(SEXP, SEXP, SEXP, SEXP);
 
-SEXP build_snn(SEXP);
-
-SEXP overlap_exprs(SEXP, SEXP, SEXP, SEXP);
+SEXP shuffle_matrix(SEXP);
 
 // MNN calculations.
 

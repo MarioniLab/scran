@@ -107,7 +107,7 @@
 # Function for use in bplapply, defined here to automatically take 
 # advantage of the scran namespace when using snowParam.
 {
-    args$y <- .Call(cxx_auto_shuffle, args$y)
+    args$y <- .Call(cxx_shuffle_matrix, args$y)
     out <- do.call(svdfun, args)
     return(out$d^2)
 }
