@@ -12,7 +12,7 @@
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     if (!is.null(design)) {
         .Deprecated(msg="'design=' is deprecated.\nSee '?denoisePCA' for alternatives.")
-        x <- removeBatchEffect(x, design=NULL, covariates=design)
+        x <- limma::removeBatchEffect(x, design=NULL, covariates=design)
     }
     x2 <- DelayedArray(x)
     scale <- NULL
