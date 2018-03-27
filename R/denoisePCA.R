@@ -60,7 +60,7 @@
     original <- do.call(svdfun, args)
     var.exp <- original$d^2 / (ncol(y) - 1)
     npcs <- .get_npcs_to_keep(var.exp, total.tech, total=sum(all.var))
-    npcs <- max(npcs, min.rank)
+    npcs <- .keep_rank_in_range(npcs, min.rank, length(var.exp))
 
     # Processing remaining aspects.
     out.val <- .convert_to_output(original, npcs, value, x, scale, use.rows)

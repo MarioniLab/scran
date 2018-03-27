@@ -27,7 +27,6 @@
     # Setting up the PCA function and its arguments.
     value <- match.arg(value)
     args <- list(y=t(x), max.rank=max.rank, value=value)
-
     if (approximate) {
         svdfun <- .irlba_svd
         args <- c(args, irlba.args)
@@ -44,11 +43,11 @@
     # Figuring out where the original drops below the permuted.
     below <- permuted.d2 > original.d2
     if (!any(below)) {
-        npcs <- max.rank
+        npcs <- length(below) 
     } else {
         npcs <- min(which(below)) - 1L
     }
-    npcs <- max(npcs, min.rank)
+    npcs <- .keep_rank_in_range(npcs, min.rank, length(original.d2))
 
     # Actually computing the variance.
     var.exp <- original.d2 / (ncol(x) - 1)
@@ -68,7 +67,12 @@
 }
 
 #' @importFrom stats prcomp
-.full_svd <- function(y, max.rank, value) {
+.full_svd <- function(y, max.rank, value) 
+# Convenience function for performing a SVD, with speed-ups
+# to avoid computing the left and/or right eigenvectors if
+# they are not necessary for the final 'value'.
+{
+    max.rank <- min(max.rank, dim(y))
     y <- sweep(y, 2L, colMeans(y), check.margin = FALSE)
 
     if (value=="n") {
@@ -85,25 +89,42 @@
     return(out)
 }
 
-.irlba_svd <- function(y, max.rank, value, extra.args=list()) {
+.irlba_svd <- function(y, max.rank, value, extra.args=list()) 
+# Convenience function for performing a SVD via the IRLBA,
+# with protection against invalid inputs and increasing work
+# to match the specified max.rank.
+{
     arg.max <- pmatch(names(extra.args), "maxit")
     if (all(is.na(arg.max))) { 
         extra.args$maxit <- max(1000, max.rank*10)
     }
+    max.rank <- min(max.rank, dim(y)-1L) # Note the -1 here, due to IRLBA's approximateness.
     all.args <- c(list(A=y, nv=max.rank, nu=max.rank, scale.=FALSE, center=TRUE), extra.args)
     do.call(irlba::irlba, all.args)
 }
 
-.parallel_PA <- function(svdfun, args, ...) {
-    # Note that the ellipsis is ignored.
+.parallel_PA <- function(svdfun, args, ...) 
+# Function for use in bplapply, defined here to automatically take 
+# advantage of the scran namespace when using snowParam.
+{
     args$y <- .Call(cxx_auto_shuffle, args$y)
     out <- do.call(svdfun, args)
     return(out$d^2)
 }
 
+.keep_rank_in_range <- function(chosen, min.rank, nd)  
+# A function to sensibly incorporate the min.rank information,
+# while avoiding failures due to specification of a min.rank that is too large.
+{
+    max(chosen, min(min.rank, nd))
+}
+
 #' @importFrom DelayedArray DelayedArray
 #' @importFrom DelayedMatrixStats rowMeans2
-.convert_to_output <- function(svd.out, ncomp, value, original.mat, original.scale, subset.row) {
+.convert_to_output <- function(svd.out, ncomp, value, original.mat, original.scale, subset.row) 
+# Obtaining the desired output from the function; either the number of PCs,
+# or the PCs themselves, or a low-rank approximation of the original matrix.
+{
     if (value=="n") {
         return(ncomp)
     } 

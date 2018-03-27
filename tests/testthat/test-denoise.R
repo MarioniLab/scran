@@ -111,6 +111,10 @@ test_that("Low-rank approximations work as expected", {
     lrout.extra <- denoisePCA(lcounts.extra, technical=fit$trend, value="lowrank", subset.row=seq_len(nrow(lcounts)))
     expect_equal(lrout[,], lrout.extra[seq_len(nrow(lcounts)),])
     expect_equal(lrout[1:10,], lrout.extra[nrow(lcounts)+seq_len(10),])
+
+    # Checking that we get the exact input back when we ask for everything.
+    lrout <- denoisePCA(lcounts, technical=fit$trend, value="lowrank", min.rank=ncol(lcounts), max.rank=ncol(lcounts))
+    expect_equal(lrout[,], lcounts)
 }) 
 
 test_that("denoisePCA works with different settings", {
@@ -133,6 +137,11 @@ test_that("denoisePCA works with different settings", {
     pcs <- denoisePCA(lcounts, technical=fit$trend, max.rank=ncol(ref)-1)
     expect_identical(ncol(pcs), ncol(ref)-1L)
     expect_identical(pcs[,], ref[,-ncol(ref)])
+
+    pcs <- denoisePCA(lcounts, technical=fit$trend, min.rank=ncol(lcounts), max.rank=ncol(ref))
+    expect_identical(ncol(pcs), ncol(ref))
+    pcs <- denoisePCA(lcounts, technical=fit$trend, min.rank=ncol(ref), max.rank=Inf)
+    expect_identical(ncol(pcs), ncol(ref))
 })
 
 test_that("denoisePCA works with IRLBA", {
