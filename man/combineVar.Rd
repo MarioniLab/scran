@@ -32,7 +32,7 @@ To identify genes that are detected as highly variable in \emph{all} batches, Be
 }
 
 \value{
-A data frame with the same numeric fields as that produced by \code{\link{decomposeVar}}.
+A DataFrame with the same numeric fields as that produced by \code{\link{decomposeVar}}.
 Each field contains the average across all batches except for \code{p.value}, which contains the combined p-value based on \code{method};
 and \code{FDR}, which contains the adjusted p-value using the BH method.
 }
