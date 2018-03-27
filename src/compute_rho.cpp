@@ -199,7 +199,7 @@ public:
         return ncells;
     }
    
-    Rcpp::IntegerVector::iterator get1(size_t index) {
+    Rcpp::IntegerVector::const_iterator get1(size_t index) {
 	    const size_t actual=index % cache_size;
         const size_t cache_num=index / cache_size;
         if (cache_num!=current_cache1) {
@@ -216,7 +216,7 @@ public:
 	    return loc;
     }
 
-    Rcpp::IntegerVector::iterator get2(size_t index) {
+    Rcpp::IntegerVector::const_iterator get2(size_t index) {
 	    const size_t actual=index % cache_size;
         const size_t cache_num=index / cache_size;
 
@@ -282,9 +282,9 @@ public:
 private:
     struct rank_cache {
         rank_cache(const size_t ncells, const size_t ncached) : store(ncells*ncached), filled(ncached), location(ncached) {}
-        Rcpp::LogicalVector filled;
         Rcpp::IntegerVector store;
-        std::vector<Rcpp::IntegerVector::iterator> location;
+        Rcpp::LogicalVector filled;
+        std::vector<Rcpp::IntegerVector::const_iterator> location;
     };
 
     std::unique_ptr<beachmat::integer_matrix> rankings;
