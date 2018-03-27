@@ -1,5 +1,6 @@
-#' @importFrom scater calcAverage
-.denoisePCA <- function(x, technical, block=NULL, design=NULL, subset.row=NULL,
+#' @importFrom DelayedArray DelayedArray
+#' @importFrom DelayedMatrixStats rowVars rowMeans2
+.denoisePCA <- function(x, technical, design=NULL, subset.row=NULL,
                         value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100, 
                         approximate=FALSE, rand.seed=1000, irlba.args=list())
 # Performs PCA and chooses the number of PCs to keep based on the technical noise.
@@ -9,193 +10,65 @@
 # created 13 March 2017    
 {
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
-    stats.out <- .get_var_stats(x, block=block, design=design, subset.row=subset.row, get.QR=TRUE)
+    if (!is.null(design)) {
+        .Deprecated(msg="'design=' is deprecated.\nSee '?denoisePCA' for alternatives.")
+        x <- removeBatchEffect(x, design=NULL, covariates=design)
+    }
+    x2 <- DelayedArray(x)
+    scale <- NULL
 
-    # Defining the total variance and mean separately if we're blocked.
-    if (!is.null(block)) { 
-        block.means <- stats.out$means
-        num.per.block <- table(block)
-        all.means <- block.means %*% num.per.block[colnames(block.means)]/length(block)
-
-        resid.df <- stats.out$resid.df
-        total.resid.df <- rowSums(resid.df)
-        block.var <- stats.out$var
-        all.var <- rowSums(block.var * resid.df, na.rm=TRUE)/total.resid.df
-
-        if (is.function(technical)) { 
-            block.tech.var <- technical(as.vector(block.means))
-            dim(block.tech.var) <- dim(block.means)
-            tech.var <- rowSums(block.tech.var * resid.df)/total.resid.df
-        } else {
-            tech.var <- technical
-        }
+    # Processing different mechanisms through which we specify the technical component.
+    if (is(technical, "DataFrame")) { 
+        x.var <- rowVars(x2)
+        scale <- sqrt(technical$total/x.var) # Making sure everyone has the reported total variance.
+        all.var <- technical$total[subset.row]
+        tech.var <- technical$tech[subset.row]
     } else {
-        all.means <- stats.out$means
-        all.var <- stats.out$var
-
-        if (is.function(technical)) { 
+        all.var <- rowVars(x2, rows=subset.row)
+        if (is.function(technical)) {
+            all.means <- rowMeans2(x2, rows=subset.row)
             tech.var <- technical(all.means)
         } else {
-            tech.var <- technical
+            tech.var <- technical[subset.row]
         }
     }
 
     # Filtering out genes with negative biological components.
     keep <- all.var > tech.var
     use.rows <- subset.row[keep]
-    all.means <- all.means[keep]
-    all.var <- all.var[keep]
     tech.var <- tech.var[keep]
-    technical <- sum(tech.var)
- 
-    if (!is.null(block)) {
-        # Subtracting from each block (block.means is partially subsetted, hence the use of 'keep').
-        y <- as.matrix(x[use.rows,,drop=FALSE])
-        by.block <- split(seq_len(ncol(y)), block)
-        rescale <- sqrt((ncol(y) - ncol(block.means))/(ncol(y) - 1L)) # see below.
+    all.var <- all.var[keep]
+    total.tech <- sum(tech.var)
 
-        for (b in names(by.block)) {
-            chosen <- by.block[[b]]
-            y[,chosen] <- (y[,chosen] - block.means[keep,b])/rescale
-        }
-        centering <- numeric(nrow(y))
-
-    } else if (!is.null(design)) {  
-        # Computing residuals; don't set a lower bound.
-        # Note that this function implicitly subsets by subset.row.
-        QR <- stats.out$QR
-        rx <- .calc_residuals_wt_zeroes(x, QR=QR, subset.row=use.rows, lower.bound=NA) 
-        
-        # Rescaling residuals so that the variance is unbiased. You think you have N - 1 residual d.f.,
-        # but you actually only have nrow(design) - ncol(design) residual d.f., so we rescale.
-        rescale <- sqrt((nrow(design) - ncol(design))/(nrow(design) - 1L))
-       
-        # Replacing 'x' with the scaled residuals (these should already have a mean of zero,
-        # see http://math.stackexchange.com/questions/494181/ for a good explanation).
-        y <- rx/rescale
-        centering <- numeric(nrow(y))
-
-    } else {
-        y <- x[use.rows,,drop=FALSE] 
-        centering <- all.means # all.means is already subsetted, remember.
+    # Subsetting and scaling the matrix.
+    y <- x[use.rows,,drop=FALSE] 
+    if (!is.null(scale)) {
+        y <- y * scale[use.rows]
     }
 
-    # Checking various other arguments.
+    # Setting up the PCA function and its arguments.
     value <- match.arg(value)
-    min.rank <- max(1L, min.rank)
-
-    # Switching to IRLBA if an approximation is requested.
+    args <- list(y=t(y), max.rank=max.rank, value=value)
     if (approximate) {
-        if (!is.na(rand.seed)) { 
-            set.seed(rand.seed)
-        }
-        out.val <- .approximate_denoisePCA(y=y, min.rank=min.rank, max.rank=max.rank,
-            value=value, technical=technical, centering=centering, 
-            all.var=all.var, irlba.args=irlba.args)
+        svdfun <- .irlba_svd
+        args <- c(args, irlba.args)
     } else {
-        out.val <- .exact_denoisePCA(y=y, min.rank=min.rank, max.rank=max.rank, 
-            value=value, technical=technical, centering=centering)
-    }
-    var.exp <- out.val$variance
-    out.val <- out.val$output
-    
-    # Computing a low-rank approximation here.
-    if (value=="lowrank") { 
-        denoised <- out.val$U %*% (out.val$D * out.val$Vt) 
-        denoised <- t(denoised) + all.means
-        
-        output <- matrix(0, nrow=nrow(x), ncol=ncol(x))
-        dimnames(output) <- dimnames(x)
-        output[use.rows,] <- denoised
-
-        # The idea is that after our SVD, we have X=UDV' where each column of X is a gene. 
-        # Leftover genes are new columns in X, which are projected on the space of U by doing U'X.
-        # This can be treated as new columns in DV', which can be multiplied by U to give denoised values.
-        # I've done a lot of implicit transpositions here, hence the code does not tightly follow the logic above.
-        leftovers <- seq_len(nrow(x))[-use.rows]
-        if (length(leftovers)) { 
-            left.x <- x[leftovers,,drop=FALSE]
-            left.means <- calcAverage(left.x, size_factors=rep(1, ncol(x)))
-            left.x <- left.x - left.means
-            new.vals <- tcrossprod(left.x %*% out.val$U, out.val$U)
-            new.vals <- new.vals + left.means
-            output[leftovers,] <- new.vals
-        }
-
-        out.val <- output
+        svdfun <- .full_svd
     }
 
-    # Adding the percentage of variance explained.
+    # Runing the PCA and choosing the number of PCs.
+    original <- do.call(svdfun, args)
+    var.exp <- original$d^2 / (ncol(y) - 1)
+    npcs <- .get_npcs_to_keep(var.exp, total.tech, total=sum(all.var))
+    npcs <- max(npcs, min.rank)
+
+    # Processing remaining aspects.
+    out.val <- .convert_to_output(original, npcs, value, x, scale, subset.row)
     attr(out.val, "percentVar") <- var.exp/sum(all.var)
     return(out.val)
 } 
 
-##################################
-# Internal SVD and PCA functions #
-##################################
-
-.approximate_denoisePCA <- function(y, min.rank, max.rank, value, technical, centering, all.var, irlba.args) { 
-    ncells <- ncol(y)
-    max.rank <- min(dim(y)-1L, max.rank)
-    nu <- ifelse(value!="n", max.rank, 0L)
-
-    # Allowing more iterations if max.rank is high.
-    arg.max <- pmatch(names(irlba.args), "maxit")
-    if (all(is.na(arg.max))) { 
-        irlba.args$maxit <- max(100, max.rank*10)
-    }
-
-    out <- do.call(irlba::irlba, c(list(A=t(y), nu=nu, nv=max.rank, center=centering), irlba.args)) 
-    var.exp <- out$d^2/(ncells - 1)
-    
-    # Assuming all non-computed components were technical, and discarding them for further consideration.
-    leftovers <- sum(all.var) - sum(var.exp)
-    technical <- max(0, technical - leftovers)
-    to.keep <- .get_npcs_to_keep(var.exp, technical)
-    to.keep <- min(max(to.keep, min.rank), max.rank)
-    
-    # Figuring out what value to return; the number of PCs, the PCs themselves, or a denoised low-rank matrix.
-    if (value=="n") {
-        out.val <- to.keep
-    } else if (value=="pca") {
-        ix <- seq_len(to.keep)
-        out.val <- sweep(out$u[,ix,drop=FALSE], 2, out$d[ix], FUN="*")
-    } else if (value=="lowrank") {
-        ix <- seq_len(to.keep)
-        out.val <- list(U=out$u[,ix,drop=FALSE], D=out$d[ix], Vt=t(out$v[,ix,drop=FALSE]))
-    }
-    return(list(output=out.val, variance=var.exp))
-}
-
-#' @importFrom stats prcomp
-.exact_denoisePCA <- function(y, min.rank, max.rank, value, technical, centering) { 
-    ncells <- ncol(y)
-    max.rank <- min(dim(y), max.rank)
-
-    # Centering the matrix and coercing it to a dense representation.
-    y <- t(y - centering)
-    y <- as.matrix(y)
-
-    # Performing SVD to get the variance of each PC, and choosing the number of PCs to keep.
-    svd.out <- svd(y, nu=0, nv=0)
-    var.exp <- svd.out$d^2/(ncells - 1)
-    to.keep <- .get_npcs_to_keep(var.exp, technical)
-    to.keep <- min(max(to.keep, min.rank), max.rank)
-    
-    # Figuring out what value to return; the number of PCs, the PCs themselves, or a denoised low-rank matrix.
-    if (value=="n") {
-        out.val <- to.keep
-    } else if (value=="pca") {
-        pc.out <- prcomp(y, rank.=to.keep, scale.=FALSE, center=FALSE)
-        out.val <- pc.out$x
-    } else if (value=="lowrank") {
-        more.svd <- La.svd(y, nu=to.keep, nv=to.keep)
-        out.val <- list(U=more.svd$u, D=more.svd$d[seq_len(to.keep)], Vt=more.svd$vt)
-    }
-    return(list(output=out.val, variance=var.exp))
-}
-
-.get_npcs_to_keep <- function(var.exp, tech.var) 
+.get_npcs_to_keep <- function(var.exp, technical, total=sum(var.exp)) 
 # Discarding PCs until we get rid of as much technical noise as possible
 # while preserving the biological signal. This is done by assuming that 
 # the biological signal is fully contained in earlier PCs, such that we 
@@ -205,7 +78,7 @@
     flipped.var.exp <- rev(var.exp)
     estimated.contrib <- cumsum(flipped.var.exp) 
 
-    above.noise <- estimated.contrib > tech.var
+    above.noise <- estimated.contrib > technical - (total - sum(var.exp)) 
     if (any(above.noise)) { 
         to.keep <- npcs - min(which(above.noise)) + 1L
     } else {
