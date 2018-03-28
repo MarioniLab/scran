@@ -259,7 +259,7 @@ test_that("denoisePCA works with SingleCellExperiment inputs", {
 
 test_that("parallelPCA works as expected", {
     set.seed(100)
-    pcs <- parallelPCA(lcounts, value="pca", keep.perm=TRUE, niters=10)
+    pcs <- parallelPCA(lcounts, value="pca", keep.perm=TRUE, niters=5)
     permuted <- attr(pcs, "permuted.percentVar")
     original <- attr(pcs, "percentVar")
 
@@ -273,21 +273,21 @@ test_that("parallelPCA works as expected", {
 
     # Respects the seed, with and without irlba.
     set.seed(100)
-    pcs2 <- parallelPCA(lcounts, value="pca", keep.perm=TRUE, niters=3)
+    pcs2 <- parallelPCA(lcounts, value="pca", keep.perm=TRUE, niters=5)
     expect_identical(pcs2, pcs)
-    pcs3 <- parallelPCA(lcounts, value="pca", keep.perm=TRUE, niters=3)
+    pcs3 <- parallelPCA(lcounts, value="pca", keep.perm=TRUE, niters=5)
     expect_false(identical(pcs3, pcs))
 
     set.seed(100)
-    ipcs <- parallelPCA(lcounts, value="pca", keep.perm=TRUE, niters=3, approximate=TRUE, max.rank=10)
+    ipcs <- parallelPCA(lcounts, value="pca", keep.perm=TRUE, niters=5, approximate=TRUE, max.rank=10)
     set.seed(100)
-    ipcs2 <- parallelPCA(lcounts, value="pca", keep.perm=TRUE, niters=3, approximate=TRUE, max.rank=10)
+    ipcs2 <- parallelPCA(lcounts, value="pca", keep.perm=TRUE, niters=5, approximate=TRUE, max.rank=10)
     expect_identical(pcs, pcs2)
     expect_identical(ncol(ipcs), ncol(pcs))
 
     # Respects max.rank when choosing the number of PCs.
     set.seed(100)
-    pcs.x <- parallelPCA(lcounts, value="pca", keep.perm=TRUE, niters=3, max.rank=5, min.rank=0)
+    pcs.x <- parallelPCA(lcounts, value="pca", keep.perm=TRUE, niters=5, max.rank=5, min.rank=0)
     expect_identical(ncol(pcs.x), 5L)
     expect_identical(pcs.x[,], pcs[,1:5])
 })
@@ -318,6 +318,7 @@ test_that("parallelPCA works with different settings", {
 })
 
 test_that("parallelPCA works with low rank approximations", {
+    scaling <- runif(nrow(lcounts))
     set.seed(100)
     lr <- parallelPCA(lcounts, value="lowrank", niters=3, scale=scaling)
     set.seed(100)
