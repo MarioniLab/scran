@@ -66,6 +66,10 @@
     return(out.val)
 }
 
+#########################
+# Internal methods here #
+#########################
+
 #' @importFrom stats prcomp
 .full_svd <- function(y, max.rank, value) 
 # Convenience function for performing a SVD, with speed-ups
@@ -175,3 +179,40 @@
     output <- output + all.means
     return(output)
 }
+
+##############################
+# S4 method definitions here #
+##############################
+
+#' @export
+setGeneric("parallelPCA", function(x, ...) standardGeneric("parallelPCA"))
+
+#' @export
+setMethod("parallelPCA", "ANY", .parallelPCA)
+
+#' @importFrom SummarizedExperiment assay "assay<-"
+#' @importFrom SingleCellExperiment reducedDim isSpike
+#' @export
+setMethod("parallelPCA", "SingleCellExperiment", 
+          function(x, ..., subset.row=NULL, value=c("pca", "n", "lowrank"), 
+                   assay.type="logcounts", get.spikes=FALSE, sce.out=TRUE) {
+
+    subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
+    out <- .parallelPCA(assay(x, i=assay.type), ..., value=value, subset.row=subset.row)
+
+    value <- match.arg(value) 
+    if (!sce.out || value=="n") { 
+        return(out)
+    }
+
+    if (value=="pca"){ 
+        reducedDim(x, "PCA") <- out
+    } else if (value=="lowrank") {
+        if (!get.spikes) {
+            out[isSpike(x),] <- 0
+        }
+        assay(x, i="lowrank") <- out
+    }
+    return(x)
+})
+
