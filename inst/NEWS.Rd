@@ -55,6 +55,8 @@ Removed empirical Bayes shrinkage as well as the min.mean= argument.
 \item Added the makeTechTrend() function for generating a mean-variance trend under Poisson technical noise.
 
 \item Added the clusterModularity() function for assessing the cluster-wise modularity after graph-based clustering.
+
+\item Deprecated exploreData(), selectorPlot() in favour of iSEE().
 }}
 
 \section{Version 1.6.0}{\itemize{

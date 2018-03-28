@@ -18,6 +18,8 @@ selectorPlot(x, y, persist=FALSE, plot.width=5, plot.height=500, run=TRUE, pch=1
 }
 
 \details{
+Note that this function is deprecated; we suggest using the \pkg{iSEE} package for data exploration and point selection instead.
+
 This function will return a Shiny app object that can be run with \code{\link{runApp}}.
 The aim is to perform dimensionality reduction to obtain coordinates for each cell, e.g., from PCA or t-SNE.
 These coordinates can be plotted with \code{selectorPlot}, and subpopulations of interest can be interactively selected.

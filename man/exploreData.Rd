@@ -17,6 +17,8 @@ exploreData(x, cell.data, gene.data, red.dim, run=TRUE)
 }
 
 \details{
+Note that this function is deprecated; we suggest using the \pkg{iSEE} package for data exploration instead.
+
 This function will return a Shiny app object that can be run with \code{\link{runApp}}.
 The app allows the user to interactively explore gene expression patterns in single-cell RNA-seq data. 
 Explorative analysis is focused on comparing gene exression between different groups of cells, as defined by the covariates of \code{cell.data}.
@@ -57,9 +59,8 @@ cell.data <- DataFrame(stuff=sample(LETTERS, ncol(sce), replace=TRUE))
 gene.data <- DataFrame(lengths=runif(nrow(sce)))
 
 # Mocking up  some reduced dimensions.
-library(Rtsne)
-tsn <- Rtsne(t(exprs(sce)), perplexity=10)
-red.dim <- tsn$Y[,1:2]
+pca <- prcomp(t(exprs(sce)))
+red.dim <- pca$x[,1:2]
 
 # Creating the app object.
 app <- exploreData(exprs(sce), cell.data, gene.data, red.dim, run=FALSE)
