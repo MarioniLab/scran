@@ -165,7 +165,7 @@ test_that("denoisePCA works with a DataFrame input", {
     pcs2 <- denoisePCA(lcounts, technical=dec, subset.row=chosen, value="pca")
     expect_equal(ref2, pcs2)
 
-    # Rescaling is handled correctly. 
+    # Testing the rescaling to enforce the total variance in dec$total.
     rescaled <- runif(nrow(lcounts))
     lcountsX <- lcounts * rescaled
     pcs3 <- denoisePCA(lcountsX, technical=dec, value="pca")
@@ -174,7 +174,6 @@ test_that("denoisePCA works with a DataFrame input", {
     lr3 <- denoisePCA(lcountsX, technical=dec, value="lowrank")
     expect_equal(ref.lr * rescaled, lr3)
 })
-
 
 test_that("denoisePCA works with IRLBA", {
     # Checking choice of number of PCs.
@@ -218,7 +217,6 @@ test_that("denoisePCA throws errors correctly", {
 })
 
 test_that("denoisePCA works with SingleCellExperiment inputs", {
-    # Checking for proper behaviour with SCESet.
     X <- SingleCellExperiment(list(logcounts=lcounts))
     X2 <- denoisePCA(X, technical=fit$trend)
     pcx <- reducedDim(X2, "PCA")
@@ -254,3 +252,122 @@ test_that("denoisePCA works with SingleCellExperiment inputs", {
     pcx <- assay(X3, "lowrank")
     expect_equal(pcx, ref)
 })
+
+################################################
+# Repeating a subset of tests for parallelPCA. #
+################################################
+
+test_that("parallelPCA works as expected", {
+    set.seed(100)
+    pcs <- parallelPCA(lcounts, value="pca", keep.perm=TRUE, niters=10)
+    permuted <- attr(pcs, "permuted.percentVar")
+    original <- attr(pcs, "percentVar")
+
+    expect_identical(ncol(pcs), min(which(colMeans(permuted) > original))-1L)
+    expect_true(sum(original) <= 1)
+    expect_true(all(rowSums(permuted) <= 1))
+
+    var.exp <- prcomp(t(lcounts))$sdev^2
+    frac.exp <- var.exp/sum(var.exp)
+    expect_equal(frac.exp[seq_along(original)], original)
+
+    # Respects the seed, with and without irlba.
+    set.seed(100)
+    pcs2 <- parallelPCA(lcounts, value="pca", keep.perm=TRUE, niters=3)
+    expect_identical(pcs2, pcs)
+    pcs3 <- parallelPCA(lcounts, value="pca", keep.perm=TRUE, niters=3)
+    expect_false(identical(pcs3, pcs))
+
+    set.seed(100)
+    ipcs <- parallelPCA(lcounts, value="pca", keep.perm=TRUE, niters=3, approximate=TRUE, max.rank=10)
+    set.seed(100)
+    ipcs2 <- parallelPCA(lcounts, value="pca", keep.perm=TRUE, niters=3, approximate=TRUE, max.rank=10)
+    expect_identical(pcs, pcs2)
+    expect_identical(ncol(ipcs), ncol(pcs))
+
+    # Respects max.rank when choosing the number of PCs.
+    set.seed(100)
+    pcs.x <- parallelPCA(lcounts, value="pca", keep.perm=TRUE, niters=3, max.rank=5, min.rank=0)
+    expect_identical(ncol(pcs.x), 5L)
+    expect_identical(pcs.x[,], pcs[,1:5])
+})
+
+test_that("parallelPCA works with different settings", {
+    # Responds correctly to scaling.
+    scaling <- runif(nrow(lcounts))
+    set.seed(100)
+    pcs <- parallelPCA(lcounts, value="pca", keep.perm=TRUE, niters=3, scale=scaling)
+    set.seed(100)
+    pcs2 <- parallelPCA(lcounts*scaling, value="pca", keep.perm=TRUE, niters=3)
+    expect_identical(pcs, pcs2)
+
+    # Responds correctly to subsetting.
+    chosen <- sample(nrow(lcounts), 100)
+    set.seed(100)
+    pcs <- parallelPCA(lcounts, value="pca", keep.perm=TRUE, niters=3, subset.row=chosen)
+    set.seed(100)
+    pcs2 <- parallelPCA(lcounts[chosen,,drop=FALSE], value="pca", keep.perm=TRUE, niters=3)
+    expect_identical(pcs, pcs2)
+
+    # Responds correctly to both.
+    set.seed(100)
+    pcs <- parallelPCA(lcounts, value="pca", keep.perm=TRUE, niters=3, subset.row=chosen, scale=scaling)
+    set.seed(100)
+    pcs2 <- parallelPCA((scaling * lcounts)[chosen,,drop=FALSE], value="pca", keep.perm=TRUE, niters=3)
+    expect_identical(pcs, pcs2)
+})
+
+test_that("parallelPCA works with low rank approximations", {
+    set.seed(100)
+    lr <- parallelPCA(lcounts, value="lowrank", niters=3, scale=scaling)
+    set.seed(100)
+    lr2 <- parallelPCA(lcounts*scaling, value="lowrank", niters=3)/scaling
+    expect_equal(lr, lr2)
+
+    # Checking that subsetting and projections work.
+    set.seed(100)
+    lr <- parallelPCA(lcounts, value="lowrank", niters=3)
+
+    combined <- rbind(lcounts, lcounts[1:10,])
+    chosen <- seq_len(nrow(lcounts))
+    set.seed(100)
+    lr3 <- parallelPCA(combined, value="lowrank", niters=3, subset.row=chosen)
+    expect_equal(lr[,], lr3[chosen,])
+    expect_equal(lr3[1:10,], lr3[1:10+nrow(lcounts),])
+})
+
+test_that("parallelPCA works with SingleCellExperiment inputs", {
+    X <- SingleCellExperiment(list(logcounts=lcounts))
+    X2 <- parallelPCA(X, niters=3)
+    pcx <- reducedDim(X2, "PCA")
+    rownames(pcx) <- NULL
+    pcs <- parallelPCA(lcounts, niters=3)
+    expect_identical(pcs, pcx)
+    
+    isSpike(X, "Spike") <- is.spike
+    X2 <- parallelPCA(X, niters=3, get.spikes=TRUE)
+    pcx <- reducedDim(X2, "PCA")
+    rownames(pcx) <- NULL
+    expect_identical(pcx, pcs)
+    
+    X2 <- parallelPCA(X, niters=3)
+    pcx <- reducedDim(X2, "PCA")
+    rownames(pcx) <- NULL
+    not.spike <- setdiff(seq_len(ngenes), is.spike)
+    pcs <- parallelPCA(lcounts, niters=3, subset.row=not.spike)
+    expect_identical(pcs, pcx)
+
+    # Checking lowrank calculations.
+    X3 <- parallelPCA(X, niters=3, value="lowrank")
+    ref <- parallelPCA(exprs(X)[not.spike,], niters=3, value="lowrank")
+    pcx <- assay(X3, "lowrank")
+    expect_equal(pcx[not.spike,], ref[,])
+    expect_true(all(pcx[is.spike,]==0))
+    
+    X3 <- parallelPCA(X, niters=3, value="lowrank", get.spikes=TRUE)
+    ref <- parallelPCA(exprs(X), niters=3, value="lowrank")
+    pcx <- assay(X3, "lowrank")
+    expect_equal(pcx, ref)
+})
+
+
