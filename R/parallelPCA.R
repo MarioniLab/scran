@@ -58,7 +58,7 @@
     attr(out.val, "percentVar") <- var.exp/all.var
     
     if (keep.perm) { 
-        permutations <- do.call(rbind, permuted.d2)/(ncol(x)-1L)
+        permutations <- do.call(rbind, permuted)/(ncol(x)-1L)
         permutations <- sweep(permutations, 2L, all.var, FUN="/")
         attr(out.val, "permuted.percentVar") <- permutations
     }
@@ -109,8 +109,10 @@
 
 .parallel_PA <- function(svdfun, args, ...) 
 # Function for use in bplapply, defined here to automatically take 
-# advantage of the scran namespace when using snowParam.
+# advantage of the scran namespace when using snowParam. We set
+# value='n' as we don't really want anything but the singular values here.
 {
+    args$value <- "n"
     args$y <- .Call(cxx_shuffle_matrix, args$y)
     out <- do.call(svdfun, args)
     return(out$d^2)

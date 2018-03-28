@@ -25,6 +25,7 @@ All genes are used by default.}
 \item{value}{A string specifying the type of value to return; the PCs, the number of retained components, or a low-rank approximation.}
 \item{min.rank, max.rank}{Integer scalars specifying the minimum and maximum number of PCs to retain.}
 \item{niters}{Integer scalar specifying the number of iterations to use for the parallel analysis.}
+\item{keep.perm}{Logical scalar indicating whether permutation results should be returned.}
 \item{approximate}{A logical scalar indicating whether approximate SVD should be performed via \code{\link[irlba]{irlba}}.}
 \item{irlba.args}{A named list of additional arguments to pass to \code{\link[irlba]{irlba}} when \code{approximate=TRUE}.}
 \item{BPPARAM}{A BiocParallelParam object.}
@@ -46,7 +47,7 @@ If \code{value="pca"}, the modified object will contain the PCs as the \code{"PC
 If \code{value="lowrank"}, it will return a low-rank approximation in \code{assays} slot, named \code{"lowrank"}.
 
 In all cases, the fractions of variance explained by the first \code{max.rank} PCs will be stored as the \code{"percentVar"} attribute in the return value.
-The fractions of variance explained by the first PCs after each permutation iteration is also recorded as a matrix in \code{"permuted.percentVar"}.
+If \code{keep.perm=TRUE}, fractions of variance explained by these PCs after each permutation iteration is also recorded as a matrix in \code{"permuted.percentVar"}.
 }
 
 \details{
