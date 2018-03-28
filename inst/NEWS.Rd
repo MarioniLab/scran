@@ -6,7 +6,7 @@
 \item Modified decomposeVar() to return statistics (but not p-values) for spike-ins when get.spikes=NA.
 Added block= argument for mean/variance calculations within each level of a blocking factor, 
 followed by reporting of weighted averages (using weighted Stouffer's method for p-values).
-Added store.stats= argument to record stats in attributes for use in combineVar(). 
+Automatically record global statistics in the metadata of the output for use in combineVar(). 
 Switched output to a DataFrame object for consistency with other functions.
 
 \item Allowed passing of arguments to irlba() in denoisePCA() to assist convergence.
@@ -40,7 +40,7 @@ Deprecated the use of residuals=FALSE for one-way layouts in design=.
 Switched to automatic ranking of genes based on ability to discriminate between groups.
 Added rank.type= and direction= arguments to control ranking of genes.
 
-\item Modified combineVar() so that it is aware to the stats recorded in decomposeVar() with store.stats=TRUE.
+\item Modified combineVar() so that it is aware to the stats recorded in decomposeVar().
 Switched the default from Fisher's method to Stouffer's method with residual d.f.-weighted Z-scores.
 
 \item Modified the behaviour of min.mean= in computeSumFactors() when clusters!=NULL.
