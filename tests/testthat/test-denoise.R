@@ -290,6 +290,15 @@ test_that("parallelPCA works as expected", {
     pcs.x <- parallelPCA(lcounts, value="pca", keep.perm=TRUE, niters=5, max.rank=5, min.rank=0)
     expect_identical(ncol(pcs.x), 5L)
     expect_identical(pcs.x[,], pcs[,1:5])
+
+    # Underlying C++ code does as expected.
+    set.seed(100)
+    shuffled <- .Call(scran:::cxx_shuffle_matrix, t(lcounts))
+    set.seed(100)
+    for (i in seq_len(nrow(lcounts))) {
+        ref <- .Call(scran:::cxx_auto_shuffle, lcounts[i,], 1)
+        expect_equal(as.numeric(ref), shuffled[,i])
+    }
 })
 
 test_that("parallelPCA works with different settings", {
