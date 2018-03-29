@@ -107,3 +107,18 @@ test_that("findMarkers and overlapExprs work properly", {
     expect_equal(overlapExprs(X, groups), overlapExprs(X_, groups))
     expect_equal(overlapExprs(Y, groups), overlapExprs(Y_, groups))
 })
+
+test_that("parallelPCA runs properly", {
+    set.seed(1000)
+    pp1 <- parallelPCA(X_, value="n", niters=1)
+    set.seed(1000)
+    pp2 <- parallelPCA(X, value="n", niters=1)
+    expect_identical(pp1, pp2)
+
+    set.seed(1000)
+    pp1 <- parallelPCA(Y_, value="n", niters=1)
+    set.seed(1000)
+    pp2 <- parallelPCA(Y, value="n", niters=1)
+    expect_identical(pp1, pp2)
+})
+

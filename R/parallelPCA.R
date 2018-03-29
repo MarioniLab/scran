@@ -72,7 +72,7 @@
 # they are not necessary for the final 'value'.
 {
     max.rank <- min(max.rank, dim(y))
-    y <- sweep(y, 2L, colMeans(y), check.margin = FALSE)
+    y <- scale(y, center=TRUE, scale=FALSE)
 
     if (value=="n") {
         nu <- nv <- 0
