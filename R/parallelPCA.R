@@ -2,7 +2,7 @@
 #' @importFrom DelayedArray DelayedArray
 #' @importFrom DelayedMatrixStats rowVars
 .parallelPCA <- function(x, subset.row=NULL, scale=NULL, value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100,
-                         niters=20, keep.perm=FALSE, approximate=FALSE, irlba.args=list(), BPPARAM=SerialParam())
+                         niters=50, threshold=0.1, approximate=FALSE, irlba.args=list(), BPPARAM=SerialParam())
 # This performs Horn's parallel analysis to determine the number of PCs
 # to retain, by randomizing each row and repeating the PCA to obtain
 # an estimate of the mean variance explained per PC under a random model.
@@ -38,30 +38,25 @@
     original <- do.call(svdfun, args)
     original.d2 <- original$d^2
     permuted <- bplapply(seq_len(niters), FUN=.parallel_PA, svdfun=svdfun, args=args, BPPARAM=BPPARAM)
-    permuted.d2 <- Reduce("+", permuted)/niters
+    permutations <- do.call(cbind, permuted)
 
-    # Figuring out where the original drops below the permuted.
-    below <- permuted.d2 > original.d2
-    if (!any(below)) {
-        npcs <- length(below) 
+    # Figuring out where the original drops to "within range" of permuted.
+    prop <- rowMeans(permutations >= original.d2)
+    above <- prop > threshold
+    if (!any(above)) {
+        npcs <- length(above) 
     } else {
-        npcs <- min(which(below)) - 1L
+        npcs <- min(which(above)) - 1L
     }
     npcs <- .keep_rank_in_range(npcs, min.rank, length(original.d2))
 
-    # Actually computing the variance.
+    # Collating the return value.
+    out.val <- .convert_to_output(original, npcs, value, x0, scale0, subset.row)
+
     var.exp <- original.d2 / (ncol(x) - 1)
     all.var <- sum(rowVars(DelayedArray(x)))
-    
-    # Figuring out what to return.
-    out.val <- .convert_to_output(original, npcs, value, x0, scale0, subset.row)
     attr(out.val, "percentVar") <- var.exp/all.var
-    
-    if (keep.perm) { 
-        permutations <- do.call(rbind, permuted)/(ncol(x)-1L)
-        permutations <- sweep(permutations, 2L, all.var, FUN="/")
-        attr(out.val, "permuted.percentVar") <- permutations
-    }
+    attr(out.val, "permuted.percentVar") <- t(permutations)/(ncol(x)-1L)/all.var
 
     return(out.val)
 }
@@ -150,7 +145,6 @@
     # Note that we transpose to match dimensions, so it's really V(UD)'.
     V <- svd.out$v[,ix,drop=FALSE]
     hits <- tcrossprod(V, pcs)
-
     all.means <- rowMeans2(DelayedArray(original.mat))
 
     if (is.null(subset.row)) {
