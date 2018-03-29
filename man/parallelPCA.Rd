@@ -8,7 +8,7 @@
 
 \usage{
 \S4method{parallelPCA}{ANY}(x, subset.row=NULL, scale=NULL, value=c("pca", "n", "lowrank"), 
-    min.rank=5, max.rank=100, niters=20, keep.perm=FALSE, approximate=FALSE, 
+    min.rank=5, max.rank=100, niters=50, threshold=0.1, approximate=FALSE, 
     irlba.args=list(), BPPARAM=SerialParam())
 
 \S4method{parallelPCA}{SingleCellExperiment}(x, ..., subset.row=NULL, 
@@ -25,7 +25,7 @@ All genes are used by default.}
 \item{value}{A string specifying the type of value to return; the PCs, the number of retained components, or a low-rank approximation.}
 \item{min.rank, max.rank}{Integer scalars specifying the minimum and maximum number of PCs to retain.}
 \item{niters}{Integer scalar specifying the number of iterations to use for the parallel analysis.}
-\item{keep.perm}{Logical scalar indicating whether permutation results should be returned.}
+\item{threshold}{Numeric scalar representing the \dQuote{p-value} threshold above which PCs are to be ignored.}
 \item{approximate}{A logical scalar indicating whether approximate SVD should be performed via \code{\link[irlba]{irlba}}.}
 \item{irlba.args}{A named list of additional arguments to pass to \code{\link[irlba]{irlba}} when \code{approximate=TRUE}.}
 \item{BPPARAM}{A BiocParallelParam object.}
@@ -47,29 +47,23 @@ If \code{value="pca"}, the modified object will contain the PCs as the \code{"PC
 If \code{value="lowrank"}, it will return a low-rank approximation in \code{assays} slot, named \code{"lowrank"}.
 
 In all cases, the fractions of variance explained by the first \code{max.rank} PCs will be stored as the \code{"percentVar"} attribute in the return value.
-If \code{keep.perm=TRUE}, fractions of variance explained by these PCs after each permutation iteration is also recorded as a matrix in \code{"permuted.percentVar"}.
+Fractions of variance explained by these PCs after each permutation iteration are also recorded as a matrix in \code{"permuted.percentVar"}.
 }
 
 \details{
 This function performs Horn's parallel analysis to decide how many PCs to retain in a principal components analysis. 
-Parallel analysis involves permuting the expression vector for each gene and repeating the PCA to obtain the fractions of variance explained under a random null hypothesis.
+Parallel analysis involves permuting the expression vector for each gene and repeating the PCA to obtain the fractions of variance explained under a random null model. 
 The number of PCs to retain is determined by the intersection of the \dQuote{fraction explained} lines on a scree plot.
 This is justified as discarding PCs that explain less variance than would be expected under a random model.
 
+In practice, we discard all PCs from the first PC that has a fraction explained \emph{similar} to that under the null.
+A PC is considered similar if the permuted fractions exceed the observed fraction in more than \code{threshold} of iterations.
+(For want of a better word, we have described this as a \dQuote{p-value} threshold, though it is not interpretable as a measure of significance.)
+This is a more conservative criterion than discarding PCs with fractions below the average null fraction, which tends to overstate the rank in noisy datasets.
+Note that the number of PCs will be coerced to lie between \code{min.rank} and \code{max.rank}.
+
 This function can be sped up by specifying \code{approximate=TRUE}, which will use approximate strategies for performing the PCA.
 Another option is to set \code{BPPARAM} to perform the iterations in parallel.
-}
-
-\section{Further comments on parallel analysis}{
-Unlike other implementations, this function does \emph{not} compute p-values for the \dQuote{significance} of each principal component.
-Such p-values only have a clear interpretation for the first eigenvalue, as the null hypothesis is that of global randomness.
-It is not obvious how to perform correction for multiple testing across multiple principal components.
-In addition, the number of PCs will depend on the power, which is determined by the number of iterations.
-
-Here, we only use the average of the fractions explained by each successive PC across \code{niters} permutations.
-The number of PCs is defined as the last consecutive PC (starting from the first) where the fraction explained is greater than the permuted average.
-This is stable to the number of iterations as it uses the expectation of the fractions.
-Note that the number of PCs will be coerced to lie between \code{min.rank} and \code{max.rank}.
 }
 
 \author{
