@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.7.25}{\itemize{
+\section{Version 1.7.26}{\itemize{
 \item Modified decomposeVar() to return statistics (but not p-values) for spike-ins when get.spikes=NA.
 Added block= argument for mean/variance calculations within each level of a blocking factor, 
 followed by reporting of weighted averages (using weighted Stouffer's method for p-values).
@@ -55,6 +55,8 @@ Removed empirical Bayes shrinkage as well as the min.mean= argument.
 \item Added the makeTechTrend() function for generating a mean-variance trend under Poisson technical noise.
 
 \item Added the clusterModularity() function for assessing the cluster-wise modularity after graph-based clustering.
+
+\item Added the parallelPCA() function for performing parallel analysis to choose the number of PCs.
 
 \item Deprecated exploreData(), selectorPlot() in favour of iSEE().
 }}
