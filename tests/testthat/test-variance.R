@@ -523,7 +523,7 @@ test_that("testVar's F-test works as expected", {
 test_that("testVar works with silly inputs", {
     expect_identical(testVar(0, 0, df=10), 1)
     expect_identical(testVar(numeric(0), trended, df=df), numeric(0))
-    expect_identical(testVar(observed, numeric(0), df=df), rep(NA_real_, length(observed)))
+    expect_identical(testVar(observed, numeric(0), df=df), numeric(0))
     expect_identical(testVar(observed, trended, df=numeric(0)), rep(NA_real_, length(observed)))
 })
 
@@ -560,6 +560,8 @@ test_that("combineVar works correctly", {
     res <- combineVar(dec, dec2, dec3)
     expect_equal(res$mean, drop(cbind(dec$mean, dec2$mean, dec3$mean) %*% N / sum(N)))
     expect_equal(res$total, drop(cbind(dec$total, dec2$total, dec3$total) %*% DF) / sum(DF))
+    expect_equal(res$tech, drop(cbind(dec$tech, dec2$tech, dec3$tech) %*% DF) / sum(DF))
+    expect_equal(res$bio, drop(cbind(dec$bio, dec2$bio, dec3$bio) %*% DF) / sum(DF))
 
     # Checking proper calculation of combined p-values.
     expect_equal(res$p.value, apply(cbind(dec$p.value, dec2$p.value, dec3$p.value),
@@ -595,6 +597,11 @@ test_that("combineVar works correctly", {
     redec2 <- dec2
     rownames(redec) <- rownames(redec2) <- paste0(rownames(dec), "Y")
     expect_error(res <- combineVar(redec, redec2), "gene names")
+
+    # Just directly returns the input if only one DF is supplied.
+    expect_equal(combineVar(dec), dec)
+    expect_equal(combineVar(dec2), dec2)
+    expect_equal(combineVar(dec3), dec3)
 })
 
 ####################################################################################################
