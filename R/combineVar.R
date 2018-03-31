@@ -49,9 +49,15 @@ combineVar <- function(..., method=c("z", "fisher", "simes", "berger"))
     }
 
     output <- do.call(DataFrame, output)
+    p.final <- unname(p.final)
     output$p.value <- p.final
     output$FDR <- p.adjust(p.final, method="BH")
     rownames(output) <- ref
+
+    # Ensure that you get the same results if you supply only 1 DF as input.
+    total.resid <- Reduce("+", resid.df)
+    names(total.resid) <- ref
+    metadata(output) <- list(num.cells=sum(unlist(n.cells)), resid.df=total.resid)
     return(output)
 }
 

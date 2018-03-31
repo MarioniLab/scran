@@ -40,45 +40,42 @@
     }
 
     if (!is.null(block)) {
-        gnames <- rownames(lmeans)
+        # Setting up the input for combineVar.
+        nbatches <- ncol(lmeans)
+        collected <- vector("list", nbatches) 
+        names(collected) <- colnames(lmeans)
 
-        # Need to do some work to calculate the technical component separately for each block.
-        block.tech.var <- fit$trend(as.vector(lmeans))
-        block.pval <- testVar(as.vector(lvar), null=block.tech.var, df=as.vector(resid.df), second.df=fit$df2, log.p=TRUE, ...)
-        dim(block.pval) <- dim(block.tech.var) <- dim(lmeans)
-
-        # Aggregating variances together, using the weighted mean of residual d.f. 
-        # (we set na.rm=TRUE to ignore blocks where no resid. d.f. are available).
-        total.resid.df <- rowSums(resid.df)
-        lvar <- rowSums(lvar * resid.df, na.rm=TRUE)/total.resid.df
-        tech.var <- rowSums(block.tech.var * resid.df)/total.resid.df
+        for (x in names(collected)) { 
+            collected[[x]] <- .create_var_df(lmeans[,x], lvar[,x], fit$trend, resid.df=resid.df[,x], 
+                                             gene.names=rownames(lmeans), ncells=sum(block==x), second.df=fit$df2)
+        }
         
-        # Aggregating means together (effectively rowMeans(x), without having to recompute it from 'x').
-        num.per.block <- table(block)
-        lmeans <- lmeans %*% num.per.block[colnames(lmeans)]/length(block)
+        out <- do.call(combineVar, c(collected, list(method="z")))
+        return(out)
+    } 
+        
+    .create_var_df(lmeans, lvar, fit$trend, resid.df=resid.df, 
+                   gene.names=names(lmeans), ncells=ncells, second.df=fit$df2)
+}
 
-        # Combining p-values using Stouffer's method (independent observations).
-        Z <- rowSums(qnorm(block.pval, log.p=TRUE) * resid.df)/total.resid.df
-        pval <- pnorm(Z)
-        resid.df <- total.resid.df
-
-    } else {
-        gnames <- names(lmeans)
-        tech.var <- fit$trend(lmeans)
-        pval <- testVar(total=lvar, null=tech.var, df=resid.df, second.df=fit$df2, ...)
-    }
-    
-    pval <- as.numeric(pval)
+.create_var_df <- function(lmean, lvar, trendfun, resid.df, gene.names, ncells, ...) 
+# Helper function to create the output DataFrame. 
+{
     lvar <- as.numeric(lvar)
-    tech.var <- as.numeric(tech.var)
+    tech.var <- as.numeric(trendfun(lmean))
+    pval <- testVar(total=lvar, null=tech.var, df=unname(resid.df), ...)
     bio.var <- lvar - tech.var
-    out <- DataFrame(mean=as.numeric(lmeans), 
+    out <- DataFrame(mean=as.numeric(lmean), 
                      total=lvar, bio=bio.var, tech=tech.var,
                      p.value=pval, FDR=p.adjust(pval, method="BH"),
-                     row.names=gnames)
+                     row.names=gene.names)
     metadata(out) <- list(num.cells=ncells, resid.df=resid.df)
     return(out)
 }
+
+##############################
+# Defining the S4 internals. #
+##############################
 
 #' @export
 setGeneric("decomposeVar", function(x, fit, ...) standardGeneric("decomposeVar"))
