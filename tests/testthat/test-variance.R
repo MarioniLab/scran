@@ -302,7 +302,7 @@ test_that("Variance decomposition is working correctly", {
 
     # Checking that stats are correctly stored.
     expect_equal(metadata(out.all)$num.cells, ncells)
-    expect_equal(unname(metadata(out.all)$resid.df), rep(ncells-1L, ngenes))
+    expect_equal(metadata(out.all)$resid.df, ncells-1L)
 
     # Checking that the p-value calculation is correct.
     ref.p <- testVar(out.all$total, out.all$tech, df=ncells-1)
@@ -320,8 +320,7 @@ test_that("Variance decomposition is working correctly", {
     expect_identical(ref2, out.all)
 
     expect_equal(metadata(out)$num.cells, ncells)
-    expect_equal(unname(metadata(out)$resid.df), rep(ncells-1L, sum(!isSpike(X))))
-
+    expect_equal(metadata(out)$resid.df, ncells-1L)
 })
    
 test_that("decomposeVar behaves correctly with subsetting", {
@@ -594,7 +593,6 @@ test_that("combineVar works correctly", {
     reres <- combineVar(dec[1:10,], dec2[1:10,], dec3[1:10,])
     rescheck <- res[1:10,]
     rescheck$FDR <- p.adjust(rescheck$p.value, method="BH")
-    metadata(rescheck)$resid.df <- metadata(rescheck)$resid.df[1:10]
     expect_equal(reres, rescheck)
 
     # Checking fails: 
