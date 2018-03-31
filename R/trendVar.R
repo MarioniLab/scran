@@ -14,10 +14,12 @@
     stats.out <- .get_var_stats(x, block=block, design=design, subset.row=subset.row)
 
     # Filtering out zero-variance and low-abundance genes.
-    is.okay <- stats.out$resid.df > 0L & stats.out$vars > 1e-8 & stats.out$means >= min.mean 
+    is.okay <- !is.na(stats.out$vars) & stats.out$vars > 1e-8 & stats.out$means >= min.mean 
     kept.vars <- stats.out$vars[is.okay]
     kept.means <- stats.out$means[is.okay]
-    kept.resid <- stats.out$resid.df[is.okay]
+
+    # Figuring out the d.f. (exploiting column major indices when stats.out$vars is a matrix with block=).
+    kept.resid <- stats.out$resid.df[ceiling(which(is.okay)/nrow(x))]
 
     # Fitting a parametric curve to try to flatten the shape.
     # This is of the form y = a*x/(x^n + b), but each coefficent is actually set
@@ -128,9 +130,6 @@
         vars <- stats[[2]]
         dimnames(means) <- dimnames(vars) <- list(rownames(x)[subset.row], names(by.block))
 
-        # Expanding to all observations.
-        resid.df <- matrix(resid.df, length(subset.row), length(by.block), byrow=TRUE, dimnames=dimnames(means))
-
     } else if (!is.null(design)) {
         checked <- .make_var_defaults(x, fit=NULL, design=design)
         design <- checked$design
@@ -153,10 +152,6 @@
         vars <- lout[[2]]
         names(means) <- names(vars) <- rownames(x)[subset.row]
 
-        # Expanding residual d.f. to all observations.
-        resid.df <- rep(resid.df, length(means))
-        names(resid.df) <- names(means)
-
     } else {
         resid.df <- ncol(x) - 1L
         if (resid.df <= 0L) {
@@ -169,8 +164,6 @@
         vars <- drop(stats[[2]])
         names(means) <- names(vars) <- rownames(x)[subset.row]
 
-        resid.df <- rep(resid.df, length(means))
-        names(resid.df) <- names(means)
     }
 
     return(c(list(vars=vars, means=means, resid.df=resid.df), recorder))

@@ -46,7 +46,7 @@
         names(collected) <- colnames(lmeans)
 
         for (x in names(collected)) { 
-            collected[[x]] <- .create_var_df(lmeans[,x], lvar[,x], fit$trend, resid.df=resid.df[,x], 
+            collected[[x]] <- .create_var_df(lmeans[,x], lvar[,x], fit$trend, resid.df=resid.df[x], 
                                              gene.names=rownames(lmeans), ncells=sum(block==x), second.df=fit$df2)
         }
         
