@@ -15,6 +15,8 @@ testVar <- function(total, null, df, design=NULL, test=c("chisq", "f"), second.d
     test <- match.arg(test)
     if (test=="chisq") {
         p <- pchisq(total/null*df, df=df, lower.tail=FALSE, log.p=log.p)
+        p[total==0 & null==0] <- 1
+        p[rep(df==0, length.out=length(p))] <- NA_real_
     } else {
         if (is.null(second.df)) { 
             stop("second df from trendVar() must be specified for test='f'") 
@@ -30,10 +32,10 @@ testVar <- function(total, null, df, design=NULL, test=c("chisq", "f"), second.d
 
         # Assumes that the scaled inverse-chisq distribution for true variances is the same for incoming genes.
         p <- pf(total/scaling, df1=df, df2=second.df, lower.tail=FALSE, log.p=log.p) 
+        p[total==0 & null==0] <- 1
+        p[rep(df==0 | second.df==0, length.out=length(p))] <- NA_real_
     }
 
-    # If both total and null are equal to zero, we set the p-value to 1.
-    p[total==0 & null==0] <- 1
     return(p)
 }
 

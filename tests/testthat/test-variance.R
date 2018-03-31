@@ -522,9 +522,18 @@ test_that("testVar's F-test works as expected", {
 
 test_that("testVar works with silly inputs", {
     expect_identical(testVar(0, 0, df=10), 1)
+    expect_identical(testVar(0, 0, df=10, test="f", second.df=2), 1)
+    expect_identical(testVar(0, 0, df=0), NA_real_)
+    expect_identical(testVar(0, 0, df=0, test="f", second.df=2), NA_real_)
+
     expect_identical(testVar(numeric(0), trended, df=df), numeric(0))
+    expect_identical(testVar(numeric(0), trended, df=df, test="f", second.df=2), numeric(0))
+
     expect_identical(testVar(observed, numeric(0), df=df), numeric(0))
+    expect_identical(testVar(observed, numeric(0), df=df, test="f", second.df=2), numeric(0))
+
     expect_identical(testVar(observed, trended, df=numeric(0)), rep(NA_real_, length(observed)))
+    expect_identical(testVar(observed, trended, df=numeric(0), test="f", second.df=2), rep(NA_real_, length(observed)))
 })
 
 ####################################################################################################
@@ -585,6 +594,7 @@ test_that("combineVar works correctly", {
     reres <- combineVar(dec[1:10,], dec2[1:10,], dec3[1:10,])
     rescheck <- res[1:10,]
     rescheck$FDR <- p.adjust(rescheck$p.value, method="BH")
+    metadata(rescheck)$resid.df <- metadata(rescheck)$resid.df[1:10]
     expect_equal(reres, rescheck)
 
     # Checking fails: 
