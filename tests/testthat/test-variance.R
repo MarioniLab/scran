@@ -521,6 +521,7 @@ test_that("testVar's F-test works as expected", {
 })
 
 test_that("testVar works with silly inputs", {
+    expect_identical(testVar(0, 0, df=10), 1)
     expect_identical(testVar(numeric(0), trended, df=df), numeric(0))
     expect_identical(testVar(observed, numeric(0), df=df), rep(NA_real_, length(observed)))
     expect_identical(testVar(observed, trended, df=numeric(0)), rep(NA_real_, length(observed)))
