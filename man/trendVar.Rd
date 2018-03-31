@@ -164,8 +164,8 @@ A named list is returned, containing:
 Otherwise, a numeric matrix of means where each row corresponds to a spike-in and each column corresponds to a level of \code{block}.}
 \item{\code{var}:}{A numeric vector of the variances of log-expression values for all spike-in transcripts, if \code{block=NULL}.
 Otherwise, a numeric matrix of variances where each row corresponds to a spike-in and each column corresponds to a level of \code{block}.}
-\item{\code{resid.df}:}{An integer vector of the residual d.f. used for variance estimation of each spike-in transcript, if \code{block=NULL}.
-Otherwise, an integer matrix where each column specifies the residual d.f. used in each level of \code{block}.}
+\item{\code{resid.df}:}{An integer scalar specifying the residual d.f. used for variance estimation of each spike-in transcript, if \code{block=NULL}.
+Otherwise, a integer vector where each entry specifies the residual d.f. used in each level of \code{block}.}
 \item{\code{block}:}{A factor identical to the input \code{block}, only returned if it was not \code{NULL}.}
 \item{\code{design}:}{A numeric matrix identical to the input \code{design}, only returned if it was not \code{NULL} and \code{block=NULL}.}
 \item{\code{trend}:}{A function that returns the fitted value of the trend at any mean.}

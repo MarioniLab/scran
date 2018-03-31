@@ -96,7 +96,7 @@ This contains the numeric fields:
 If \code{get.spikes=NA}, the \code{p.value} and \code{FDR} fields will be set to \code{NA} for rows corresponding to spike-in transcripts.
 
 The metadata field of the output DataFrame also contains \code{num.cells}, an integer scalar storing the number of cells in \code{x}; 
-and \code{resid.df}, an integer vector containing the residual d.f. used for variance estimation of each gene in the output data frame.
+and \code{resid.df}, an integer scalar specifying the residual d.f. used for variance estimation.
 }
 
 \seealso{
