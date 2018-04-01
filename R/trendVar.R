@@ -18,8 +18,12 @@
     kept.vars <- stats.out$vars[is.okay]
     kept.means <- stats.out$means[is.okay]
 
-    # Figuring out the d.f. (exploiting column major indices when stats.out$vars is a matrix with block=).
-    kept.resid <- stats.out$resid.df[ceiling(which(is.okay)/nrow(x))]
+    # Figuring out the d.f. to keep for weighting.
+    if (is.matrix(is.okay)) { 
+        kept.resid <- stats.out$resid.df[which(is.okay, arr.ind=TRUE)[,2]]
+    } else {
+        kept.resid <- rep(stats.out$resid.df, sum(is.okay))
+    }
 
     # Fitting a parametric curve to try to flatten the shape.
     # This is of the form y = a*x/(x^n + b), but each coefficent is actually set

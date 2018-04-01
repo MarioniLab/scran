@@ -601,11 +601,6 @@ test_that("combineVar works correctly", {
     expect_warning(res <- combineVar(dec, dec4), "inputs should come from decomposeVar()", fixed=TRUE)
     expect_error(res <- combineVar(dec, dec2[rev(rownames(dec)),]), "gene identities should be the same") # when you switch up the order.
 
-    redec <- dec
-    redec2 <- dec2
-    rownames(redec) <- rownames(redec2) <- paste0(rownames(dec), "Y")
-    expect_error(res <- combineVar(redec, redec2), "gene names")
-
     # Just directly returns the input if only one DF is supplied.
     expect_equal(combineVar(dec), dec)
     expect_equal(combineVar(dec2), dec2)

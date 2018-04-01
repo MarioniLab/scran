@@ -68,13 +68,6 @@ combineVar <- function(..., method=c("z", "fisher", "simes", "berger"))
             warning("inputs should come from decomposeVar()")
             cur.w <- 1
         }
-        if (!is.null(names(cur.w))) { 
-            cur.w <- cur.w[rownames(tabs[[x]])] 
-            if (any(is.na(cur.w))) {
-                stop("gene names in 'rownames' not in 'metadata(...)$resid.df'")
-            }
-            cur.w <- unname(cur.w)
-        }
         output[[x]] <- cur.w
     } 
     names(output) <- names(tabs)
