@@ -5,12 +5,13 @@
 \description{Combine the results of multiple variance decompositions, usually generated for the same genes across separate batches of cells.}
 
 \usage{
-combineVar(..., method=c("z", "fisher", "simes", "berger"))
+combineVar(..., method=c("z", "fisher", "simes", "berger"), weighted=FALSE)
 }
 
 \arguments{
 \item{...}{Two or more DataFrames produced by \code{\link{decomposeVar}}.}
-\item{method}{A string specifying how p-values are to be combined.}
+\item{method}{String specifying how p-values are to be combined.}
+\item{weighted}{Logical scalar indicating whether weights should be used for combining statistics.}
 }
 
 \details{
@@ -18,6 +19,17 @@ This function is designed to merge results from multiple calls to \code{\link{de
 Separate variance decompositions are necessary in cases where different concentrations of spike-in have been added to the cells in each batch.
 This affects the technical mean-variance relationship and precludes the use of a common trend fit.
 
+The output mean is computed as a weighted average of the means in each input DataFrame, where the weight is defined as the number of cells in that batch.
+This yields an equivalent value to the sample mean across all cells in all batches.
+Similarly, weighted averages are computed for all variance components, where the weight is defined as the residual d.f. used for variance estimation in each batch.
+This yields a variance equivalent to the residual variance obtained while blocking on the batch of origin.
+
+Weighting can be turned off with \code{weighted=FALSE}.
+This may be useful to ensure that all batches contribute equally to the calculation of the combined statistics, avoiding cases where batches with many cells dominate the output.
+Of course, this comes at the cost of precision - large batches contain more information and \emph{should} contribute more to the weighted average.
+}
+
+\section{Combining p-values across batches}{
 The default setting is to use \code{method="z"}, where Stouffer's Z-score method is used to combine p-values across batches.
 This aims to detect genes that are highly variable in \emph{any} batch and assumes that the test outcome is independent between batches.
 Each batch is weighted according to the residual d.f. used to perform the test.
@@ -29,6 +41,9 @@ In contrast, Stouffer's method requires genes to be significant in the majority 
 If independence does not hold, Simes' method should be used by setting \code{method="simes"}.
 This is more robust to correlations between tests in contrast to Fisher's and Stouffer's methods.
 To identify genes that are detected as highly variable in \emph{all} batches, Berger's IUT can be used by setting \code{method="berger"}.
+
+Only \code{method="z"} will perform any weighting of batches, and only if \code{weighted=TRUE}.
+In all other cases, all batches are assigned equal weight.
 }
 
 \value{

@@ -595,16 +595,28 @@ test_that("combineVar works correctly", {
     rescheck$FDR <- p.adjust(rescheck$p.value, method="BH")
     expect_equal(reres, rescheck)
 
-    # Checking fails: 
-    dec4 <- dec3
-    metadata(dec4) <- list()
-    expect_warning(res <- combineVar(dec, dec4), "inputs should come from decomposeVar()", fixed=TRUE)
+    # Checking failures:
+    dec3.x <- dec3
+    metadata(dec3.x) <- list()
+    expect_error(res <- combineVar(dec, dec3.x), "inputs should come from decomposeVar()", fixed=TRUE)
     expect_error(res <- combineVar(dec, dec2[rev(rownames(dec)),]), "gene identities should be the same") # when you switch up the order.
 
     # Just directly returns the input if only one DF is supplied.
     expect_equal(combineVar(dec), dec)
     expect_equal(combineVar(dec2), dec2)
     expect_equal(combineVar(dec3), dec3)
+
+    # Checking that it performs correectly without weighting.
+    res.unw <- combineVar(dec, dec2, dec3, weighted=FALSE)
+    expect_equal(metadata(res.unw), metadata(res))
+
+    dec.x <- dec
+    dec2.x <- dec2
+    dec3.x <- dec3
+    metadata(dec.x) <- metadata(dec2.x) <- metadata(dec3.x) <- list(num.cells=1, resid.df=1)
+    res.unw.ref <- combineVar(dec.x, dec2.x, dec3.x, weighted=TRUE)
+    metadata(res.unw.ref) <- metadata(res.unw)
+    expect_equal(res.unw, res.unw.ref)
 })
 
 ####################################################################################################
