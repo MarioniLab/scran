@@ -538,30 +538,30 @@ test_that("testVar works with silly inputs", {
 ####################################################################################################
 
 set.seed(20003)
+ncells <- 200
+ngenes <- 1000
+means <- 2^runif(ngenes, -1, 5)
+dummy <- matrix(rnbinom(ngenes*ncells, mu=means, size=5), ncol=ncells, nrow=ngenes)
+
+rownames(dummy) <- paste0("X", seq_len(ngenes))
+X <- SingleCellExperiment(list(counts=dummy))
+sizeFactors(X) <- colSums(dummy)
+X <- normalize(X)
+d <- exprs(X)
+out <- trendVar(d)
+dec <- decomposeVar(d, out)
+
+sub.d <- d[,seq_len(ncells/2)]
+block <- sample(3, replace=TRUE, ncol(sub.d))
+out2 <- trendVar(sub.d, block=block)
+dec2 <- decomposeVar(sub.d, out2)
+
+alt.d <- d[,ncells/2+1:50]
+design <- model.matrix(~runif(ncol(alt.d)))    
+out3 <- trendVar(alt.d, design=design)
+dec3 <- decomposeVar(alt.d, out3)
+
 test_that("combineVar works correctly", {
-    ncells <- 200
-    ngenes <- 1000
-    means <- 2^runif(ngenes, -1, 5)
-    dummy <- matrix(rnbinom(ngenes*ncells, mu=means, size=5), ncol=ncells, nrow=ngenes)
-    
-    rownames(dummy) <- paste0("X", seq_len(ngenes))
-    X <- SingleCellExperiment(list(counts=dummy))
-    sizeFactors(X) <- colSums(dummy)
-    X <- normalize(X)
-    d <- exprs(X)
-    out <- trendVar(d)
-    dec <- decomposeVar(d, out)
-    
-    sub.d <- d[,seq_len(ncells/2)]
-    block <- sample(3, replace=TRUE, ncol(sub.d))
-    out2 <- trendVar(sub.d, block=block)
-    dec2 <- decomposeVar(sub.d, out2)
-
-    alt.d <- d[,ncells/2+1:50]
-    design <- model.matrix(~runif(ncol(alt.d)))    
-    out3 <- trendVar(alt.d, design=design)
-    dec3 <- decomposeVar(alt.d, out3)
-
     # Checking averaging of stats.
     N <- c(ncells, ncol(sub.d), ncol(alt.d))
     DF <- c(ncells - 1L, ncol(sub.d) - 3L, ncol(alt.d) - 2L)
@@ -588,6 +588,10 @@ test_that("combineVar works correctly", {
     expect_equal(res[,c("mean", "total", "tech", "bio")], res4[,c("mean", "total", "tech", "bio")])
     expect_equal(res4$p.value, pchisq(-2*rowSums(log(cbind(dec$p.value, dec2$p.value, dec3$p.value))),
                                       df=6, lower.tail=FALSE))
+})
+
+test_that("combineVar responds to settings", {
+    res <- combineVar(dec, dec2, dec3)
 
     # Same results upon subsetting.
     reres <- combineVar(dec[1:10,], dec2[1:10,], dec3[1:10,])
@@ -595,18 +599,12 @@ test_that("combineVar works correctly", {
     rescheck$FDR <- p.adjust(rescheck$p.value, method="BH")
     expect_equal(reres, rescheck)
 
-    # Checking failures:
-    dec3.x <- dec3
-    metadata(dec3.x) <- list()
-    expect_error(res <- combineVar(dec, dec3.x), "inputs should come from decomposeVar()", fixed=TRUE)
-    expect_error(res <- combineVar(dec, dec2[rev(rownames(dec)),]), "gene identities should be the same") # when you switch up the order.
-
     # Just directly returns the input if only one DF is supplied.
     expect_equal(combineVar(dec), dec)
     expect_equal(combineVar(dec2), dec2)
     expect_equal(combineVar(dec3), dec3)
 
-    # Checking that it performs correectly without weighting.
+    # Checking that it performs correctly without weighting.
     res.unw <- combineVar(dec, dec2, dec3, weighted=FALSE)
     expect_equal(metadata(res.unw), metadata(res))
 
@@ -617,6 +615,36 @@ test_that("combineVar works correctly", {
     res.unw.ref <- combineVar(dec.x, dec2.x, dec3.x, weighted=TRUE)
     metadata(res.unw.ref) <- metadata(res.unw)
     expect_equal(res.unw, res.unw.ref)
+})
+
+test_that("combineVar handles edge cases properly", {
+    # Checking failures:
+    dec3.x <- dec3
+    metadata(dec3.x) <- list()
+    expect_error(res <- combineVar(dec, dec3.x), "inputs should come from decomposeVar()", fixed=TRUE)
+    expect_error(res <- combineVar(dec, dec2[rev(rownames(dec)),]), "gene identities should be the same") # when you switch up the order.
+
+    # Checking p-value behaviour with p-values at the boundary.
+    dec$p.value[1] <- 0
+    dec2$p.value[1] <- 0
+    out <- combineVar(dec, dec2, method="z")
+    expect_equal(out$p.value[1], 0)
+    out <- combineVar(dec, dec2, method="berger")
+    expect_equal(out$p.value[1], 0)
+    out <- combineVar(dec, dec2, method="simes")
+    expect_equal(out$p.value[1], 0)
+    out <- combineVar(dec, dec2, method="fisher")
+    expect_equal(out$p.value[1], 0)
+
+    dec2$p.value[1] <- 1
+    out <- combineVar(dec, dec2, method="z")
+    expect_equal(out$p.value[1], 0.5)
+    out <- combineVar(dec, dec2, method="berger")
+    expect_equal(out$p.value[1], 1)
+    out <- combineVar(dec, dec2, method="simes")
+    expect_equal(out$p.value[1], 0)
+    out <- combineVar(dec, dec2, method="fisher")
+    expect_equal(out$p.value[1], 0)
 })
 
 ####################################################################################################

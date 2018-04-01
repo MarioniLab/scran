@@ -39,6 +39,12 @@ combineVar <- function(..., method=c("z", "fisher", "simes", "berger"), weighted
     if (method=="z") {
         all.z <- lapply(p.combine, FUN=qnorm)
         Z <- .weighted_average_vals(all.z, resid.df, weighted)
+
+        # Combining p-values of 0 and 1 will yield zscores of -Inf + Inf => NaN.
+        # Here, we set them to 0 to get p-values of 0.5, as the Z-method doesn't
+        # give coherent answers when you have p-values at contradicting extremes.
+        Z[is.nan(Z)] <- 0
+
         p.final <- pnorm(Z)
     } else if (method=="fisher") {
         all.logp <- lapply(p.combine, FUN=log)
