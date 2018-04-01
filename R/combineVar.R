@@ -1,7 +1,7 @@
 #' @importFrom stats pnorm pchisq qnorm p.adjust
 #' @importFrom S4Vectors DataFrame metadata
 #' @export
-combineVar <- function(..., method=c("z", "fisher", "simes", "berger")) 
+combineVar <- function(..., method=c("z", "fisher", "simes", "berger"), weighted=TRUE) 
 # Combines decomposeVar() results, typically from multiple batches.
 #
 # written by Aaron Lun
@@ -24,12 +24,12 @@ combineVar <- function(..., method=c("z", "fisher", "simes", "berger"))
 
     all.means <- lapply(all.results, FUN="[[", i="mean")
     n.cells <- .extract_weightings(all.results, "num.cells")
-    output$mean <- .weighted_average_vals(all.means, n.cells)
+    output$mean <- .weighted_average_vals(all.means, n.cells, weighted)
 
     resid.df <- .extract_weightings(all.results, "resid.df")
     for (val in to.average[-1]) { 
         cur.vals <- lapply(all.results, FUN="[[", i=val)
-        output[[val]] <- .weighted_average_vals(cur.vals, resid.df)
+        output[[val]] <- .weighted_average_vals(cur.vals, resid.df, weighted)
     }
 
     # Combining the one-sided p-values.
@@ -38,7 +38,7 @@ combineVar <- function(..., method=c("z", "fisher", "simes", "berger"))
     method <- match.arg(method)
     if (method=="z") {
         all.z <- lapply(p.combine, FUN=qnorm)
-        Z <- .weighted_average_vals(all.z, resid.df)
+        Z <- .weighted_average_vals(all.z, resid.df, weighted)
         p.final <- pnorm(Z)
     } else if (method=="fisher") {
         all.logp <- lapply(p.combine, FUN=log)
@@ -65,8 +65,7 @@ combineVar <- function(..., method=c("z", "fisher", "simes", "berger"))
     for (x in seq_along(tabs)) { 
         cur.w <- metadata(tabs[[x]])[[field]]
         if (is.null(cur.w)) {
-            warning("inputs should come from decomposeVar()")
-            cur.w <- 1
+            stop("inputs should come from decomposeVar()")
         }
         output[[x]] <- cur.w
     } 
@@ -74,12 +73,19 @@ combineVar <- function(..., method=c("z", "fisher", "simes", "berger"))
     return(output)
 }
 
-.weighted_average_vals <- function(vals, weights) {
+.weighted_average_vals <- function(vals, weights, weighted=TRUE) {
     combined <- total.weight <- 0
-    for (x in seq_along(vals)) { 
-        cur.weights <- weights[[x]]
+    for (x in seq_along(vals)) {
+        if (weighted) { 
+            cur.weights <- weights[[x]]
+        } else {
+            cur.weights <- 1
+        }
         product <- vals[[x]] * cur.weights
-        product[cur.weights==0] <- 0 # avoid problems with NA variances.
+
+        # avoid problems with NA values that have zero weight.
+        product[is.na(product) & cur.weights==0] <- 0 
+
         combined <- combined + product
         total.weight <- total.weight + cur.weights
     }
