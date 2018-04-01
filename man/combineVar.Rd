@@ -5,7 +5,7 @@
 \description{Combine the results of multiple variance decompositions, usually generated for the same genes across separate batches of cells.}
 
 \usage{
-combineVar(..., method=c("z", "fisher", "simes", "berger"), weighted=FALSE)
+combineVar(..., method=c("z", "fisher", "simes", "berger"), weighted=TRUE)
 }
 
 \arguments{

@@ -9,6 +9,8 @@ followed by reporting of weighted averages (using weighted Stouffer's method for
 Automatically record global statistics in the metadata of the output for use in combineVar(). 
 Switched output to a DataFrame object for consistency with other functions.
 
+\item Fixed testVar() to report a p-value of 1 when both the observed and null variances are zero.
+
 \item Allowed passing of arguments to irlba() in denoisePCA() to assist convergence.
 Reported low-rank approximations for all genes, regardless of whether they were used in the SVD.
 Deprecated design= argument in favour of manual external correction of confounding effects.
@@ -40,8 +42,10 @@ Deprecated the use of residuals=FALSE for one-way layouts in design=.
 Switched to automatic ranking of genes based on ability to discriminate between groups.
 Added rank.type= and direction= arguments to control ranking of genes.
 
-\item Modified combineVar() so that it is aware to the stats recorded in decomposeVar().
-Switched the default from Fisher's method to Stouffer's method with residual d.f.-weighted Z-scores.
+\item Modified combineVar() so that it is aware of the global stats recorded in decomposeVar().
+Absence of global statistics in the input DataFrames now results in an error.
+Switched the default method= from Fisher's method to Stouffer's method with residual d.f.-weighted Z-scores.
+Added weighted= argument to allow weighting to be turned off for equal batch representation.
 
 \item Modified the behaviour of min.mean= in computeSumFactors() when clusters!=NULL.
 Abundance filtering is now performed within each cluster and for pairs of clusters, rather than globally.
