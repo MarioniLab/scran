@@ -136,7 +136,6 @@
     # Setting up the output containers.
     out.p <- out.stats <- .create_output_container(clust.vals) 
     nblocks <- length(by.block)
-    ngenes <- length(subset.row)
 
     # Running through all pairs of comparisons.
     for (i in seq_along(clust.vals)) {
@@ -144,7 +143,8 @@
         targets <- clust.vals[seq_len(i-1L)]
 
         for (target in targets) {
-            all.lfc <- all.weight <- all.left <- all.right <- matrix(0, ngenes, nblocks)
+            all.lfc <- all.left <- all.right <- vector("list", nblocks)
+            all.weight <- numeric(nblocks)
             valid.test <- logical(nblocks) 
 
             # Performing the same pairwise t-test across all blocks.
@@ -159,24 +159,23 @@
                 cur.lfc <- out.means[[b]][,host] - out.means[[b]][,target]
                 p.out <- .run_t_test(cur.lfc, cur.err, cur.df, thresh.lfc=lfc, direction=direction)
 
-                valid.test[b] <- all(!is.na(cur.df))
-                all.lfc[,b] <- cur.lfc
-                all.left[,b] <- p.out$left
-                all.right[,b] <- p.out$right
+                all.lfc[[b]] <- cur.lfc
+                all.left[[b]] <- p.out$left
+                all.right[[b]] <- p.out$right
 
                 # Weights are inversely proportional to the squared error of the log-fold change,
                 # assuming equal variance across blocks and groups for simplicity.
                 # (Using the actual variance is dangerous as some blocks have zero variance
                 # with a defined log-fold change, if there are many zeroes.)
-                all.weight[,b] <- 1/(1/host.n + 1/target.n)
+                all.weight[b] <- 1/(1/host.n + 1/target.n)
+
+                # Indicating that there is no valid test statistic if the df is zero.
+                valid.test[b] <- all(!is.na(cur.df))
             }
 
             # Combining the p-values and log-fold changes across blocks.
-            # Note that weights may have been defined for invalid tests, they need to be disabled here.
-            test.weight <- all.weight
-            test.weight[,!valid.test] <- NA_real_
-            com.left <- .run_stouffer(all.left, test.weight)
-            com.right <- .run_stouffer(all.right, test.weight)
+            com.left <- .run_stouffer(all.left, all.weight, valid.test)
+            com.right <- .run_stouffer(all.right, all.weight, valid.test)
 
             # Flipping left/right to get the p-value from the reversed comparison.
             hvt.p <- .choose_leftright_pvalues(com.left, com.right, direction=direction) 
@@ -185,7 +184,7 @@
             out.p[[target]][[host]] <- tvh.p
 
             # Symmetrical log-fold changes, hence the -1.
-            com.lfc <- rowSums(all.weight * all.lfc, na.rm=TRUE)/rowSums(all.weight, na.rm=TRUE)
+            com.lfc <- .weighted_average_vals(all.lfc, all.weight, weighted=TRUE)
             if (!full.stats) { 
                 out.stats[[host]][[target]] <- com.lfc
                 out.stats[[target]][[host]] <- -com.lfc
@@ -223,15 +222,27 @@
 }
 
 #' @importFrom stats qnorm pnorm
-.run_stouffer <- function(log.pvals, weights) 
-# Uses Stouffer's method to combine the one-sided p-values, 
-# with weights for each column.
+.run_stouffer <- function(log.pvals, weights, valid) 
+# Uses Stouffer's method to combine the one-sided p-values, with weights for each column.
+# Only valid tests are used, i.e., with non-zero d.f. for computing the test statistic.
+# We also skip the calculations if there's only one or no tests.    
 {
-    if (ncol(log.pvals)==1L) {
-        return(log.pvals)
+    ngenes <- length(log.pvals[[1]])
+
+    if (!all(valid)) {
+        log.pvals <- log.pvals[valid]
+        weights <- weights[valid]
     }
-    Z <- qnorm(log.pvals, log.p=TRUE)
-    final <- rowSums(Z*weights, na.rm=TRUE)/rowSums(weights, na.rm=TRUE)
+
+    NC <- length(log.pvals)
+    if (NC==1L) {
+        return(log.pvals[[1]])
+    } else if (NC==0L) {
+        return(rep(NA_real_, ngenes))
+    }
+        
+    all.Z <- lapply(log.pvals, qnorm, log.p=TRUE)
+    final <- .weighted_average_vals(all.Z, weights, weighted=TRUE)
     pnorm(final, log.p=TRUE)
 }
 
