@@ -451,7 +451,7 @@ test_that("decomposeVar works with blocking", {
                     df=rep(resid.df, each=nrow(X)))
     dim(pval) <- dim(mean.mat)
     pval[isSpike(X),] <- NA
-    expect_equal(out3$p.value, as.numeric(pnorm(qnorm(pval) %*% resid.df/sum(resid.df))))
+    expect_equal(out3$p.value, pchisq(rowSums(log(pval))*-2, df=2*ncol(mean.mat), lower.tail=FALSE))
 
     # Checking out what happens when I use a normal trend but use block= in decomposeVar only.
     out2a <- decomposeVar(X, fit, block=block)
@@ -565,7 +565,7 @@ test_that("combineVar works correctly", {
     # Checking averaging of stats.
     N <- c(ncells, ncol(sub.d), ncol(alt.d))
     DF <- c(ncells - 1L, ncol(sub.d) - 3L, ncol(alt.d) - 2L)
-    res <- combineVar(dec, dec2, dec3)
+    res <- combineVar(dec, dec2, dec3, method="z")
     expect_equal(res$mean, drop(cbind(dec$mean, dec2$mean, dec3$mean) %*% N / sum(N)))
     expect_equal(res$total, drop(cbind(dec$total, dec2$total, dec3$total) %*% DF) / sum(DF))
     expect_equal(res$tech, drop(cbind(dec$tech, dec2$tech, dec3$tech) %*% DF) / sum(DF))

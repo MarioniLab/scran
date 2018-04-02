@@ -5,7 +5,7 @@
 \description{Combine the results of multiple variance decompositions, usually generated for the same genes across separate batches of cells.}
 
 \usage{
-combineVar(..., method=c("z", "fisher", "simes", "berger"), weighted=TRUE)
+combineVar(..., method=c("fisher", "z", "simes", "berger"), weighted=TRUE)
 }
 
 \arguments{
@@ -30,17 +30,21 @@ Of course, this comes at the cost of precision - large batches contain more info
 }
 
 \section{Combining p-values across batches}{
-The default setting is to use \code{method="z"}, where Stouffer's Z-score method is used to combine p-values across batches.
-This aims to detect genes that are highly variable in \emph{any} batch and assumes that the test outcome is independent between batches.
+The default approach is to use \code{method="fisher"}, which uses Fisher's method for combining p-values.
+This will test the global null hypothesis, i.e., that genes are not variable in any batch.
+As a result, it will identify genes that are highly variable in \emph{any} batch.
+
+Another option is to use \code{method="z"}, where Stouffer's Z-score method is used to combine p-values across batches.
 Each batch is weighted according to the residual d.f. used to perform the test.
+This is less sensitive that Fisher's method to low p-values in only a single batch, instead favouring genes that are significant in multiple batches.
 
-Another option is to use \code{method="fisher"}, which uses Fisher's method for combining p-values.
-This is more sensitive to genes that are only highly variable in a subset of batches.
-In contrast, Stouffer's method requires genes to be significant in the majority of batches in order to obtain a low combined p-value.
+Both Fisher's and Stouffer's methods assume independence between batches. 
+If this is not the case, Simes' method should be used by setting \code{method="simes"}.
+This is more robust to correlations between tests (Sarkar and Chung, 1997; see also similar work on the related Benjamini-Hochberg method).
 
-If independence does not hold, Simes' method should be used by setting \code{method="simes"}.
-This is more robust to correlations between tests in contrast to Fisher's and Stouffer's methods.
 To identify genes that are detected as highly variable in \emph{all} batches, Berger's IUT can be used by setting \code{method="berger"}.
+This defines the combined p-value as the maximum across batches for each gene.
+Needless to say, this is quite a conservative approach.
 
 Only \code{method="z"} will perform any weighting of batches, and only if \code{weighted=TRUE}.
 In all other cases, all batches are assigned equal weight.
@@ -61,6 +65,14 @@ Aaron Lun
 }
 
 \references{
+Fisher, R.A. (1925). 
+\emph{Statistical Methods for Research Workers.}
+Oliver and Boyd (Edinburgh).
+
+Whitlock MC (2005). 
+Combining probability from independent tests: the weighted Z-method is superior to Fisher's approach. 
+\emph{J. Evol. Biol.} 18, 5:1368-73.
+
 Simes RJ (1986). 
 An improved Bonferroni procedure for multiple tests of significance. 
 \emph{Biometrika} 73:751-754.
@@ -69,13 +81,9 @@ Berger RL and Hsu JC (1996).
 Bioequivalence trials, intersection-union tests and equivalence confidence sets.
 \emph{Statist. Sci.} 11, 283-319.
 
-Whitlock MC (2005). 
-Combining probability from independent tests: the weighted Z-method is superior to Fisher's approach. 
-\emph{J. Evol. Biol.} 18, 5:1368-73.
-
-Fisher, R.A. (1925). 
-\emph{Statistical Methods for Research Workers.}
-Oliver and Boyd (Edinburgh).
+Sarkar SK and Chung CK (1997).
+The Simes method for multiple hypothesis testing with positively dependent test statistics.
+\emph{J. Am. Stat. Assoc.} 92, 1601-1608.
 }
 
 \examples{

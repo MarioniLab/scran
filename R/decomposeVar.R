@@ -50,7 +50,7 @@
                                              gene.names=rownames(lmeans), ncells=sum(block==x), second.df=fit$df2)
         }
         
-        out <- do.call(combineVar, c(collected, list(method="z")))
+        out <- do.call(combineVar, c(collected, list(method="fisher")))
         return(out)
     } 
         
