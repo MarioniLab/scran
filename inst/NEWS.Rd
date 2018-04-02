@@ -4,8 +4,7 @@
 
 \section{Version 1.7.26}{\itemize{
 \item Modified decomposeVar() to return statistics (but not p-values) for spike-ins when get.spikes=NA.
-Added block= argument for mean/variance calculations within each level of a blocking factor, 
-followed by reporting of weighted averages (using weighted Stouffer's method for p-values).
+Added block= argument for mean/variance calculations within each level of a blocking factor, followed by reporting of weighted averages (using Fisher's method for p-values).
 Automatically record global statistics in the metadata of the output for use in combineVar(). 
 Switched output to a DataFrame object for consistency with other functions.
 
@@ -44,7 +43,7 @@ Added rank.type= and direction= arguments to control ranking of genes.
 
 \item Modified combineVar() so that it is aware of the global stats recorded in decomposeVar().
 Absence of global statistics in the input DataFrames now results in an error.
-Switched the default method= from Fisher's method to Stouffer's method with residual d.f.-weighted Z-scores.
+Added option to method= to use Stouffer's method with residual d.f.-weighted Z-scores.
 Added weighted= argument to allow weighting to be turned off for equal batch representation.
 
 \item Modified the behaviour of min.mean= in computeSumFactors() when clusters!=NULL.
