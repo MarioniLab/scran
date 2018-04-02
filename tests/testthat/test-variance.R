@@ -645,6 +645,11 @@ test_that("combineVar handles edge cases properly", {
     expect_equal(out$p.value[1], 0)
     out <- combineVar(dec, dec2, method="fisher")
     expect_equal(out$p.value[1], 0)
+
+    # Checking empty inputs.
+    out <- combineVar(dec[0,], dec2[0,], dec3[0,])
+    expect_equal(nrow(out), 0L)
+    expect_identical(colnames(out), c("mean", "total", "bio", "tech", "p.value", "FDR"))
 })
 
 ####################################################################################################

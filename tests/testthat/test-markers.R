@@ -566,7 +566,11 @@ test_that("log-transformed p-values in findMarkers works correctly", {
 test_that("findMarkers behaves sensibly with silly inputs", {
     # No genes.
     out <- findMarkers(exprs(X)[0,], clusters=rep(1:3, length.out=ncol(X)))
-    for (i in out) { expect_identical(nrow(i), 0L) }    
+    for (i in names(out)) { 
+        current <- out[[i]]
+        expect_identical(nrow(current), 0L) 
+        expect_identical(colnames(current), c("Top", "FDR", paste0("logFC.", setdiff(as.character(1:3), i))))
+    }    
     
     # No cells.
     out <- findMarkers(exprs(X)[,0], clusters=integer(0))
