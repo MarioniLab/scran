@@ -329,10 +329,8 @@
 
 #' @importFrom stats pt
 .run_t_test <- function(cur.lfc, cur.err, cur.df, thresh.lfc=0, direction="any") 
-# This runs the t-test given the relevant statistics. We use the TREAT method
-# when thresh.lfc!=0, which tests against a null where the log-fold change is
-# takes values at the extremes of [-thresh, thresh]. This is 50% distributed
-# across both extremes, hence the -log(2) at the end.
+# This runs the t-test given the relevant statistics, regardless of how 
+# they were computed (i.e., within blocks, or in a linear model).
 {
     thresh.lfc <- abs(thresh.lfc)
     if (thresh.lfc==0) {    
@@ -344,11 +342,15 @@
         lower.t <- (cur.lfc + thresh.lfc)/cur.err
 
         if (direction=="any") { 
+            # Using the TREAT method, which tests against a null where the log-fold change is
+            # takes values at the extremes of [-thresh, thresh]. This is 50% distributed
+            # across both extremes, hence the -log(2) at the end.
             left <- .add_log_values(pt(upper.t, df=cur.df, lower.tail=TRUE, log.p=TRUE),
                                     pt(lower.t, df=cur.df, lower.tail=TRUE, log.p=TRUE)) - log(2)
             right <- .add_log_values(pt(upper.t, df=cur.df, lower.tail=FALSE, log.p=TRUE),
                                      pt(lower.t, df=cur.df, lower.tail=FALSE, log.p=TRUE)) - log(2)
         } else {
+            # For one-sided tests, testing against the lfc threshold in the specified direction.
             # Note that if direction='up', only 'right' is used; nonetheless, 'left' is still calculated
             # using 'lower.t' so as to allow quick calculation of the p-value for the reversed contrast,
             # by simply swapping 'left' and 'right'. The same applies when direction='down'.
@@ -363,7 +365,7 @@
 # This performs log(exp(x) + exp(y)) in a numerically
 # stable fashion, i.e., without actually running the 'exp's.
 {
-    pmax(x, y) + log(1 + exp(-abs(x-y)))
+    pmax(x, y) + log1p(exp(-abs(x-y)))
 }
 
 .choose_leftright_pvalues <- function(left, right, direction="any") 
