@@ -128,33 +128,22 @@ get_exprs <- function(y) {
 }
 
 test_that("Can convert SingleCellExperiment to a CellDataSet", {
-    to.comp <- t(t(counts(X))/sizeFactors(X))
     catch_warning(y <- convertTo(X, type="monocle"))
-    expect_equal(get_exprs(y), to.comp[!is.spike,])
+    expect_equal(get_exprs(y), counts(X)[!is.spike,])
+    expect_equivalent(sizeFactors(y), sizeFactors(X))
 
-    # No normalization.
-    catch_warning(y <- convertTo(X, type="monocle", normalize=FALSE))
-    expect_identical(get_exprs(y), counts(X)[!is.spike,])   
-    
     # Assuming no spike-in-specific normalization.
     catch_warning(y <- convertTo(X, type="monocle", get.spikes=TRUE)) 
-    expect_equal(get_exprs(y), to.comp)
-    
-    # Now with spike-in-specific normalization.
-    X2 <- X 
-    sizeFactors(X2, type="MySpike") <- 1
-    catch_warning(y <- convertTo(X2, type="monocle", get.spikes=TRUE))
-    expect_equal(get_exprs(y)[!isSpike(X2),], to.comp[!is.spike,])
-    expect_equal(get_exprs(y)[isSpike(X2),], counts(X)[is.spike,])
-    catch_warning(y <- convertTo(X2, type="monocle", get.spikes=TRUE, use.all.sf=FALSE))
-    expect_equal(get_exprs(y), to.comp)
-
+    expect_equal(get_exprs(y), counts(X))
+    expect_equivalent(sizeFactors(y), sizeFactors(X))
+   
     # Checking that subsetting works as expected.
     chosen <- c(50:1, 101:200)
     catch_warning(y <- convertTo(X, type="monocle", subset.row=chosen, get.spikes=TRUE))
-    expect_equal(get_exprs(y), to.comp[chosen,])
+    expect_equal(get_exprs(y), counts(X)[chosen,])
     catch_warning(y <- convertTo(X, type="monocle", subset.row=chosen, get.spikes=FALSE))
-    expect_equal(get_exprs(y), to.comp[setdiff(chosen, which(is.spike)),])
+    expect_equal(get_exprs(y), counts(X)[setdiff(chosen, which(is.spike)),])
+    expect_equivalent(sizeFactors(y), sizeFactors(X))
     
     # Checking metadata is extracted as expected.
     catch_warning(y <- convertTo(X, type="monocle", row.fields="SYMBOL", col.fields="other"))
@@ -163,27 +152,31 @@ test_that("Can convert SingleCellExperiment to a CellDataSet", {
     
     # # Looks like the CellDataSet constructor just fails with no rows.
     # y <- convertTo(X[0,], type="monocle", row.fields="SYMBOL")
-    # expect_identical(get_exprs(y), to.comp[0,])
+    # expect_identical(get_exprs(y), counts(X)[0,])
     # expect_identical(fData(y)$SYMBOL, character(0))
     
     catch_warning(y <- convertTo(X[,0], type="monocle", col.fields="other"))
-    expect_identical(get_exprs(y), to.comp[!is.spike,0])
+    expect_identical(get_exprs(y), counts(X)[!is.spike,0])
     expect_identical(y$other, character(0))
     
     X2 <- X
     sizeFactors(X2) <- NULL
-    expect_error(convertTo(X2, type="monocle"), "size factors not defined for normalization")
+    expect_warning(y2 <- convertTo(X2, type="monocle"))
+    expect_equal(counts(X2)[!is.spike,], get_exprs(y2))
+    expect_true(all(is.na(sizeFactors(y2))))
 })
 
 # Also testing how the methods behave when no spike-ins are specified.
 
 test_that("Conversion succeeds without any spike-ins", { 
     X <- SingleCellExperiment(list(counts=dummy))
+
     y <- convertTo(X, type="edgeR")
     expect_identical(counts(X), y$counts)
+
     dds <- convertTo(X, type="DESeq2")
     expect_equal(counts(X), counts(dds))
-    sizeFactors(X) <- 1
+
     catch_warning(y <- convertTo(X, type="monocle"))
     expect_equal(get_exprs(y), counts(X))
 })
