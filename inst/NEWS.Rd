@@ -63,6 +63,8 @@ Removed empirical Bayes shrinkage as well as the min.mean= argument.
 
 \item Added the parallelPCA() function for performing parallel analysis to choose the number of PCs.
 
+\item Modified convertT() to return raw counts and size factors for CellDataSet output.
+
 \item Deprecated exploreData(), selectorPlot() in favour of iSEE().
 }}
 
