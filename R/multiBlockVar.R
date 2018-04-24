@@ -16,8 +16,8 @@ multiBlockVar <- function(x, block, trend.args=list(), dec.args=list(), ...)
         cur.x <- x[,cur.b]
 
         # Estimating the technical/biological components.
-        cur.fit <- do.call(trendVar, c(list(x), trend.args))
-        cur.dec <- do.call(decomposeVar, c(list(x, cur.fit), dec.args))
+        cur.fit <- do.call(trendVar, c(list(cur.x), trend.args))
+        cur.dec <- do.call(decomposeVar, c(list(cur.x, cur.fit), dec.args))
         metadata(cur.dec)$trend <- cur.fit$trend
         
         all.out[[b]] <- cur.dec
