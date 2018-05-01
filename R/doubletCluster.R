@@ -1,90 +1,65 @@
 #' @importFrom scater librarySizeFactors normalize
-#' @importFrom BiocGenerics sizeFactors
-#' @importFrom S4Vectors split
-#' @importFrom stats pt
-.doublet_cluster <- function(x, clusters, size.factors=NULL, center.cluster.sf=TRUE, subset.row=NULL, threshold=0.05) 
+#' @importFrom BiocGenerics "sizeFactors<-"
+#' @importFrom stats p.adjust
+.doublet_cluster <- function(x, clusters, subset.row=NULL, threshold=0.05) 
 # Finds evidence that a cluster is _not_ a doublet of two other clusters.
 # Absence of such evidence should be a warning flag for that cluster.
 # 
 # written by Aaron Lun
 # created 16 April 2018
 {
-    if (is.null(size.factors)) {
-        size.factors <- librarySizeFactors(x)
-    }
-
-    # Centering the size factors.
-    if (center.cluster.sf) {
-        by.cluster <- split(seq_len(ncol(x)), clusters)
-        for (i in by.cluster) {
-            current <- size.factors[i]
-            size.factors[i] <- current/mean(current)
-        }
-    }
-
-    # Computing normalized counts.
+    # Computing normalized counts using the library size (looking for compositional differences!)
     sce <- SingleCellExperiment(list(counts=x))
-    sizeFactors(sce) <- size.factors
-    sce <- normalize(sce, return_log=FALSE)
-
-    # Computing mean, variance statistics off the normalized counts.
-    subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
-    stats.out <- .get_var_stats(normcounts(sce), block=clusters, design=NULL, subset.row=subset.row)
-    all.means <- stats.out$means
-    all.vars <- stats.out$vars
-
-    all.df <- stats.out$resid.df
-    all.err <- sweep(all.vars, 2, all.df + 1, "/")
-    all.df.comp <- sweep(all.err^2, 2, all.df, "/")
-    
-    clust.names <- colnames(all.means) 
-    Nclusters <- length(clust.names)
+    sizeFactors(sce) <- librarySizeFactors(x)
+    sce <- normalize(sce, return_log=TRUE)
+    degs <- findMarkers(sce, clusters=clusters, subset.row=subset.row, full.stats=TRUE)
 
     # Running through all pairs of clusters and testing against the third cluster.
     collected <- list()
-    for (i1 in seq_len(Nclusters)) { 
-        for (i2 in seq_len(i1-1L)) {
-            
-            others <- seq_len(Nclusters)[-c(i1, i2)]
-            diffs <- all.means[,others,drop=FALSE] - (all.means[,i1] + all.means[,i2])
-            errs <- all.err[,others,drop=FALSE] + all.err[,i1] + all.err[,i2]
+    all.clusters <- names(degs)
+    for (ref in all.clusters) {
+        ref.stats <- degs[[ref]]
+        remnants <- setdiff(all.clusters, ref)
+        best.N <- Inf
+        best.p <- 1
+        best.gene <- NULL
+        best.parents <- NULL
 
-            # Using Welch-Satterthwaite equation to get d.f. of combined error.
-            df <- errs^2 / (all.df.comp[,others,drop=FALSE] + all.df.comp[,i1] + all.df.comp[,i2])
+        for (i1 in seq_along(remnants)) {
+            stats1 <- ref.stats[[paste0("stats.", remnants[i1])]] 
+            for (i2 in seq_len(i1-1L)) {
+                stats2 <- ref.stats[[paste0("stats.", remnants[i2])]] 
 
-            # Computing t-statistics, p-value.
-            t.stat <- diffs/sqrt(errs)
-            pval <- pt(-abs(t.stat), df=df) * 2 
+                # Obtaining the IUT and setting opposing log-fold changes to 1.
+                max.p <- pmax(stats1$p.value, stats2$p.value)
+                max.p[sign(stats1$logFC) != sign(stats2$logFC)] <- 1
+                    
+                # Correcting across genes.
+                adj.p <- p.adjust(max.p, method="BH")
+                N <- sum(adj.p <= threshold, na.rm=TRUE)
 
-            # Computing BH adjusted p-values (i.e., combined Simes p-values).
-            output.gene <- integer(length(others))
-            output.min <- numeric(length(others))
-            for (j in seq_along(others)) {
-                adj.p <- p.adjust(pval[,j], method="BH")
-                min.g <- which.min(adj.p)
-                output.gene[j] <- min.g
-                output.min[j] <- adj.p[min.g]
+                if (N < best.N) {
+                    best.N <- N
+                    chosen <- which.min(max.p)
+                    best.gene <- chosen
+                    best.p <- adj.p[chosen]
+                    best.parents <- c(i1, i2)
+                }
             }
-
-            collected[[length(collected)+1]] <- DataFrame(
-                current=clust.names[others],                        
-                cluster1=clust.names[i1],
-                cluster2=clust.names[i2],
-                min.p=output.min,
-                gene=subset.row[output.gene]
-            )
         }
+
+        print(best.N)
+        print(best.parents)
+        print(best.gene)
+        print(best.p)
+        collected[[ref]] <- DataFrame(N=best.N, 
+            Source1=remnants[best.parents[1]],
+            Source2=remnants[best.parents[2]],
+            best=rownames(ref.stats)[best.gene], 
+            p.value=best.p, row.names=ref)
     }
 
-    # Splitting the results by cluster.
-    collected <- do.call(rbind, collected)
-    host <- collected$current
-    collected$current <- NULL
-    output <- split(collected, host)
-
-    # Returning results in order of largest p-value.
-    for (i in seq_along(output)) {
-        output[[i]] <- output[[i]][order(output[[i]]$min.p, decreasing=TRUE),]
-    }
-    return(output)
+    # Returning the DataFrame of compiled results.
+    out <- do.call(rbind, collected)
+    out[order(out$N),]
 }
