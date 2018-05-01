@@ -4,7 +4,7 @@
 #' @importFrom S4Vectors "mcols<-" 
 #' @importFrom edgeR DGEList "[.DGEList" scaleOffset.DGEList
 .convert_to <- function(x, type=c("edgeR", "DESeq2", "monocle"),
-                        row.fields=NULL, col.fields=NULL, ..., assay.type, use.all.sf=TRUE, normalize=TRUE, 
+                        row.fields=NULL, col.fields=NULL, ..., assay.type, use.all.sf=TRUE, 
                         subset.row=NULL, get.spikes=FALSE) 
 # A function to convert between formats
 #
@@ -79,21 +79,14 @@
         return(dds)
 
     } else if (type=="monocle") {
-        if (normalize) {
-            if (is.null(sf)) { stop("size factors not defined for normalization") }
-            cur.exprs <- t(t(counts(x))/sf)
-            if (!all(offset.index==1L) && use.all.sf) {
-                for (it in seq_along(collected.sfs)[-1]) {
-                    current <- offset.index==it
-                    cur.exprs[current,] <- t(t(counts(x)[current,,drop=FALSE])/collected.sfs[[it]])
-                }
-            }
-            dimnames(cur.exprs) <- dimnames(x)
-        } else {
-            cur.exprs <- assay(x, i=assay.type)
-        }
+        cur.exprs <- assay(x, i=assay.type)
         out <- monocle::newCellDataSet(cur.exprs, phenoData=pd, featureData=fd, ...)
-        if (!is.null(subset.row)) { out <- out[subset.row,] }
+        if (!is.null(sf)) { 
+            sizeFactors(out) <- sf 
+        }
+        if (!is.null(subset.row)) { 
+            out <- out[subset.row,] 
+        }
         return(out)
 
     }
