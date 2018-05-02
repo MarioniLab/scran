@@ -5,7 +5,7 @@
 \description{Correct for batch effects in single-cell expression data using the mutual nearest neighbors method.}
 
 \usage{
-mnnCorrect(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE,
+mnnCorrect(..., k=20, sigma=0.1, cos.norm.in=TRUE, cos.norm.out=TRUE,
     svd.dim=0L, var.adj=TRUE, compute.angle=FALSE, subset.row=NULL, 
     order=NULL, pc.approx=FALSE, irlba.args=list(),
     BPPARAM=SerialParam())
