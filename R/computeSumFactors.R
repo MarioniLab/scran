@@ -203,9 +203,11 @@ LOWWEIGHT <- 0.000001
 }
 
 .limit_cluster_size <- function(clusters, max.size) {
-    if (is.null(max.size)) { return(clusters) }
+    if (is.null(max.size)) { 
+        return(clusters) 
+    }
     
-    new.clusters <- clusters
+    new.clusters <- integer(length(clusters))
     counter <- 1L
     for (id in unique(clusters)) {
         current <- id==clusters
@@ -225,7 +227,8 @@ LOWWEIGHT <- 0.000001
         new.clusters[current] <- realloc
         counter <- counter + mult
     }
-    return(new.clusters)
+
+    factor(new.clusters)
 }
 
 #############################################################
