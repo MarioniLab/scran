@@ -272,6 +272,13 @@ test_that("computeSumFactors correctly limits cluster sizes", {
     expect_true(all(table(out) <= 10L))
     expect_false(identical(out, clusters))
     expect_true(length(unique(paste0(clusters, out)))==length(unique(out))) # nested
+
+    # Checking that it works with factors.
+    clusters <- factor(integer(100))
+    out <- scran:::.limit_cluster_size(clusters, 6) 
+    expect_true(all(table(out) <= 6L))
+    expect_false(identical(out, clusters))
+    expect_true(length(unique(paste0(clusters, out)))==length(unique(out))) # nested
 })
 
 set.seed(20004)
