@@ -1,8 +1,18 @@
-<!--
-%\VignetteIndexEntry{Using scran to perform basic analyses of single-cell RNA-seq data}
-%\VignettePackage{BiocStyle}
-%\VignetteEngine{knitr::knitr}
--->
+---
+title: Using scran to analyze single-cell RNA-seq data
+author: 
+- name: Aaron Lun
+  affiliation: Cancer Research UK Cambridge Institute, Cambridge, United Kingdom
+date: "Revised: 2 May, 2018"
+output:
+  BiocStyle::html_document:
+    toc: true
+package: scran
+vignette: >
+  %\VignetteIndexEntry{Using scran to analyze scRNA-seq data}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
 
 ```{r, echo=FALSE, results="hide", message=FALSE}
 require(knitr)
@@ -17,11 +27,6 @@ BiocStyle::markdown()
 library(scran)
 set.seed(100)
 ```
-
-# Using scran to perform basic analyses of single-cell RNA-seq data
-Package: `r Biocpkg("scran")` <br />
-Author: Aaron Lun (alun@wehi.edu.au) <br />
-Compilation date: `r Sys.Date()`
 
 # Introduction
 
@@ -135,7 +140,7 @@ This reduces the risk of violating the above assumption when many genes are DE b
 
 ```{r}
 larger.sce <- SingleCellExperiment(list(counts=cbind(all.counts, all.counts, all.counts)))
-clusters <- quickCluster(larger.sce)
+clusters <- quickCluster(larger.sce, min.size=100)
 larger.sce <- computeSumFactors(larger.sce, cluster=clusters)
 ```
 
@@ -215,15 +220,14 @@ alt.fit <- trendVar(sce, use.spikes=FALSE)
 alt.decomp <- decomposeVar(sce, alt.fit)
 ```
 
-If the data set already contains some uninteresting substructure (e.g., batch effects), we can block on this by setting the `design` argument in `trendVar`.
+If the data set already contains some uninteresting substructure (e.g., batch effects), we can block on this by setting the `block=` argument in `trendVar`.
 This ensures that the substructure does not inflate the variance estimates.
-For example, if the cells were prepared in two separate batches, we could construct a design matrix incorporating this information with `model.matrix` and pass it to `trendVar`.
-The same design will also be used in `decomposeVar`.
+For example, if the cells were prepared in two separate batches, we can set the batch of origin as `block`.
+The same blocking information will also be used in `decomposeVar`.
 
 ```{r}
 batch <- rep(c("1", "2"), each=100)
-design <- model.matrix(~batch)
-alt.fit2 <- trendVar(sce, design=design)
+alt.fit2 <- trendVar(sce, block=batch)
 alt.decomp2 <- decomposeVar(sce, alt.fit)
 ```
 
@@ -245,12 +249,13 @@ cor.pairs <- correlatePairs(sce, subset.row=top.hvgs[1:200], null.dist=null.dist
 head(cor.pairs)
 ```
 
-As with variance estimation, if uninteresting substructure is present, this should be blocked on using the `design` argument in both `correlateNull` and `correlatePairs`.
+As with variance estimation, if uninteresting substructure is present, this should be blocked on using the `block=` argument in both `correlateNull` and `correlatePairs`.
+This avoids strong correlations due to the blocking factor.
 
 ```{r}
-null.dist2 <- correlateNull(design=design, iter=1e5) # fewer iterations, to speed it up.
+null.dist2 <- correlateNull(block=batch, iter=1e5) # fewer iterations, to speed it up.
 cor.pairs2 <- correlatePairs(sce, subset.row=top.hvgs[1:200], 
-    null.dist=null.dist2, design=design)
+    null.dist=null.dist2, block=batch)
 ```
 
 The pairs can be used for choosing marker genes in experimental validation, and to construct gene-gene association networks.

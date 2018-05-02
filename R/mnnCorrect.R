@@ -1,7 +1,7 @@
 #' @importFrom S4Vectors DataFrame Rle
 #' @importFrom BiocParallel SerialParam
 #' @export
-mnnCorrect <- function(..., k=20, sigma=1, cos.norm.in=TRUE, cos.norm.out=TRUE, 
+mnnCorrect <- function(..., k=20, sigma=0.1, cos.norm.in=TRUE, cos.norm.out=TRUE, 
                        svd.dim=0L, var.adj=TRUE, compute.angle=FALSE,
                        subset.row=NULL, order=NULL, pc.approx=FALSE, irlba.args=list(),
                        BPPARAM=SerialParam())

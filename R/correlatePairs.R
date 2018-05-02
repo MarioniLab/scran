@@ -1,6 +1,6 @@
 #' @importFrom BiocParallel bplapply SerialParam
 .correlate_pairs <- function(x, null.dist=NULL, tol=1e-8, iters=1e6, 
-                             block=NULL, design=NULL, residuals=FALSE, lower.bound=NULL, 
+                             block=NULL, design=NULL, lower.bound=NULL, 
                              use.names=TRUE, subset.row=NULL, pairings=NULL, per.gene=FALSE, 
                              cache.size=100L, BPPARAM=SerialParam())
 # This calculates a (modified) Spearman's rho for each pair of genes.
@@ -8,7 +8,7 @@
 # written by Aaron Lun
 # created 10 February 2016
 {
-    null.out <- .check_null_dist(x, block=block, design=design, iters=iters, null.dist=null.dist, residuals=residuals)
+    null.out <- .check_null_dist(x, block=block, design=design, iters=iters, null.dist=null.dist)
     null.dist <- null.out$null
     by.block <- null.out$blocks
 
@@ -84,7 +84,7 @@
     return(out)
 }
 
-.check_null_dist <- function(x, block, design, iters, null.dist, residuals) 
+.check_null_dist <- function(x, block, design, iters, null.dist) 
 # This makes sure that the null distribution is in order.
 {
     if (!is.null(block)) { 
@@ -94,14 +94,6 @@
         }
 
     } else if (!is.null(design)) { 
-        if (is.null(.is_one_way(design))) { 
-            if (residuals) {
-                .Deprecated(msg="'residuals=TRUE' is deprecated, choose between 'design' and 'block'")
-            }
-        } else if (!residuals) {
-            .Deprecated(msg="'residuals=FALSE' is deprecated, use 'block' instead")
-        }
-            
         blocks <- list(seq_len(ncol(x)))
         if (is.null(null.dist)) { 
             null.dist <- correlateNull(design=design, iters=iters)

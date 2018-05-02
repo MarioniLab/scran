@@ -38,11 +38,6 @@ test_that("correlateNull works with a design matrix", {
     }
     out1 <- sort(unlist(collected))
 
-    set.seed(100)
-    expect_warning(out2 <- correlateNull(design=design, iters=1e3, residuals=TRUE), "deprecated")
-    expect_equal(out1, as.double(out2))
-    expect_equal(attr(out2, "design"), design)
-
     # A more complicated design.
     design <- model.matrix(~seq_len(10))
     QR <- qr(design, LAPACK=TRUE) # Q2 is not unique, and varies between LAPACK and LINPACK.
@@ -56,11 +51,6 @@ test_that("correlateNull works with a design matrix", {
         collected[[x]] <- cor(first.half, second.half, method="spearman")
     }
     out1 <- sort(unlist(collected))
-    
-    set.seed(100)
-    expect_warning(out2 <- correlateNull(design=design, iters=1e3, residuals=TRUE), "deprecated")
-    expect_equal(out1, as.double(out2))
-    expect_equal(attr(out2, "design"), design)
 })
 
 test_that("correlateNull works with a blocking factor", {
@@ -79,8 +69,6 @@ test_that("correlateNull works with a blocking factor", {
     expect_equal(out1, as.double(out2))
     expect_equal(attr(out2, "block"), grouping)
     expect_identical(attr(out2, "design"), NULL)
-
-    expect_warning(out3 <- correlateNull(design=model.matrix(~factor(grouping)), residuals=FALSE, iters=1e3), "deprecated")
 })
 
 test_that("correlateNull works correctly on silly inputs", {
@@ -186,11 +174,11 @@ design <- model.matrix(~grouping)
 
 test_that("correlatePairs works with a design matrix", {
     set.seed(200)
-    expect_warning(nulls <- correlateNull(design=design, iter=1e4, residuals=TRUE), "deprecated")
-    expect_warning(correlatePairs(X[1:5,], design=NULL, null=nulls, residuals=TRUE), "'design' is not the same as that used to generate")
+    nulls <- correlateNull(design=design, iter=1e4)
+    expect_warning(correlatePairs(X[1:5,], design=NULL, null=nulls), "'design' is not the same as that used to generate")
     
     set.seed(100) # Need because of random ranking.
-    expect_warning(out <- correlatePairs(X, design=design, null=nulls, lower.bound=NA, residuals=FALSE), "deprecated")
+    out <- correlatePairs(X, design=design, null=nulls, lower.bound=NA)
     fit <- lm.fit(x=design, y=t(X))
     exprs <- t(fit$residual)
     set.seed(100)
@@ -229,10 +217,10 @@ test_that("correlatePairs works with lower bounds on the residuals", {
    
     # Checking for correct calculation of statistics for bounded residuals.
     set.seed(200)
-    nulls <- correlateNull(design=design, iter=1e4, residuals=TRUE)
+    nulls <- correlateNull(design=design, iter=1e4)
  
     set.seed(100) 
-    out <- correlatePairs(X, design=design, null=nulls, residuals=TRUE, lower.bound=0) # Checking what happens with bounds.
+    out <- correlatePairs(X, design=design, null=nulls, lower.bound=0) # Checking what happens with bounds.
     set.seed(100) 
     ref <- checkCorrelations(out, alt.resid, null.dist=nulls)
     
@@ -308,7 +296,7 @@ X <- matrix(rnorm(Ngenes*Ncells), nrow=Ngenes)
 rownames(X) <- paste0("X", seq_len(Ngenes))
 
 set.seed(200)
-nulls <- correlateNull(ncells=ncol(X), iter=1e3, residuals=TRUE)
+nulls <- correlateNull(ncells=ncol(X), iter=1e3)
 ref <- correlatePairs(X, nulls)
 
 test_that("correlatePairs works with subset.row values", {
@@ -422,7 +410,7 @@ Ngenes <- 20
 Ncells <- 100
 X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes) + 1)
 rownames(X) <- paste0("X", seq_len(Ngenes))
-nulls <- correlateNull(ncells=ncol(X), iter=1e3, residuals=TRUE)
+nulls <- correlateNull(ncells=ncol(X), iter=1e3)
 
 test_that("correlatePairs works with per.gene=TRUE", {
     set.seed(200)

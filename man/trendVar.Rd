@@ -9,7 +9,6 @@
 \usage{
 \S4method{trendVar}{ANY}(x, method=c("loess", "spline"), parametric=FALSE, 
     loess.args=list(), spline.args=list(), nls.args=list(),
-    span=NULL, family=NULL, degree=NULL, df=NULL, start=NULL, 
     block=NULL, design=NULL, weighted=TRUE, min.mean=0.1, subset.row=NULL) 
 
 \S4method{trendVar}{SingleCellExperiment}(x, subset.row=NULL, ..., assay.type="logcounts", use.spikes=TRUE)
@@ -25,9 +24,6 @@
 \item{loess.args}{A named list of arguments to pass to \code{\link{loess}} when \code{method="loess"}.}
 \item{spline.args}{A named list of arguments to pass to \code{\link[aroma.light]{robustSmoothSpline}} when \code{method="spline"}.}
 \item{nls.args}{A named list of arguments to pass to \code{\link{nls}} when \code{parametric=TRUE}.}
-\item{span, family, degree}{Deprecated arguments to pass to \code{\link{loess}}.}
-\item{df}{Deprecated argument to pass to \code{\link{ns}}.}
-\item{start}{Deprecated argument to pass to \code{\link{nls}}.}
 \item{block}{A factor specifying the blocking level for each cell.}
 \item{design}{A numeric matrix describing the uninteresting factors contributing to expression in each cell.}
 \item{weighted}{A logical scalar indicated whether weighted trend fitting should be performed when \code{block!=NULL}.}

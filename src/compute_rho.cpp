@@ -249,7 +249,7 @@ public:
 
         std::vector<std::pair<size_t, size_t> > pairings;
         pairings.reserve(npairs);
-        const size_t Ngenes=rankings->get_nrow();
+        const size_t Ngenes=rankings->get_ncol();
 
         // Running through and checking the indices for validity.
         auto it1=g1.begin(), it2=g2.begin();

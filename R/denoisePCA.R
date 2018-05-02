@@ -1,6 +1,6 @@
 #' @importFrom DelayedArray DelayedArray
 #' @importFrom DelayedMatrixStats rowVars rowMeans2
-.denoisePCA <- function(x, technical, design=NULL, subset.row=NULL,
+.denoisePCA <- function(x, technical, subset.row=NULL,
                         value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100, 
                         approximate=FALSE, rand.seed=1000, irlba.args=list())
 # Performs PCA and chooses the number of PCs to keep based on the technical noise.
@@ -10,10 +10,6 @@
 # created 13 March 2017    
 {
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
-    if (!is.null(design)) {
-        .Deprecated(msg="'design=' is deprecated.\nSee '?denoisePCA' for alternatives.")
-        x <- limma::removeBatchEffect(x, design=NULL, covariates=design)
-    }
     x2 <- DelayedArray(x)
     scale <- NULL
 

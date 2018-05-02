@@ -10,7 +10,7 @@
 \S4method{overlapExprs}{ANY}(x, groups, block=NULL, design=NULL, 
     rank.type=c("any", "all"), direction=c("any", "up", "down"),
     tol=1e-8, BPPARAM=SerialParam(), subset.row=NULL, 
-    lower.bound=NULL, residuals=FALSE)
+    lower.bound=NULL)
 
 \S4method{overlapExprs}{SingleCellExperiment}(x, ..., subset.row=NULL, lower.bound=NULL, 
     assay.type="logcounts", get.spikes=FALSE) 
@@ -32,7 +32,6 @@ A vector of group assignments for all cells.
 \item{BPPARAM}{A BiocParallelParam object to use in \code{bplapply} for parallel processing.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{lower.bound}{A numeric scalar specifying the theoretical lower bound of values in \code{x}, only used when \code{residuals=TRUE}.}
-\item{residuals}{A logical scalar indicating whether overlaps should be computed between residuals of a linear model.} 
 \item{...}{Additional arguments to pass to the matrix method.}
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
 \item{get.spikes}{A logical scalar specifying whether decomposition should be performed for spike-ins.}

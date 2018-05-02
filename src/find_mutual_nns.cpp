@@ -176,20 +176,32 @@ SEXP smooth_gaussian_kernel(SEXP vect, SEXP index, SEXP data, SEXP sigma) {
             }
         }
 
-        // Compute probabilities based on the squared distances (sum to get the relative MNN density with a Gaussian kernel).
+        // Compute log-probabilities using a Gaussian kernel based on the squared distances.
+        // We keep things logged to avoid float underflow, and just ignore the constant bit at the front.
         for (auto& d2 : distances2) { 
-            d2=std::exp(-d2/s2); 
+            d2/=-s2;
         }
-        double density=0;
+        
+        // We sum the probabilities to get the relative MNN density. 
+        // This requires some care as the probabilities are still logged at this point.
+        double density=NA_REAL;
         for (const auto& other_mnn : mnncell) {
-            density+=distances2[other_mnn];
+            if (ISNA(density)) {
+                density=distances2[other_mnn];
+            } else {
+                const double& to_add=distances2[other_mnn];
+                const double larger=std::max(to_add, density), diff=std::abs(to_add - density);
+                density=larger + log1pexp(-diff);
+            }
         }
 
-        // Filling in the smoothed values, after dividing by density to avoid being dominated by high-density regions.
+        // Each correction vector is weighted by the Gaussian probability (to account for distance)
+        // and density (to avoid being dominated by high-density regions).
+        // Summation (and then division, see below) yields smoothed correction vectors.
         const auto& correction = averages[mnn];
         auto oIt=output.begin();
         for (int other=0; other<ncells; ++other) {
-            const double mult=distances2[other]/density;
+            const double mult=std::exp(distances2[other] - density);
             totalprob[other]+=mult;
 
             for (const auto& corval : correction) { 
@@ -199,7 +211,7 @@ SEXP smooth_gaussian_kernel(SEXP vect, SEXP index, SEXP data, SEXP sigma) {
         }
     }
 
-    // Adjusting the smoothed values.
+    // Dividing by the total probability.
     for (int other=0; other<ncells; ++other) {
         auto curcol=output.column(other);
         const double total=totalprob[other];

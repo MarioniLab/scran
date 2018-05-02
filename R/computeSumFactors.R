@@ -1,5 +1,5 @@
 #' @importFrom Matrix qr qr.coef
-.computeSumFactors <- function(x, sizes=seq(20, 100, 5), clusters=NULL, ref.clust=NULL, 
+.computeSumFactors <- function(x, sizes=seq(20, 100, 5), clusters=NULL, ref.clust=NULL, max.cluster.size=3000, 
                                positive=FALSE, errors=FALSE, min.mean=1, subset.row=NULL)
 # This contains the function that performs normalization on the summed counts.
 # It also provides support for normalization within clusters, and then between
@@ -10,14 +10,19 @@
 # created 23 November 2015
 {
     ncells <- ncol(x)
-    if (!is.null(clusters)) {
-        if (ncells!=length(clusters)) { 
-            stop("'x' ncols is not equal to 'clusters' length")
-        }
-        is.okay <- !is.na(clusters)
-        indices <- split(which(is.okay), clusters[is.okay])
-    } else {
-        indices <- list(seq_len(ncells))
+    if (is.null(clusters)) {
+        clusters <- integer(ncells)
+    }
+	clusters <- .limit_cluster_size(clusters, max.cluster.size)
+
+    if (ncells!=length(clusters)) { 
+        stop("'ncol(x)' is not equal to 'length(clusters)'")
+    }
+    indices <- split(seq_along(clusters), clusters)
+
+    if (length(indices)==0L) {
+        # To ensure that the empty cluster error triggers.
+        indices <- list(integer(0))
     }
 
     # Checking sizes and subsetting.
@@ -195,6 +200,35 @@ LOWWEIGHT <- 0.000001
         rescaling[[clust]] <- median(cur.prof/ref.prof, na.rm=TRUE)
     }
     return(rescaling)
+}
+
+.limit_cluster_size <- function(clusters, max.size) {
+    if (is.null(max.size)) { 
+        return(clusters) 
+    }
+    
+    new.clusters <- integer(length(clusters))
+    counter <- 1L
+    for (id in unique(clusters)) {
+        current <- id==clusters
+        ncells <- sum(current)
+        
+        if (ncells <= max.size) {
+            new.clusters[current] <- counter
+            counter <- counter+1L
+            next
+        }
+       
+        # Size of output clusters is max.size * N / ceil(N), where N = ncells/max.size.
+        # This is minimal at the smallest N > 1, where output clusters are at least max.size/2. 
+        # Thus, we need max.size/2 >= min.size to guarantee that the output clusters are >= min.size.
+        mult <- ceiling(ncells/max.size)
+        realloc <- rep(seq_len(mult) - 1L + counter, length.out=ncells)
+        new.clusters[current] <- realloc
+        counter <- counter + mult
+    }
+
+    factor(new.clusters)
 }
 
 #############################################################

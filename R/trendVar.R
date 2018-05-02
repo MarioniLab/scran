@@ -2,7 +2,6 @@
 #' @importFrom limma fitFDistRobustly
 .trend_var <- function(x, method=c("loess", "spline"), parametric=FALSE, 
                        loess.args=list(), spline.args=list(), nls.args=list(),
-                       span=NULL, family=NULL, degree=NULL, df=NULL, start=NULL, 
                        block=NULL, design=NULL, weighted=TRUE, 
                        min.mean=0.1, subset.row=NULL)
 # Fits a smooth trend to the technical variability of the log-CPMs
@@ -54,7 +53,7 @@
     # Fitting loess or splines to the remainder. Note that we need kept.means as a variable in the formula for predict() to work!
     method <- match.arg(method)
     if (method=="loess") { 
-        loess.args <- .setup_loess_args(loess.args, degree=degree, family=family, span=span)
+        loess.args <- .setup_loess_args(loess.args)
         loess.args$formula <- to.fit ~ kept.means 
         if (weighted) {
             loess.args$weights <- kept.resid
@@ -63,7 +62,7 @@
         after.fit <- do.call(loess, loess.args)
         PREDICTOR <- function(x) { predict(after.fit, data.frame(kept.means=x)) }
     } else {
-        spline.args <- .setup_spline_args(spline.args, df=df)
+        spline.args <- .setup_spline_args(spline.args)
         spline.args$x <- kept.means
         spline.args$y <- to.fit
         if (weighted) {
@@ -219,17 +218,8 @@
 # Setting default arguments. #
 ##############################
 
-.warn_and_set_default <- function(val, name, default, new.arg) {
-    if (is.null(val)) {
-        return(default)
-    } else {
-        .Deprecated(old=paste0(name, "="), new=sprintf("%s(%s=)", new.arg, name))
-        return(val)
-    }
-}
-
 #' @importFrom stats loess
-.setup_loess_args <- function(loess.args, span, family, degree) {
+.setup_loess_args <- function(loess.args) {
     if (is.null(loess.args)) { 
         return(list())
     }
@@ -238,16 +228,12 @@
     loess.call <- match.call(loess, loess.call)
     loess.args <- as.list(loess.call)[-1] # expand to full argument names.
 
-    span <- .warn_and_set_default(span, "span", 0.3, "loess.args")
-    family <- .warn_and_set_default(family, "family", "symmetric", "loess.args")
-    degree <- .warn_and_set_default(degree, "degree", 1, "loess.args")
-   
-    altogether <- c(loess.args, list(span=span, family=family, degree=degree))
+    altogether <- c(loess.args, list(span=0.3, family="symmetric", degree=1))
     keep <- !duplicated(names(altogether)) # loess.args are favoured.
     return(altogether[keep])
 }
 
-.setup_spline_args <- function(spline.args, df) {
+.setup_spline_args <- function(spline.args) {
     if (is.null(spline.args)) { 
         return(list())
     }
@@ -256,8 +242,7 @@
     spline.call <- match.call(aroma.light::robustSmoothSpline, spline.call)
     spline.args <- as.list(spline.call)[-1]
 
-    df <- .warn_and_set_default(df, "df", 4, "spline.args")
-    altogether <- c(spline.args, list(df=df, method="symmetric"))
+    altogether <- c(spline.args, list(df=4, method="symmetric"))
     keep <- !duplicated(names(altogether))  # spline.args are favoured.
     return(altogether[keep])
 }
