@@ -54,13 +54,6 @@ test_that("quickCluster is consistent with clustering on correlations", {
     obs <- quickCluster(mat, min.size=50)
     clusters <- unname(dynamicTreeCut::cutreeDynamic(htree, minClusterSize=50, distM=refM, verbose=0))
     expect_identical(clusters, as.integer(obs))
-
-    # Works with max.size set.
-    obs <- quickCluster(mat, min.size=20)
-    obs2 <- quickCluster(mat, min.size=20, max.size=40)
-    expect_false(all(table(obs) <= 40))
-    expect_true(all(table(obs2) <= 40))
-    expect_identical(length(unique(paste(obs, obs2, sep="."))), nlevels(obs2)) # obs2 is fully nested in obs.
 })
 
 test_that("quickCluster functions correctly with subsetting", {
