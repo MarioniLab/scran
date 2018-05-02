@@ -53,7 +53,7 @@
     # Fitting loess or splines to the remainder. Note that we need kept.means as a variable in the formula for predict() to work!
     method <- match.arg(method)
     if (method=="loess") { 
-        loess.args <- .setup_loess_args(loess.args, degree=degree, family=family, span=span)
+        loess.args <- .setup_loess_args(loess.args)
         loess.args$formula <- to.fit ~ kept.means 
         if (weighted) {
             loess.args$weights <- kept.resid
@@ -62,7 +62,7 @@
         after.fit <- do.call(loess, loess.args)
         PREDICTOR <- function(x) { predict(after.fit, data.frame(kept.means=x)) }
     } else {
-        spline.args <- .setup_spline_args(spline.args, df=df)
+        spline.args <- .setup_spline_args(spline.args)
         spline.args$x <- kept.means
         spline.args$y <- to.fit
         if (weighted) {
@@ -219,7 +219,7 @@
 ##############################
 
 #' @importFrom stats loess
-.setup_loess_args <- function(loess.args, span, family, degree) {
+.setup_loess_args <- function(loess.args) {
     if (is.null(loess.args)) { 
         return(list())
     }
@@ -233,7 +233,7 @@
     return(altogether[keep])
 }
 
-.setup_spline_args <- function(spline.args, df) {
+.setup_spline_args <- function(spline.args) {
     if (is.null(spline.args)) { 
         return(list())
     }
