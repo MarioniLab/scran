@@ -2,7 +2,17 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.7.28}{\itemize{
+\section{Version 1.9.2}{\itemize{
+\item Removed selectorPlot(), exploreData() functions.
+    
+\item Fixed underflow problem in mnnCorrect() when dealing with the Gaussian kernel.
+
+\item Dropped the default sigma= in mnnCorrect() for better default performance.
+
+\item Deprecated max.size= in quickCluster() in favour of max.cluster.size= in computeSumFactors().
+}}
+
+\section{Version 1.8.0}{\itemize{
 \item Modified decomposeVar() to return statistics (but not p-values) for spike-ins when get.spikes=NA.
 Added block= argument for mean/variance calculations within each level of a blocking factor, followed by reporting of weighted averages (using Fisher's method for p-values).
 Automatically record global statistics in the metadata of the output for use in combineVar(). 
