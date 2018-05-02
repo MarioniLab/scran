@@ -8,7 +8,8 @@
 
 \usage{
 \S4method{computeSumFactors}{ANY}(x, sizes=seq(20, 100, 5), clusters=NULL, ref.clust=NULL,
-    positive=FALSE, errors=FALSE, min.mean=1, subset.row=NULL)
+    max.cluster.size=3000, positive=FALSE, errors=FALSE, min.mean=1, 
+    subset.row=NULL)
 
 \S4method{computeSumFactors}{SingleCellExperiment}(x, ..., min.mean=1, subset.row=NULL, 
     assay.type="counts", get.spikes=FALSE, sf.out=FALSE)
@@ -22,6 +23,7 @@
 \item{sizes}{A numeric vector of pool sizes, i.e., number of cells per pool.}
 \item{clusters}{An optional factor specifying which cells belong to which cluster, for deconvolution within clusters.}
 \item{ref.clust}{A level of \code{clusters} to be used as the reference cluster for inter-cluster normalization.}
+\item{max.cluster.size}{An integer scalar specifying the maximum number of cells in each cluster.}
 \item{positive}{A logical scalar indicating whether linear inverse models should be used to enforce positive estimates.}
 \item{errors}{A logical scalar indicating whether the standard error should be returned. This option is deprecated, see below.}
 \item{min.mean}{A numeric scalar specifying the minimum (library size-adjusted) average count of genes to be used for normalization.}
@@ -78,6 +80,7 @@ We recommend window sizes no lower than 20 for UMI data, though smaller windows 
 The linear system is solved using the sparse QR decomposition from the \pkg{Matrix} package.
 However, this has known problems when the linear system becomes too large (see \url{https://stat.ethz.ch/pipermail/r-help/2011-August/285855.html}).
 In such cases, set \code{clusters} to break up the linear system into smaller, more manageable components that can be solved separately.
+The default \code{max.cluster.size} will arbitrarily break up the cell population (within each cluster, if specified) so that we never pool more than 3000 cells.
 }
 
 \section{Dealing with negative size factors}{ 

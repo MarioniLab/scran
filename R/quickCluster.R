@@ -29,10 +29,7 @@
     # Checking size specifications.
     if (ncol(x) < min.size){
         stop('fewer cells than the minimum cluster size')
-    } else if (!is.null(max.size) && max.size < min.size*2) { 
-        stop("maximum cluster size must be at least twice the minimum size") 
-        # otherwise, split clusters aren't guaranteed to be > min.size. See below.
-    }
+    } 
 
     if (method=="igraph") { 
         g <- buildSNNGraph(rkout, pc.approx=pc.approx, ...)
@@ -51,12 +48,14 @@
         }
     }
 
-    clusters <- .limit_cluster_size(clusters, max.size)
-    clusters <- factor(clusters)
-    return(clusters)
+    if (!is.null(max.size)) {
+        .Deprecated("'max.size' is deprecated, use 'max.cluster.size=' in 'computeSumFactors' instead")
+        clusters <- .limit_cluster_size(clusters, max.size)
+    }
+    factor(clusters)
 }
 
-#' @importFrom igraph modularity E 
+#' @importFrom igraph modularity E
 .merge_closest_graph <- function(g, clusters, min.size) {
     repeat {
         all.sizes <- table(clusters)
@@ -90,32 +89,6 @@
 
     clusters <- as.integer(factor(clusters))
     return(clusters)
-}
-
-.limit_cluster_size <- function(clusters, max.size) {
-    if (is.null(max.size)) { return(clusters) }
-    
-    new.clusters <- clusters
-    counter <- 1L
-    for (id in unique(clusters)) {
-        current <- id==clusters
-        ncells <- sum(current)
-        
-        if (ncells <= max.size) {
-            new.clusters[current] <- counter
-            counter <- counter+1L
-            next
-        }
-       
-        # Size of output clusters is max.size * N / ceil(N), where N = ncells/max.size.
-        # This is minimal at the smallest N > 1, where output clusters are at least max.size/2. 
-        # Thus, we need max.size/2 >= min.size to guarantee that the output clusters are >= min.size.
-        mult <- ceiling(ncells/max.size)
-        realloc <- rep(seq_len(mult) - 1L + counter, length.out=ncells)
-        new.clusters[current] <- realloc
-        counter <- counter + mult
-    }
-    return(new.clusters)
 }
 
 #' @export

@@ -261,6 +261,19 @@ test_that("computeSumFactors correctly subsets 'sizes' for small clusters", {
     expect_equal(ref, obs)
 })
 
+test_that("computeSumFactors correctly limits cluster sizes", {
+    # Checking that it does the job inside the function.        
+    obs <- computeSumFactors(dummy, max.cluster.size=100)
+    expect_equal(obs, computeSumFactors(dummy, clusters=rep(1:2, length.out=ncol(dummy))))
+   
+    # Checking that the size-capping function works.
+    clusters <- sample(1:5, 51, p=1:5, replace=TRUE)
+    out <- scran:::.limit_cluster_size(clusters, 10) 
+    expect_true(all(table(out) <= 10L))
+    expect_false(identical(out, clusters))
+    expect_true(length(unique(paste0(clusters, out)))==length(unique(out))) # nested
+})
+
 set.seed(20004)
 test_that("computeSumFactors is correct with clustering in majority-DE cases", {
     ncells <- 600
@@ -339,7 +352,7 @@ test_that("computeSumFactors throws errors correctly", {
     expect_error(computeSumFactors(dummy[,0,drop=FALSE]), "not enough cells in at least one cluster")
     expect_error(computeSumFactors(dummy[0,,drop=FALSE]), "cells should have non-zero library sizes")
     expect_error(computeSumFactors(dummy, sizes=c(10, 10, 20)), "'sizes' are not unique")
-    expect_error(computeSumFactors(dummy, clusters=integer(0)), "'x' ncols is not equal to 'clusters' length")
+    expect_error(computeSumFactors(dummy, clusters=integer(0)), "'ncol(x)' is not equal to 'length(clusters)'", fixed=TRUE)
 })
 
 ####################################################################################################

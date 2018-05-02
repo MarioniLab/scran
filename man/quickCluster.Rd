@@ -64,10 +64,6 @@ If the smallest cluster contains fewer cells than \code{min.size}, it is merged 
 In particular, the function will attempt to merge the smallest cluster with each other cluster.
 The merge that maximizes the modularity score is selected, and a new merged cluster is formed.
 This process is repeated until all (merged) clusters are larger than \code{min.size}.
-
-If \code{max.size} is specified, clusters that are larger than \code{max.size} will be broken up into partitions of equal size.
-This is done arbitrarily, without any use of cell-cell similarities within each cluster.
-The aim of this parameter is to reduce cluster sizes for easier computational processing (e.g., in \code{\link{computeSumFactors}}), rather than to define meaningful subclusters.
 }
 
 \section{Gene selection}{
