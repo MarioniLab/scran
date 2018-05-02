@@ -8,12 +8,12 @@
 \description{Identify pairs of genes that are significantly correlated based on a modified Spearman's rho.}
 
 \usage{
-correlateNull(ncells, iters=1e6, block=NULL, design=NULL, residuals=FALSE) 
+correlateNull(ncells, iters=1e6, block=NULL, design=NULL) 
 
 \S4method{correlatePairs}{ANY}(x, null.dist=NULL, tol=1e-8, iters=1e6, 
-    block=NULL, design=NULL, residuals=FALSE, lower.bound=NULL,
-    use.names=TRUE, subset.row=NULL, pairings=NULL, per.gene=FALSE,  
-    cache.size=100L, BPPARAM=SerialParam())
+    block=NULL, design=NULL, lower.bound=NULL, use.names=TRUE, 
+    subset.row=NULL, pairings=NULL, per.gene=FALSE,  cache.size=100L,
+    BPPARAM=SerialParam())
 
 \S4method{correlatePairs}{SingleCellExperiment}(x, ..., use.names=TRUE, subset.row=NULL, per.gene=FALSE,
     lower.bound=NULL, assay.type="logcounts", get.spikes=FALSE)
@@ -24,7 +24,6 @@ correlateNull(ncells, iters=1e6, block=NULL, design=NULL, residuals=FALSE)
 \item{iters}{An integer scalar specifying the number of values in the null distribution.}
 \item{block}{A factor specifying the blocking level for each cell.}
 \item{design}{A numeric design matrix containing uninteresting factors to be ignored.}
-\item{residuals}{A logical scalar, deprecated.}
 \item{x}{
     A numeric matrix-like object of log-normalized expression values, where rows are genes and columns are cells.
     Alternatively, a SingleCellExperiment object containing such a matrix.

@@ -1,5 +1,5 @@
 #' @export
-correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, residuals=FALSE) 
+correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL) 
 # This builds a null distribution for the modified Spearman's rho.
 #
 # written by Aaron Lun
@@ -26,16 +26,7 @@ correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, residuals=
             stop("cannot specify both 'ncells' and 'design'")
         }
 
-        if (residuals) { 
-            .Deprecated(msg="'residuals=TRUE' is deprecated, choose between 'design' and 'block'")
-        } else {
-            groupings <- .is_one_way(design)
-            if (!is.null(groupings)) {
-                .Deprecated(msg="'residuals=FALSE' for one-way layouts is deprecated, use 'block'")
-            }
-        }
-        
-        # Using residualsd residual effects if the design matrix is not a one-way layout (or if forced by residuals=TRUE).
+        # Using residual effects to compute the correlations.
         QR <- .ranksafe_qr(design)
         out <- .Call(cxx_get_null_rho_design, QR$qr, QR$qraux, as.integer(iters))
         attrib <- list(design=design)
@@ -50,4 +41,3 @@ correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, residuals=
     attributes(out) <- attrib
     return(out)  
 }
-

@@ -7,8 +7,7 @@
                           tol=1e-8, 
                           BPPARAM=SerialParam(), 
                           subset.row=NULL, 
-                          lower.bound=NULL,
-                          residuals=FALSE)
+                          lower.bound=NULL)
 # Computes the gene-specific overlap in expression profiles between two groups of cells.
 # This aims to determine whether two distributions of expression values are well-separated.    
 # 
@@ -25,8 +24,14 @@
         stop("'nrow(design)' not equal to number of cells")
     }
 
+    # Defining blocks.
+    if (!is.null(block)) { 
+        by.block <- split(seq_len(ncol(x)), block)
+    } else { 
+        by.block <- list(seq_len(ncol(x)))
+    }
+    
     # Computing residuals; also replacing the subset vector, as it'll already be subsetted.
-    by.block <- .check_blocking_inputs(x, block=block, design=design, residuals=residuals)
     if (!is.null(design) && is.null(block)) { 
         use.x <- .calc_residuals_wt_zeroes(x, design, subset.row=subset.row, lower.bound=lower.bound)
         use.subset.row <- seq_len(nrow(use.x)) - 1L
@@ -79,28 +84,6 @@
 ###########################################################
 # Internal functions.
 ###########################################################
-
-.check_blocking_inputs <- function(x, block, design, residuals) 
-# This makes sure that the blocking inputs are sensible.
-{
-    if (!is.null(block)) { 
-        blocks <- split(seq_len(ncol(x)), block)
-    } else { 
-        blocks <- list(seq_len(ncol(x)))
-
-        # And a series of warnings...
-        if (!is.null(design)) { 
-            if (is.null(.is_one_way(design))) { 
-                if (residuals) {
-                    .Deprecated(msg="'residuals=TRUE' is deprecated, choose between 'design' and 'block'")
-                }
-            } else if (!residuals) {
-                .Deprecated(msg="'residuals=FALSE' is deprecated, use 'block' instead")
-            }
-        }
-    }
-    return(blocks)
-}
 
 .find_overlap_exprs <- function(x, subset.row, by.group, tol) 
 # Pass all arguments explicitly rather than via function environment
