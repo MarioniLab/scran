@@ -243,3 +243,17 @@ test_that("mnnCorrect behaves consistently with subsetting", {
     ref <- mnnCorrect(bravo, charlie, alpha)
     expect_equal(out$corrected[new.order], ref$corrected)
 })
+
+set.seed(10004)
+library(Matrix)
+test_that("mnnCorrect behaves properly with sparse matrices", {
+    alpha <- rsparsematrix(20, 100, density=0.5)
+    bravo <- rsparsematrix(20, 100, density=0.5)
+    charlie <- rsparsematrix(20, 100, density=0.5)
+
+    out <- mnnCorrect(alpha, bravo, charlie)
+    ref <- mnnCorrect(as.matrix(alpha), as.matrix(bravo), as.matrix(charlie))
+    expect_equivalent(ref$corrected, lapply(out$corrected, as.matrix))
+    expect_identical(out$pairs, ref$pairs)
+})
+
