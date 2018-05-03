@@ -38,6 +38,11 @@ test_that("correlateNull works with a design matrix", {
     }
     out1 <- sort(unlist(collected))
 
+    set.seed(100)
+    out2 <- correlateNull(design=design, iters=1e3)
+    expect_equal(out1, as.double(out2))
+    expect_equal(attr(out2, "design"), design)
+
     # A more complicated design.
     design <- model.matrix(~seq_len(10))
     QR <- qr(design, LAPACK=TRUE) # Q2 is not unique, and varies between LAPACK and LINPACK.
@@ -51,6 +56,11 @@ test_that("correlateNull works with a design matrix", {
         collected[[x]] <- cor(first.half, second.half, method="spearman")
     }
     out1 <- sort(unlist(collected))
+
+    set.seed(100)
+    out2 <- correlateNull(design=design, iters=1e3)
+    expect_equal(out1, as.double(out2))
+    expect_equal(attr(out2, "design"), design)
 })
 
 test_that("correlateNull works with a blocking factor", {
