@@ -9,7 +9,7 @@
 \usage{
 \S4method{quickCluster}{ANY}(x, min.size=200, max.size=NULL, method=c("hclust", "igraph"),
     pc.approx=TRUE, get.ranks=FALSE, subset.row=NULL, min.mean=1, 
-    block=NULL, block.BPPARAM=NULL, ...)
+    block=NULL, block.BPPARAM=SerialParam(), ...)
 
 \S4method{quickCluster}{SingleCellExperiment}(x, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE)
 }
