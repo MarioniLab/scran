@@ -8,7 +8,8 @@
 
 \usage{
 \S4method{quickCluster}{ANY}(x, min.size=200, max.size=NULL, method=c("hclust", "igraph"),
-    pc.approx=TRUE, get.ranks=FALSE, subset.row=NULL, min.mean=1, ...)
+    pc.approx=TRUE, get.ranks=FALSE, subset.row=NULL, min.mean=1, 
+    block=NULL, block.BPPARAM=NULL, ...)
 
 \S4method{quickCluster}{SingleCellExperiment}(x, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE)
 }
@@ -26,6 +27,10 @@
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{min.mean}{A numeric scalar specifying the filter to be applied on the average count for each filter prior to computing ranks.
 Disabled by setting to \code{NULL}.}
+\item{block}{A factor of length equal to \code{ncol(x)} specifying whether clustering should be performed within pre-specified blocks.
+By default, all columns in \code{x} are treated as a single block.}
+\item{block.BPPARAM}{A BiocParallelParam object specifying whether and how parallelization should be performed across blocks, 
+if \code{block} is non-\code{NULL} and has more than one level.}
 \item{...}{
     For \code{quickCluster,ANY-method}, additional arguments to be passed to \code{\link{cutreeDynamic}} for \code{method="hclust"}, 
         or \code{\link{buildSNNGraph}} for \code{method="igraph"}.
