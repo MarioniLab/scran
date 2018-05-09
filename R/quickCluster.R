@@ -2,15 +2,44 @@
 #' @importFrom dynamicTreeCut cutreeDynamic
 #' @importFrom scater calcAverage
 #' @importFrom igraph cluster_fast_greedy
+#' @importFrom BiocParallel SerialParam bplapply
 .quick_cluster <- function(x, min.size=200, max.size=NULL, method=c("hclust", "igraph"),
-                           pc.approx=TRUE, get.ranks=FALSE, subset.row=NULL, min.mean=1, ...)
+                           pc.approx=TRUE, get.ranks=FALSE, subset.row=NULL, min.mean=1, 
+                           block=NULL, block.BPPARAM=SerialParam(), ...)
 # This function generates a cluster vector containing the cluster number assigned to each cell.
 # It takes the counts matrix and a minimum number of Cells per cluster as input.
 # The minimum number should be at least twice as large as the largest group used for summation.
 #
 # written by Karsten Bach, with modifications by Aaron Lun
 # created 1 December 2015
-{   
+{
+    if (!is.null(block) && length(unique(block))>1L) {
+        # Splitting into parallel processes across blocks.
+        by.block <- split(seq_along(block), block)
+        collected <- bplapply(by.block, 
+            FUN=function(x, i, ...) {
+                .quick_cluster(x[,i,drop=FALSE], ...)
+            },
+            x=x, min.size=min.size, max.size=max.size, method=method,
+            pc.approx=pc.approx, get.ranks=get.ranks, subset.row=subset.row, min.mean=min.mean,
+            ..., BPPARAM=block.BPPARAM)
+
+        # Merging the results across different blocks.
+        reordering <- order(unlist(by.block, use.names=FALSE))
+        if (get.ranks) {
+            return(do.call(cbind, collected)[,reordering,drop=FALSE])
+        } else {
+            last <- 0L
+            for (b in seq_along(collected)) {
+                to.add <- nlevels(collected[[b]])
+                collected[[b]] <- as.integer(collected[[b]]) + last
+                last <- last + to.add
+            }
+            return(factor(unlist(collected, use.names=FALSE)[reordering]))
+        }
+    }
+
+    # Subsetting features.
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     if (!is.null(min.mean) && all(dim(x)>0L)) {
         further.subset <- calcAverage(x, subset_row=subset.row) >= min.mean
@@ -21,7 +50,7 @@
     # Using this instead of colRanks to support dgCMatrix, HDF5Array objects.
     get.ranks <- as.logical(get.ranks)
     method <- match.arg(method)
-    rkout <- .Call(cxx_get_scaled_ranks, x, subset.row-1L, !get.ranks && method!="igraph")
+    rkout <- .Call(cxx_get_scaled_ranks, x, subset.row-1L, !get.ranks)
     if (get.ranks) {
         return(rkout)
     }
@@ -32,7 +61,7 @@
     } 
 
     if (method=="igraph") { 
-        g <- buildSNNGraph(rkout, pc.approx=pc.approx, ...)
+        g <- buildSNNGraph(rkout, pc.approx=pc.approx, transposed=TRUE, ...)
         out <- cluster_fast_greedy(g)
         clusters <- out$membership
         clusters <- .merge_closest_graph(g, clusters, min.size=min.size)
