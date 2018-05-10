@@ -9,7 +9,10 @@
 Dropped the default sigma= in mnnCorrect() for better default performance.
 
 \item Supported parallelized block-wise processing in quickCluster().
-Deprecated max.size= in quickCluster() in favour of max.cluster.size= in computeSumFactors().
+Deprecated max.size= in favour of max.cluster.size= in computeSumFactors().
+
+\item Added max.cluster.size= argument to computeSumFactors().
+Supported parallelized cluster-wise processing.
 }}
 
 \section{Version 1.8.0}{\itemize{
