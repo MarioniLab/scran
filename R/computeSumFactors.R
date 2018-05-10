@@ -1,6 +1,6 @@
-#' @importFrom Matrix qr qr.coef
+#' @importFrom BiocParallel bplapply SerialParam
 .computeSumFactors <- function(x, sizes=seq(20, 100, 5), clusters=NULL, ref.clust=NULL, max.cluster.size=3000, 
-                               positive=FALSE, errors=FALSE, min.mean=1, subset.row=NULL)
+                               positive=FALSE, errors=FALSE, min.mean=1, subset.row=NULL, BPPARAM=SerialParam())
 # This contains the function that performs normalization on the summed counts.
 # It also provides support for normalization within clusters, and then between
 # clusters to make things comparable. It can also switch to linear inverse models
@@ -39,65 +39,14 @@
     clust.meanlib <- numeric(nclusters)
     warned.neg <- FALSE
 
-    # Computing normalization factors within each cluster first.
-    for (clust in seq_len(nclusters)) { 
-        curdex <- indices[[clust]]
-        cur.cells <- length(curdex)
+    # Computing normalization factors within each cluster.
+    all.norm <- bplapply(indices, FUN=.per_cluster_normalize, x=x, sizes=sizes, subset.row=subset.row, 
+        min.mean=min.mean, positive=positive, errors=errors, BPPARAM=BPPARAM)
 
-        cur.sizes <- sizes
-        if (any(cur.sizes > cur.cells)) { 
-            cur.sizes <- cur.sizes[cur.sizes <= cur.cells]
-            if (length(cur.sizes)) { 
-                warning("not enough cells in at least one cluster for some 'sizes'")
-            } else {
-                stop("not enough cells in at least one cluster for any 'sizes'")
-            }
-        } 
-
-        cur.out <- .Call(cxx_subset_and_divide, x, subset.row-1L, curdex-1L) 
-        cur.libs <- cur.out[[1]]
-        exprs <- cur.out[[2]]
-        ave.cell <- cur.out[[3]]
-
-        # Filtering by mean (easier to do it here in R, rather than C++).
-        mean.lib <- mean(cur.libs)
-        high.ave <- min.mean/mean.lib <= ave.cell # mimics calcAverage
-        if (!all(high.ave)) { 
-            exprs <- exprs[high.ave,,drop=FALSE]
-            use.ave.cell <- ave.cell[high.ave]
-        } else {
-            use.ave.cell <- ave.cell
-        }
-
-        # Using our summation approach.
-        sphere <- .generateSphere(cur.libs)
-        new.sys <- .create_linear_system(exprs, use.ave.cell, sphere, cur.sizes) 
-        design <- new.sys$design
-        output <- new.sys$output
-
-        # Weighted least-squares (inverse model for positivity).
-        if (positive) { 
-            design <- as.matrix(design)
-            fitted <- limSolve::lsei(A=design, B=output, G=diag(cur.cells), H=numeric(cur.cells), type=2)
-            final.nf <- fitted$X
-        } else {
-            QR <- qr(design)
-            final.nf <- qr.coef(QR, output)
-            if (any(final.nf < 0)) { 
-                if (!warned.neg) { warning("encountered negative size factor estimates") }
-                warned.neg <- TRUE
-            }
-            if (errors) {
-                warning("errors=TRUE is no longer supported")
-            }
-        }
-
-        # Adding per-cluster information.
-        clust.nf[[clust]] <- final.nf
-        clust.profile[[clust]] <- ave.cell
-        clust.libsizes[[clust]] <- cur.libs
-        clust.meanlib[clust] <- mean.lib 
-    }
+    clust.nf <- lapply(all.norm, "[[", i="final.nf")
+    clust.profile <- lapply(all.norm, "[[", i="ave.cell")
+    clust.libsizes <- lapply(all.norm, "[[", i="cur.libs")
+    clust.meanlib <- vapply(all.norm, FUN="[[", i="mean.lib", FUN.VALUE=0)
 
     # Adjusting size factors between clusters (using the cluster with the
     # median per-cell library size as the reference, if not specified).
@@ -123,6 +72,64 @@
 #############################################################
 # Internal functions.
 #############################################################
+
+#' @importFrom Matrix qr qr.coef
+.per_cluster_normalize <- function(x, curdex, sizes, subset.row, min.mean=1, positive=FALSE, errors=FALSE) 
+# This function computes the normalization factors _within_ each cluster,
+# along with the reference pseudo-cell used for normalization, 
+# I've written it as a separate function so that bplapply operates in the scran namespace.
+{
+    cur.cells <- length(curdex)
+    cur.sizes <- sizes
+    if (any(cur.sizes > cur.cells)) { 
+        cur.sizes <- cur.sizes[cur.sizes <= cur.cells]
+        if (length(cur.sizes)) { 
+            warning("not enough cells in at least one cluster for some 'sizes'")
+        } else {
+            stop("not enough cells in at least one cluster for any 'sizes'")
+        }
+    } 
+
+    cur.out <- .Call(cxx_subset_and_divide, x, subset.row-1L, curdex-1L) 
+    cur.libs <- cur.out[[1]]
+    exprs <- cur.out[[2]]
+    ave.cell <- cur.out[[3]]
+
+    # Filtering by mean (easier to do it here in R, rather than C++).
+    mean.lib <- mean(cur.libs)
+    high.ave <- min.mean/mean.lib <= ave.cell # mimics calcAverage
+    if (!all(high.ave)) { 
+        exprs <- exprs[high.ave,,drop=FALSE]
+        use.ave.cell <- ave.cell[high.ave]
+    } else {
+        use.ave.cell <- ave.cell
+    }
+
+    # Using our summation approach.
+    sphere <- .generateSphere(cur.libs)
+    new.sys <- .create_linear_system(exprs, use.ave.cell, sphere, cur.sizes) 
+    design <- new.sys$design
+    output <- new.sys$output
+
+    # Weighted least-squares (inverse model for positivity).
+    if (positive) { 
+        design <- as.matrix(design)
+        fitted <- limSolve::lsei(A=design, B=output, G=diag(cur.cells), H=numeric(cur.cells), type=2)
+        final.nf <- fitted$X
+    } else {
+        QR <- qr(design)
+        final.nf <- qr.coef(QR, output)
+        if (any(final.nf < 0)) { 
+            if (!warned.neg) { warning("encountered negative size factor estimates") }
+            warned.neg <- TRUE
+        }
+        if (errors) {
+            warning("errors=TRUE is no longer supported")
+        }
+    }
+
+    return(list(final.nf=final.nf, ave.cell=ave.cell, cur.libs=cur.libs, mean.lib=mean.lib))
+}
 
 .generateSphere <- function(lib.sizes) 
 # This function sorts cells by their library sizes, and generates an ordering vector.
