@@ -139,23 +139,6 @@
 
 #################################################
 
-#' @importFrom edgeR designAsFactor
-.is_one_way <- function(design) 
-# Checks if design matrix is a one-way layout.
-{
-    if (nrow(design) <= ncol(design)) {
-        stop("design matrix has no residual degrees of freedom")
-    }
-    group <- designAsFactor(design)
-    if (nlevels(group) == ncol(design)) {
-        # Stripping out groups with only one level.
-        groupings <- split(seq_len(nrow(design)), group)
-        groupings[lengths(groupings)==1L] <- NULL
-        return(groupings)
-    } 
-    return(NULL)
-}
-
 .ranksafe_qr <- function(design, tol=1e-7) 
 # Rank-checking QR decomposition of a design matrix. Throws an
 # error if the design matrix is not of full rank, which simplifies

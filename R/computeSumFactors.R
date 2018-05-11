@@ -48,8 +48,7 @@
     clust.libsizes <- lapply(all.norm, "[[", i="cur.libs")
     clust.meanlib <- vapply(all.norm, FUN="[[", i="mean.lib", FUN.VALUE=0)
 
-    # Adjusting size factors between clusters (using the cluster with the
-    # median per-cell library size as the reference, if not specified).
+    # Adjusting size factors between clusters.
     rescaling.factors <- .rescale_clusters(clust.profile, clust.meanlib, ref.clust=ref.clust, 
                                            min.mean=min.mean, clust.names=names(indices))
     clust.nf.scaled <- vector("list", nclusters)
@@ -75,9 +74,9 @@
 
 #' @importFrom Matrix qr qr.coef
 .per_cluster_normalize <- function(x, curdex, sizes, subset.row, min.mean=1, positive=FALSE, errors=FALSE) 
-# This function computes the normalization factors _within_ each cluster,
-# along with the reference pseudo-cell used for normalization, 
-# I've written it as a separate function so that bplapply operates in the scran namespace.
+# Computes the normalization factors _within_ each cluster,
+# along with the reference pseudo-cell used for normalization. 
+# Written as a separate function so that bplapply operates in the scran namespace.
 {
     cur.cells <- length(curdex)
     cur.sizes <- sizes
@@ -132,7 +131,8 @@
 }
 
 .generateSphere <- function(lib.sizes) 
-# This function sorts cells by their library sizes, and generates an ordering vector.
+# Sorts cells by their library sizes, and generates an ordering vector
+# to arrange cells in a circle based on increasing/decreasing lib size.
 {
     nlibs <- length(lib.sizes)
     o <- order(lib.sizes)
@@ -145,7 +145,10 @@
 LOWWEIGHT <- 0.000001
 
 #' @importFrom Matrix sparseMatrix
-.create_linear_system <- function(cur.exprs, ave.cell, sphere, pool.sizes) {
+.create_linear_system <- function(cur.exprs, ave.cell, sphere, pool.sizes) 
+# Does the heavy lifting of computing pool-based size factors 
+# and creating the linear system out of the equations for each pool.
+{
     sphere <- sphere - 1L # zero-indexing in C++.
 
     nsizes <- length(pool.sizes)
@@ -177,7 +180,10 @@ LOWWEIGHT <- 0.000001
 }
 
 #' @importFrom stats median
-.rescale_clusters <- function(mean.prof, mean.lib, ref.clust, min.mean, clust.names) {
+.rescale_clusters <- function(mean.prof, mean.lib, ref.clust, min.mean, clust.names) 
+# Chooses a cluster as a reference and rescales all other clusters to the reference,
+# based on the 'normalization factors' computed between pseudo-cells.
+{
     # Picking the cluster with the median library size as the reference.
     if (is.null(ref.clust)) {
         ref.col <- which(rank(mean.lib, ties.method="first")==as.integer(length(mean.lib)/2)+1L)
@@ -209,7 +215,10 @@ LOWWEIGHT <- 0.000001
     return(rescaling)
 }
 
-.limit_cluster_size <- function(clusters, max.size) {
+.limit_cluster_size <- function(clusters, max.size) 
+# Limits the maximum cluster size to avoid problems with memory in Matrix::qr().
+# Done by arbitrarily splitting large clusters so that they fall below max.size.
+{
     if (is.null(max.size)) { 
         return(clusters) 
     }
