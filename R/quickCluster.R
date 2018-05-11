@@ -15,14 +15,12 @@
 {
     if (!is.null(block) && length(unique(block))>1L) {
         # Splitting into parallel processes across blocks.
+        # We create submatrices here to avoid memory allocation within each core.
         by.block <- split(seq_along(block), block)
-        collected <- bplapply(by.block, 
-            FUN=function(x, i, ...) {
-                .quick_cluster(x[,i,drop=FALSE], ...)
-            },
-            x=x, min.size=min.size, max.size=max.size, method=method,
-            pc.approx=pc.approx, get.ranks=get.ranks, subset.row=subset.row, min.mean=min.mean,
-            ..., BPPARAM=block.BPPARAM)
+        x.by.block <- .split_matrix_by_workers(x, by.block, byrow=FALSE)
+        collected <- bplapply(x.by.block, FUN=.quick_cluster, min.size=min.size, max.size=max.size, 
+            method=method, pc.approx=pc.approx, get.ranks=get.ranks, subset.row=subset.row, 
+            min.mean=min.mean, ..., BPPARAM=block.BPPARAM)
 
         # Merging the results across different blocks.
         reordering <- order(unlist(by.block, use.names=FALSE))
