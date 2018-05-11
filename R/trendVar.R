@@ -1,16 +1,17 @@
 #' @importFrom stats nls loess predict fitted
 #' @importFrom limma fitFDistRobustly
+#' @importFrom BiocParallel SerialParam
 .trend_var <- function(x, method=c("loess", "spline"), parametric=FALSE, 
                        loess.args=list(), spline.args=list(), nls.args=list(),
                        block=NULL, design=NULL, weighted=TRUE, 
-                       min.mean=0.1, subset.row=NULL)
+                       min.mean=0.1, subset.row=NULL, BPPARAM=SerialParam())
 # Fits a smooth trend to the technical variability of the log-CPMs
 # against their abundance (i.e., average log-CPM).
 # 
 # written by Aaron Lun
 # created 21 January 2016
 {
-    stats.out <- .get_var_stats(x, block=block, design=design, subset.row=subset.row)
+    stats.out <- .get_var_stats(x, block=block, design=design, subset.row=subset.row, BPPARAM=BPPARAM)
 
     # Filtering out zero-variance and low-abundance genes.
     is.okay <- !is.na(stats.out$vars) & stats.out$vars > 1e-8 & stats.out$means >= min.mean 
@@ -110,8 +111,14 @@
 # Computing variance and mean based on blocking factors #
 #########################################################
 
-.get_var_stats <- function(x, block, design, subset.row, get.QR=FALSE) {
+#' @importFrom BiocParallel bplapply
+.get_var_stats <- function(x, block, design, subset.row, BPPARAM) { 
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
+    wout <- .worker_assign(length(subset.row), BPPARAM)
+    by.core <- wout
+    for (core in seq_along(wout)) {
+        by.core[[core]] <- subset.row[wout[[core]]]
+    }
     recorder <- list()
 
     if (!is.null(block)) { 
@@ -128,9 +135,9 @@
         }
 
         # Calculating the statistics for each block. 
-        stats <- .Call(cxx_fit_oneway, by.block, x, subset.row-1L)
-        means <- stats[[1]]
-        vars <- stats[[2]]
+        raw.stats <- bplapply(by.core, FUN=.fit_oneway, by.block=by.block, x=x, BPPARAM=BPPARAM)
+        means <- do.call(rbind, lapply(raw.stats, FUN="[[", i=1))
+        vars <- do.call(rbind, lapply(raw.stats, FUN="[[", i=2))
         dimnames(means) <- dimnames(vars) <- list(rownames(x)[subset.row], names(by.block))
 
     } else if (!is.null(design)) {
@@ -146,13 +153,10 @@
        
         # Calculating the residual variance of the fitted linear model. 
         QR <- .ranksafe_qr(design)
-        if (get.QR) {
-            recorder$QR <- QR
-        }
-
-        lout <- .Call(cxx_fit_linear_model, QR$qr, QR$qraux, x, subset.row - 1L, FALSE)
-        means <- lout[[1]]
-        vars <- lout[[2]]
+       
+        raw.stats <- bplapply(by.core, FUN=.fit_linear_model, qr=QR$qr, qraux=QR$qraux, x=x, BPPARAM=BPPARAM)
+        means <- unlist(lapply(raw.stats, FUN="[[", i=1))
+        vars <- unlist(lapply(raw.stats, FUN="[[", i=2))
         names(means) <- names(vars) <- rownames(x)[subset.row]
 
     } else {
@@ -162,14 +166,23 @@
         }
 
         by.block <- list(seq_len(ncol(x))-1L)
-        stats <- .Call(cxx_fit_oneway, by.block, x, subset.row-1L)
-        means <- drop(stats[[1]])
-        vars <- drop(stats[[2]])
+        raw.stats <- bplapply(by.core, FUN=.fit_oneway, by.block=by.block, x=x, BPPARAM=BPPARAM)
+        means <- unlist(lapply(raw.stats, FUN="[[", i=1))
+        vars <- unlist(lapply(raw.stats, FUN="[[", i=2))
         names(means) <- names(vars) <- rownames(x)[subset.row]
 
     }
 
     return(c(list(vars=vars, means=means, resid.df=resid.df), recorder))
+}
+
+# Helper functions to ensure that the scran namespace is carried into bplapply.
+.fit_oneway <- function(by.block, x, chosen) {
+    .Call(cxx_fit_oneway, by.block, x, chosen - 1L)
+}
+
+.fit_linear_model <- function(qr, qraux, x, chosen) {
+    .Call(cxx_fit_linear_model, qr, qraux, x, chosen - 1L, FALSE)
 }
 
 #########################################################

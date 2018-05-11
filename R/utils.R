@@ -126,7 +126,9 @@
 
 #' @importFrom BiocParallel bpworkers
 .worker_assign <- function(njobs, BPPARAM)
-# Assigns jobs to workers.
+# Assigns jobs to workers, where the each element of the output list is 
+# the index vector of the jobs. These are guaranteed to be consecutive
+# so the bplapply's output can just be directly combined.
 {
     ncores <- bpworkers(BPPARAM)
     starting <- as.integer(seq(from=1, to=njobs+1, length.out=ncores+1))
