@@ -13,6 +13,8 @@ Deprecated max.size= in favour of max.cluster.size= in computeSumFactors().
 
 \item Added max.cluster.size= argument to computeSumFactors().
 Supported parallelized cluster-wise processing.
+
+\item Supported parallelized gene-wise processing in trendVar() and decomposeVar().
 }}
 
 \section{Version 1.8.0}{\itemize{
