@@ -47,9 +47,7 @@
 
     # Split up the jobs by genes for multicore execution
     wout <- .worker_assign(length(use.subset.row), BPPARAM)
-    for (i in seq_along(wout)) {
-        wout[[i]] <- use.subset.row[wout[[i]]]
-    }
+    by.core <- .split_vector_by_workers(use.subset.row, wout)
 
     # Running through each blocking level, splitting cells into groups.
     for (subset.col in by.block) { 
@@ -58,7 +56,7 @@
         stopifnot(identical(names(by.group), levels(groups))) # Sanity check.
 
         # Computing the proportions within this block.
-        bout <- bplapply(wout, FUN=.find_overlap_exprs, x=use.x, by.group=by.group, tol=tol, BPPARAM=BPPARAM)
+        bout <- bplapply(by.core, FUN=.find_overlap_exprs, x=use.x, by.group=by.group, tol=tol, BPPARAM=BPPARAM)
 
         # Adding the proportions to what we already have. 
         props <- do.call(rbind, lapply(bout, "[[", i=1)) 
@@ -87,7 +85,7 @@
 
 .find_overlap_exprs <- function(x, subset.row, by.group, tol) 
 # Pass all arguments explicitly rather than via function environment
-# (avoid duplication of memory in bplapply).
+# (preserve scran namespace, avoid duplication of memory in bplapply).
 {
     .Call(cxx_overlap_exprs, x, subset.row, by.group, tol)
 }

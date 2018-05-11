@@ -137,6 +137,36 @@
     return(mapply("+", starting, lapply(jobsize, seq_len), SIMPLIFY=FALSE))
 }
 
+.split_vector_by_workers <- function(vec, assignments) 
+# Convenience function to split a vector by the assigned core,
+# to get something that can be easily used in 'bplapply'.
+{
+    by.core <- vector("list", length(assignments))
+    for (core in seq_along(assignments)) {
+        by.core[[core]] <- vec[assignments[[core]]]
+    }
+    names(by.core) <- names(assignments)
+    return(by.core)
+}
+
+.split_matrix_by_workers <- function(mat, assignments, byrow=TRUE) 
+# Convenience function to split a mat by the assigned core,
+# to get something that can be easily used in 'bplapply'.
+{
+    by.core <- vector("list", length(assignments))
+    for (core in seq_along(assignments)) {
+        chosen <- assignments[[core]]
+        if (byrow) {
+            current <- mat[chosen,,drop=FALSE]
+        } else {
+            current <- mat[,chosen,drop=FALSE]
+        }
+        by.core[[core]] <- current
+    }
+    names(by.core) <- names(assignments)
+    return(by.core)
+}
+
 #################################################
 
 .ranksafe_qr <- function(design, tol=1e-7) 

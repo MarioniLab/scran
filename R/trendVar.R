@@ -115,10 +115,7 @@
 .get_var_stats <- function(x, block, design, subset.row, BPPARAM) { 
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     wout <- .worker_assign(length(subset.row), BPPARAM)
-    by.core <- wout
-    for (core in seq_along(wout)) {
-        by.core[[core]] <- subset.row[wout[[core]]]
-    }
+    by.core <- .split_vector_by_workers(subset.row, wout)
     recorder <- list()
 
     if (!is.null(block)) { 
