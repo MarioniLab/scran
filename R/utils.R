@@ -126,7 +126,9 @@
 
 #' @importFrom BiocParallel bpworkers
 .worker_assign <- function(njobs, BPPARAM)
-# Assigns jobs to workers.
+# Assigns jobs to workers, where the each element of the output list is 
+# the index vector of the jobs. These are guaranteed to be consecutive
+# so the bplapply's output can just be directly combined.
 {
     ncores <- bpworkers(BPPARAM)
     starting <- as.integer(seq(from=1, to=njobs+1, length.out=ncores+1))
@@ -135,24 +137,37 @@
     return(mapply("+", starting, lapply(jobsize, seq_len), SIMPLIFY=FALSE))
 }
 
-#################################################
-
-#' @importFrom edgeR designAsFactor
-.is_one_way <- function(design) 
-# Checks if design matrix is a one-way layout.
+.split_vector_by_workers <- function(vec, assignments) 
+# Convenience function to split a vector by the assigned core,
+# to get something that can be easily used in 'bplapply'.
 {
-    if (nrow(design) <= ncol(design)) {
-        stop("design matrix has no residual degrees of freedom")
+    by.core <- vector("list", length(assignments))
+    for (core in seq_along(assignments)) {
+        by.core[[core]] <- vec[assignments[[core]]]
     }
-    group <- designAsFactor(design)
-    if (nlevels(group) == ncol(design)) {
-        # Stripping out groups with only one level.
-        groupings <- split(seq_len(nrow(design)), group)
-        groupings[lengths(groupings)==1L] <- NULL
-        return(groupings)
-    } 
-    return(NULL)
+    names(by.core) <- names(assignments)
+    return(by.core)
 }
+
+.split_matrix_by_workers <- function(mat, assignments, byrow=TRUE) 
+# Convenience function to split a mat by the assigned core,
+# to get something that can be easily used in 'bplapply'.
+{
+    by.core <- vector("list", length(assignments))
+    for (core in seq_along(assignments)) {
+        chosen <- assignments[[core]]
+        if (byrow) {
+            current <- mat[chosen,,drop=FALSE]
+        } else {
+            current <- mat[,chosen,drop=FALSE]
+        }
+        by.core[[core]] <- current
+    }
+    names(by.core) <- names(assignments)
+    return(by.core)
+}
+
+#################################################
 
 .ranksafe_qr <- function(design, tol=1e-7) 
 # Rank-checking QR decomposition of a design matrix. Throws an

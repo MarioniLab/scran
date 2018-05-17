@@ -1,6 +1,7 @@
 #' @importFrom S4Vectors DataFrame "metadata<-"
 #' @importFrom stats qnorm pnorm p.adjust
-.decompose_var <- function(x, fit, block=NA, design=NA, subset.row=NULL, ...)
+#' @importFrom BiocParallel SerialParam
+.decompose_var <- function(x, fit, block=NA, design=NA, subset.row=NULL, BPPARAM=SerialParam(), ...)
 # Computes the biological variability of the log-CPMs by subtracting the
 # inferred technical variance from the total variance.
 #
@@ -33,7 +34,7 @@
         }
 
         ncells <- ncol(x)
-        stats.out <- .get_var_stats(x, block=block, design=design, subset.row=subset.row)
+        stats.out <- .get_var_stats(x, block=block, design=design, subset.row=subset.row, BPPARAM=BPPARAM)
         lmeans <- stats.out$means
         lvar <- stats.out$var
         resid.df <- stats.out$resid.df

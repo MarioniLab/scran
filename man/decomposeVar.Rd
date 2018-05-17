@@ -7,7 +7,8 @@
 \description{Decompose the gene-specific variance into biological and technical components for single-cell RNA-seq data.}
 
 \usage{
-\S4method{decomposeVar}{ANY,list}(x, fit, block=NA, design=NA, subset.row=NULL, ...)
+\S4method{decomposeVar}{ANY,list}(x, fit, block=NA, design=NA, subset.row=NULL, 
+    BPPARAM=SerialParam(), ...)
 
 \S4method{decomposeVar}{SingleCellExperiment,list}(x, fit, subset.row=NULL, ..., 
     assay.type="logcounts", get.spikes=NA)
@@ -24,6 +25,7 @@
 \item{block}{A factor containing the level of a blocking factor for each cell.}
 \item{design}{A numeric matrix describing the uninteresting factors contributing to expression in each cell.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
+\item{BPPARAM}{A BiocParallelParam object indicating whether and how parallelization should be performed across genes.}
 \item{...}{
 For \code{decomposeVar,matrix,list-method}, additional arguments to pass to \code{\link{testVar}}.
 For \code{decomposeVar,SingleCellExperiment,list-method}, additional arguments to pass to the matrix method.

@@ -9,7 +9,7 @@
 \usage{
 \S4method{computeSumFactors}{ANY}(x, sizes=seq(20, 100, 5), clusters=NULL, ref.clust=NULL,
     max.cluster.size=3000, positive=FALSE, errors=FALSE, min.mean=1, 
-    subset.row=NULL)
+    subset.row=NULL, BPPARAM=SerialParam())
 
 \S4method{computeSumFactors}{SingleCellExperiment}(x, ..., min.mean=1, subset.row=NULL, 
     assay.type="counts", get.spikes=FALSE, sf.out=FALSE)
@@ -28,6 +28,7 @@
 \item{errors}{A logical scalar indicating whether the standard error should be returned. This option is deprecated, see below.}
 \item{min.mean}{A numeric scalar specifying the minimum (library size-adjusted) average count of genes to be used for normalization.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
+\item{BPPARAM}{A BiocParallelParam object specifying whether and how clusters should be processed in parallel.}
 \item{...}{Additional arguments to pass to \code{computeSumFactors,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
 \item{get.spikes}{A logical scalar specifying whether spike-in transcripts should be used.}

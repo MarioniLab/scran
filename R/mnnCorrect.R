@@ -1,5 +1,8 @@
 #' @importFrom S4Vectors DataFrame Rle
 #' @importFrom BiocParallel SerialParam
+#' @importFrom BiocGenerics t rbind
+#' @importFrom DelayedArray DelayedArray
+#' @importFrom DelayedMatrixStats rowMeans2
 #' @export
 mnnCorrect <- function(..., k=20, sigma=0.1, cos.norm.in=TRUE, cos.norm.out=TRUE, 
                        svd.dim=0L, var.adj=TRUE, compute.angle=FALSE,
@@ -74,7 +77,7 @@ mnnCorrect <- function(..., k=20, sigma=0.1, cos.norm.in=TRUE, cos.norm.out=TRUE
         # Calculating the smallest angle between each correction vector and the first 2 basis vectors of the reference batch.
         if (compute.angle) {
             ref.centred <- t(ref.batch.in)
-            ref.centred <- ref.centred - rowMeans(ref.centred) 
+            ref.centred <- ref.centred - rowMeans2(DelayedArray(ref.centred))
             ref.basis <- .svd_internal(ref.centred, nu=2, nv=0, pc.approx=pc.approx, irlba.args=irlba.args)$u
 
             angle.out <- numeric(nrow(correction.in))

@@ -32,11 +32,8 @@
 
     # Splitting up gene pairs into jobs for multicore execution, converting to 0-based indices.
     wout <- .worker_assign(length(gene1), BPPARAM)
-    sgene1 <- sgene2 <- vector("list", length(wout))
-    for (i in seq_along(wout)) {
-        sgene1[[i]] <- gene1[wout[[i]]] - 1L 
-        sgene2[[i]] <- gene2[wout[[i]]] - 1L
-    }
+    sgene1 <- .split_vector_by_workers(gene1 - 1L, wout)
+    sgene2 <- .split_vector_by_workers(gene2 - 1L, wout)
 
     # Iterating through all blocking levels (for one-way layouts; otherwise, this is a loop of length 1).
     # Computing correlations between gene pairs, and adding a weighted value to the final average.

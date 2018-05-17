@@ -45,7 +45,10 @@ test_that("quickCluster is consistent with clustering on correlations", {
     obs <- quickCluster(mat)
     
     refM <- sqrt(0.5*(1 - cor(mat, method="spearman")))
-    distM <- as.dist(refM) 
+    distM <- as.dist(refM)
+    obsM <- dist(t(quickCluster(mat, get.ranks=TRUE)))
+    expect_equal(as.matrix(obsM), as.matrix(distM))
+
     htree <- hclust(distM, method='ward.D2')
     clusters <- unname(dynamicTreeCut::cutreeDynamic(htree, minClusterSize=200, distM=refM, verbose=0))
     expect_identical(clusters, as.integer(obs)) # this can complain if unassigned, as 0 becomes 1 in as.integer().
@@ -75,6 +78,33 @@ test_that("quickCluster functions correctly with subsetting", {
     expect_identical(obs, quickCluster(mat, min.size=50, subset.row=scater::calcAverage(mat) >= 5))
     rnks <- quickCluster(mat, get.ranks=TRUE, min.mean=5)
     expect_identical(rnks, quickCluster(mat, get.ranks=TRUE, subset.row=scater::calcAverage(mat) >= 5))
+})
+
+test_that("quickCluster functions correctly with blocking", {
+    # Comparison to a slow manual method        
+    mat <- matrix(rpois(10000, lambda=5), nrow=20)
+    block <- sample(3, ncol(mat), replace=TRUE)
+    obs <- quickCluster(mat, min.size=10, block=block)
+     
+    collected <- numeric(ncol(mat))
+    last <- 0L
+    for (x in sort(unique(block))) {
+        chosen <- block==x
+        current <- quickCluster(mat[,chosen], min.size=10)
+        collected[chosen] <- as.integer(current) + last
+        last <- last + nlevels(current)
+    }
+    expect_identical(obs, factor(collected))
+
+    # Should behave properly with NULL or single-level.
+    ref <- quickCluster(mat, min.size=10, block=NULL)
+    obs <- quickCluster(mat, min.size=10, block=integer(ncol(mat)))
+    expect_identical(ref, obs)
+
+    # Ranks should be the same.
+    ref <- quickCluster(mat, min.size=10, block=NULL, get.ranks=TRUE)
+    obs <- quickCluster(mat, min.size=10, block=block, get.ranks=TRUE)
+    expect_identical(ref, obs)
 })
 
 # Checking that we're executing the igraph methods correctly.

@@ -106,18 +106,16 @@
         # Simple call with one core.
         nn.out <- get.knn(incoming, k=k, ...)
     } else {
-        # Splitting up the query cells across multiple cores.
-        by.group <- .worker_assign(ncells, BPPARAM)
-        x.by.group <- vector("list", nworkers)
-        for (j in seq_along(by.group)) {
-            x.by.group[[j]] <- incoming[by.group[[j]],,drop=FALSE]
-        } 
+        # Splitting up the query cells across multiple cores. We do this outside of
+        # bplapply to reduce memory allocations in the fork, which could duplicate all memory.
+        wout <- .worker_assign(ncells, BPPARAM)
+        x.by.group <- .split_matrix_by_workers(incoming, wout, byrow=TRUE)
         all.out <- bplapply(x.by.group, FUN=get.knnx, data=incoming, k=k+1, ..., BPPARAM=BPPARAM)
         
         # Some work to get rid of self as a nearest neighbour.
         for (j in seq_along(all.out)) {
             cur.out <- all.out[[j]]
-            is.self <- cur.out$nn.index==by.group[[j]]
+            is.self <- cur.out$nn.index==wout[[j]]
             ngenes <- nrow(is.self)
             no.hits <- which(rowSums(is.self)==0)
             to.discard <- c(which(is.self), no.hits + k*ngenes) # getting rid of 'k+1'th, if self is not present.

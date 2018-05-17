@@ -8,8 +8,9 @@
 
 \usage{
 \S4method{trendVar}{ANY}(x, method=c("loess", "spline"), parametric=FALSE, 
-    loess.args=list(), spline.args=list(), nls.args=list(),
-    block=NULL, design=NULL, weighted=TRUE, min.mean=0.1, subset.row=NULL) 
+    loess.args=list(), spline.args=list(), nls.args=list(), block=NULL, 
+    design=NULL, weighted=TRUE, min.mean=0.1, subset.row=NULL, 
+    BPPARAM=SerialParam()) 
 
 \S4method{trendVar}{SingleCellExperiment}(x, subset.row=NULL, ..., assay.type="logcounts", use.spikes=TRUE)
 }
@@ -29,6 +30,7 @@
 \item{weighted}{A logical scalar indicated whether weighted trend fitting should be performed when \code{block!=NULL}.}
 \item{min.mean}{A numeric scalar specifying the minimum mean log-expression in order for a gene to be used for trend fitting.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
+\item{BPPARAM}{A BiocParallelParam object indicating whether and how parallelization should be performed across genes.}
 \item{...}{Additional arguments to pass to \code{trendVar,ANY-method}.}
 \item{assay.type}{A string specifying which assay values in \code{x} to use.}
 \item{use.spikes}{A logical scalar specifying whether the trend should be fitted to variances for spike-in transcripts or endogenous genes.}
