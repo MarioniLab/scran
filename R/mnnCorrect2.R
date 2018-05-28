@@ -28,17 +28,18 @@ mnnCorrect2 <- function(..., k=20, sigma=0.1, cos.norm.in=TRUE,
         ave.out <- .average_correction(refdata, mnn.sets$first, curdata, mnn.sets$second)
         overall.batch <- colMeans(ave.out$averaged)
 
-        # Projecting and _centering_ the length along the batch vector.
+        # Projecting along the batch vector, and shifting all cells to the center _within_ each batch.
         refdata <- .center_along_batch_vector(refdata, overall.batch)
         curdata <- .center_along_batch_vector(curdata, overall.batch)
 
         # Repeating the MNN discovery, now that the spread along the batch vector is removed.
 #        re.mnn.sets <- find.mutual.nn(refdata, curdata, k1=k, k2=k, BPPARAM=BPPARAM)
 #        re.ave.out <- .average_correction(refdata, re.mnn.sets$first, curdata, re.mnn.sets$second)
-#        corvec <- re.ave.out$averaged
-#        cur.uniq <- curdata[re.ave.out$second,,drop=FALSE]
-        corvec <- ave.out$averaged
-        cur.uniq <- curdata[ave.out$second,,drop=FALSE]
+
+        # Recomputing the correction vectors after removing the within-batch variation.
+        re.ave.out <- .average_correction(refdata, mnn.sets$first, curdata, mnn.sets$second)
+        corvec <- re.ave.out$averaged
+        cur.uniq <- curdata[re.ave.out$second,,drop=FALSE]
 
         # Computing tricube-weighted correction vectors for individual cells.
         safe.k <- min(k, nrow(cur.uniq))
