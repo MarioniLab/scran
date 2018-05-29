@@ -69,6 +69,16 @@ test_that("multi-sample irlba works as expected", {
     expect_equal(out$d, ref$d)
     expect_equal_besides_sign(out$v, ref$v, tol=1e-4)
 
+    # Forcing accuracy by increasing tolerance (also testing irlba.args!)
+    expect_error(expect_equal_besides_sign(out$v, ref$v, tol=1e-8), "not equal")
+
+    set.seed(1000)
+    ref <- irlba::irlba(com, nu=0, nv=10, tol=1e-16) 
+    set.seed(1000)
+    out <- scran:::.fast_irlba(list(t1, t2), nv=10, irlba.args=list(tol=1e-16))
+    expect_equal(out$d, ref$d)
+    expect_equal_besides_sign(out$v, ref$v, tol=1e-8)
+
     # Checking that we get similar results from the whole suite.
     ref <- scran:::.multi_pca(list(test1, test2), d=2)
     out <- scran:::.multi_pca(list(test1, test2), d=2, approximate=TRUE)
