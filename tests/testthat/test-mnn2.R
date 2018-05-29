@@ -40,12 +40,40 @@ test_that("multi-sample PCA works as expected", {
     out2 <- scran:::.multi_pca(list(test1, cbind(test2, test2)), d=10)
     out.dist2 <- as.matrix(dist(rbind(out2[[1]], out2[[2]])))[rx, cx]
     expect_equal(out.dist2, out.dist)
+})
 
-    # Checking that we get similar results with irlba.
+set.seed(12000011)
+test_that("multi-sample irlba works as expected", {
+    ngenes <- 50
+    ncells1 <- 200
+    test1 <- matrix(rnorm(ncells1 * ngenes), nrow=ngenes)
+    ncells2 <- 400
+    test2 <- matrix(rnorm(ncells2 * ngenes), nrow=ngenes)
+
+    # Matches up well with reference irlba.
+    t1 <- t(test1)
+    t2 <- t(test2)
+    com <- rbind(t1, t2)
+
+    set.seed(10)
+    ref <- irlba::irlba(com, nu=0, nv=5) 
+    set.seed(10)
+    out <- scran:::.fast_irlba(list(t1, t2), nv=5) 
+    expect_equal(out$d, ref$d)
+    expect_equal_besides_sign(out$v, ref$v, tol=1e-4)
+
+    set.seed(100)
+    ref <- irlba::irlba(com, nu=0, nv=10) 
+    set.seed(100)
+    out <- scran:::.fast_irlba(list(t1, t2), nv=10) 
+    expect_equal(out$d, ref$d)
+    expect_equal_besides_sign(out$v, ref$v, tol=1e-4)
+
+    # Checking that we get similar results from the whole suite.
     ref <- scran:::.multi_pca(list(test1, test2), d=2)
     out <- scran:::.multi_pca(list(test1, test2), d=2, approximate=TRUE)
-    expect_equal_besides_sign(out[[1]], ref[[1]], tol=1e-7)
-    expect_equal_besides_sign(out[[2]], ref[[2]], tol=1e-7)
+    expect_equal_besides_sign(out[[1]], ref[[1]], tol=1e-4)
+    expect_equal_besides_sign(out[[2]], ref[[2]], tol=1e-4)
 })
 
 set.seed(1200002)

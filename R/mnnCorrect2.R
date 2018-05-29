@@ -1,9 +1,8 @@
 #' @export
 #' @importFrom BiocParallel SerialParam
 #' @importFrom FNN get.knnx 
-mnnCorrect2 <- function(..., k=20, sigma=0.1, cos.norm.in=TRUE, 
-    d=50, approximate=FALSE, rand.seed=1000, irlba.args=list(), 
-    subset.row=NULL, BPPARAM=SerialParam()) 
+mnnCorrect2 <- function(..., k=20, cos.norm.in=TRUE, d=50, approximate=FALSE, 
+    irlba.args=list(), subset.row=NULL, BPPARAM=SerialParam()) 
 # Executes a faster and more accurate version of the MNN batch correction approach.
 # 
 # written by Aaron Lun
@@ -17,7 +16,7 @@ mnnCorrect2 <- function(..., k=20, sigma=0.1, cos.norm.in=TRUE,
     }
         
     prep.out <- prepare.input.data(batches, cos.norm.in=cos.norm.in, cos.norm.out=cos.norm.in, subset.row=subset.row)
-    pc.mat <- .multi_pca(prep.out$In, d=d, approximate=approximate, rand.seed=rand.seed, irlba.args=irlba.args)
+    pc.mat <- .multi_pca(prep.out$In, d=d, approximate=approximate, irlba.args=irlba.args)
 
     refdata <- pc.mat[[1]]
     for (bdx in 2:nbatches) {
@@ -68,7 +67,7 @@ mnnCorrect2 <- function(..., k=20, sigma=0.1, cos.norm.in=TRUE,
  
 #' @importFrom DelayedArray DelayedArray t
 #' @importFrom DelayedMatrixStats rowMeans2
-.multi_pca <- function(mat.list, d=50, approximate=FALSE, rand.seed=100, irlba.args=list()) 
+.multi_pca <- function(mat.list, d=50, approximate=FALSE, irlba.args=list()) 
 # This function performs a multi-sample PCA, weighting the contribution of each 
 # sample to the gene-gene covariance matrix to avoid domination by samples with
 # a large number of cells. Expects cosine-normalized and subsetted expression matrices.
@@ -91,12 +90,11 @@ mnnCorrect2 <- function(..., k=20, sigma=0.1, cos.norm.in=TRUE,
         scaled[[idx]] <- t(current)
     }
 
-    # rbinding all elements together for SVD.
-    combined <- as.matrix(do.call(rbind, scaled))
+    # Performing an SVD.
     if (approximate) {
-        set.seed(rand.seed)
-        svd.out <- do.call(irlba::irlba, c(list(A=combined, nu=0, nv=d), irlba.args))
+        svd.out <- .fast_irlba(scaled, nv=d, irlba.args=irlba.args)
     } else {
+        combined <- as.matrix(do.call(rbind, scaled))
         svd.out <- svd(combined, nu=0, nv=d)
     }
 
@@ -107,6 +105,68 @@ mnnCorrect2 <- function(..., k=20, sigma=0.1, cos.norm.in=TRUE,
     }
     return(final)
 }
+
+#' @importFrom DelayedArray t
+.fast_irlba <- function(mat.list, nv, irlba.args=list()) 
+# Performs a quick irlba by performing the SVD on XtX or XXt,
+# and then obtaining the V vector from one or the other.
+{
+    nrows <- sum(vapply(mat.list, FUN=nrow, FUN.VALUE=0L))
+    ncols <- ncol(mat.list[[1]])
+    
+    # Creating the cross-product without actually rbinding the matrices.
+    # This avoids creating a large temporary matrix.
+    flipped <- nrows > ncols
+    if (flipped) {
+        final <- matrix(0, ncols, ncols)
+        for (mdx in seq_along(mat.list)) {
+            curmat <- as.matrix(mat.list[[mdx]])
+            final <- final + crossprod(curmat)
+        }
+
+    } else {
+        final <- matrix(0, nrows, nrows)
+        last1 <- 0L
+        for (first in seq_along(mat.list)) {
+            fmat <- as.matrix(mat.list[[first]])
+            fdx <- last1 + seq_len(nrow(fmat))
+            
+            last2 <- 0L
+            for (second in seq_along(mat.list)) {
+                smat <- mat.list[[second]]
+                sdx <- last2 + seq_len(nrow(smat))
+                final[fdx,sdx] <- as.matrix(fmat %*% t(smat))
+                last2 <- last2 + nrow(smat)
+            }
+            
+            last1 <- last1 + nrow(fmat)
+        }
+    }
+
+    svd.out <- do.call(irlba::irlba, c(list(A=final, nv=nv, nu=0), irlba.args))
+    svd.out$d <- sqrt(svd.out$d)
+
+    if (flipped) {
+        # XtX means that the V in the irlba output is the original Vm,
+        # which can be directly returned.
+        return(svd.out)
+    }
+
+    # Otherwise, XXt means that the V in the irlba output is the original U.
+    # We need to multiply the left-multiply the matrices by Ut, and then by D^-1.
+    Ut <- t(svd.out$v)
+    last <- 0L
+    Vt <- matrix(0, nv, ncols)
+    for (mdx in seq_along(mat.list)) {
+        curmat <- mat.list[[mdx]]
+        idx <- last + seq_len(nrow(curmat))
+        Vt <- Vt + as.matrix(Ut[,idx,drop=FALSE] %*% curmat)
+    }
+    Vt <- sweep(Vt, 2, svd.out$d, FUN="/", check.margin=FALSE)
+
+    return(list(d=svd.out$d, v=t(Vt)))
+}
+
 
 .average_correction <- function(refdata, mnn1, curdata, mnn2)
 # Computes correction vectors for each MNN pair, and then
