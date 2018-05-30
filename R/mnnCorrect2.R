@@ -161,12 +161,12 @@ mnnCorrect2 <- function(..., k=20, cos.norm.in=TRUE, d=50, approximate=FALSE,
         curmat <- mat.list[[mdx]]
         idx <- last + seq_len(nrow(curmat))
         Vt <- Vt + as.matrix(Ut[,idx,drop=FALSE] %*% curmat)
+        last <- last + nrow(curmat)
     }
-    Vt <- sweep(Vt, 2, svd.out$d, FUN="/", check.margin=FALSE)
+    Vt <- Vt / svd.out$d
 
     return(list(d=svd.out$d, v=t(Vt)))
 }
-
 
 .average_correction <- function(refdata, mnn1, curdata, mnn2)
 # Computes correction vectors for each MNN pair, and then

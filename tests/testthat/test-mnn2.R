@@ -79,6 +79,14 @@ test_that("multi-sample irlba works as expected", {
     expect_equal(out$d, ref$d)
     expect_equal_besides_sign(out$v, ref$v, tol=1e-8)
 
+    # Checking that we get similar results when nrows < ncols. 
+    set.seed(20)
+    ref <- irlba::irlba(rbind(t1[1:10,], t2[1:5,]), nu=0, nv=5) 
+    set.seed(20)
+    out <- scran:::.fast_irlba(list(t1[1:10,], t2[1:5,]), nv=5) 
+    expect_equal(out$d, ref$d)
+    expect_equal_besides_sign(out$v, ref$v, tol=1e-4)
+
     # Checking that we get similar results from the whole suite.
     ref <- scran:::.multi_pca(list(test1, test2), d=2)
     out <- scran:::.multi_pca(list(test1, test2), d=2, approximate=TRUE)
@@ -89,7 +97,7 @@ test_that("multi-sample irlba works as expected", {
 set.seed(1200002)
 test_that("averaging correction vectors works as expected", {
     test1 <- matrix(rnorm(1000), ncol=10)
-    test2 <- matrix(rnorm(2000), ncol=10)
+    test2 < -matrix(rnorm(2000), ncol=10)
     mnn1 <- sample(nrow(test1), 250, replace=TRUE)
     mnn2 <- sample(nrow(test1), 250, replace=TRUE)
 
