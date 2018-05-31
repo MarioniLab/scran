@@ -7,7 +7,7 @@
 \usage{
 \S4method{doubletCluster}{ANY}(x, clusters, subset.row=NULL, threshold=0.05, ...) 
 
-\S4method{doubletCluster}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", 
+\S4method{doubletCluster}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="counts", 
     get.spikes=FALSE)
 }
 
