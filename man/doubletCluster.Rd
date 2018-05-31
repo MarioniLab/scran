@@ -46,6 +46,7 @@ Each row is named according to its cluster.
 \details{
 For each cluster, we examine all possible pairs of \dQuote{source} clusters, hypothesizing that the current cluster is a doublet formed from the two sources.
 If so, gene expression in the current cluster should be strictly intermediate between the two sources after library size normalization.
+This approach is similar to the method used by Bach et al. to detect clusters of doublet cells.
 
 We apply pairwise t-tests to the normalized log-expression profiles (see \code{\link[scater]{normalize}}) to reject this null hypothesis.
 This is done by identifying genes that are consistently up- or down-regulated in the current cluster compared to \emph{both} of the sources.
