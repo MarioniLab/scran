@@ -13,6 +13,10 @@ multiBlockVar <- function(x, block, trend.args=list(), dec.args=list(), ...)
 
     for (b in names(by.block)) {
         cur.b <- by.block[[b]]
+        if (length(cur.b) < 2L) {
+            warning("fewer than two cells in a block")
+            next
+        }
         cur.x <- x[,cur.b]
 
         # Estimating the technical/biological components.
@@ -22,6 +26,13 @@ multiBlockVar <- function(x, block, trend.args=list(), dec.args=list(), ...)
         
         all.out[[b]] <- cur.dec
     }
+    
+    # Getting rid of empty blocks.
+    is.empty <- vapply(all.out, FUN=is.null, FUN.VALUE=TRUE)
+    if (!any(!is.empty)) {
+        stop("no block contains enough cells for variance estimation")
+    }
+    all.out <- all.out[!is.empty]
 
     combined <- do.call(combineVar, c(all.out, list(...)))
     stored <- do.call(DataFrame, c(lapply(all.out, I), list(check.names=FALSE)))
