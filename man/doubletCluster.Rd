@@ -1,5 +1,7 @@
 \name{doubletCluster}
 \alias{doubletCluster}
+\alias{doubleCluster,ANY-method}
+\alias{doubleCluster,SingleCellExperiment-method}
 
 \title{Detect doublet clusters}
 \description{Identify potential clusters of doublet cells based on intermediate expression profiles.}
@@ -93,8 +95,9 @@ counts.m <- matrix(rpois(ngenes*20, mu1+mu2), nrow=ngenes)
 counts <- cbind(counts.1, counts.2, counts.m)
 clusters <- rep(1:3, c(ncol(counts.1), ncol(counts.2), ncol(counts.m)))
 
-# Find potential doublets.
+# Find potential doublets based on "N".
 dbl <- doubletCluster(counts, clusters)
+dbl
 
 library(scater)
 possible.doublet <- isOutlier(dbl$N, log=TRUE, type="lower")

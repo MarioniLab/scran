@@ -10,23 +10,29 @@
 {
     # Computing normalized counts using the library size (looking for compositional differences!)
     sce <- SingleCellExperiment(list(counts=x))
-    sizeFactors(sce) <- librarySizeFactors(x)
+    sizeFactors(sce) <- librarySizeFactors(x, subset_row=subset.row)
     sce <- normalize(sce, return_log=TRUE)
 
     degs <- findMarkers(sce, clusters=clusters, subset.row=subset.row, full.stats=TRUE, ...)
     med.lib.size <- lapply(split(sizeFactors(sce), clusters), median)
 	n.cluster <- table(clusters)/length(clusters)
 
-    # Running through all pairs of clusters and testing against the third cluster.
-    collected <- list()
+    # Setting up the output (done here to ensure that the final DataFrame is defined even with no clusters).
     all.clusters <- names(degs)
+    collected <- vector("list", length(all.clusters))
+    names(collected) <- all.clusters
+    collected[[1]] <- DataFrame(N=integer(0), source1=character(0), source2=character(0),
+            best=character(0), p.value=numeric(0), prop=numeric(0),
+            lib.size1=numeric(0), lib.size2=numeric(0), row.names=character(0))
+
+    # Running through all pairs of clusters and testing against the third cluster.
     for (ref in all.clusters) {
         ref.stats <- degs[[ref]]
         remnants <- setdiff(all.clusters, ref)
         best.N <- Inf
         best.p <- 1
-        best.gene <- NULL
-        best.parents <- NULL
+        best.gene <- NA_integer_
+        best.parents <- NA_integer_
 
         for (i1 in seq_along(remnants)) {
             stats1 <- ref.stats[[paste0("stats.", remnants[i1])]] 
@@ -43,7 +49,7 @@
 
                 if (N < best.N) {
                     best.N <- N
-                    chosen <- which.min(max.p)
+                    chosen <- which.min(max.p)[1] # [1] gives NA when there are no genes, which avoids nrow mismatch in DataFrame().
                     best.gene <- chosen
                     best.p <- adj.p[chosen]
                     best.parents <- c(i1, i2)
