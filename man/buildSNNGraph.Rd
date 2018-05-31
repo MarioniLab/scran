@@ -78,7 +78,7 @@ If \code{d} is \code{NA} or less than the number of cells, no dimensionality red
 
 If \code{pc.approx=TRUE}, \code{\link[irlba]{prcomp_irlba}} will be used to quickly obtain the first \code{d} PCs.
 While this algorithm does converge towards the exact PCs, it performs a random initialization and thus is technically dependent on the session seed.
-For full reproducibility, users are advised to call \code{set.seed} beforehand when using this option.
+For full reproducibility, users are advised to call \code{\link{set.seed}} beforehand when using this option.
 
 Expression values in \code{x} should typically be on the log-scale, e.g., log-transformed counts.
 Ranks can also be used for greater robustness, e.g., from \code{\link{quickCluster}} with \code{get.ranks=TRUE}.

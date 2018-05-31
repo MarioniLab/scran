@@ -1,7 +1,7 @@
 \name{doubletCluster}
 \alias{doubletCluster}
-\alias{doubleCluster,ANY-method}
-\alias{doubleCluster,SingleCellExperiment-method}
+\alias{doubletCluster,ANY-method}
+\alias{doubletCluster,SingleCellExperiment-method}
 
 \title{Detect doublet clusters}
 \description{Identify potential clusters of doublet cells based on intermediate expression profiles.}

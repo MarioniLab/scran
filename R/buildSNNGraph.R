@@ -75,7 +75,7 @@
     if (!is.na(d) && d < ncol(x)) {
         if (pc.approx) {
             if (!is.na(rand.seed)) {
-                .Deprecated(msg="'rand.seed=' is deprecated.\nPlease use 'set.seed' externally instead.")
+                .Deprecated(msg="'rand.seed=' is deprecated.\nUse 'set.seed' externally instead.")
                 set.seed(rand.seed)
             }
             pc <- do.call(irlba::prcomp_irlba, c(list(x=x, n=d, scale.=FALSE, center=TRUE, retx=TRUE), irlba.args))
