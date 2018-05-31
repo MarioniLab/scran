@@ -15,6 +15,8 @@ Deprecated max.size= in favour of max.cluster.size= in computeSumFactors().
 Supported parallelized cluster-wise processing.
 
 \item Supported parallelized gene-wise processing in trendVar() and decomposeVar().
+
+\item Added doubletCluster() to detect clusters that consist of doublets of other clusters.
 }}
 
 \section{Version 1.8.0}{\itemize{
