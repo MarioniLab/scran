@@ -48,7 +48,7 @@ Each row is named according to its cluster.
 \details{
 For each cluster, we examine all possible pairs of \dQuote{source} clusters, hypothesizing that the current cluster is a doublet formed from the two sources.
 If so, gene expression in the current cluster should be strictly intermediate between the two sources after library size normalization.
-This approach is similar to the method used by Bach et al. to detect clusters of doublet cells.
+This approach is similar to the method used by Bach et al. (2017) to detect clusters of doublet cells.
 
 We apply pairwise t-tests to the normalized log-expression profiles (see \code{\link[scater]{normalize}}) to reject this null hypothesis.
 This is done by identifying genes that are consistently up- or down-regulated in the current cluster compared to \emph{both} of the sources.
@@ -95,10 +95,12 @@ counts.m <- matrix(rpois(ngenes*20, mu1+mu2), nrow=ngenes)
 counts <- cbind(counts.1, counts.2, counts.m)
 clusters <- rep(1:3, c(ncol(counts.1), ncol(counts.2), ncol(counts.m)))
 
-# Find potential doublets based on "N".
+# Find potential doublets...
 dbl <- doubletCluster(counts, clusters)
 dbl
 
 library(scater)
-possible.doublet <- isOutlier(dbl$N, log=TRUE, type="lower")
+isOutlier(dbl$N, log=TRUE, type="lower") # based on "N"...
+
+dbl$lib.size1 < 1 & dbl$lib.size2 < 1 # with help from "lib.size"
 }
