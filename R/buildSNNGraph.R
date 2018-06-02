@@ -1,7 +1,7 @@
 #' @importFrom igraph make_graph E simplify "E<-"
 #' @importFrom BiocParallel SerialParam
 .buildSNNGraph <- function(x, k=10, d=50, transposed=FALSE, pc.approx=FALSE,
-                           rand.seed=1000, irlba.args=list(), knn.args=list(),
+                           rand.seed=NA, irlba.args=list(), knn.args=list(),
                            subset.row=NULL, BPPARAM=SerialParam()) 
 # Builds a shared nearest-neighbor graph, where edges are present between each 
 # cell and any other cell with which it shares at least one neighbour. Each edges 
@@ -30,7 +30,7 @@
 #' @importFrom igraph make_graph simplify
 #' @importFrom BiocParallel SerialParam
 .buildKNNGraph <- function(x, k=10, d=50, directed=FALSE, transposed=FALSE, pc.approx=FALSE,
-                           rand.seed=1000, irlba.args=list(), knn.args=list(), 
+                           rand.seed=NA, irlba.args=list(), knn.args=list(), 
                            subset.row=NULL, BPPARAM=SerialParam()) 
 # Builds a k-nearest-neighbour graph, where edges are present between each
 # cell and its 'k' nearest neighbours. Undirected unless specified otherwise.
@@ -75,6 +75,7 @@
     if (!is.na(d) && d < ncol(x)) {
         if (pc.approx) {
             if (!is.na(rand.seed)) {
+                .Deprecated(msg="'rand.seed=' is deprecated.\nUse 'set.seed' externally instead.")
                 set.seed(rand.seed)
             }
             pc <- do.call(irlba::prcomp_irlba, c(list(x=x, n=d, scale.=FALSE, center=TRUE, retx=TRUE), irlba.args))

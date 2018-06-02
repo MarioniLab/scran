@@ -13,14 +13,14 @@
 
 \usage{
 \S4method{buildSNNGraph}{ANY}(x, k=10, d=50, transposed=FALSE, 
-    pc.approx=FALSE, rand.seed=1000, irlba.args=list(), 
+    pc.approx=FALSE, rand.seed=NA, irlba.args=list(), 
     knn.args=list(), subset.row=NULL, BPPARAM=SerialParam())
 
 \S4method{buildSNNGraph}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", 
     get.spikes=FALSE, use.dimred=NULL)
 
 \S4method{buildKNNGraph}{ANY}(x, k=10, d=50, directed=FALSE, transposed=FALSE, 
-    pc.approx=FALSE, rand.seed=1000, irlba.args=list(), 
+    pc.approx=FALSE, rand.seed=NA, irlba.args=list(), 
     knn.args=list(), subset.row=NULL, BPPARAM=SerialParam())
 
 \S4method{buildKNNGraph}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", 
@@ -38,8 +38,8 @@ If it is matrix, it can also be transposed.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{irlba.args}{A named list of additional arguments to pass to \code{\link[irlba]{prcomp_irlba}} when \code{pc.approx=TRUE}.}
 \item{knn.args}{A named list of additional arguments to pass to \code{\link[FNN]{get.knn}}, usually \code{algorithm}.}
-\item{rand.seed}{A numeric scalar specifying the seed for approximate PCA when \code{pc.approx=TRUE}.
-This can be set to \code{NA} to use the existing session seed.}
+\item{rand.seed}{Deprecated; a numeric scalar specifying the seed for approximate PCA when \code{pc.approx=TRUE}.
+This is set to \code{NA} to use the existing session seed.}
 \item{BPPARAM}{A BiocParallelParam object to use in \code{bplapply} for parallel processing.}
 \item{...}{Additional arguments to pass to \code{buildSNNGraph,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use.}
@@ -75,7 +75,10 @@ In practice, PCA is performed on \code{x} to obtain the first \code{d} principal
 This is necessary in order to perform the k-NN search (done using the \code{\link[FNN]{get.knn}} function) in reasonable time.
 By default, the first 50 components are chosen, which should retain most of the substructure in the data set.
 If \code{d} is \code{NA} or less than the number of cells, no dimensionality reduction is performed.
+
 If \code{pc.approx=TRUE}, \code{\link[irlba]{prcomp_irlba}} will be used to quickly obtain the first \code{d} PCs.
+While this algorithm does converge towards the exact PCs, it performs a random initialization and thus is technically dependent on the session seed.
+For full reproducibility, users are advised to call \code{\link{set.seed}} beforehand when using this option.
 
 Expression values in \code{x} should typically be on the log-scale, e.g., log-transformed counts.
 Ranks can also be used for greater robustness, e.g., from \code{\link{quickCluster}} with \code{get.ranks=TRUE}.

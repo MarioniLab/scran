@@ -37,7 +37,6 @@
     nclusters <- length(indices)
     clust.nf <- clust.profile <- clust.libsizes <- vector("list", nclusters)
     clust.meanlib <- numeric(nclusters)
-    warned.neg <- FALSE
 
     # Computing normalization factors within each cluster.
     all.norm <- bplapply(indices, FUN=.per_cluster_normalize, x=x, sizes=sizes, subset.row=subset.row, 
@@ -119,8 +118,7 @@
         QR <- qr(design)
         final.nf <- qr.coef(QR, output)
         if (any(final.nf < 0)) { 
-            if (!warned.neg) { warning("encountered negative size factor estimates") }
-            warned.neg <- TRUE
+            warning("encountered negative size factor estimates")
         }
         if (errors) {
             warning("errors=TRUE is no longer supported")

@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.9.3}{\itemize{
+\section{Version 1.9.5}{\itemize{
 \item Removed selectorPlot(), exploreData() functions.
     
 \item Fixed underflow problem in mnnCorrect() when dealing with the Gaussian kernel.
@@ -15,6 +15,10 @@ Deprecated max.size= in favour of max.cluster.size= in computeSumFactors().
 Supported parallelized cluster-wise processing.
 
 \item Supported parallelized gene-wise processing in trendVar() and decomposeVar().
+
+\item Added doubletCluster() to detect clusters that consist of doublets of other clusters.
+
+\item Deprecated rand.seed= in buildSNNGraph() and buildKNNGraph(), in favour of explicit set.seed() call.
 }}
 
 \section{Version 1.8.0}{\itemize{
