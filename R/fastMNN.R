@@ -1,9 +1,9 @@
 #' @export
 #' @importFrom BiocParallel SerialParam
 #' @importFrom FNN get.knnx 
-mnnCorrect2 <- function(..., k=20, cos.norm.in=TRUE, d=50, approximate=FALSE, 
+fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, approximate=FALSE, 
     irlba.args=list(), subset.row=NULL, BPPARAM=SerialParam()) 
-# Executes a faster and more accurate version of the MNN batch correction approach.
+# A faster version of the MNN batch correction approach.
 # 
 # written by Aaron Lun
 # created 26 May 2018
@@ -15,7 +15,7 @@ mnnCorrect2 <- function(..., k=20, cos.norm.in=TRUE, d=50, approximate=FALSE,
         stop("at least two batches must be specified") 
     }
         
-    prep.out <- prepare.input.data(batches, cos.norm.in=cos.norm.in, cos.norm.out=cos.norm.in, subset.row=subset.row)
+    prep.out <- prepare.input.data(batches, cos.norm.in=cos.norm, cos.norm.out=cos.norm, subset.row=subset.row)
     pc.mat <- .multi_pca(prep.out$In, d=d, approximate=approximate, irlba.args=irlba.args)
 
     refdata <- pc.mat[[1]]
