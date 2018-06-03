@@ -1,5 +1,5 @@
 # This tests the functions related to mnnCorrect2.
-# library(scran); library(testthat); source("test-mnn2.R")
+# library(scran); library(testthat); source("test-fastmnn.R")
 
 expect_equal_besides_sign <- function(left, right, ...) {
     ratio <- left/right
@@ -97,7 +97,7 @@ test_that("multi-sample irlba works as expected", {
 set.seed(1200002)
 test_that("averaging correction vectors works as expected", {
     test1 <- matrix(rnorm(1000), ncol=10)
-    test2 < -matrix(rnorm(2000), ncol=10)
+    test2 <- matrix(rnorm(2000), ncol=10)
     mnn1 <- sample(nrow(test1), 250, replace=TRUE)
     mnn2 <- sample(nrow(test1), 250, replace=TRUE)
 
@@ -125,5 +125,47 @@ test_that("centering along a batch vector works correctly", {
     centered <- scran:::.center_along_batch_vector(test, batch)
     new.locations <- centered %*% batch
     expect_true(mad(new.locations) < 1e-8)
+})
+
+set.seed(1200004)
+test_that("tricube weighting works correctly", {
+    test <- matrix(rnorm(1000), ncol=10)
+    correction <- matrix(rnorm(500), ncol=10)
+    involved <- sample(nrow(test), nrow(correction))
+
+    # Setting up a reference function for comparison, operating truly row-by-row.
+    library(FNN)
+    FUN <- function(current, corvec, in.mnn, k=20, ndist=3) {
+        cur.uniq <- current[in.mnn,,drop=FALSE]
+        safe.k <- min(k, nrow(cur.uniq))
+        closest <- get.knnx(query=current, data=cur.uniq, k=safe.k)
+        middle.k <- ceiling(safe.k/2L)
+
+        for (x in seq_len(nrow(current))) {
+            all.dists <- closest$nn.dist[x,]
+            all.index <- closest$nn.index[x,]
+
+            middist <- sort(all.dists)[middle.k] 
+            weights <- (1 - pmin(1, all.dists/(middist*ndist))^3)^3
+            weights <- weights/sum(weights)
+
+            curcor <- colSums(corvec[all.index,] * weights) 
+            current[x,] <- current[x,] + curcor
+        }
+
+        return(current)
+    }
+
+    out <- scran:::.tricube_weighted_correction(test, correction, involved, k=20, ndist=3)
+    ref <- FUN(test, correction, involved, k=20, ndist=3)
+    expect_equal(ref, out)
+
+    out <- scran:::.tricube_weighted_correction(test, correction, involved, k=11, ndist=3)
+    ref <- FUN(test, correction, involved, k=11, ndist=3)
+    expect_equal(ref, out)
+
+    out <- scran:::.tricube_weighted_correction(test, correction, involved, k=11, ndist=1)
+    ref <- FUN(test, correction, involved, k=11, ndist=1)
+    expect_equal(ref, out)
 })
 

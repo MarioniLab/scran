@@ -1,7 +1,6 @@
 #' @export
 #' @importFrom BiocParallel SerialParam
-#' @importFrom FNN get.knnx 
-fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, approximate=FALSE, 
+fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE, 
     irlba.args=list(), subset.row=NULL, BPPARAM=SerialParam()) 
 # A faster version of the MNN batch correction approach.
 # 
@@ -37,21 +36,8 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, approximate=FALSE,
 
         # Recomputing the correction vectors after removing the within-batch variation.
         re.ave.out <- .average_correction(refdata, mnn.sets$first, curdata, mnn.sets$second)
-        corvec <- re.ave.out$averaged
-        cur.uniq <- curdata[re.ave.out$second,,drop=FALSE]
-
-        # Computing tricube-weighted correction vectors for individual cells.
-        safe.k <- min(k, nrow(cur.uniq))
-        closest <- get.knnx(query=curdata, data=cur.uniq, k=safe.k)
-#        max.dist <- closest$nn.dist[,safe.k]
-#        tricube <- (1 - (closest$nn.dist / max.dist)^3)^3
-#        weight <- tricube/rowSums(tricube)
-        weight <- 1/safe.k
-        for (kdx in seq_len(safe.k)) {
-            curdata <- curdata + corvec[closest$nn.index[,kdx],,drop=FALSE] * weight
-        }
-
-        # Combining this with the previous batch.
+        
+        curdata <- .tricube_weighted_correction(curdata, re.ave.out$averaged, re.ave.out$second, k=k, ndist=ndist)
         refdata <- rbind(refdata, curdata)
     }
     
@@ -188,4 +174,27 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, approximate=FALSE,
     central.loc <- mean(batch.loc)
     mat <- mat + outer(central.loc - batch.loc, batch.vec, FUN="*")
     return(mat)
+}
+
+#' @importFrom FNN get.knnx 
+.tricube_weighted_correction <- function(curdata, correction, in.mnn, k=20, ndist=3)
+# Computing tricube-weighted correction vectors for individual cells,
+# using the nearest neighbouring cells _involved in MNN pairs_.
+{
+    cur.uniq <- curdata[in.mnn,,drop=FALSE]
+    safe.k <- min(k, nrow(cur.uniq))
+    closest <- get.knnx(query=curdata, data=cur.uniq, k=safe.k)
+
+    middle <- ceiling(safe.k/2L)
+    mid.dist <- closest$nn.dist[,middle]
+    rel.dist <- closest$nn.dist / (mid.dist * ndist)
+    rel.dist[rel.dist > 1] <- 1
+
+    tricube <- (1 - rel.dist^3)^3
+    weight <- tricube/rowSums(tricube)
+    for (kdx in seq_len(safe.k)) {
+        curdata <- curdata + correction[closest$nn.index[,kdx],,drop=FALSE] * weight[,kdx]
+    }
+    
+    return(curdata)
 }
