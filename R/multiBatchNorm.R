@@ -2,7 +2,7 @@
 #' @importFrom scater calcAverage
 #' @importFrom BiocGenerics normalize sizeFactors sizeFactors<-
 #' @importFrom stats median
-multiBatchNorm <- function(..., assay.type="counts", norm.args=list(), subset.row=NULL, min.mean=1)
+multiBatchNorm <- function(..., assay.type="counts", norm.args=list(), min.mean=1)
 # Performs multi-batch normalization, adjusting for differences 
 # in scale between SCE objects supplied in '...'.
 # 
@@ -11,13 +11,30 @@ multiBatchNorm <- function(..., assay.type="counts", norm.args=list(), subset.ro
 {
     batches <- list(...)
     nbatches <- length(batches)
-    collected.ave <- vector("list", nbatches)
-    for (idx in seq_along(batches)) {
-        collected.ave[[idx]] <- calcAverage(batches[[idx]], subset_row=subset.row, exprs_values=assay.type, use_size_factors=FALSE)
+    
+    # Checking row names to warn users against stupid behaviour.
+    ref.names <- rownames(batches[[1]])
+    ref.nrows <- nrow(batches[[1]])
+    for (idx in seq_len(nbatches)) {
+        current <- batches[[idx]]
+        if (!identical(ref.nrows, nrow(current))) {
+            stop("mismatch in the number of rows across batches")
+        }
+
+        cur.names <- rownames(current)
+        if (is.null(ref.names)) {
+            ref.names <- cur.names
+        } else if (is.null(cur.names)) {
+            ;
+        } else if (!identical(ref.names, rownames(current))) {
+            warning("mismatch in the row names across batches")
+        }
     }
 
     # Computing the median ratios (a la DESeq normalization).
+    collected.ave <- lapply(batches, calcAverage, use_size_factors=FALSE)
     collected.ratios <- matrix(1, nbatches, nbatches)
+
     for (first in seq_len(nbatches-1L)) {
         first.ave <- collected.ave[[first]]
         first.sum <- sum(first.ave)
@@ -30,13 +47,17 @@ multiBatchNorm <- function(..., assay.type="counts", norm.args=list(), subset.ro
             keep <- grand.mean >= min.mean
 
             curratio <- median(second.ave[keep]/first.ave[keep])
+            if (!is.finite(curratio) || curratio==0) {
+                stop("median ratio of averages between batches is not finite")
+            }
+
             collected.ratios[first,second] <- curratio
             collected.ratios[second,first] <- 1/curratio
         }
     }
 
     # Finding the smallest ratio, and using that as the reference.
-    smallest <- which.min(apply(collected.ratios, 2, min))
+    smallest <- which.min(apply(collected.ratios, 2, min, na.rm=TRUE))
     
     for (idx in seq_along(batches)) {
         current <- batches[[idx]]

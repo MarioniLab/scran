@@ -5,8 +5,7 @@
 \description{Perform scaling normalization within each batch to provide comparable results to the lowest-coverage batch.}
 
 \usage{
-multiBatchNorm(..., assay.type="counts", norm.args=list(), 
-    subset.row=NULL, min.mean=1)
+multiBatchNorm(..., assay.type="counts", norm.args=list(), min.mean=1)
 }
 
 \arguments{
@@ -14,7 +13,6 @@ multiBatchNorm(..., assay.type="counts", norm.args=list(),
 Each object is assumed to represent one batch.}
 \item{assay.type}{A string specifying which assay values contains the counts.}
 \item{norm.args}{A named list of further arguments to pass to \code{\link[scater]{normalize}}.}
-\item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{min.mean}{A numeric scalar specifying the minimum (library size-adjusted) average count of genes to be used for normalization.}
 }
 
