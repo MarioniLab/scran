@@ -19,6 +19,8 @@ Supported parallelized cluster-wise processing.
 \item Added doubletCluster() to detect clusters that consist of doublets of other clusters.
 
 \item Deprecated rand.seed= in buildSNNGraph() and buildKNNGraph(), in favour of explicit set.seed() call.
+
+\item Added multiBlockNorm() function for spike-abundance-preserving normalization.
 }}
 
 \section{Version 1.8.0}{\itemize{
