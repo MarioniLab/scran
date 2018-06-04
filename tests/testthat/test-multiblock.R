@@ -89,6 +89,7 @@ test_that("multiBlockVar works properly", {
     # Expecting a warning.
     Y <- normalize(X)
     expect_warning(multi <- multiBlockVar(Y, block=block), "centred")
+
     silly.block <- c(1,2,rep(3, ncol(X2)-2))
     expect_warning(multi <- multiBlockVar(X2, block=silly.block), "fewer than two cells")
     expect_error(multi <- multiBlockVar(X2, block=seq_len(ncol(X2))), "no block")

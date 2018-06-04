@@ -117,6 +117,7 @@ test_that("trendVar works correctly on SingleCellExperiment objects", {
 })
 
 test_that("trendVar checks size factor centering", {
+    isSpike(X, "whee") <- !logical(nrow(X))
     sizeFactors(X, "whee") <- runif(ncol(X))
     expect_warning(trendVar(X), "size factors not centred")
     suppressWarnings(rnorm <- normalize(X))
