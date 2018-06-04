@@ -117,10 +117,9 @@ test_that("trendVar works correctly on SingleCellExperiment objects", {
 })
 
 test_that("trendVar checks size factor centering", {
-    isSpike(X, "All") <- !logical(nrow(X))
-    subX <- X[,1:10] # Checking that it raises a warning upon subsetting (where the size factors are no longer centered).
-    expect_warning(trendVar(subX), "size factors not centred")
-    suppressWarnings(rnorm <- normalize(subX))
+    sizeFactors(X, "whee") <- runif(ncol(X))
+    expect_warning(trendVar(X), "size factors not centred")
+    suppressWarnings(rnorm <- normalize(X))
     expect_warning(trendVar(rnorm), NA)
 })
 
@@ -543,8 +542,8 @@ ncells <- 200
 ngenes <- 1000
 means <- 2^runif(ngenes, -1, 5)
 dummy <- matrix(rnbinom(ngenes*ncells, mu=means, size=5), ncol=ncells, nrow=ngenes)
-
 rownames(dummy) <- paste0("X", seq_len(ngenes))
+
 X <- SingleCellExperiment(list(counts=dummy))
 sizeFactors(X) <- colSums(dummy)
 X <- normalize(X)
@@ -651,64 +650,6 @@ test_that("combineVar handles edge cases properly", {
     out <- combineVar(dec[0,], dec2[0,], dec3[0,])
     expect_equal(nrow(out), 0L)
     expect_identical(colnames(out), c("mean", "total", "bio", "tech", "p.value", "FDR"))
-})
-
-####################################################################################################
-
-set.seed(20009)
-ncells <- 200
-ngenes <- 1000
-means <- 2^runif(ngenes, -1, 5)
-dummy <- matrix(rnbinom(ngenes*ncells, mu=means, size=5), ncol=ncells, nrow=ngenes)
-
-rownames(dummy) <- paste0("X", seq_len(ngenes))
-X <- SingleCellExperiment(list(counts=dummy))
-sizeFactors(X) <- colSums(dummy)
-isSpike(X, "MySpikes") <- rbinom(ngenes, 1, 0.7)==0
-sizeFactors(X, "MySpikes") <- runif(ncells)
-
-test_that("multiBlockVar works properly", {
-    block <- sample(5, ncells, replace=TRUE)
-    X2 <- normalize(X, size_factor_grouping=block)
-    multi <- multiBlockVar(X2, block=block)
-
-    expect_identical(colnames(multi$per.block), as.character(sort(unique(block))))
-    expect_identical(rownames(multi), rownames(X))
-
-    # Checking that the subsetted values were correct.
-    for (b in unique(block)) {
-        X3 <- X[,block==b]
-        X3 <- normalize(X3)
-        fit <- trendVar(X3)
-        dec <- decomposeVar(X3, fit)
-
-        ref <- multi$per.block[[as.character(b)]]
-        expect_equal(metadata(ref)$trend(1:5), fit$trend(1:5))
-        metadata(ref)$trend <- NULL
-        expect_equal(as.data.frame(dec), as.data.frame(ref))
-    }
-
-    # Checking that the combined variances are correct.
-    per.block <- multi$per.block
-    multi2 <- multi
-    multi2$per.block <- NULL
-    expect_identical(multi2, do.call(combineVar, as.list(per.block)))
-
-    # Checking that it works happily with different settings.
-    multi2 <- multiBlockVar(X2, block=block, trend.args=list(parametric=TRUE))
-    expect_identical(nrow(multi), nrow(multi2))
-    expect_identical(colnames(multi), colnames(multi2))
-
-    multi2 <- multiBlockVar(X2, block=block, method="z")
-    expect_identical(nrow(multi), nrow(multi2))
-    expect_identical(colnames(multi), colnames(multi2))
-
-    # Expecting a warning.
-    Y <- normalize(X)
-    expect_warning(multi <- multiBlockVar(Y, block=block), "centred")
-    silly.block <- c(1,2,rep(3, ncol(X2)-2))
-    expect_warning(multi <- multiBlockVar(X2, block=silly.block), "fewer than two cells")
-    expect_error(multi <- multiBlockVar(X2, block=seq_len(ncol(X2))), "no block")
 })
 
 ####################################################################################################
