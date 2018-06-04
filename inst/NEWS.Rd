@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.9.5}{\itemize{
+\section{Version 1.9.7}{\itemize{
 \item Removed selectorPlot(), exploreData() functions.
     
 \item Fixed underflow problem in mnnCorrect() when dealing with the Gaussian kernel.
@@ -20,7 +20,9 @@ Supported parallelized cluster-wise processing.
 
 \item Deprecated rand.seed= in buildSNNGraph() and buildKNNGraph(), in favour of explicit set.seed() call.
 
-\item Added multiBlockNorm() function for spike-abundance-preserving normalization.
+\item Added multiBlockNorm() function for spike-abundance-preserving normalization prior to multi-block variance modelling.
+
+\item Added multiBatchNorm() function for consistent downscaling across batches prior to batch correction.
 }}
 
 \section{Version 1.8.0}{\itemize{
