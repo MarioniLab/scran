@@ -26,6 +26,10 @@ In such cases, we want size factors to be centered \emph{within} each level, whi
 To overcome this, we adjust the spike-in size factors so that the mean within each level of the blocking factor is the same as that of the endogenous size factors for that level.
 This avoids cases where spike-in abundances are systematically shifted up or down relative to the abundances of the endogenous genes 
 (e.g., due to addition of different spike-in quantities across blocks).
+
+In all cases, the outcome of normalization for endogenous genes is guaranteed to be the same as that from \code{\link[scater]{normalize}}.
+Only the size factors and normalized values for spike-in transcripts will be different when using this function.
+This ensures that comparisons of gene-level expression profiles between cells (e.g., during clustering or dimensionality reduction) are not altered.
 }
 
 \value{
