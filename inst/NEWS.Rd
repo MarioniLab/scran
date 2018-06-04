@@ -23,6 +23,8 @@ Supported parallelized cluster-wise processing.
 \item Added multiBlockNorm() function for spike-abundance-preserving normalization prior to multi-block variance modelling.
 
 \item Added multiBatchNorm() function for consistent downscaling across batches prior to batch correction.
+
+\item Minor improvement to how mean filtering is done for rescaling across clusters in computeSumFactors().
 }}
 
 \section{Version 1.8.0}{\itemize{
