@@ -37,8 +37,7 @@ Aaron Lun
 
 \seealso{
 \code{\link[scater]{normalize}},
-\code{\link{mnnCorrect}},
-\code{\link{fastMNN}}
+\code{\link{mnnCorrect}}
 }
 
 \examples{
