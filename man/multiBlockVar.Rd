@@ -5,16 +5,16 @@
 \description{Fit a mean-dependent trend to the per-gene variances for each blocking level, and decompose them to biological and technical components.}
 
 \usage{
-multiBlockVar(x, block, trend.args=list(), dec.args=list(), ...)
+multiBlockVar(x, block, trend.args=list(), dec.args=list(), 
+    assay.type="logcounts", ...)
 }
 
 \arguments{
-\item{x}{A SingleCellExperiment object containing log-normalized expression values,
-computed from size factors centred in each block - see \code{\link[scater]{normalize}} for details.
-}
-\item{block}{A factor specifying the blocking level for each cell.}
+\item{x}{A SingleCellExperiment object containing log-normalized expression values, computed with \code{\link{multiBlockNorm}}.}
+\item{block}{A factor specifying the blocking level for each cell in \code{x}.}
 \item{trend.args}{A list of named arguments to pass to \code{\link{trendVar}}.}
 \item{dec.args}{A list of named arguments to pass to \code{\link{decomposeVar}}.}
+\item{assay.type}{A string or integer scalar specifying the assay in \code{x} to use for all calculations.}
 \item{...}{Additional arguments to pass to \code{\link{combineVar}}.}
 }
 
@@ -25,10 +25,10 @@ and then passed to \code{\link{decomposeVar}} to obtain block-specific biologica
 Results are consolidated across blocks using the \code{\link{combineVar}} function.
 The aim is to enable users to handle differences in the mean-variance relationship across, e.g., different experimental batches.
 
-We assume that the size factors are centred \emph{within} each block when computing log-normalized expression values.
-This preserves the scale of the counts within each block, and ensures that the spike-in normalized values are comparable to those of the endogenous genes.
-Centring can be performed by setting the \code{size_factor_grouping} argument in \code{\link[scater]{normalize}}.
-Otherwise, a warning will be raised about non-centred size factors.
+We assume that the size factors for the endogenous genes have the same mean as the size factors for the spike-ins \emph{within} each block.
+This ensures that the spike-in normalized values are comparable to those of the endogenous genes.
+Centering should be performed by running \code{\link{multiBlockNorm}} before calling this function.
+Otherwise, a warning will be raised about non-centered size factors.
 }
 
 \value{
@@ -41,7 +41,7 @@ The trend function from \code{\link{trendVar}} is also stored as \code{trend} in
 \code{\link{trendVar}},
 \code{\link{decomposeVar}},
 \code{\link{combineVar}},
-\code{\link[scater]{normalize}}
+\code{\link{multiBlockNorm}}
 }
 
 \author{
@@ -57,7 +57,7 @@ y <- computeSpikeFactors(y, general.use=FALSE)
 
 # Setting up the blocking levels.
 block <- sample(3, ncol(y), replace=TRUE)
-y <- normalize(y, size_factor_grouping=block)
+y <- multiBlockNorm(y, block)
 out <- multiBlockVar(y, block=block)
 
 # Creating block-level plots.

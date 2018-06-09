@@ -199,9 +199,11 @@ LOWWEIGHT <- 0.000001
         cur.prof <- mean.prof[[clust]] 
 
         # Filtering based on the mean of the per-cluster means (requires scaling for the library size).
+        # Effectively equivalent to 'calcAverage(cbind(ref.ave.count, cur.ave.count))' where the averages
+        # are themselves equivalent to 'calcAverage()' across all cells in each cluster.
         ref.libsize <- mean.lib[[ref.col]]
         cur.libsize <- mean.lib[[clust]]
-        to.use <- (cur.prof * cur.libsize + ref.prof * ref.libsize)/2 >= min.mean
+        to.use <- (cur.prof + ref.prof)/2 * (cur.libsize + ref.libsize)/2 >= min.mean
         if (!all(to.use)) { 
             cur.prof <- cur.prof[to.use]
             ref.prof <- ref.prof[to.use]

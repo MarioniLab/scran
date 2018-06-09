@@ -58,15 +58,50 @@
 }
 
 #' @importFrom SummarizedExperiment assayNames
-#' @importFrom scater areSizeFactorsCentred
-.check_centered_SF <- function(x, assay.type) 
-# Checks if 'logcounts' was requested, and if it could have been computed from counts,
-# If so, then it checks if the size factors are centered.
+#' @importFrom scater librarySizeFactors
+#' @importFrom SingleCellExperiment sizeFactorNames
+#' @importFrom BiocGenerics sizeFactors
+.check_centered_SF <- function(x, assay.type, block=NULL)
+# Checks if 'logcounts' was requested, and if it could have been computed from counts.
+# If so, then it checks whether the size factors are centered across gene sets.
 {
-    if (assay.type=="logcounts" && 
-        "counts" %in% assayNames(x) && 
-        !areSizeFactorsCentred(x)) {
-        warning("size factors not centred, run 'normalize()' first")
+    if (assay.type=="logcounts" && "counts" %in% assayNames(x)) {
+        if (is.null(block)) {
+            by.block <- list(seq_len(ncol(x)))
+        } else {
+            by.block <- split(seq_len(ncol(x)), block)
+        }
+
+        FUN <- function(sfs) {
+            means <- numeric(length(by.block))
+            for (idx in seq_along(by.block)) {
+                means[idx] <- mean(sfs[by.block[[idx]]])
+            }
+            return(means)
+        }
+        
+        ref <- sizeFactors(x)
+        if (is.null(ref)) {
+            ref <- librarySizeFactors(x)
+        }
+        ref.means <- FUN(ref)
+
+        is.okay <- TRUE
+        for (sf in sizeFactorNames(x)) {
+            sf.means <- FUN(sizeFactors(x, sf))
+            if (!isTRUE(all.equal(ref.means, sf.means))) {
+                is.okay <- FALSE
+                break
+            }
+        }
+
+        if (!is.okay) {
+            if (is.null(block)) { 
+                warning("size factors not centred, run 'normalize()' first")
+            } else {
+                warning("size factors not centred, run 'multiBlockNorm()' first")
+            }
+        }
     }
     return(NULL)
 }

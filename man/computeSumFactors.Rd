@@ -107,7 +107,7 @@ Such occurrences are unavoidable -- rather, the aim is to prevent negative value
 }
 
 \section{Gene selection}{
-By default, \code{get.spikes=FALSE} in \code{quickCluster,SingleCellExperiment-method} which means that spike-in transcripts are not included in the set of genes used for deconvolution.
+Spike-in transcripts are not included in the set of genes used for deconvolution with the default \code{get.spikes=FALSE}.
 This is because they can behave differently from the endogenous genes. 
 Users wanting to perform spike-in normalization should see \code{\link{computeSpikeFactors}} instead.
 
@@ -119,7 +119,7 @@ Filtering ensures that this is not the case, e.g., by removing genes with averag
 In general, genes with average counts below 1 (for read count data) or 0.1 (for UMI data) should not be used for normalization.
 Such genes will automatically be filtered out by applying a minimum threshold \code{min.mean} on the library size-adjusted average counts from \code{\link[scater]{calcAverage}}.
 If \code{clusters} is specified, filtering by \code{min.mean} is performed on the per-cluster average during within-cluster normalization,
-and then on the average of the per-cluster averages during between-cluster normalization.
+and then on the (library size-adjusted) average of the per-cluster averages during between-cluster normalization.
 
 Users can also set \code{subset.row} to specify which rows of \code{x} are to be used to calculate the normalization factors. 
 This is equivalent to but more efficient than subsetting \code{x} directly, as it avoids constructing a (potentially large) temporary matrix.
