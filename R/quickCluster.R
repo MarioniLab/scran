@@ -2,7 +2,7 @@
 #' @importFrom dynamicTreeCut cutreeDynamic
 #' @importFrom scater calcAverage
 #' @importFrom igraph cluster_fast_greedy
-#' @importFrom BiocParallel SerialParam bplapply
+#' @importFrom BiocParallel SerialParam bpmapply
 .quick_cluster <- function(x, min.size=200, max.size=NULL, method=c("hclust", "igraph"),
                            pc.approx=TRUE, get.ranks=FALSE, subset.row=NULL, min.mean=1, 
                            block=NULL, block.BPPARAM=SerialParam(), ...)
@@ -18,9 +18,11 @@
         # We create submatrices here to avoid memory allocation within each core.
         by.block <- split(seq_along(block), block)
         x.by.block <- .split_matrix_by_workers(x, by.block, byrow=FALSE)
-        collected <- bplapply(x.by.block, FUN=.quick_cluster, min.size=min.size, max.size=max.size, 
-            method=method, pc.approx=pc.approx, get.ranks=get.ranks, subset.row=subset.row, 
-            min.mean=min.mean, ..., BPPARAM=block.BPPARAM)
+        collected <- bpmapply(FUN=.quick_cluster, x.by.block, 
+            MoreArgs=list(min.size=min.size, max.size=max.size, method=method, 
+                pc.approx=pc.approx, get.ranks=get.ranks, subset.row=subset.row, 
+                min.mean=min.mean, ...), 
+            BPPARAM=block.BPPARAM)
 
         # Merging the results across different blocks.
         reordering <- order(unlist(by.block, use.names=FALSE))
