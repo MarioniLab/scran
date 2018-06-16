@@ -105,6 +105,13 @@ test_that("quickCluster functions correctly with blocking", {
     ref <- quickCluster(mat, min.size=10, block=NULL, get.ranks=TRUE)
     obs <- quickCluster(mat, min.size=10, block=block, get.ranks=TRUE)
     expect_identical(ref, obs)
+
+    # Should avoid problems with multiple BPPARAM specifications.
+    set.seed(100)
+    ref <- quickCluster(mat, min.size=10, block=block, method="igraph")
+    set.seed(100)
+    obs <- quickCluster(mat, min.size=10, block=block, method="igraph", BPPARAM=SerialParam())
+    expect_identical(obs, ref)
 })
 
 # Checking that we're executing the igraph methods correctly.
