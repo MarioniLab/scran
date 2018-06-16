@@ -13,9 +13,33 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
     if (nbatches < 2L) { 
         stop("at least two batches must be specified") 
     }
-        
-    prep.out <- prepare.input.data(batches, cos.norm.in=cos.norm, cos.norm.out=cos.norm, subset.row=subset.row)
-    pc.mat <- .multi_pca(prep.out$In, d=d, approximate=approximate, irlba.args=irlba.args)
+
+    # Checking for identical number of rows (and rownames).
+    first <- batches[[1]]
+    ref.nrow <- nrow(first)
+    ref.rownames <- rownames(first)
+    for (b in 2:nbatches) {
+        current <- batches[[b]]
+        if (!identical(nrow(current), ref.nrow)) {
+            stop("number of rows is not the same across batches")
+        } else if (!identical(rownames(current), ref.rownames)) {
+            stop("row names are not the same across batches")
+        }
+    }
+
+    # Subsetting to the desired subset of genes, and applying cosine normalization.
+    if (!is.null(subset.row)) { 
+        subset.row <- .subset_to_index(subset.row, batches[[1]], byrow=TRUE)
+        if (!identical(subset.row, seq_len(ref.nrow))) { 
+            batches <- lapply(batches, "[", i=subset.row, , drop=FALSE) # Need the extra comma!
+        }
+    }
+    if (cos.norm) { 
+        in.batches <- lapply(batches, FUN=cosine.norm, mode="matrix")
+    }
+    
+    # Performing a multi-sample PCA.
+    pc.mat <- .multi_pca(batches, d=d, approximate=approximate, irlba.args=irlba.args)
 
     refdata <- pc.mat[[1]]
     for (bdx in 2:nbatches) {
@@ -87,7 +111,7 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
     # Projecting the scaled matrices back into this space.
     final <- centered
     for (idx in seq_along(centered)) {
-        final[[idx]] <- crossprod(as.matrix(centered[[idx]]), svd.out$v)
+        final[[idx]] <- as.matrix(t(centered[[idx]]) %*% svd.out$v)
     }
     return(final)
 }
@@ -104,24 +128,24 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
     # This avoids creating a large temporary matrix.
     flipped <- nrows > ncols
     if (flipped) {
-        final <- matrix(0, ncols, ncols)
+        final <- 0
         for (mdx in seq_along(mat.list)) {
-            curmat <- as.matrix(mat.list[[mdx]])
-            final <- final + crossprod(curmat)
+            curmat <- mat.list[[mdx]]
+            final <- final + .delayed_mult(t(curmat), curmat)
         }
 
     } else {
         final <- matrix(0, nrows, nrows)
         last1 <- 0L
         for (first in seq_along(mat.list)) {
-            fmat <- as.matrix(mat.list[[first]])
+            fmat <- mat.list[[first]]
             fdx <- last1 + seq_len(nrow(fmat))
             
             last2 <- 0L
             for (second in seq_along(mat.list)) {
                 smat <- mat.list[[second]]
                 sdx <- last2 + seq_len(nrow(smat))
-                final[fdx,sdx] <- as.matrix(fmat %*% t(smat))
+                final[fdx,sdx] <- .delayed_mult(fmat, t(smat))
                 last2 <- last2 + nrow(smat)
             }
             
@@ -152,6 +176,22 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
     Vt <- Vt / svd.out$d
 
     return(list(d=svd.out$d, v=t(Vt)))
+}
+
+.delayed_mult <- function(X, Y) 
+# DelayedMatrix multiplication, 1000 columns at a time.
+{
+    output <- matrix(0, nrow(X), ncol(Y))
+    CHUNK <- 1000L
+    last <- 0L
+    repeat {
+        previous <- last + 1L
+        last <- min(last + CHUNK, ncol(Y))
+        indices <- previous:last
+        output[,indices] <- as.matrix(X %*% as.matrix(Y[,indices]))
+        if (last==ncol(Y)) { break }
+    }
+    return(output)
 }
 
 .average_correction <- function(refdata, mnn1, curdata, mnn2)
