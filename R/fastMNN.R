@@ -77,7 +77,7 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
  
 #' @importFrom DelayedArray DelayedArray t
 #' @importFrom DelayedMatrixStats rowMeans2
-.multi_pca <- function(mat.list, d=50, approximate=FALSE, irlba.args=list()) 
+.multi_pca <- function(mat.list, d=50, approximate=FALSE, irlba.args=list(), BPPARAM=SerialParam()) 
 # This function performs a multi-sample PCA, weighting the contribution of each 
 # sample to the gene-gene covariance matrix to avoid domination by samples with
 # a large number of cells. Expects cosine-normalized and subsetted expression matrices.
@@ -102,7 +102,7 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
 
     # Performing an SVD.
     if (approximate) {
-        svd.out <- .fast_irlba(scaled, nv=d, irlba.args=irlba.args)
+        svd.out <- .fast_irlba(scaled, nv=d, irlba.args=irlba.args, BPPARAM=BPPARAM)
     } else {
         combined <- as.matrix(do.call(rbind, scaled))
         svd.out <- svd(combined, nu=0, nv=d)
@@ -117,7 +117,7 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
 }
 
 #' @importFrom DelayedArray t
-.fast_irlba <- function(mat.list, nv, irlba.args=list()) 
+.fast_irlba <- function(mat.list, nv, irlba.args=list(), BPPARAM=SerialParam())
 # Performs a quick irlba by performing the SVD on XtX or XXt,
 # and then obtaining the V vector from one or the other.
 {
@@ -131,7 +131,7 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
         final <- 0
         for (mdx in seq_along(mat.list)) {
             curmat <- mat.list[[mdx]]
-            final <- final + .delayed_mult(t(curmat), curmat)
+            final <- final + .delayed_crossprod(curmat, BPPARAM=BPPARAM)
         }
 
     } else {
@@ -178,19 +178,42 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
     return(list(d=svd.out$d, v=t(Vt)))
 }
 
-.delayed_mult <- function(X, Y) 
-# DelayedMatrix multiplication, 1000 columns at a time.
+.delayed_crossprod <- function(X, BPPARAM=SerialParam()) 
+# DelayedMatrix crossprod, 1000 rows at a time.
 {
-    output <- matrix(0, nrow(X), ncol(Y))
     CHUNK <- 1000L
     last <- 0L
+    output <- 0
+    finish <- nrow(X)
+
     repeat {
         previous <- last + 1L
-        last <- min(last + CHUNK, ncol(Y))
-        indices <- previous:last
-        output[,indices] <- as.matrix(X %*% as.matrix(Y[,indices]))
-        if (last==ncol(Y)) { break }
+        last <- min(last + CHUNK, finish)
+        block <- as.matrix(X[previous:last,,drop=FALSE])
+        output <- output + crossprod(block)
+        if (last==finish) { break }
     }
+
+    return(output)
+}
+
+.delayed_mult <- function(X, Y, BPPARAM=SerialParam()) 
+# DelayedMatrix multiplication, 1000 columns at a time.
+{
+    CHUNK <- 1000L
+    last <- 0L
+    output <- matrix(0, nrow(X), ncol(Y))
+    finish <- ncol(Y)
+    stopifnot(identical(ncol(X), nrow(Y)))
+
+    repeat {
+        previous <- last + 1L
+        last <- min(last + CHUNK, finish)
+        indices <- previous:last
+        output[,indices] <- as.matrix(X %*% as.matrix(Y[,indices,drop=FALSE]))
+        if (last==finish) { break }
+    }
+
     return(output)
 }
 
