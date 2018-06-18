@@ -121,6 +121,7 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
 }
 
 #' @importFrom DelayedArray t
+#' @importFrom BiocParallel bplapply SerialParam
 .fast_svd <- function(mat.list, nv, approximate=FALSE, irlba.args=list(), BPPARAM=SerialParam())
 # Performs a quick irlba by performing the SVD on XtX or XXt,
 # and then obtaining the V vector from one or the other.
@@ -132,28 +133,37 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
     # This avoids creating a large temporary matrix.
     flipped <- nrows > ncols
     if (flipped) {
-        final <- 0
-        for (mdx in seq_along(mat.list)) {
-            curmat <- mat.list[[mdx]]
-            final <- final + .delayed_crossprod(curmat, BPPARAM=BPPARAM)
-        }
+        collected <- bplapply(mat.list, FUN=.delayed_crossprod, BPPARAM=BPPARAM)
+        final <- Reduce("+", collected)
 
     } else {
         final <- matrix(0, nrows, nrows)
+
         last1 <- 0L
-        for (first in seq_along(mat.list)) {
-            fmat <- mat.list[[first]]
-            fdx <- last1 + seq_len(nrow(fmat))
-            
+        for (right in seq_along(mat.list)) {
+            RHS <- mat.list[[right]]
+            collected <- bplapply(mat.list[seq_len(right-1L)], FUN=.delayed_mult, Y=t(RHS), BPPARAM=BPPARAM)
+            rdx <- last1 + seq_len(nrow(RHS))
+
             last2 <- 0L
-            for (second in seq_along(mat.list)) {
-                smat <- mat.list[[second]]
-                sdx <- last2 + seq_len(nrow(smat))
-                final[fdx,sdx] <- .delayed_mult(fmat, t(smat))
-                last2 <- last2 + nrow(smat)
+            for (left in seq_along(collected)) {
+                cross.prod <- collected[[left]]
+                ldx <- last2 + seq_len(nrow(cross.prod))
+                final[ldx,rdx] <- cross.prod
+                final[rdx,ldx] <- t(cross.prod)
+                last2 <- last2 + nrow(cross.prod)
             }
             
-            last1 <- last1 + nrow(fmat)
+            last1 <- last1 + nrow(RHS)
+        }
+
+        tmat.list <- lapply(mat.list, t)
+        diags <- bplapply(tmat.list, FUN=.delayed_crossprod, BPPARAM=BPPARAM)
+        last1 <- 0L
+        for (idx in seq_along(diags)) {
+            indices <- last1 + seq_len(nrow(diags[[idx]]))
+            final[indices,indices] <- diags[[idx]]
+            last1 <- last1 + nrow(diags[[idx]])
         }
     }
 
