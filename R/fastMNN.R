@@ -39,7 +39,7 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
     }
     
     # Performing a multi-sample PCA.
-    pc.mat <- .multi_pca(batches, d=d, approximate=approximate, irlba.args=irlba.args)
+    pc.mat <- .multi_pca(batches, d=d, approximate=approximate, use.crossprod=TRUE, irlba.args=irlba.args)
 
     refdata <- pc.mat[[1]]
     for (bdx in 2:nbatches) {
@@ -77,7 +77,7 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
  
 #' @importFrom DelayedArray DelayedArray t
 #' @importFrom DelayedMatrixStats rowMeans2
-.multi_pca <- function(mat.list, d=50, approximate=FALSE, irlba.args=list(), BPPARAM=SerialParam()) 
+.multi_pca <- function(mat.list, d=50, approximate=FALSE, irlba.args=list(), use.crossprod=FALSE, BPPARAM=SerialParam()) 
 # This function performs a multi-sample PCA, weighting the contribution of each 
 # sample to the gene-gene covariance matrix to avoid domination by samples with
 # a large number of cells. Expects cosine-normalized and subsetted expression matrices.
@@ -101,11 +101,15 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
     }
 
     # Performing an SVD.
-    if (approximate) {
-        svd.out <- .fast_irlba(scaled, nv=d, irlba.args=irlba.args, BPPARAM=BPPARAM)
+    if (use.crossprod) {
+        svd.out <- .fast_svd(scaled, nv=d, irlba.args=irlba.args, approximate=approximate, BPPARAM=BPPARAM)
     } else {
         combined <- as.matrix(do.call(rbind, scaled))
-        svd.out <- svd(combined, nu=0, nv=d)
+        if (!approximate) { 
+            svd.out <- svd(combined, nu=0, nv=d)
+        } else {
+            svd.out <- do.call(irlba::irlba, c(list(A=combined, nu=0, nv=d), irlba.args))
+        }
     }
 
     # Projecting the scaled matrices back into this space.
@@ -117,7 +121,7 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
 }
 
 #' @importFrom DelayedArray t
-.fast_irlba <- function(mat.list, nv, irlba.args=list(), BPPARAM=SerialParam())
+.fast_svd <- function(mat.list, nv, approximate=FALSE, irlba.args=list(), BPPARAM=SerialParam())
 # Performs a quick irlba by performing the SVD on XtX or XXt,
 # and then obtaining the V vector from one or the other.
 {
@@ -153,7 +157,12 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
         }
     }
 
-    svd.out <- do.call(irlba::irlba, c(list(A=final, nv=nv, nu=0), irlba.args))
+    if (approximate) {
+        svd.out <- do.call(irlba::irlba, c(list(A=final, nv=nv, nu=0), irlba.args))
+    } else {
+        svd.out <- svd(final, nv=nv, nu=0)
+        svd.out$d <- svd.out$d[seq_len(nv)]
+    }
     svd.out$d <- sqrt(svd.out$d)
 
     if (flipped) {
