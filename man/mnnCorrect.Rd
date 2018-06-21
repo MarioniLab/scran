@@ -59,7 +59,7 @@ The algorithm is generally robust to the choice of \code{k}, though values that 
 For each MNN pair, a pairwise correction vector is computed based on the difference in the expression profiles.
 The correction vector for each cell is computed by applying a Gaussian smoothing kernel with bandwidth \code{sigma} is the pairwise vectors.
 This stabilizes the vectors across many MNN pairs and extends the correction to those cells that do not have MNNs.
-The choice of \code{sigma} determines the extent of smoothing - a value of 1 is used by default to reflect the boundaries of the space after cosine normalization.
+The choice of \code{sigma} determines the extent of smoothing - a value of 0.1 is used by default, corresponding to 10\% of the radius of the space after cosine normalization.
 }
 
 \section{Choosing the gene set}{
