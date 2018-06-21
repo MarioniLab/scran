@@ -341,11 +341,11 @@ cosine.norm <- function(X, mode=c("matrix", "all", "l2norm"))
     switch(mode, all=out, matrix=out$matrix, l2norm=out$l2norm)
 }
 
-#' @importFrom BiocParallel bpworkers bplapply
+#' @importFrom BiocParallel bpnworkers bplapply
 bpl.get.knnx <- function(data, query, k, BPPARAM) 
 # Splits up the query and searches for nearest neighbors in the data.
 {
-    nworkers <- bpworkers(BPPARAM)
+    nworkers <- bpnworkers(BPPARAM)
     if (nworkers > 1) {
         by.core <- vector("list", nworkers)
         assignments <- cut(seq_len(nrow(query)), nworkers)

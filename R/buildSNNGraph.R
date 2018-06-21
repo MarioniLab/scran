@@ -90,7 +90,7 @@
 }
 
 #' @importFrom FNN get.knn get.knnx
-#' @importFrom BiocParallel bplapply
+#' @importFrom BiocParallel bplapply bpnworkers
 .find_knn <- function(incoming, k, BPPARAM, ..., force=FALSE) {
     # Some checks to avoid segfaults in get.knn(x).
     ncells <- nrow(incoming)
@@ -102,7 +102,7 @@
         k <- nrow(incoming) - 1L
     }
 
-    nworkers <- bpworkers(BPPARAM)
+    nworkers <- bpnworkers(BPPARAM)
     if (!force && nworkers==1L) {
         # Simple call with one core.
         nn.out <- get.knn(incoming, k=k, ...)
