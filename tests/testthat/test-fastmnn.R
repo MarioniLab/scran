@@ -214,3 +214,47 @@ test_that("tricube weighting works correctly", {
     expect_equal(ref, out)
 })
 
+set.seed(1200005)
+test_that("fastMNN works as expected", {
+    B1 <- matrix(rnorm(10000), nrow=100) # Batch 1 
+    B2 <- matrix(rnorm(20000), nrow=100) # Batch 2
+
+    out <- fastMNN(B1, B2, d=50) # corrected values
+    expect_identical(dim(out$corrected), c(ncol(B1) + ncol(B2), 50L))
+    expect_identical(out$batch, rep(1:2, c(ncol(B1), ncol(B2))))
+    
+    # Dimension choice behaves correctly.
+    out.10 <- fastMNN(B1, B2, d=10) 
+    expect_identical(ncol(out.10$corrected), 10L)
+
+    # Handles names correctly.
+    out.n <- fastMNN(X=B1, Y=B2, d=50) 
+    expect_identical(out$corrected, out.n$corrected)
+    expect_identical(out.n$batch, rep(c("X", "Y"), c(ncol(B1), ncol(B2))))
+
+    # Subset.row behaves correctly.
+    i <- sample(nrow(B1), 50)
+    ref <- fastMNN(X=B1[i,], Y=B2[i,], d=50)
+    out.s <- fastMNN(X=B1, Y=B2, d=50, subset.row=i) 
+    expect_identical(out.s, ref)
+
+    # Behaves if we turn off cosine-norm.
+    nB1 <- t(t(B1)/ sqrt(colSums(B1^2)))
+    nB2 <- t(t(B2)/ sqrt(colSums(B2^2)))
+    out.ncos <- fastMNN(nB1, nB2, cos.norm=FALSE, d=50) 
+    expect_equal(out.ncos, out) 
+
+    # Throws errors properly with no genes or no cells.
+    expect_error(fastMNN(), "at least two batches")
+    expect_error(fastMNN(B1), "at least two batches")
+    expect_error(fastMNN(B1[0,], B2[0,]), "too large")
+    expect_error(fastMNN(B1[,0], B2[,0]), "too large")
+
+    # Throws errors upon row checks.
+    expect_error(fastMNN(B1[1:10,], nB2), "number of rows is not the same")
+    xB1 <- B1
+    xB2 <- B2
+    rownames(xB1) <- sample(nrow(B1))
+    rownames(xB2) <- sample(nrow(B2))
+    expect_error(fastMNN(B1, nB2), "row names are not the same")
+})
