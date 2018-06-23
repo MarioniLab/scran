@@ -35,7 +35,7 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
         }
     }
     if (cos.norm) { 
-        in.batches <- lapply(batches, FUN=cosine.norm, mode="matrix")
+        batches <- lapply(batches, FUN=cosine.norm, mode="matrix")
     }
     
     # Performing a multi-sample PCA.
@@ -82,6 +82,10 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
 # sample to the gene-gene covariance matrix to avoid domination by samples with
 # a large number of cells. Expects cosine-normalized and subsetted expression matrices.
 {
+    if (d > min(nrow(mat.list[[1]]), sum(vapply(mat.list, FUN=ncol, FUN.VALUE=0L)))) {
+        stop("'d' is too large for the number of cells and genes")
+    }
+
     all.centers <- 0
     for (idx in seq_along(mat.list)) {
         current <- DelayedArray(mat.list[[idx]])
@@ -226,7 +230,7 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
     stopifnot(identical(ncol(X), nrow(Y)))
 
     repeat {
-        previous <- last + 1L
+        previous <- min(last + 1L, finish)
         last <- min(last + CHUNK, finish)
         indices <- previous:last
         output[,indices] <- as.matrix(X %*% as.matrix(Y[,indices,drop=FALSE]))
