@@ -25,6 +25,8 @@ Supported parallelized cluster-wise processing.
 \item Added multiBatchNorm() function for consistent downscaling across batches prior to batch correction.
 
 \item Minor improvement to how mean filtering is done for rescaling across clusters in computeSumFactors().
+
+\item Added the fastMNN() function to provide a faster, more stable alternative for MNN correction.
 }}
 
 \section{Version 1.8.0}{\itemize{
