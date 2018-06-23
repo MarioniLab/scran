@@ -251,10 +251,10 @@ test_that("fastMNN works as expected", {
     expect_error(fastMNN(B1[,0], B2[,0]), "too large")
 
     # Throws errors upon row checks.
-    expect_error(fastMNN(B1[1:10,], nB2), "number of rows is not the same")
+    expect_error(fastMNN(B1[1:10,], B2), "number of rows is not the same")
     xB1 <- B1
     xB2 <- B2
     rownames(xB1) <- sample(nrow(B1))
     rownames(xB2) <- sample(nrow(B2))
-    expect_error(fastMNN(B1, nB2), "row names are not the same")
+    expect_error(fastMNN(xB1, xB2), "row names are not the same")
 })
