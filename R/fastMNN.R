@@ -262,24 +262,24 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
     return(mat)
 }
 
-#' @importFrom FNN get.knnx 
+#' @importFrom kmknn queryKNN
 .tricube_weighted_correction <- function(curdata, correction, in.mnn, k=20, ndist=3)
 # Computing tricube-weighted correction vectors for individual cells,
 # using the nearest neighbouring cells _involved in MNN pairs_.
 {
     cur.uniq <- curdata[in.mnn,,drop=FALSE]
     safe.k <- min(k, nrow(cur.uniq))
-    closest <- get.knnx(query=curdata, data=cur.uniq, k=safe.k)
+    closest <- queryKNN(query=curdata, X=cur.uniq, k=safe.k)
 
     middle <- ceiling(safe.k/2L)
-    mid.dist <- closest$nn.dist[,middle]
-    rel.dist <- closest$nn.dist / (mid.dist * ndist)
+    mid.dist <- closest$distance[,middle]
+    rel.dist <- closest$distance / (mid.dist * ndist)
     rel.dist[rel.dist > 1] <- 1
 
     tricube <- (1 - rel.dist^3)^3
     weight <- tricube/rowSums(tricube)
     for (kdx in seq_len(safe.k)) {
-        curdata <- curdata + correction[closest$nn.index[,kdx],,drop=FALSE] * weight[,kdx]
+        curdata <- curdata + correction[closest$index[,kdx],,drop=FALSE] * weight[,kdx]
     }
     
     return(curdata)

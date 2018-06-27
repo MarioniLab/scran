@@ -205,9 +205,9 @@ prepare.input.data <- function(batches, cos.norm.in, cos.norm.out, subset.row) {
 find.mutual.nn <- function(data1, data2, k1, k2, BPPARAM) 
 # Finds mutal neighbors between data1 and data2.
 {
-    W21 <- bpl.get.knnx(data2, query=data1, k=k1, BPPARAM=BPPARAM)
-    W12 <- bpl.get.knnx(data1, query=data2, k=k2, BPPARAM=BPPARAM)
-    out <- .Call(cxx_find_mutual_nns, W21$nn.index, W12$nn.index)
+    W21 <- queryKNN(data2, query=data1, k=k1, BPPARAM=BPPARAM, get.distance=FALSE)
+    W12 <- queryKNN(data1, query=data2, k=k2, BPPARAM=BPPARAM, get.distance=FALSE)
+    out <- .Call(cxx_find_mutual_nns, W21$index, W12$index)
     names(out) <- c("first", "second")
     return(out)
 }
@@ -339,23 +339,4 @@ cosine.norm <- function(X, mode=c("matrix", "all", "l2norm"))
     out <- .Call(cxx_cosine_norm, X, mode!="l2norm")
     names(out) <- c("matrix", "l2norm")
     switch(mode, all=out, matrix=out$matrix, l2norm=out$l2norm)
-}
-
-#' @importFrom BiocParallel bpnworkers bplapply
-bpl.get.knnx <- function(data, query, k, BPPARAM) 
-# Splits up the query and searches for nearest neighbors in the data.
-{
-    nworkers <- bpnworkers(BPPARAM)
-    if (nworkers > 1) {
-        by.core <- vector("list", nworkers)
-        assignments <- cut(seq_len(nrow(query)), nworkers)
-        for (i in seq_len(nworkers)) {
-            by.core[[i]] <- query[assignments==levels(assignments)[i],,drop=FALSE]
-        }
-    } else {
-        by.core <- list(query)
-    }
-
-    to.run <- bplapply(by.core, FUN=get.knnx, data=data, k=k, BPPARAM=BPPARAM)
-    do.call(mapply, c(to.run, FUN=rbind, SIMPLIFY = FALSE))
 }
