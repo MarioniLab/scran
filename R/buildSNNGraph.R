@@ -30,7 +30,7 @@
 #' @importFrom igraph make_graph simplify
 #' @importFrom BiocParallel SerialParam
 .buildKNNGraph <- function(x, k=10, d=50, directed=FALSE, transposed=FALSE, pc.approx=FALSE,
-                           rand.seed=NA, irlba.args=list(), knn.args=list(), 
+                           rand.seed=NA, irlba.args=list(), 
                            subset.row=NULL, BPPARAM=SerialParam()) 
 # Builds a k-nearest-neighbour graph, where edges are present between each
 # cell and its 'k' nearest neighbours. Undirected unless specified otherwise.
@@ -40,7 +40,7 @@
 { 
     nn.out <- .setup_knn_data(x=x, subset.row=subset.row, d=d, transposed=transposed,
         pc.approx=pc.approx, rand.seed=rand.seed, irlba.args=irlba.args,
-        k=k, knn.args=knn.args, BPPARAM=BPPARAM) 
+        k=k, BPPARAM=BPPARAM) 
 
     # Building the KNN graph.
     start <- as.vector(row(nn.out$index))

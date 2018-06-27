@@ -112,7 +112,7 @@ with modifications by Aaron Lun
 }
 
 \seealso{
-\code{\link{get.knnx}}
+\code{\link{queryKNN}},
 \code{\link[irlba]{irlba}}
 }
 
