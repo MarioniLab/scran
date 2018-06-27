@@ -179,16 +179,15 @@ test_that("tricube weighting works correctly", {
     involved <- sample(nrow(test), nrow(correction))
 
     # Setting up a reference function for comparison, operating truly row-by-row.
-    library(FNN)
     FUN <- function(current, corvec, in.mnn, k=20, ndist=3) {
         cur.uniq <- current[in.mnn,,drop=FALSE]
         safe.k <- min(k, nrow(cur.uniq))
-        closest <- get.knnx(query=current, data=cur.uniq, k=safe.k)
+        closest <- kmknn::queryKNN(query=current, X=cur.uniq, k=safe.k)
         middle.k <- ceiling(safe.k/2L)
 
         for (x in seq_len(nrow(current))) {
-            all.dists <- closest$nn.dist[x,]
-            all.index <- closest$nn.index[x,]
+            all.dists <- closest$distance[x,]
+            all.index <- closest$index[x,]
 
             middist <- sort(all.dists)[middle.k] 
             weights <- (1 - pmin(1, all.dists/(middist*ndist))^3)^3

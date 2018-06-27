@@ -4,11 +4,10 @@
 # Constructing a reference value.
 
 library(igraph)
-library(FNN)
 check <- function(vals, k=10) {
     g <- buildSNNGraph(vals, k=k, d=NA) # turning off PCA.
-    nn.out <- get.knn(t(vals), k=k)
-    IDX <- cbind(seq_len(ncol(vals)), nn.out$nn.index)
+    nn.out <- kmknn::findKNN(t(vals), k=k)
+    IDX <- cbind(seq_len(ncol(vals)), nn.out$index)
 
     ncells <- ncol(vals)
     expect_identical(seq_len(ncells), as.vector(V(g)))
@@ -91,25 +90,6 @@ test_that("buildSNNGraph works properly on SingleCellExperiment objects", {
     are_graphs_same(g, g2)
 })
 
-# Checking multi-core processing works.
-
-set.seed(20003)
-test_that("Multi-core KNN detection is correct", {
-    dummy <- matrix(rnorm(ngenes*ncells), ncol=ncells, nrow=ngenes)
-    ref <- scran:::.find_knn(dummy, k=10, BPPARAM=SerialParam())
-    alt <- scran:::.find_knn(dummy, k=10, BPPARAM=SerialParam(), force=TRUE)
-    expect_equal(ref, alt)
-    
-    dummy <- matrix(rnorm(ngenes*ncells), ncol=ncells, nrow=ngenes)
-    ref <- scran:::.find_knn(dummy, k=5, BPPARAM=SerialParam())
-    alt <- scran:::.find_knn(dummy, k=5, BPPARAM=SerialParam(), force=TRUE)
-    expect_equal(ref, alt)
-    
-#   ref <- scran:::.find_knn(dummy, k=5)
-#   alt <- scran:::.find_knn(dummy, k=5, BPPARAM=MulticoreParam(3))
-#   expect_equal(ref, alt)
-})
-
 # Checking PCA was working.
 
 set.seed(20004)
@@ -156,10 +136,13 @@ test_that("buildSNNGraph with PCA works correctly", {
 
 test_that("buildSNNGraph fails on silly inputs", {
     dummy <- matrix(rnorm(ngenes*20), ncol=20, nrow=ngenes)
-    suppressWarnings(expect_error(buildSNNGraph(dummy[,0], d=NA), "cannot create empty graph with negative number of vertices"))
-    suppressWarnings(expect_error(buildSNNGraph(dummy[0,], d=NA), "cannot create empty graph with negative number of vertices"))
-    expect_warning(out <- buildSNNGraph(dummy, k=50, d=NA), "'k' set to the number of cells minus 1")
-    are_graphs_same(out, buildSNNGraph(dummy, k=19))
+    expect_warning(out <- buildSNNGraph(dummy, k=50, d=NA), "capped")
+    expect_warning(out2 <- buildSNNGraph(dummy, k=ncol(dummy)-1L, d=NA), NA)
+    are_graphs_same(out, out2)
+
+    expect_error(buildSNNGraph(dummy[0,], d=NA), NA) # shouldn't fail, but shouldn't generate anything particularly useful.
+
+    expect_warning(expect_error(buildSNNGraph(dummy[,0], d=NA), "must be positive"), "capped")
 })
 
 # Checking that buildKNNGraph also works.

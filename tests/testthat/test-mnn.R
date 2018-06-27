@@ -24,10 +24,10 @@ test_that("Mutual NN detection is correct", {
         n2 <- nrow(d2)
         n.total <- n1 + n2
    
-        W21 <- get.knnx(d2, query=d1, k=k1)
-        W12 <- get.knnx(d1, query=d2, k=k2)
+        W21 <- kmknn::queryKNN(d2, query=d1, k=k1)
+        W12 <- kmknn::queryKNN(d1, query=d2, k=k2)
         W <- sparseMatrix(i=c(rep(seq_len(n1), k1), rep(n1 + seq_len(n2), k2)),
-                          j=c(n1 + W21$nn.index, W12$nn.index),
+                          j=c(n1 + W21$index, W12$index),
                           x=rep(1, n1*k1 + n2*k2), dims=c(n.total, n.total))
 
         W <- W * t(W) # elementwise multiplication to keep mutual nns only
