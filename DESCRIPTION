@@ -1,6 +1,6 @@
 Package: scran
-Version: 1.9.8
-Date: 2018-06-23
+Version: 1.9.9
+Date: 2018-06-27
 Title: Methods for Single-Cell RNA-Seq Data Analysis
 Authors@R: c(person("Aaron", "Lun", role = c("aut", "cre"), email =
         "alun@wehi.edu.au"), person("Karsten", "Bach", role = "aut"),
@@ -11,7 +11,7 @@ Maintainer: Aaron Lun <alun@wehi.edu.au>
 Depends: R (>= 3.5), BiocParallel, SingleCellExperiment
 Imports: SummarizedExperiment, S4Vectors, BiocGenerics, 
         Rcpp (>= 0.12.14), stats, methods, utils, Matrix, scater, 
-        edgeR, limma, dynamicTreeCut, FNN, igraph, statmod, 
+        edgeR, limma, dynamicTreeCut, kmknn, igraph, statmod, 
         DelayedArray, DelayedMatrixStats
 Suggests: testthat, BiocStyle, knitr, beachmat, HDF5Array, limSolve, 
         org.Mm.eg.db, DESeq2, monocle, pracma, Biobase, irlba,
