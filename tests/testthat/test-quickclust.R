@@ -117,7 +117,7 @@ test_that("quickCluster functions correctly with blocking", {
 # Checking that we're executing the igraph methods correctly.
 
 set.seed(300002)
-test_that("quickCluster with igraph works with min.size settings", {
+test_that("quickCluster with igraph works with various settings", {
     mat <- matrix(rpois(10000, lambda=5), nrow=20)
     obs <- quickCluster(mat, min.size=0, method="igraph")
     expect_identical(length(obs), ncol(mat))
@@ -128,7 +128,8 @@ test_that("quickCluster with igraph works with min.size settings", {
     out <- cluster_fast_greedy(snn)
     expect_identical(factor(out$membership), obs)
     
-    min.size <- 100 # Checking that min.size merging works.
+    # Checking that min.size merging works.
+    min.size <- 100 
     expect_false(all(table(obs) >= min.size))
     obs2 <- quickCluster(mat, min.size=min.size, method="igraph")
     expect_true(all(table(obs2) >= min.size))
@@ -148,28 +149,22 @@ test_that("quickCluster with igraph works with min.size settings", {
     expect_identical(factor(out$membership), obs)
 })
 
-
 # Creating an example where quickCluster should behave correctly.
 
-ncells <- 600
-ngenes <- 200
-count.sizes <- rnbinom(ncells, mu=100, size=5)
-multiplier <- seq_len(ngenes)/100
-dummy <- outer(multiplier, count.sizes)
-
-known.clusters <- sample(3, ncells, replace=TRUE)
-dummy[1:40,known.clusters==1L] <- 0
-dummy[41:80,known.clusters==2L] <- 0  
-dummy[81:120,known.clusters==3L] <- 0
-
 test_that("quickCluster reports the correct clusters", {
+    ncells <- 600
+    ngenes <- 200
+    count.sizes <- rnbinom(ncells, mu=100, size=5)
+    multiplier <- seq_len(ngenes)/100
+    dummy <- outer(multiplier, count.sizes)
+    
+    known.clusters <- sample(3, ncells, replace=TRUE)
+    dummy[1:40,known.clusters==1L] <- 0
+    dummy[41:80,known.clusters==2L] <- 0  
+    dummy[81:120,known.clusters==3L] <- 0
+
     out <- quickCluster(dummy)          
     expect_identical(length(unique(paste(out, known.clusters))), 3L)
-}) 
-
-test_that("quickCluster warns or fails on silly inputs", {
-    expect_error(quickCluster(dummy[0,]), "rank variances of zero detected for a cell")
-    expect_error(quickCluster(dummy[,0]), "fewer cells than the minimum cluster size")
 
     # Checking for a warning upon unassigned cells.    
     leftovers <- 100
@@ -178,6 +173,12 @@ test_that("quickCluster warns or fails on silly inputs", {
                                                    which(known.clusters==3)[seq_len(leftovers)])]), 
                    sprintf("%i cells were not assigned to any cluster", leftovers))
     expect_identical(as.character(tail(forced, leftovers)), rep("0", leftovers))
+}) 
+
+test_that("quickCluster fails on silly inputs", {
+    dummy <- matrix(rpois(10000, lambda=5), nrow=20)
+    expect_error(quickCluster(dummy[0,]), "rank variances of zero detected for a cell")
+    expect_error(quickCluster(dummy[,0]), "fewer cells than the minimum cluster size")
 })
 
 set.seed(20002)
