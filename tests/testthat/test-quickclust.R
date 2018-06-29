@@ -115,37 +115,57 @@ test_that("quickCluster functions correctly with blocking", {
 })
 
 # Checking that we're executing the igraph methods correctly.
+#
+# NOTE 1: these tests are surprising fragile, as findKNN in rank space is liable to find lots of tied distances.
+# This results in arbitrary choices and ordering of neighbors, which can differ between seeds and machines (depending on precision).
+# Hence we need to make sure that there are no ties, by supplying enough dimensions with no tied ranks.
+#
+# NOTE 2: As a result of the above note, we also need to turn off approximate PCs, to avoid issues with irlba variability.
+# Otherwise we would have to set the seed everytime, and this would mask any issues with NN detection.
 
 set.seed(300002)
 test_that("quickCluster with igraph works with various settings", {
-    mat <- matrix(rpois(10000, lambda=5), nrow=20)
-    obs <- quickCluster(mat, min.size=0, method="igraph")
+    ncells <- 500
+    ndims <- 400
+    k <- 10
+    mat <- matrix(rnorm(ncells*ndims, mean=20), nrow=ndims)
+
+    # Checking that there are no ties within the 'k+1'th nearest neighbors for each cell.
+    ref <- quickCluster(mat, get.rank=TRUE)
+    all.dist <- as.matrix(dist(t(ref)))
+    diag(all.dist) <- Inf # ignore self.
+    out <- apply(all.dist, 1, FUN=function(d) { min(diff(sort(d)[seq_len(k+1)])) })
+    expect_true(min(out) > 1e-8)
+
+    # Testing igraph mode.
+    obs <- quickCluster(mat, min.size=0, method="igraph", pc.approx=FALSE, k=k)
     expect_identical(length(obs), ncol(mat))
 
-    ref <- quickCluster(mat, get.rank=TRUE)
-    snn <- buildSNNGraph(ref, pc.approx=TRUE) 
-    library(igraph)
-    out <- cluster_fast_greedy(snn)
+    snn <- buildSNNGraph(ref, pc.approx=FALSE, k=k) 
+    out <- igraph::cluster_fast_greedy(snn)
     expect_identical(factor(out$membership), obs)
     
     # Checking that min.size merging works.
     min.size <- 100 
     expect_false(all(table(obs) >= min.size))
-    obs2 <- quickCluster(mat, min.size=min.size, method="igraph")
+    obs2 <- quickCluster(mat, min.size=min.size, method="igraph", pc.approx=FALSE, k=k)
     expect_true(all(table(obs2) >= min.size))
 
     combined <- paste0(obs, ".", obs2)
     expect_identical(length(unique(combined)), length(unique(obs))) # Confirm that they are nested.
 
-    # Checking that arguments are passed along.
-    obs <- quickCluster(mat, min.size=0, method="igraph", pc.approx=FALSE)
-    snn <- buildSNNGraph(ref, pc.approx=FALSE) 
-    out <- cluster_fast_greedy(snn)
+    # Checking that irlba behaves here.
+    set.seed(0)
+    obs <- quickCluster(mat, min.size=0, method="igraph", pc.approx=TRUE, k=k)
+    set.seed(0)
+    snn <- buildSNNGraph(ref, pc.approx=TRUE, k=k) 
+    out <- igraph::cluster_fast_greedy(snn)
     expect_identical(factor(out$membership), obs)
 
-    obs <- quickCluster(mat, min.size=0, method="igraph", d=NA)
-    snn <- buildSNNGraph(ref, d=NA)
-    out <- cluster_fast_greedy(snn)
+    # Checking that other arguments are passed along.
+    obs <- quickCluster(mat, min.size=0, method="igraph", d=NA, pc.approx=FALSE, k=k)
+    snn <- buildSNNGraph(ref, d=NA, k=k)
+    out <- igraph::cluster_fast_greedy(snn)
     expect_identical(factor(out$membership), obs)
 })
 
