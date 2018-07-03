@@ -214,13 +214,14 @@ test_that("tricube weighting works correctly", {
 })
 
 set.seed(1200005)
-test_that("fastMNN works as expected", {
+test_that("fastMNN works as expected for two batches", {
     B1 <- matrix(rnorm(10000), nrow=100) # Batch 1 
     B2 <- matrix(rnorm(20000), nrow=100) # Batch 2
 
     out <- fastMNN(B1, B2, d=50) # corrected values
     expect_identical(dim(out$corrected), c(ncol(B1) + ncol(B2), 50L))
-    expect_identical(out$batch, rep(1:2, c(ncol(B1), ncol(B2))))
+    expect_identical(out$origin$batch, rep(1:2, c(ncol(B1), ncol(B2))))
+    expect_identical(out$origin$cell, c(seq_len(ncol(B1)), seq_len(ncol(B2))))
     
     # Dimension choice behaves correctly.
     out.10 <- fastMNN(B1, B2, d=10) 
@@ -229,7 +230,8 @@ test_that("fastMNN works as expected", {
     # Handles names correctly.
     out.n <- fastMNN(X=B1, Y=B2, d=50) 
     expect_identical(out$corrected, out.n$corrected)
-    expect_identical(out.n$batch, rep(c("X", "Y"), c(ncol(B1), ncol(B2))))
+    expect_identical(out.n$origin$batch, rep(c("X", "Y"), c(ncol(B1), ncol(B2))))
+    expect_identical(out.n$origin$cell, c(seq_len(ncol(B1)), seq_len(ncol(B2))))
 
     # Subset.row behaves correctly.
     i <- sample(nrow(B1), 50)
@@ -242,6 +244,44 @@ test_that("fastMNN works as expected", {
     nB2 <- t(t(B2)/ sqrt(colSums(B2^2)))
     out.ncos <- fastMNN(nB1, nB2, cos.norm=FALSE, d=50) 
     expect_equal(out.ncos, out) 
+})
+
+set.seed(1200006)
+test_that("fastMNN works as expected for three batches, with auto-ordering", {
+    B1 <- matrix(rnorm(10000), nrow=100) # Batch 1 
+    B2 <- matrix(rnorm(20000), nrow=100) # Batch 2
+    B3 <- matrix(rnorm(5000), nrow=100) # Batch 2
+
+    out <- fastMNN(B1, B2, B3, d=50) # corrected values
+    expect_identical(dim(out$corrected), c(ncol(B1) + ncol(B2) + ncol(B3), 50L))
+    expect_identical(out$origin$batch, rep(1:3, c(ncol(B1), ncol(B2), ncol(B3))))
+    expect_identical(out$origin$cell, c(seq_len(ncol(B1)), seq_len(ncol(B2)), seq_len(ncol(B3))))
+
+    # Testing the auto-ordering algorithms. 
+    out.auto <- fastMNN(B1, B2, B3, d=50, auto.order=TRUE) 
+    expect_identical(dim(out$corrected), dim(out.auto$corrected))
+    expect_identical(out.auto$origin$batch, rep(c(2L, 1L, 3L), c(ncol(B2), ncol(B1), ncol(B3)))) # 3 should be last, with the fewest cells => fewest MNNs.
+    expect_identical(out.auto$origin$cell, c(seq_len(ncol(B2)), seq_len(ncol(B1)), seq_len(ncol(B3))))
+
+    # Testing the internal auto-ordering functions.
+    fmerge <- scran:::.define_first_merge(list(t(B1), t(B2), t(B3)), k=20)   
+    expect_identical(fmerge$first, 2L) # 2 is arbitrarily 'first', and 1 is arbitrarily 'second'; but 3 should never show up.
+    expect_identical(fmerge$second, 1L)
+    expect_identical(fmerge$pairs, scran:::find.mutual.nn(t(B2), t(B1), k1=20, k2=20, BPPARAM=SerialParam()))
+
+    expect_identical(kmknn::findKNN(precomputed=fmerge$precomputed[[1]], k=5), kmknn::findKNN(t(B1), k=5)) # checking that the precomputations are correct.
+    expect_identical(kmknn::findKNN(precomputed=fmerge$precomputed[[2]], k=10), kmknn::findKNN(t(B2), k=10))
+    expect_identical(kmknn::findKNN(precomputed=fmerge$precomputed[[3]], k=15), kmknn::findKNN(t(B3), k=15))
+
+    nmerge <- scran:::.define_next_merge(t(B1), list(t(B1), t(B2), t(B3)), processed=1L, precomputed=fmerge$precomputed, k=20)   
+    expect_identical(nmerge$other, 2L) # 1 should have more MNNs with 2 than with 3.
+    expect_identical(nmerge$pairs, scran:::find.mutual.nn(t(B1), t(B2), k1=20, k2=20, BPPARAM=SerialParam()))
+})
+
+set.seed(1200007)
+test_that("fastMNN fails on silly inputs", {
+    B1 <- matrix(rnorm(10000), nrow=100) # Batch 1 
+    B2 <- matrix(rnorm(20000), nrow=100) # Batch 2
 
     # Throws errors properly with no genes or no cells.
     expect_error(fastMNN(), "at least two batches")
