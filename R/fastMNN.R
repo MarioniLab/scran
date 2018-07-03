@@ -99,7 +99,7 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
     ncells <- vapply(batches, FUN=ncol, FUN.VALUE=0L)[processed]
 
     batch.ids <- rep(batch.ids, ncells)
-    cell.ids <- unlist(lapply(ncells, seq_len))
+    cell.ids <- unlist(lapply(ncells, seq_len), use.names=FALSE)
     origin <- DataFrame(batch=batch.ids, cell=cell.ids)
 
     return(list(corrected=refdata, origin=origin, pairs=mnn.pairings))
@@ -326,7 +326,7 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
 ############################################
 # Auto-ordering functions.
 
-#' @importFrom kmknn queryKNN
+#' @importFrom kmknn queryKNN precluster
 #' @importFrom BiocParallel SerialParam
 .define_first_merge <- function(pc.mat, k=20, BPPARAM=SerialParam())
 # Find the pair of matrices in 'options' which has the greatest number of MNNs.
@@ -355,7 +355,7 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
     return(list(first=max.first, second=max.second, pairs=max.pairs, precomputed=precomputed))
 }
 
-#' @importFrom kmknn queryKNN
+#' @importFrom kmknn queryKNN precluster
 #' @importFrom BiocParallel SerialParam
 .define_next_merge <- function(refdata, pc.mat, processed, precomputed, k=20, BPPARAM=SerialParam()) 
 # Find the matrix in pc.mat[-processed] that has the greater number of MNNs to 'refdata'.
