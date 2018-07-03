@@ -213,6 +213,22 @@ test_that("tricube weighting works correctly", {
     expect_equal(ref, out)
 })
 
+CHECK_PAIRINGS <- function(origin, pairings) {
+    expect_identical(unique(origin$batch[pairings[[1]]$first]), origin$batch[1])
+
+    for (p in pairings) {
+        expect_true(all(p$first < p$second))
+
+        sbatch <- origin$batch[p$second]
+        expect_identical(length(unique(sbatch)), 1L)
+
+        fbatch <- origin$batch[p$first]
+        expect_true(!any(fbatch %in% sbatch))
+    }
+
+    return(NULL)
+}
+
 set.seed(1200005)
 test_that("fastMNN works as expected for two batches", {
     B1 <- matrix(rnorm(10000), nrow=100) # Batch 1 
@@ -222,16 +238,19 @@ test_that("fastMNN works as expected for two batches", {
     expect_identical(dim(out$corrected), c(ncol(B1) + ncol(B2), 50L))
     expect_identical(out$origin$batch, rep(1:2, c(ncol(B1), ncol(B2))))
     expect_identical(out$origin$cell, c(seq_len(ncol(B1)), seq_len(ncol(B2))))
+    CHECK_PAIRINGS(out$origin, out$pairs)
     
     # Dimension choice behaves correctly.
     out.10 <- fastMNN(B1, B2, d=10) 
     expect_identical(ncol(out.10$corrected), 10L)
+    CHECK_PAIRINGS(out.10$origin, out.10$pairs)
 
     # Handles names correctly.
     out.n <- fastMNN(X=B1, Y=B2, d=50) 
     expect_identical(out$corrected, out.n$corrected)
     expect_identical(out.n$origin$batch, rep(c("X", "Y"), c(ncol(B1), ncol(B2))))
     expect_identical(out.n$origin$cell, c(seq_len(ncol(B1)), seq_len(ncol(B2))))
+    CHECK_PAIRINGS(out.n$origin, out.n$pairs)
 
     # Subset.row behaves correctly.
     i <- sample(nrow(B1), 50)
@@ -256,12 +275,14 @@ test_that("fastMNN works as expected for three batches, with auto-ordering", {
     expect_identical(dim(out$corrected), c(ncol(B1) + ncol(B2) + ncol(B3), 50L))
     expect_identical(out$origin$batch, rep(1:3, c(ncol(B1), ncol(B2), ncol(B3))))
     expect_identical(out$origin$cell, c(seq_len(ncol(B1)), seq_len(ncol(B2)), seq_len(ncol(B3))))
+    CHECK_PAIRINGS(out$origin, out$pairs)
 
     # Testing the auto-ordering algorithms. 
     out.auto <- fastMNN(B1, B2, B3, d=50, auto.order=TRUE) 
     expect_identical(dim(out$corrected), dim(out.auto$corrected))
     expect_identical(out.auto$origin$batch, rep(c(2L, 1L, 3L), c(ncol(B2), ncol(B1), ncol(B3)))) # 3 should be last, with the fewest cells => fewest MNNs.
     expect_identical(out.auto$origin$cell, c(seq_len(ncol(B2)), seq_len(ncol(B1)), seq_len(ncol(B3))))
+    CHECK_PAIRINGS(out.auto$origin, out.auto$pairs)
 
     # Testing the internal auto-ordering functions.
     fmerge <- scran:::.define_first_merge(list(t(B1), t(B2), t(B3)), k=20)   

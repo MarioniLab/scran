@@ -80,13 +80,12 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
 #        re.mnn.sets <- find.mutual.nn(refdata, curdata, k1=k, k2=k, BPPARAM=BPPARAM)
 #        re.ave.out <- .average_correction(refdata, re.mnn.sets$first, curdata, re.mnn.sets$second)
 
-        # Recompute each correction vector, and use it for correction.
+        # Recompute correction vectors and apply them.
         re.ave.out <- .average_correction(refdata, mnn.sets$first, curdata, mnn.sets$second)
-        curdata <- .tricube_weighted_correction(curdata, re.ave.out$averaged, re.ave.out$second, 
-            k=k, ndist=ndist, BPPARAM=BPPARAM)
+        curdata <- .tricube_weighted_correction(curdata, re.ave.out$averaged, re.ave.out$second, k=k, ndist=ndist, BPPARAM=BPPARAM)
 
+        mnn.pairings[[bdx-1L]] <- DataFrame(first=mnn.sets$first, second=mnn.sets$second + nrow(refdata))
         refdata <- rbind(refdata, curdata)
-        mnn.pairings[[bdx-1L]] <- DataFrame(mnn.sets)
     }
     
     # Characterizing the original order of the batches and cells.
