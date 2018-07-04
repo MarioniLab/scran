@@ -1,7 +1,8 @@
 #' @export
 #' @importFrom BiocParallel SerialParam
 fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE, 
-    irlba.args=list(), subset.row=NULL, auto.order=FALSE, BPPARAM=SerialParam()) 
+    irlba.args=list(), subset.row=NULL, auto.order=FALSE, pc.input=FALSE, 
+    BPPARAM=SerialParam()) 
 # A faster version of the MNN batch correction approach.
 # 
 # written by Aaron Lun
@@ -13,35 +14,29 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
         stop("at least two batches must be specified") 
     }
 
-    # Checking for identical number of rows (and rownames).
-    first <- batches[[1]]
-    ref.nrow <- nrow(first)
-    ref.rownames <- rownames(first)
-    for (b in 2:nbatches) {
-        current <- batches[[b]]
-        if (!identical(nrow(current), ref.nrow)) {
-            stop("number of rows is not the same across batches")
-        } else if (!identical(rownames(current), ref.rownames)) {
-            stop("row names are not the same across batches")
-        }
-    }
+    if (!pc.input) {
+        .check_batch_consistency(batches, byrow=TRUE)
 
-    # Subsetting to the desired subset of genes, and applying cosine normalization.
-    if (!is.null(subset.row)) { 
-        subset.row <- .subset_to_index(subset.row, batches[[1]], byrow=TRUE)
-        if (!identical(subset.row, seq_len(ref.nrow))) { 
-            batches <- lapply(batches, "[", i=subset.row, , drop=FALSE) # Need the extra comma!
+        if (!is.null(subset.row)) { 
+            subset.row <- .subset_to_index(subset.row, batches[[1]], byrow=TRUE)
+            if (!identical(subset.row, seq_len(ref.nrow))) { 
+                batches <- lapply(batches, "[", i=subset.row, , drop=FALSE) # Need the extra comma!
+            }
         }
-    }
-    if (cos.norm) { 
-        batches <- lapply(batches, FUN=cosine.norm, mode="matrix")
-    }
+        
+        if (cos.norm) { 
+            batches <- lapply(batches, FUN=cosine.norm, mode="matrix")
+        }
     
-    # Performing a multi-sample PCA.
-    pc.mat <- .multi_pca(batches, d=d, approximate=approximate, use.crossprod=TRUE, irlba.args=irlba.args)
-    mnn.pairings <- vector("list", nbatches-1L)
+        pc.mat <- .multi_pca(batches, approximate=approximate, irlba.args=irlba.args, d=d, use.crossprod=TRUE)
+    } else {
+        .check_batch_consistency(batches, byrow=FALSE)
+        pc.mat <- batches
+    }
 
+    mnn.pairings <- vector("list", nbatches-1L)
     for (bdx in 2:nbatches) {
+
         if (auto.order) {
             # Automatically choosing to merge batches with the largest number of MNNs.
             if (bdx==2L) {
@@ -95,181 +90,13 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
         batch.ids <- seq_along(batches)
     }
     batch.ids <- batch.ids[processed]
-    ncells <- vapply(batches, FUN=ncol, FUN.VALUE=0L)[processed]
+    ncells <- vapply(pc.mat, FUN=nrow, FUN.VALUE=0L)[processed]
 
     batch.ids <- rep(batch.ids, ncells)
     cell.ids <- unlist(lapply(ncells, seq_len), use.names=FALSE)
     origin <- DataFrame(batch=batch.ids, cell=cell.ids)
 
     return(list(corrected=refdata, origin=origin, pairs=mnn.pairings))
-}
- 
-############################################
-# Fast PCA functions.
-
-#' @importFrom DelayedArray DelayedArray t
-#' @importFrom DelayedMatrixStats rowMeans2
-.multi_pca <- function(mat.list, d=50, approximate=FALSE, irlba.args=list(), use.crossprod=FALSE, BPPARAM=SerialParam()) 
-# This function performs a multi-sample PCA, weighting the contribution of each 
-# sample to the gene-gene covariance matrix to avoid domination by samples with
-# a large number of cells. Expects cosine-normalized and subsetted expression matrices.
-{
-    if (d > min(nrow(mat.list[[1]]), sum(vapply(mat.list, FUN=ncol, FUN.VALUE=0L)))) {
-        stop("'d' is too large for the number of cells and genes")
-    }
-
-    all.centers <- 0
-    for (idx in seq_along(mat.list)) {
-        current <- DelayedArray(mat.list[[idx]])
-        centers <- rowMeans2(current)
-        all.centers <- all.centers + centers
-        mat.list[[idx]] <- current
-    }
-    all.centers <- all.centers/length(mat.list) # grand average of centers (not using batch-specific centers, which makes compositional assumptions).
-
-    centered <- scaled <- mat.list
-    for (idx in seq_along(mat.list)) {
-        current <- mat.list[[idx]]
-        current <- current - centers # centering each batch by the grand average.
-        centered[[idx]] <- current
-        current <- current/sqrt(ncol(current)) # downweighting samples with many cells.
-        scaled[[idx]] <- t(current)
-    }
-
-    # Performing an SVD.
-    if (use.crossprod) {
-        svd.out <- .fast_svd(scaled, nv=d, irlba.args=irlba.args, approximate=approximate, BPPARAM=BPPARAM)
-    } else {
-        combined <- as.matrix(do.call(rbind, scaled))
-        if (!approximate) { 
-            svd.out <- svd(combined, nu=0, nv=d)
-        } else {
-            svd.out <- do.call(irlba::irlba, c(list(A=combined, nu=0, nv=d), irlba.args))
-        }
-    }
-
-    # Projecting the scaled matrices back into this space.
-    final <- centered
-    for (idx in seq_along(centered)) {
-        final[[idx]] <- as.matrix(t(centered[[idx]]) %*% svd.out$v)
-    }
-    return(final)
-}
-
-#' @importFrom DelayedArray t
-#' @importFrom BiocParallel bplapply SerialParam
-.fast_svd <- function(mat.list, nv, approximate=FALSE, irlba.args=list(), BPPARAM=SerialParam())
-# Performs a quick irlba by performing the SVD on XtX or XXt,
-# and then obtaining the V vector from one or the other.
-{
-    nrows <- sum(vapply(mat.list, FUN=nrow, FUN.VALUE=0L))
-    ncols <- ncol(mat.list[[1]])
-    
-    # Creating the cross-product without actually rbinding the matrices.
-    # This avoids creating a large temporary matrix.
-    flipped <- nrows > ncols
-    if (flipped) {
-        collected <- bplapply(mat.list, FUN=.delayed_crossprod, BPPARAM=BPPARAM)
-        final <- Reduce("+", collected)
-
-    } else {
-        final <- matrix(0, nrows, nrows)
-
-        last1 <- 0L
-        for (right in seq_along(mat.list)) {
-            RHS <- mat.list[[right]]
-            collected <- bplapply(mat.list[seq_len(right-1L)], FUN=.delayed_mult, Y=t(RHS), BPPARAM=BPPARAM)
-            rdx <- last1 + seq_len(nrow(RHS))
-
-            last2 <- 0L
-            for (left in seq_along(collected)) {
-                cross.prod <- collected[[left]]
-                ldx <- last2 + seq_len(nrow(cross.prod))
-                final[ldx,rdx] <- cross.prod
-                final[rdx,ldx] <- t(cross.prod)
-                last2 <- last2 + nrow(cross.prod)
-            }
-            
-            last1 <- last1 + nrow(RHS)
-        }
-
-        tmat.list <- lapply(mat.list, t)
-        diags <- bplapply(tmat.list, FUN=.delayed_crossprod, BPPARAM=BPPARAM)
-        last1 <- 0L
-        for (idx in seq_along(diags)) {
-            indices <- last1 + seq_len(nrow(diags[[idx]]))
-            final[indices,indices] <- diags[[idx]]
-            last1 <- last1 + nrow(diags[[idx]])
-        }
-    }
-
-    if (approximate) {
-        svd.out <- do.call(irlba::irlba, c(list(A=final, nv=nv, nu=0), irlba.args))
-    } else {
-        svd.out <- svd(final, nv=nv, nu=0)
-        svd.out$d <- svd.out$d[seq_len(nv)]
-    }
-    svd.out$d <- sqrt(svd.out$d)
-
-    if (flipped) {
-        # XtX means that the V in the irlba output is the original Vm,
-        # which can be directly returned.
-        return(svd.out)
-    }
-
-    # Otherwise, XXt means that the V in the irlba output is the original U.
-    # We need to multiply the left-multiply the matrices by Ut, and then by D^-1.
-    Ut <- t(svd.out$v)
-    last <- 0L
-    Vt <- matrix(0, nv, ncols)
-    for (mdx in seq_along(mat.list)) {
-        curmat <- mat.list[[mdx]]
-        idx <- last + seq_len(nrow(curmat))
-        Vt <- Vt + as.matrix(Ut[,idx,drop=FALSE] %*% curmat)
-        last <- last + nrow(curmat)
-    }
-    Vt <- Vt / svd.out$d
-
-    return(list(d=svd.out$d, v=t(Vt)))
-}
-
-.delayed_crossprod <- function(X, BPPARAM=SerialParam()) 
-# DelayedMatrix crossprod, 1000 rows at a time.
-{
-    CHUNK <- 1000L
-    last <- 0L
-    output <- 0
-    finish <- nrow(X)
-
-    repeat {
-        previous <- last + 1L
-        last <- min(last + CHUNK, finish)
-        block <- as.matrix(X[previous:last,,drop=FALSE])
-        output <- output + crossprod(block)
-        if (last==finish) { break }
-    }
-
-    return(output)
-}
-
-.delayed_mult <- function(X, Y, BPPARAM=SerialParam()) 
-# DelayedMatrix multiplication, 1000 columns at a time.
-{
-    CHUNK <- 1000L
-    last <- 0L
-    output <- matrix(0, nrow(X), ncol(Y))
-    finish <- ncol(Y)
-    stopifnot(identical(ncol(X), nrow(Y)))
-
-    repeat {
-        previous <- min(last + 1L, finish)
-        last <- min(last + CHUNK, finish)
-        indices <- previous:last
-        output[,indices] <- as.matrix(X %*% as.matrix(Y[,indices,drop=FALSE]))
-        if (last==finish) { break }
-    }
-
-    return(output)
 }
 
 ############################################
