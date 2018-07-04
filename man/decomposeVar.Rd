@@ -85,8 +85,7 @@ By not specifying \code{x}, users can avoid redundant calculations, which is par
 }
 
 \value{
-A DataFrame is returned where each row corresponds to and is named after a row of \code{x} 
-(if \code{subset.row=NULL}; otherwise, each row corresponds to an element of \code{subset.row}).
+A DataFrame is returned where each row corresponds to and is named after a row of \code{x}.
 This contains the numeric fields:
 \describe{
 \item{\code{mean}:}{Mean normalized log-expression per gene.}
@@ -95,7 +94,11 @@ This contains the numeric fields:
 \item{\code{tech}:}{Technical component of the variance.}
 \item{\code{p.value, FDR}:}{Raw and adjusted p-values for the test against the null hypothesis that \code{bio=0}.}
 }
+
 If \code{get.spikes=NA}, the \code{p.value} and \code{FDR} fields will be set to \code{NA} for rows corresponding to spike-in transcripts.
+Otherwise, if \code{get.spikes=FALSE}, rows corresponding to spike-in transcripts are removed.
+
+If \code{subset.row!=NULL}, each row of the output DataFrame corresponds to an element of \code{subset.row} instead.
 
 The metadata field of the output DataFrame also contains \code{num.cells}, an integer scalar storing the number of cells in \code{x}; 
 and \code{resid.df}, an integer scalar specifying the residual d.f. used for variance estimation.

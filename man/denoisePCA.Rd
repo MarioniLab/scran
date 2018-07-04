@@ -74,7 +74,7 @@ Note that X will be coerced to lie between \code{min.rank} and \code{max.rank}.
 When \code{value="lowrank"}, a low-rank approximation of the original matrix is computed using only the first X components.
 This is useful for denoising prior to downstream applications that expect gene-wise expression profiles.
 
-Note that approximation values are returned for \emph{all} genes.
+Note that approximate values are returned for \emph{all} genes.
 This includes \dQuote{unselected} genes, i.e., with negative biological components or that were not selected with \code{subset.row}.
 The low-rank approximation is obtained for these genes by projecting their expression profiles into the low-dimensional space defined by the SVD on the selected genes.
 The exception is when \code{get.spikes=FALSE}, whereby zeroes are returned for all spike-in rows.
