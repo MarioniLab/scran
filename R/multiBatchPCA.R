@@ -36,7 +36,7 @@ multiBatchPCA <- function(..., d=50, approximate=FALSE, irlba.args=list(), BPPAR
     centered <- scaled <- mat.list
     for (idx in seq_along(mat.list)) {
         current <- mat.list[[idx]]
-        current <- current - centers # centering each batch by the grand average.
+        current <- current - all.centers # centering each batch by the grand average.
         centered[[idx]] <- current
         current <- current/sqrt(ncol(current)) # downweighting samples with many cells.
         scaled[[idx]] <- t(current)
