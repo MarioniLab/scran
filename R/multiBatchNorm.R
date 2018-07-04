@@ -11,25 +11,7 @@ multiBatchNorm <- function(..., assay.type="counts", norm.args=list(), min.mean=
 {
     batches <- list(...)
     nbatches <- length(batches)
-    
-    # Checking row names to warn users against stupid behaviour.
-    ref.names <- rownames(batches[[1]])
-    ref.nrows <- nrow(batches[[1]])
-    for (idx in seq_len(nbatches)) {
-        current <- batches[[idx]]
-        if (!identical(ref.nrows, nrow(current))) {
-            stop("mismatch in the number of rows across batches")
-        }
-
-        cur.names <- rownames(current)
-        if (is.null(ref.names)) {
-            ref.names <- cur.names
-        } else if (is.null(cur.names)) {
-            ;
-        } else if (!identical(ref.names, rownames(current))) {
-            warning("mismatch in the row names across batches")
-        }
-    }
+    .check_batch_consistency(batches, byrow=TRUE, ignore.null=TRUE)
 
     # Computing the median ratios (a la DESeq normalization).
     collected.ave <- lapply(batches, calcAverage, use_size_factors=FALSE)

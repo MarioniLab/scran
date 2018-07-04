@@ -77,14 +77,14 @@ test_that("multiBatchNorm spits the dummy correctly", {
     # Mismatching row names or dimensions.
     X2 <- X
     rownames(X2) <- sample(rownames(X2))
-    expect_warning(out <- multiBatchNorm(X, X2), "mismatch")
+    expect_error(out <- multiBatchNorm(X, X2), "not the same")
 
     rownames(X2) <- NULL
     expect_warning(out <- multiBatchNorm(X, X2), NA)
     expect_warning(out <- multiBatchNorm(X2, X), NA)
 
     X2 <- X
-    expect_error(out <- multiBatchNorm(X, X2[1,]), "mismatch")
+    expect_error(out <- multiBatchNorm(X, X2[1,]), "not the same")
 
     # Input resulting in NA scaling values.
     counts(X2)[] <- 0
