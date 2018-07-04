@@ -119,6 +119,12 @@ test_that("fastMNN works as expected for two batches", {
     nB2 <- t(t(B2)/ sqrt(colSums(B2^2)))
     out.ncos <- fastMNN(nB1, nB2, cos.norm=FALSE, d=50) 
     expect_equal(out.ncos, out) 
+
+    # Behaves if we only use PCs.
+    pcs <- multiBatchPCA(B1, B2, d=10, approximate=FALSE)
+    out.pre <- fastMNN(pcs[[1]], pcs[[2]], pc.input=TRUE)
+    out.norm <- fastMNN(B1, B2, d=10, cos.norm=FALSE, approximate=FALSE)
+    expect_equal(out.pre, out.norm)
 })
 
 set.seed(1200005)
