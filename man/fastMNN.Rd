@@ -6,7 +6,7 @@
 
 \usage{
 fastMNN(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE, 
-    irlba.args=list(), auto.order=FALSE, pc.input=FALSE,
+    irlba.args=list(), subset.row=NULL, auto.order=FALSE, pc.input=FALSE,
     BPPARAM=SerialParam()) 
 }
 
@@ -19,6 +19,8 @@ Each matrix should contain the same number of rows, corresponding to the same ge
 \item{ndist}{A numeric scalar specifying the threshold beyond which neighbours are to be ignored when computing correction vectors.
 Each threshold is defined in terms of the number of median distances.}
 \item{d, approximate, irlba.args}{Further arguments to pass to \code{\link{multiBatchPCA}}.}
+\item{subset.row}{A vector specifying the genes to use, providing equivalent behaviour to subsetting each object in \code{...}.
+All genes are used by default.}
 \item{auto.order}{Logical scalar indicating whether re-ordering of batches should be performed to maximize the number of MNN pairs at each step.}
 \item{pc.input}{Logical scalar indicating whether the values in \code{...} are already low-dimensional, e.g., the output of \code{\link{multiBatchPCA}}.}
 \item{BPPARAM}{A BiocParallelParam object specifying whether the PCA and nearest-neighbor searches should be parallelized.}

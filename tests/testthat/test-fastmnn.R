@@ -120,6 +120,12 @@ test_that("fastMNN works as expected for two batches", {
     out.ncos <- fastMNN(nB1, nB2, cos.norm=FALSE, d=50) 
     expect_equal(out.ncos, out) 
 
+    # Subset.row behaves correctly.
+    i <- sample(nrow(B1), 50)
+    ref <- fastMNN(X=B1[i,], Y=B2[i,], d=50)
+    out.s <- fastMNN(X=B1, Y=B2, d=50, subset.row=i)
+    expect_identical(out.s, ref)
+
     # Behaves if we only use PCs.
     pcs <- multiBatchPCA(B1, B2, d=10, approximate=FALSE)
     out.pre <- fastMNN(pcs[[1]], pcs[[2]], pc.input=TRUE)
