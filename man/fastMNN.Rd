@@ -11,7 +11,7 @@ fastMNN(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
 }
 
 \arguments{
-\item{...}{Two or more expression matrices where genes correspond to rows and cells correspond to columns.
+\item{...}{Two or more log-expression matrices where genes correspond to rows and cells correspond to columns.
 Each matrix should contain cells from the same batch; multiple matrices represent separate batches of cells.
 Each matrix should contain the same number of rows, corresponding to the same genes (in the same order).}
 \item{k}{An integer scalar specifying the number of nearest neighbors to consider when identifying MNNs.}
@@ -61,6 +61,9 @@ However, if \code{auto.order=TRUE}, batches are ordered to maximize the number o
 The aim is to improve the stability of the correction by first merging more similar batches with more MNN pairs.
 This can be somewhat time-consuming as MNN pairs need to be iteratively recomputed for all possible batch pairings,
 and it is often more convenient for the user to specify an appropriate ordering based on prior knowledge about the batches.
+
+The default setting of \code{cos.norm=TRUE} provides some protection against differences in scaling for arbitrary log-expression matrices.
+If possible, we recommend equalizing coverage at the count level before log-transformation - see \code{\link{multiBatchNorm}} for details. 
 }
 
 \author{
@@ -70,7 +73,7 @@ Aaron Lun
 \seealso{
 \code{\link{mnnCorrect}},
 \code{\link[irlba]{irlba}},
-\code{\link{queryKNN}}
+\code{\link{multiBatchNorm}}
 }
 
 \examples{

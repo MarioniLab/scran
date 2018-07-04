@@ -24,7 +24,10 @@ This is equivalent to the between-cluster normalization performed in \code{\link
 
 This function will adjust the size factors so that counts in high-coverage batches are scaled \emph{downwards} to match the coverage of the most shallow batch.
 The \code{\link[scater]{normalize}} function will then add the same pseudo-count to all batches before log-transformation.
-By scaling downwards, we favour stronger squeezing of log-fold changes from the pseudo-count, mitigating any differences in variance between batches.
+By scaling downwards, we favour stronger squeezing of log-fold changes from the pseudo-count, mitigating any technical differences in variance between batches.
+Of course, genuine biological differences will also be shrunk, but this is less of an issue for upregulated genes with large counts.
+
+Running this function is preferred over running \code{\link{normalize}} directly when computing log-normalized values for use in \code{\link{mnnCorrect}} or \code{\link{fastMNN}}. 
 }
 
 \value{
@@ -37,7 +40,8 @@ Aaron Lun
 
 \seealso{
 \code{\link[scater]{normalize}},
-\code{\link{mnnCorrect}}
+\code{\link{mnnCorrect}},
+\code{\link{fastMNN}}
 }
 
 \examples{
