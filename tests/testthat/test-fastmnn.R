@@ -114,12 +114,6 @@ test_that("fastMNN works as expected for two batches", {
     expect_identical(out.n$origin$cell, c(seq_len(ncol(B1)), seq_len(ncol(B2))))
     CHECK_PAIRINGS(out.n$origin, out.n$pairs)
 
-    # Subset.row behaves correctly.
-    i <- sample(nrow(B1), 50)
-    ref <- fastMNN(X=B1[i,], Y=B2[i,], d=50)
-    out.s <- fastMNN(X=B1, Y=B2, d=50, subset.row=i) 
-    expect_identical(out.s, ref)
-
     # Behaves if we turn off cosine-norm.
     nB1 <- t(t(B1)/ sqrt(colSums(B1^2)))
     nB2 <- t(t(B2)/ sqrt(colSums(B2^2)))

@@ -6,7 +6,7 @@
 
 \usage{
 fastMNN(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE, 
-    irlba.args=list(), subset.row=NULL, auto.order=FALSE,
+    irlba.args=list(), auto.order=FALSE,
     BPPARAM=SerialParam()) 
 }
 
@@ -21,8 +21,6 @@ Each matrix should contain the same number of rows, corresponding to the same ge
 Each threshold is defined in terms of the number of median distances.}
 \item{approximate}{A logical scalar indicating whether \code{\link[irlba]{irlba}} should be used to perform the initial PCA.}
 \item{irlba.args}{A list of arguments to pass to \code{\link[irlba]{irlba}} when \code{pc.approx=TRUE}.}
-\item{subset.row}{A vector specifying the genes to use, providing equivalent behaviour to subsetting each object in \code{...}.
-All genes are used by default.}
 \item{auto.order}{Logical scalar indicating whether re-ordering of batches should be performed to maximize the number of MNN pairs at each step.}
 \item{BPPARAM}{A BiocParallelParam object specifying whether the nearest-neighbor searches should be parallelized.}
 }

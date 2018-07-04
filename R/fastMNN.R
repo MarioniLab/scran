@@ -1,8 +1,7 @@
 #' @export
 #' @importFrom BiocParallel SerialParam
 fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE, 
-    irlba.args=list(), subset.row=NULL, auto.order=FALSE, pc.input=FALSE, 
-    BPPARAM=SerialParam()) 
+    irlba.args=list(), auto.order=FALSE, pc.input=FALSE, BPPARAM=SerialParam()) 
 # A faster version of the MNN batch correction approach.
 # 
 # written by Aaron Lun
@@ -16,18 +15,9 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE,
 
     if (!pc.input) {
         .check_batch_consistency(batches, byrow=TRUE)
-
-        if (!is.null(subset.row)) { 
-            subset.row <- .subset_to_index(subset.row, batches[[1]], byrow=TRUE)
-            if (!identical(subset.row, seq_len(ref.nrow))) { 
-                batches <- lapply(batches, "[", i=subset.row, , drop=FALSE) # Need the extra comma!
-            }
-        }
-        
         if (cos.norm) { 
             batches <- lapply(batches, FUN=cosine.norm, mode="matrix")
         }
-    
         pc.mat <- .multi_pca(batches, approximate=approximate, irlba.args=irlba.args, d=d, use.crossprod=TRUE)
     } else {
         .check_batch_consistency(batches, byrow=FALSE)
