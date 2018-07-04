@@ -28,6 +28,12 @@ test_that("multi-sample PCA works as expected", {
     expect_identical(ncol(ref[[1]]), 3L)
     expect_identical(ncol(ref[[2]]), 3L)
 
+    # Checking with equal numbers of cells - should be equivalent to cbind'd PCA. 
+    test3 <- matrix(rnorm(1000), nrow=10)
+    out <- scran:::.multi_pca(list(test1, test3), d=4)
+    ref <- prcomp(t(cbind(test1, test3)), rank.=4)
+    expect_equal_besides_sign(rbind(out[[1]], out[[2]]), unname(ref$x))
+    
     # Checking that the distances match up to the original values when we use full rank.
     out <- scran:::.multi_pca(list(test1, test2), d=10)
     
