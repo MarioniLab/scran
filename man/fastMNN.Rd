@@ -5,8 +5,8 @@
 \description{Correct for batch effects in single-cell expression data using the mutual nearest neighbors (MNN) method.}
 
 \usage{
-fastMNN(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE, 
-    irlba.args=list(), auto.order=FALSE,
+fastMNN(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE, 
+    irlba.args=list(), auto.order=FALSE, pc.input=FALSE,
     BPPARAM=SerialParam()) 
 }
 
@@ -16,13 +16,12 @@ Each matrix should contain cells from the same batch; multiple matrices represen
 Each matrix should contain the same number of rows, corresponding to the same genes (in the same order).}
 \item{k}{An integer scalar specifying the number of nearest neighbors to consider when identifying MNNs.}
 \item{cos.norm}{A logical scalar indicating whether cosine normalization should be performed on the input data prior to calculating distances between cells.}
-\item{d}{An integer scalar specifying the number of dimensions to keep from the initial multi-sample PCA.}
 \item{ndist}{A numeric scalar specifying the threshold beyond which neighbours are to be ignored when computing correction vectors.
 Each threshold is defined in terms of the number of median distances.}
-\item{approximate}{A logical scalar indicating whether \code{\link[irlba]{irlba}} should be used to perform the initial PCA.}
-\item{irlba.args}{A list of arguments to pass to \code{\link[irlba]{irlba}} when \code{pc.approx=TRUE}.}
+\item{d, approximate, irlba.args}{Further arguments to pass to \code{\link{multiBatchPCA}}.}
 \item{auto.order}{Logical scalar indicating whether re-ordering of batches should be performed to maximize the number of MNN pairs at each step.}
-\item{BPPARAM}{A BiocParallelParam object specifying whether the nearest-neighbor searches should be parallelized.}
+\item{pc.input}{Logical scalar indicating whether the values in \code{...} are already low-dimensional, e.g., the output of \code{\link{multiBatchPCA}}.}
+\item{BPPARAM}{A BiocParallelParam object specifying whether the PCA and nearest-neighbor searches should be parallelized.}
 }
 
 \value{
@@ -41,8 +40,8 @@ and the \code{cell} field (integer), which specifies the column of origin for ea
 This function provides a variant of the \code{\link{mnnCorrect}} function, modified for speed and more robust performance.
 In particular:
 \itemize{
-\item It performs a multi-sample PCA prior to any correction, and performs all calculations in the PC space.
-This reduces computational work and provides some denoising (see \code{\link{denoisePCA}} for details).
+\item It performs a multi-sample PCA via \code{\link{multiBatchPCA}} and subsequently performs all calculations in the PC space.
+This reduces computational work and provides some denoising - see, comments in \code{?\link{denoisePCA}}.
 As a result, though, the corrected output cannot be interpreted on a gene level and is useful only for cell-level comparisons, e.g., clustering and visualization.
 \item The correction vector for each cell is directly computed from its \code{k} nearest neighbours in the same batch.
 Specifically, only the \code{k} nearest neighbouring cells that \emph{also} participate in MNN pairs are used.
@@ -54,14 +53,27 @@ Cell coordinates are adjusted such that all cells in a single batch have the sam
 The correction vectors are then recalculated with the adjusted coordinates (but the same MNN pairs).
 }
 
+The default setting of \code{cos.norm=TRUE} provides some protection against differences in scaling for arbitrary log-expression matrices.
+If possible, we recommend equalizing coverage at the count level before log-transformation - see \code{\link{multiBatchNorm}} for details.
+}
+
+\section{Controlling the merge order}{
 By default, batches are merged in the user-supplied order.
 However, if \code{auto.order=TRUE}, batches are ordered to maximize the number of MNN pairs at each step.
 The aim is to improve the stability of the correction by first merging more similar batches with more MNN pairs.
 This can be somewhat time-consuming as MNN pairs need to be iteratively recomputed for all possible batch pairings,
 and it is often more convenient for the user to specify an appropriate ordering based on prior knowledge about the batches.
 
-The default setting of \code{cos.norm=TRUE} provides some protection against differences in scaling for arbitrary log-expression matrices.
-If possible, we recommend equalizing coverage at the count level before log-transformation - see \code{\link{multiBatchNorm}} for details. 
+Further control of the merge order can be achieved by performing the multi-sample PCA outside of this function with \code{\link{multiBatchPCA}}.
+Then, batches can be progressively merged by repeated calls to \code{fastMNN} with \code{pc.input=TRUE}.
+This is useful in situations where the order of batches to merge is not straightforward, e.g., involving hierarchies of batch similarities. 
+We only recommend this mode for advanced users, and note that:
+\itemize{
+    \item \code{\link{multiBatchPCA}} will not perform cosine-normalization, 
+so it is the responsibility of the user to cosine-normalize each batch beforehand to recapitulate results with \code{cos.norm=TRUE}.
+    \item \code{\link{multiBatchPCA}} must be run on all samples at once, to ensure that all cells are projected to the same low-dimensional space.
+    \item Setting \code{pc.input=TRUE} is criticial to avoid unnecessary (and incorrect) cosine-normalization and PCA within each step of the merge.
+}
 }
 
 \author{

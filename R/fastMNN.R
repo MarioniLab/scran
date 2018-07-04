@@ -1,6 +1,6 @@
 #' @export
 #' @importFrom BiocParallel SerialParam
-fastMNN <- function(..., k=20, cos.norm=TRUE, d=50, ndist=3, approximate=FALSE, 
+fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE, 
     irlba.args=list(), auto.order=FALSE, pc.input=FALSE, BPPARAM=SerialParam()) 
 # A faster version of the MNN batch correction approach.
 # 
