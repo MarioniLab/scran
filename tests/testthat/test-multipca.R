@@ -144,3 +144,42 @@ test_that("irlba works as expected", {
     expect_equal_besides_sign(out[[1]], ref[[1]], tol=1e-4)
     expect_equal_besides_sign(out[[2]], ref[[2]], tol=1e-4)
 })
+
+set.seed(1200001)
+test_that("multi-sample PCA works with high-level options", {
+    test1 <- matrix(rnorm(1000), nrow=10)
+    test2 <- matrix(rnorm(2000), nrow=10)
+
+    # Subsetting works correctly.
+    i <- sample(nrow(test1), 5)
+    ref <- multiBatchPCA(test1, test2, d=3, subset.row=i)
+    out <- multiBatchPCA(test1[i,], test2[i,], d=3)
+    expect_equal(ref, out)
+
+    # Behaves with SCE objects as input.
+    sce1 <- SingleCellExperiment(list(logcounts=test1))
+    sce2 <- SingleCellExperiment(list(logcounts=test2))
+    ref <- multiBatchPCA(sce1, sce2, d=4)
+    out <- multiBatchPCA(test1, test2, d=4)
+    expect_equal(ref, out)
+
+    # Behaves with spikes as input.
+    isp <- sample(nrow(test1), 2)
+    isSpike(sce1, "ERCC") <- isp
+    isSpike(sce2, "ERCC") <- isp
+    ref <- multiBatchPCA(sce1, sce2, d=5)
+    out <- multiBatchPCA(test1[-isp,], test2[-isp,], d=5)
+    expect_equal(ref, out)
+
+    # Spikes and subsetting interact correctly.
+    ref <- multiBatchPCA(sce1, sce2, d=2, subset.row=i)
+    out <- multiBatchPCA(sce1[i,], sce2[i,], d=2)
+    expect_equal(ref, out)
+
+    # Throws a variety of useful errors.
+    expect_error(multiBatchPCA(sce1, test2), "cannot mix")
+    expect_error(multiBatchPCA(), "at least one batch")
+    expect_error(multiBatchPCA(test1, test2[0,,drop=FALSE]), "not the same")
+    sce1x <- clearSpikes(sce1)
+    expect_error(multiBatchPCA(sce1x, sce2), "spike-in sets")
+})
