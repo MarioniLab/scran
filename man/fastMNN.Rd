@@ -7,13 +7,18 @@
 \usage{
 fastMNN(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE, 
     irlba.args=list(), subset.row=NULL, auto.order=FALSE, pc.input=FALSE,
-    BPPARAM=SerialParam()) 
+    assay.type="logcounts", use.spikes=FALSE, BPPARAM=SerialParam()) 
 }
 
 \arguments{
 \item{...}{Two or more log-expression matrices where genes correspond to rows and cells correspond to columns.
-Each matrix should contain cells from the same batch; multiple matrices represent separate batches of cells.
-Each matrix should contain the same number of rows, corresponding to the same genes (in the same order).}
+One matrix should contain cells from the same batch; multiple matrices represent separate batches of cells.
+Each matrix should contain the same number of rows, corresponding to the same genes (in the same order).
+
+Alternatively, two or more SingleCellExperiment objects can be supplied, where each object contains a log-expression matrix in the \code{assay.type} assay.
+
+Alternatively, two or more matrices of low-dimensional representations can be supplied if \code{pc.input=TRUE}.
+Here, rows are cells and columns are dimensions (the latter should be common across all batches).}
 \item{k}{An integer scalar specifying the number of nearest neighbors to consider when identifying MNNs.}
 \item{cos.norm}{A logical scalar indicating whether cosine normalization should be performed on the input data prior to calculating distances between cells.}
 \item{ndist}{A numeric scalar specifying the threshold beyond which neighbours are to be ignored when computing correction vectors.
@@ -23,6 +28,8 @@ Each threshold is defined in terms of the number of median distances.}
 All genes are used by default.}
 \item{auto.order}{Logical scalar indicating whether re-ordering of batches should be performed to maximize the number of MNN pairs at each step.}
 \item{pc.input}{Logical scalar indicating whether the values in \code{...} are already low-dimensional, e.g., the output of \code{\link{multiBatchPCA}}.}
+\item{assay.type}{A string or integer scalar specifying the assay containing the expression values, if SingleCellExperiment objects are present in \code{...}.}
+\item{use.spikes}{A logical scalar specifying whether spike-in transcripts should be used, if SingleCellExperiment objects are present in \code{...}.}
 \item{BPPARAM}{A BiocParallelParam object specifying whether the PCA and nearest-neighbor searches should be parallelized.}
 }
 

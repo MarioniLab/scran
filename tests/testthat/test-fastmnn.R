@@ -167,6 +167,32 @@ test_that("fastMNN works as expected for three batches, with auto-ordering", {
     expect_identical(nmerge$pairs, scran:::find.mutual.nn(t(B1), t(B2), k1=20, k2=20, BPPARAM=SerialParam()))
 })
 
+set.seed(12000051)
+test_that("fastMNN works on SingleCellExperiment inputs", {
+    B1 <- matrix(rnorm(10000), nrow=100) # Batch 1 
+    B2 <- matrix(rnorm(20000), nrow=100) # Batch 2
+
+    sce1 <- SingleCellExperiment(list(logcounts=B1))
+    sce2 <- SingleCellExperiment(list(logcounts=B2))
+    ref <- fastMNN(sce1, sce2)
+    out <- fastMNN(B1, B2)
+    expect_equal(ref, out)
+
+    # Behaves with spikes as input.
+    isp <- rbinom(nrow(B1), 1, 0.1)==1L
+    isSpike(sce1, "ERCC") <- isp
+    isSpike(sce2, "ERCC") <- isp
+    ref <- fastMNN(sce1, sce2, d=5)
+    out <- fastMNN(B1[!isp,], B2[!isp,], d=5)
+    expect_equal(ref, out)
+
+    # Spikes and subsetting interact correctly
+    i <- rbinom(nrow(B1), 1, 0.5)==1L
+    ref <- multiBatchPCA(sce1, sce2, d=2, subset.row=i)
+    out <- multiBatchPCA(sce1[i,], sce2[i,], d=2)
+    expect_equal(ref, out)
+})
+
 set.seed(1200006)
 test_that("fastMNN fails on silly inputs", {
     B1 <- matrix(rnorm(10000), nrow=100) # Batch 1 
@@ -177,6 +203,9 @@ test_that("fastMNN fails on silly inputs", {
     expect_error(fastMNN(B1), "at least two batches")
     expect_error(fastMNN(B1[0,], B2[0,]), "too large")
     expect_error(fastMNN(B1[,0], B2[,0]), "too large")
+
+    # SCE vs matrix errors.    
+    expect_error(multiBatchPCA(SingleCellExperiment(list(logcounts=B1)), B2), "cannot mix")
 
     # Throws errors upon row checks.
     expect_error(fastMNN(B1[1:10,], B2), "number of rows is not the same")
