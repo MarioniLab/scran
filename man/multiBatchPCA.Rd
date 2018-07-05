@@ -6,15 +6,21 @@
 
 \usage{
 multiBatchPCA(..., d=50, approximate=FALSE, irlba.args=list(), 
+    subset.row=NULL, assay.type="logcounts", use.spikes=FALSE, 
     BPPARAM=SerialParam()) 
 }
 
 \arguments{
 \item{...}{Two or more matrices containing expression values (usually log-normalized).
-Each matrix is assumed to represent one batch.}
+Each matrix is assumed to represent one batch.
+Alternatively, two or more SingleCellExperiment objects containing these matrices.}
 \item{d}{An integer scalar specifying the number of dimensions to keep from the initial multi-sample PCA.}
 \item{approximate}{A logical scalar indicating whether \code{\link[irlba]{irlba}} should be used to perform the initial PCA.}
 \item{irlba.args}{A list of arguments to pass to \code{\link[irlba]{irlba}} when \code{approximate=TRUE}.}
+\item{subset.row}{A logical, integer or character vector indicating the rows of \code{x} to use when rescaling the size factors.
+All (non-spike-in) genes are used by default.}
+\item{assay.type}{A string or integer scalar specifying the assay containing the expression values, if SingleCellExperiment objects are present in \code{...}.}
+\item{use.spikes}{A logical scalar specifying whether spike-in transcripts should be used, if SingleCellExperiment objects are present in \code{...}.}
 \item{BPPARAM}{A BiocParallelParam object specifying whether the SVD should be parallelized.}
 }
 
@@ -25,8 +31,12 @@ Specifically, the mean vector used for centering is defined as the grand mean of
 Each batch's contribution to the gene-gene covariance matrix is also divided by the number of cells.
 
 In effect, we weight the cells in each batch to mimic the situation where all batches have the same number of cells.
-This avoids domination of the PCA by batches with a large number of cells, 
-and ensures that the variance due to unique subpopulations in smaller batches can be captured.
+This avoids ensures that the variance due to unique subpopulations in smaller batches can be captured.
+Otherwise, batches with a large number of cells would dominate the PCA; the mean vector and covariance matrix would be almost fully defined by those batches.
+
+If \code{...} contains SingleCellExperiment objects, any spike-in transcripts should be the same across all batches.
+These will be removed prior to PCA unless \code{use.spikes=TRUE}.
+Users can also force the algorithm to only use a subset of genes with \code{subset.row}, which will intersect with the non-spike-in genes unless \code{use.spikes=TRUE}.
 }
 
 \value{
