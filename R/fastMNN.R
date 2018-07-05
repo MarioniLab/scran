@@ -23,7 +23,7 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
             batches <- lapply(batches, "[", i=subset.row, , drop=FALSE) # Need the extra comma!
         }
         if (cos.norm) { 
-            batches <- lapply(batches, FUN=cosine.norm, mode="matrix")
+            batches <- lapply(batches, FUN=cosineNorm, mode="matrix")
         }
 
         pc.mat <- .multi_pca(batches, approximate=approximate, irlba.args=irlba.args, d=d, use.crossprod=TRUE)

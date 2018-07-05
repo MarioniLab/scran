@@ -182,14 +182,14 @@ prepare.input.data <- function(batches, cos.norm.in, cos.norm.out, subset.row) {
         norm.scaling <- vector("list", nbatches)
         for (b in seq_len(nbatches)) { 
             current.in <- in.batches[[b]]
-            cos.out <- cosine.norm(current.in, mode="all")
+            cos.out <- cosineNorm(current.in, mode="all")
             in.batches[[b]] <- cos.out$matrix
             norm.scaling[[b]] <- cos.out$l2norm
         }
     }
     if (cos.norm.out) { 
         if (!cos.norm.in) { 
-            norm.scaling <- lapply(in.batches, cosine.norm, mode="l2norm")
+            norm.scaling <- lapply(in.batches, cosineNorm, mode="l2norm")
         }
         for (b in seq_len(nbatches)) { 
             out.batches[[b]] <- sweep(out.batches[[b]], 2, norm.scaling[[b]], "/")
@@ -330,13 +330,4 @@ find.shared.subspace <- function(A, B, sin.threshold=0.85, cos.threshold=1/sqrt(
     }
     
     list(angle=180*theta/pi, nshared=shared)
-}
-
-cosine.norm <- function(X, mode=c("matrix", "all", "l2norm"))
-# Computes the cosine norm, with some protection from zero-length norms.
-{
-    mode <- match.arg(mode)
-    out <- .Call(cxx_cosine_norm, X, mode!="l2norm")
-    names(out) <- c("matrix", "l2norm")
-    switch(mode, all=out, matrix=out$matrix, l2norm=out$l2norm)
 }
