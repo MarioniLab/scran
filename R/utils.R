@@ -303,3 +303,22 @@
 
     return(NULL)
 }
+
+#' @importFrom SingleCellExperiment isSpike spikeNames
+.check_spike_consistency <- function(batches) {
+    if (length(batches) < 2L) {
+        return(NULL)
+    }
+
+    ref.spike.names <- spikeNames(batches[[1]])
+    ref.spike <- isSpike(batches[[1]])
+    for (b in seq_along(batches)) {
+        if (!identical(ref.spike.names, spikeNames(batches[[b]]))) {
+            stop("spike-in sets differ across batches")
+        }
+        if (!identical(ref.spike, isSpike(batches[[b]]))) {
+            stop("spike-in identities differ across batches")
+        }
+    }
+    return(NULL)
+}

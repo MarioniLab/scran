@@ -161,5 +161,6 @@ test_that("multiBatchNorm spits the dummy correctly", {
     # Empty inputs.
     expect_error(out <- multiBatchNorm(X[0,], X2[0,]), "not finite")
     expect_error(out <- multiBatchNorm(X[,0], X2[,0]), "not finite")
+    expect_error(multiBatchNorm(), "at least one SingleCellExperiment")
 })
 

@@ -1,6 +1,6 @@
 #' @export
 #' @importFrom BiocGenerics normalize
-#' @importFrom SingleCellExperiment isSpike spikeNames
+#' @importFrom SingleCellExperiment isSpike 
 multiBatchNorm <- function(..., assay.type="counts", norm.args=list(), min.mean=1, subset.row=NULL)
 # Performs multi-batch normalization, adjusting for differences 
 # in scale between SCE objects supplied in '...'.
@@ -10,17 +10,9 @@ multiBatchNorm <- function(..., assay.type="counts", norm.args=list(), min.mean=
 {
     batches <- list(...)
     .check_batch_consistency(batches, byrow=TRUE)
-
-    # Checking spikes.
-    ref.spike.names <- spikeNames(batches[[1]])
-    ref.spike <- isSpike(batches[[1]])
-    for (b in seq_along(batches)) {
-        if (!identical(ref.spike.names, spikeNames(batches[[b]]))) {
-            stop("spike-in sets differ across batches")
-        }
-        if (!identical(ref.spike, isSpike(batches[[b]]))) {
-            stop("spike-in identities differ across batches")
-        }
+    .check_spike_consistency(batches)
+    if (length(batches)==0L) {
+        stop("at least one SingleCellExperiment object must be supplied")
     }
 
     # Adjusting size factors for the non-spike-in transcripts.
@@ -30,6 +22,7 @@ multiBatchNorm <- function(..., assay.type="counts", norm.args=list(), min.mean=
     }
 
     # Adjusting size factors for each of the spike-ins.
+    ref.spike.names <- spikeNames(batches[[1]])
     subset.row <- .subset_to_index(subset.row, batches[[1]], byrow=TRUE)
 
     for (spike in ref.spike.names) {
