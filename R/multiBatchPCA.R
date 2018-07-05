@@ -46,7 +46,7 @@ multiBatchPCA <- function(..., d=50, approximate=FALSE, irlba.args=list(), subse
     }
 
     # Performing an SVD, if possible.
-    if (d > min(nrow(scaled[[1]]), sum(vapply(scaled, FUN=ncol, FUN.VALUE=0L)))) {
+    if (d > min(ncol(scaled[[1]]), sum(vapply(scaled, FUN=nrow, FUN.VALUE=0L)))) {
         stop("'d' is too large for the number of cells and genes")
     }
 

@@ -35,17 +35,18 @@ test_that("multi-sample PCA works as expected", {
     expect_equal_besides_sign(rbind(out[[1]], out[[2]]), unname(ref$x))
     
     # Checking that the distances match up to the original values when we use full rank.
-    out <- scran:::.multi_pca(list(test1, test2), d=10)
-    
-    rx <- seq_len(ncol(test1))
-    cx <- ncol(test1) + seq_len(ncol(test2))
-    ref.dist <- as.matrix(dist(rbind(t(test1), t(test2))))[rx, cx]
-    out.dist <- as.matrix(dist(rbind(out[[1]], out[[2]])))[rx, cx]
+    out <- scran:::.multi_pca(list(test1, test2), d=nrow(test1))
+
+    everything <- rbind(t(test1), t(test2))
+    ref.dist <- as.matrix(dist(everything))
+    out.dist <- as.matrix(dist(rbind(out[[1]], out[[2]])))
     expect_equal(ref.dist, out.dist)
     
-    out2 <- scran:::.multi_pca(list(test1, cbind(test2, test2)), d=10)
-    out.dist2 <- as.matrix(dist(rbind(out2[[1]], out2[[2]])))[rx, cx]
-    expect_equal(out.dist2, out.dist)
+    out2 <- scran:::.multi_pca(list(test1, cbind(test2, test2)), d=nrow(test1))
+    out.dist2 <- as.matrix(dist(do.call(rbind, out2)))
+    everything2 <- rbind(everything, t(test2))
+    ref.dist2 <- as.matrix(dist(everything2)) 
+    expect_equal(out.dist2, ref.dist2)
 })
 
 set.seed(12000011)
@@ -182,4 +183,5 @@ test_that("multi-sample PCA works with high-level options", {
     expect_error(multiBatchPCA(test1, test2[0,,drop=FALSE]), "not the same")
     sce1x <- clearSpikes(sce1)
     expect_error(multiBatchPCA(sce1x, sce2), "spike-in sets")
+    expect_error(multiBatchPCA(test1, test2, d=11), "too large")
 })
