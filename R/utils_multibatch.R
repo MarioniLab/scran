@@ -45,7 +45,9 @@
 }
 
 #' @importFrom SingleCellExperiment isSpike spikeNames
-.check_spike_consistency <- function(batches) {
+.check_spike_consistency <- function(batches) 
+# Checking for identical spike-in sets and (overall) identities.
+{
     if (length(batches) < 2L) {
         return(NULL)
     }
@@ -61,4 +63,30 @@
         }
     }
     return(NULL)
+}
+
+#' @importFrom methods is
+#' @importClassesFrom SingleCellExperiment SingleCellExperiment
+.SCEs_to_matrices <- function(batches, assay.type, subset.row, use.spikes)
+# Convenience function to convert multiple SCEs to a list of expression matrices.
+# Also redefines subset.row based on intersection with spike-ins, if necessary.    
+{
+    if (length(batches)<1L) {
+        stop("at least one batch must be supplied")
+    }
+    .check_batch_consistency(batches, byrow=TRUE)
+
+    all.sce <- vapply(batches, is, class2="SingleCellExperiment", FUN.VALUE=TRUE)
+    if (length(unique(all.sce))!=1L) {
+        stop("cannot mix SingleCellExperiments and other objects")
+    }
+
+    if (all(all.sce)) { 
+        .check_spike_consistency(batches)
+        subset.row <- .SCE_subset_genes(subset.row, batches[[1]], use.spikes)
+        batches <- lapply(batches, assay, i=assay.type, withDimnames=FALSE)
+    } else if (!is.null(subset.row)) {
+        subset.row <- .subset_to_index(subset.row, batches[[1]], byrow=TRUE)
+    }
+	return(list(batches=batches, subset.row=subset.row))
 }

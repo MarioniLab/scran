@@ -2,7 +2,7 @@
 #' @importFrom BiocParallel SerialParam
 fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE, 
     irlba.args=list(), subset.row=NULL, auto.order=FALSE, pc.input=FALSE, 
-    BPPARAM=SerialParam()) 
+    assay.type="logcounts", use.spikes=FALSE, BPPARAM=SerialParam()) 
 # A faster version of the MNN batch correction approach.
 # 
 # written by Aaron Lun
@@ -15,13 +15,12 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
     }
 
     if (!pc.input) {
-        .check_batch_consistency(batches, byrow=TRUE)
+        out <- .SCEs_to_matrices(batches, assay.type=assay.type, subset.row=subset.row, use.spikes=use.spikes)
+        batches <- out$batches
+        subset.row <- out$subset.row
 
-        if (!is.null(subset.row)) { 
-            subset.row <- .subset_to_index(subset.row, batches[[1]], byrow=TRUE)
-            if (!identical(subset.row, seq_len(nrow(batches[[1]])))) { 
-                batches <- lapply(batches, "[", i=subset.row, , drop=FALSE) # Need the extra comma!
-            }
+        if (!is.null(subset.row) && !identical(subset.row, seq_len(nrow(batches[[1]])))) { 
+            batches <- lapply(batches, "[", i=subset.row, , drop=FALSE) # Need the extra comma!
         }
         if (cos.norm) { 
             batches <- lapply(batches, FUN=cosine.norm, mode="matrix")
