@@ -57,7 +57,7 @@ test_that("fast SVD works as expected", {
     ncells2 <- 400
     test2 <- matrix(rnorm(ncells2 * ngenes), nrow=ngenes)
 
-    # Matches up well with reference irlba.
+    # Matches up well with reference SVD.
     t1 <- t(test1)
     t2 <- t(test2)
     com <- rbind(t1, t2)
@@ -81,6 +81,31 @@ test_that("fast SVD works as expected", {
     out <- scran:::.multi_pca(list(test1, test2), d=2, use.crossprod=FALSE)
     expect_equal_besides_sign(out[[1]], ref[[1]])
     expect_equal_besides_sign(out[[2]], ref[[2]])
+
+    # Double-check behaviour with >2 batches.
+    ncells3 <- 300
+    test3 <- matrix(rnorm(ncells3 * ngenes), nrow=ngenes)
+    t3 <- t(test3)
+
+    com <- rbind(t1, t2, t3)
+    expect_true(nrow(com) > ncol(com))
+    ref <- svd(com, nu=0, nv=10) 
+    out <- scran:::.fast_svd(list(t1, t2, t3), nv=10) 
+    expect_equal(out$d, ref$d[1:10])
+    expect_equal_besides_sign(out$v, ref$v)
+
+    com2 <- rbind(t1[1:10,], t2[1:5,], t3[5:20,])
+    expect_true(nrow(com2) < ncol(com2))
+    ref <- svd(com2, nu=0, nv=10) 
+    out <- scran:::.fast_svd(list(t1[1:10,], t2[1:5,], t3[5:20,]), nv=10) 
+    expect_equal(out$d, ref$d[1:10])
+    expect_equal_besides_sign(out$v, ref$v)
+    
+    ref <- scran:::.multi_pca(list(test3, test1, test2), d=5, use.crossprod=TRUE)
+    out <- scran:::.multi_pca(list(test3, test1, test2), d=5, use.crossprod=FALSE)
+    expect_equal_besides_sign(out[[1]], ref[[1]])
+    expect_equal_besides_sign(out[[2]], ref[[2]])
+    expect_equal_besides_sign(out[[3]], ref[[3]])
 })
 
 set.seed(12000012)
