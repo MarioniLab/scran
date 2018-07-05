@@ -138,8 +138,9 @@
         dimnames(means) <- dimnames(vars) <- list(rownames(x)[subset.row], names(by.block))
 
     } else if (!is.null(design)) {
-        checked <- .make_var_defaults(x, fit=NULL, design=design)
-        design <- checked$design
+        if (nrow(design)!=ncol(x)) {
+            stop("number of rows in 'design' should be equal to 'ncol(x)'")
+        }
         recorder$design <- design
 
         # Checking residual d.f.
