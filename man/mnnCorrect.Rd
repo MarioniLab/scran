@@ -82,6 +82,7 @@ This can be turned off when there are no scaling differences between data sets.
 \item When \code{cos.norm.out=TRUE}, cosine normalization is performed on the matrix of values used to calculate correction vectors (and on which those vectors are applied).
 This can be turned off to obtain corrected values on the log-scale, similar to the input data.
 }
+The cosine normalization is achieved using the \code{\link{cosineNorm}} function.
 
 Users should note that the order in which batches are corrected will affect the final results.
 The first batch in \code{order} is used as the reference batch against which the second batch is corrected.
@@ -113,7 +114,8 @@ with modifications by Aaron Lun
 
 \seealso{
 \code{\link{queryKNN}},
-\code{\link[irlba]{irlba}}
+\code{\link[irlba]{irlba}},
+\code{\link{cosineNorm}}
 }
 
 \examples{
