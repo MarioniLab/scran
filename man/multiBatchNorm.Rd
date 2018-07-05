@@ -5,7 +5,8 @@
 \description{Perform scaling normalization within each batch to provide comparable results to the lowest-coverage batch.}
 
 \usage{
-multiBatchNorm(..., assay.type="counts", norm.args=list(), min.mean=1)
+multiBatchNorm(..., assay.type="counts", norm.args=list(), min.mean=1,
+    subset.row=NULL)
 }
 
 \arguments{
@@ -14,6 +15,8 @@ Each object is assumed to represent one batch.}
 \item{assay.type}{A string specifying which assay values contains the counts.}
 \item{norm.args}{A named list of further arguments to pass to \code{\link[scater]{normalize}}.}
 \item{min.mean}{A numeric scalar specifying the minimum (library size-adjusted) average count of genes to be used for normalization.}
+\item{subset.row}{A logical, integer or character vector indicating the rows of \code{x} to use when rescaling the size factors.
+All genes are used by default.}
 }
 
 \details{
@@ -27,7 +30,14 @@ The \code{\link[scater]{normalize}} function will then add the same pseudo-count
 By scaling downwards, we favour stronger squeezing of log-fold changes from the pseudo-count, mitigating any technical differences in variance between batches.
 Of course, genuine biological differences will also be shrunk, but this is less of an issue for upregulated genes with large counts.
 
-Running this function is preferred over running \code{\link{normalize}} directly when computing log-normalized values for use in \code{\link{mnnCorrect}} or \code{\link{fastMNN}}. 
+Running this function is preferred over running \code{\link{normalize}} directly when computing log-normalized values for use in \code{\link{mnnCorrect}} or \code{\link{fastMNN}}.
+
+If spike-in transcripts are present, these should be the same across all batches.
+Spike-in size factors are rescaled separately from those of the endogenous genes, to reflect differences in spike-in quantities across batches.
+Conversely, spike-in transcripts are not used to compute the rescaling factors for endogenous genes.
+
+Users can set \code{subset.row} to restrict the set of genes used for computing the rescaling factors.
+However, this only affects the rescaling of the size factors - normalized values for \emph{all} genes will still be returned.
 }
 
 \value{
