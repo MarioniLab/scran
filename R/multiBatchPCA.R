@@ -1,6 +1,9 @@
 #' @export
 #' @importFrom BiocParallel SerialParam
-multiBatchPCA <- function(..., d=50, approximate=FALSE, irlba.args=list(), BPPARAM=SerialParam()) 
+#' @importFrom methods is
+#' @importFrom SummarizedExperiment assay
+#' @importClassesFrom SingleCellExperiment SingleCellExperiment
+multiBatchPCA <- function(..., d=50, approximate=FALSE, irlba.args=list(), subset.row=NULL, assay.type="logcounts", use.spikes=FALSE, BPPARAM=SerialParam()) 
 # Performs a multi-sample PCA (i.e., batches).
 # Each batch is weighted inversely by the number of cells when computing the gene-gene covariance matrix.
 # This avoids domination by samples with a large number of cells.
@@ -10,23 +13,37 @@ multiBatchPCA <- function(..., d=50, approximate=FALSE, irlba.args=list(), BPPAR
 {
     mat.list <- list(...)
     .check_batch_consistency(mat.list, byrow=TRUE)
-    .multi_pca(mat.list, d=d, approximate=approximate, irlba.args=irlba.args, use.crossprod=TRUE, BPPARAM=BPPARAM) 
+    if (length(mat.list)==0L) {
+        stop("at least one batch must be supplied")
+    }
+
+    all.sce <- vapply(mat.list, is, class2="SingleCellExperiment", FUN.VALUE=TRUE)
+    if (length(unique(all.sce))!=1L) {
+        stop("cannot mix SingleCellExperiments and other objects")
+    }
+    if (all(all.sce)) { 
+        .check_spike_consistency(mat.list)
+        subset.row <- .SCE_subset_genes(subset.row, mat.list[[1]], use.spikes)
+        mat.list <- lapply(mat.list, assay, i=assay.type)
+    }
+
+    .multi_pca(mat.list, subset.row=subset.row, d=d, approximate=approximate, irlba.args=irlba.args, use.crossprod=TRUE, BPPARAM=BPPARAM) 
 }
 
 #' @importFrom DelayedArray DelayedArray t
 #' @importFrom DelayedMatrixStats rowMeans2
 #' @importFrom BiocParallel SerialParam
-.multi_pca <- function(mat.list, d=50, approximate=FALSE, irlba.args=list(), use.crossprod=FALSE, BPPARAM=SerialParam()) 
+.multi_pca <- function(mat.list, subset.row=NULL, d=50, approximate=FALSE, irlba.args=list(), use.crossprod=FALSE, BPPARAM=SerialParam()) 
 # Internal function that uses DelayedArray to do the centering and scaling,
 # to avoid actually realizing the matrices in memory.
 {
-    if (d > min(nrow(mat.list[[1]]), sum(vapply(mat.list, FUN=ncol, FUN.VALUE=0L)))) {
-        stop("'d' is too large for the number of cells and genes")
-    }
-
     all.centers <- 0
     for (idx in seq_along(mat.list)) {
         current <- DelayedArray(mat.list[[idx]])
+        if (!is.null(subset.row)) {
+            current <- current[subset.row,,drop=FALSE]
+        }
+
         centers <- rowMeans2(current)
         all.centers <- all.centers + centers
         mat.list[[idx]] <- current
@@ -42,7 +59,11 @@ multiBatchPCA <- function(..., d=50, approximate=FALSE, irlba.args=list(), BPPAR
         scaled[[idx]] <- t(current)
     }
 
-    # Performing an SVD.
+    # Performing an SVD, if possible.
+    if (d > min(nrow(scaled[[1]]), sum(vapply(scaled, FUN=ncol, FUN.VALUE=0L)))) {
+        stop("'d' is too large for the number of cells and genes")
+    }
+
     if (use.crossprod) {
         svd.out <- .fast_svd(scaled, nv=d, irlba.args=irlba.args, approximate=approximate, BPPARAM=BPPARAM)
     } else {
