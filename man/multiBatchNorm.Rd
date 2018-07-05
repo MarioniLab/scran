@@ -23,7 +23,7 @@ All genes are used by default.}
 When performing integrative analyses of multiple batches, it is often the case that different batches have large differences in coverage.
 This function removes systematic differences in coverage across batches to simplify downstream comparisons.
 It does so by resaling the size factors using median-based normalization on the ratio of the average counts between batches.
-This is equivalent to the between-cluster normalization performed in \code{\link{computeSumFactors}}.
+This is roughly equivalent to the between-cluster normalization performed in \code{\link{computeSumFactors}}.
 
 This function will adjust the size factors so that counts in high-coverage batches are scaled \emph{downwards} to match the coverage of the most shallow batch.
 The \code{\link[scater]{normalize}} function will then add the same pseudo-count to all batches before log-transformation.
@@ -31,6 +31,9 @@ By scaling downwards, we favour stronger squeezing of log-fold changes from the 
 Of course, genuine biological differences will also be shrunk, but this is less of an issue for upregulated genes with large counts.
 
 Running this function is preferred over running \code{\link{normalize}} directly when computing log-normalized values for use in \code{\link{mnnCorrect}} or \code{\link{fastMNN}}.
+This is because, in most cases, size factors will be computed within each batch;
+their direct application in \code{\link{normalize}} will not account for scaling differences between batches.
+In contrast, \code{multiBatchNorm} will rescale the size factors so that they are comparable across batches.
 
 If spike-in transcripts are present, these should be the same across all batches.
 Spike-in size factors are rescaled separately from those of the endogenous genes, to reflect differences in spike-in quantities across batches.

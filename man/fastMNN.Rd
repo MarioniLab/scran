@@ -63,7 +63,8 @@ The correction vectors are then recalculated with the adjusted coordinates (but 
 }
 
 The default setting of \code{cos.norm=TRUE} provides some protection against differences in scaling for arbitrary log-expression matrices.
-If possible, we recommend equalizing coverage at the count level before log-transformation - see \code{\link{multiBatchNorm}} for details.
+However, if possible, we recommend using the output of \code{\link{multiBatchNorm}} as input to \code{fastMNN}.
+This will equalize coverage on the count level before the log-transformation, which is a more accurate rescaling than cosine normalization on the log-values.
 }
 
 \section{Controlling the merge order}{
@@ -83,6 +84,7 @@ so it is the responsibility of the user to cosine-normalize each batch beforehan
     \item \code{\link{multiBatchPCA}} must be run on all samples at once, to ensure that all cells are projected to the same low-dimensional space.
     \item Setting \code{pc.input=TRUE} is criticial to avoid unnecessary (and incorrect) cosine-normalization and PCA within each step of the merge.
 }
+See the Examples below for how PC input should be used.
 }
 
 \author{
@@ -99,4 +101,11 @@ Aaron Lun
 B1 <- matrix(rnorm(10000), ncol=50) # Batch 1 
 B2 <- matrix(rnorm(10000), ncol=50) # Batch 2
 out <- fastMNN(B1, B2) # corrected values
+
+# An equivalent approach with PC input.
+cB1 <- cosineNorm(B1)
+cB2 <- cosineNorm(B2)
+pcs <- multiBatchPCA(cB1, cB2)
+out.2 <- fastMNN(pcs[[1]], pcs[[2]], pc.input=TRUE)
+all.equal(out, out.2) # should be TRUE
 }
