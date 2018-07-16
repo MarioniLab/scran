@@ -31,6 +31,10 @@
         stop("'sizes' are not unique") 
     }
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
+
+    if (is.null(min.mean)) {
+        stop("set 'min.mean=0' to turn off abundance filtering")
+    }
     min.mean <- pmax(min.mean, 1e-8) # must be at least non-zero mean. 
 
     # Setting some other values.

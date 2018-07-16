@@ -367,6 +367,7 @@ test_that("other solving options work properly", {
 set.seed(20012)
 test_that("computeSumFactors throws errors correctly", {
     dummy <- matrix(rpois(ncells*ngenes, lambda=10), nrow=ngenes, ncol=ncells)
+    expect_error(computeSumFactors(dummy, min.mean=NULL), "turn off abundance filtering")
     expect_error(computeSumFactors(dummy[,0,drop=FALSE]), "not enough cells in at least one cluster")
     expect_error(computeSumFactors(dummy[0,,drop=FALSE]), "cells should have non-zero library sizes")
     expect_error(computeSumFactors(dummy, sizes=c(10, 10, 20)), "'sizes' are not unique")

@@ -29,12 +29,12 @@ test_that("cyclone runs properly", {
 })
 
 test_that("computeSumFactors runs properly", {
-    sf1 <- computeSumFactors(X_, min.mean=NULL)
-    sf2 <- computeSumFactors(X, min.mean=NULL)
+    sf1 <- computeSumFactors(X_, min.mean=0)
+    sf2 <- computeSumFactors(X, min.mean=0)
     expect_identical(sf1, sf2)
 
-    sf1 <- computeSumFactors(Y_, min.mean=NULL)
-    sf2 <- computeSumFactors(Y, min.mean=NULL)
+    sf1 <- computeSumFactors(Y_, min.mean=0)
+    sf2 <- computeSumFactors(Y, min.mean=0)
     expect_identical(sf1, sf2)
 })
 
