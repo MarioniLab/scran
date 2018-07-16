@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.9.7}{\itemize{
+\section{Version 1.9.12}{\itemize{
 \item Removed selectorPlot(), exploreData() functions.
     
 \item Fixed underflow problem in mnnCorrect() when dealing with the Gaussian kernel.
@@ -25,6 +25,7 @@ Supported parallelized cluster-wise processing.
 \item Added multiBatchNorm() function for consistent downscaling across batches prior to batch correction.
 
 \item Minor improvement to how mean filtering is done for rescaling across clusters in computeSumFactors().
+Throw errors upon min.mean=NULL, which used to be valid.
 
 \item Added the fastMNN() function to provide a faster, more stable alternative for MNN correction.
 }}
