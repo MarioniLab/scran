@@ -46,9 +46,9 @@ Each row is named according to its cluster.
 }
 
 \details{
+This function detects clusters of doublet cells in a manner similar to the method used by Bach et al. (2017).
 For each cluster, we examine all possible pairs of \dQuote{source} clusters, hypothesizing that the current cluster is a doublet formed from the two sources.
 If so, gene expression in the current cluster should be strictly intermediate between the two sources after library size normalization.
-This approach is similar to the method used by Bach et al. (2017) to detect clusters of doublet cells.
 
 We apply pairwise t-tests to the normalized log-expression profiles (see \code{\link[scater]{normalize}}) to reject this null hypothesis.
 This is done by identifying genes that are consistently up- or down-regulated in the current cluster compared to \emph{both} of the sources.
@@ -70,6 +70,10 @@ The reported \code{p.value} is of little use in a statistical sense, and is only
 Technically, it could be treated as the Simes combined p-value against the doublet hypothesis for the current cluster.
 However, this does not account for the multiple testing across all pairs of clusters for each chosen cluster, 
 especially as we are chosing the pair that is most concordant with the doublet null hypothesis.
+
+We use library size normalization (via \code{\link{librarySizeFactors}}) even if existing size factors are present.
+This is because intermediate expression of the doublet cluster is not guaranteed for arbitrary size factors.
+For example, expression in the doublet cluster will be higher than that in the source clusters if normalization was performed with spike-in size factors.
 }
 
 \author{
