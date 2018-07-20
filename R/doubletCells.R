@@ -8,9 +8,9 @@
 .doublet_cells <- function(x, size.factors.norm=NULL, size.factors.content=NULL,
         k=50, subset.row=NULL, niters=max(10000, ncol(x)), block=10000, d=50, approximate=FALSE, irlba.args=list(), BPPARAM=SerialParam())
 # Simulates doublets and uses a mutual nearest-neighbour approach to match them to real cells.
-# 
+#
 # written by Aaron Lun
-# created 18 July 2018 
+# created 18 July 2018
 {
     if (!is.null(subset.row)) {
         x <- x[subset.row,,drop=FALSE]
@@ -22,6 +22,7 @@
         x <- normalizeMatrix(x, size.factors.content)
         size.factors.norm <- size.factors.norm/size.factors.content
     }
+
     y <- normalizeMatrix(x, size.factors.norm)
 
     # Running the SVD.
@@ -35,11 +36,13 @@
     svd.out <- do.call(svdfun, args)
     pcs <- .convert_to_output(svd.out, ncomp=d, value="pca")
 
+    all.means <- rowMeans(y)
+    mean.correction <- colSums(all.means * svd.out$v)
+
     # Simulating doublets.
     collected <- list()
     counter <- 1L
     current <- 0L
-    niters <- round(multiple * ncol(x))
 
     while (current < niters) {
         to.make <- min(block, niters - current)
@@ -47,20 +50,18 @@
         right <- sample(ncol(x), to.make, replace=TRUE)
         sim.x <- x[,left,drop=FALSE] + x[,right,drop=FALSE]
         sim.sf <- size.factors.norm[left] + size.factors.norm[right]
-        sim.y <- normalizeMatrix(sim, sim.sf)
+        sim.y <- normalizeMatrix(sim.x, sim.sf)
 
         # Projecting onto the PC space of the original data.
         sim.pcs <- crossprod(sim.y, svd.out$v)
+        sim.pcs <- sweep(sim.pcs, 2L, mean.correction, FUN="-", check.margin=FALSE)
         collected[[counter]] <- sim.pcs
         counter <- counter + 1L
         current <- current + block
     }
-    
+
     sim.pcs <- do.call(rbind, collected)
-    all.means <- rowMeans(y)
-    correction <- colSums(all.means * svd.out$v)
-    sim.pcs <- sweep(sim.pcs, 2L, correction, FUN="-", check.margin=FALSE)
-    
+
     # Computing densities, using a distance computed from the kth nearest neighbor.
     pre.pcs <- precluster(pcs)
     self.dist <- findKNN(precomputed=pre.pcs, k=k, BPPARAM=BPPARAM, get.index=FALSE)$distance
@@ -72,7 +73,7 @@
         sum((1 - (sim/limit)^3)^3)/sum((1 - (self/limit)^3)^3)
     }, self=self.dist, sim=sim.dist, limit=dist2nth, BPPARAM=BPPARAM)
 
-    rel.dens/multiple
+    rel.dens/(niters/ncol(x))
 }
 
 ##############################
@@ -86,12 +87,12 @@ setGeneric("doubletCells", function(x, ...) standardGeneric("doubletCells"))
 setMethod("doubletCells", "ANY", .doublet_cells)
 
 #' @export
-#' @importFrom SummarizedExperiment assay 
+#' @importFrom SummarizedExperiment assay
 #' @importFrom BiocGenerics sizeFactors
 setMethod("doubletCells", "SingleCellExperiment", function(x, size.factor.norm=NA, ..., subset.row=NULL, assay.type="counts", get.spikes=FALSE) {
     subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
-    if (any(is.na(size.factor.norm))) { 
-        size.factor.norm <- sizeFactors(x)     
+    if (any(is.na(size.factor.norm))) {
+        size.factor.norm <- sizeFactors(x)
     }
     .doublet_cells(assay(x, i=assay.type), size.factor.norm=size.factor.norm, ..., subset.row=subset.row)
 })
