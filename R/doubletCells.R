@@ -84,10 +84,10 @@ setMethod("doubletCells", "ANY", .doublet_cells)
 #' @export
 #' @importFrom SummarizedExperiment assay
 #' @importFrom BiocGenerics sizeFactors
-setMethod("doubletCells", "SingleCellExperiment", function(x, size.factor.norm=NA, ..., subset.row=NULL, assay.type="counts", get.spikes=FALSE) {
+setMethod("doubletCells", "SingleCellExperiment", function(x, size.factors.norm=NA, ..., subset.row=NULL, assay.type="counts", get.spikes=FALSE) {
     subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
-    if (any(is.na(size.factor.norm))) {
-        size.factor.norm <- sizeFactors(x)
+    if (any(is.na(size.factors.norm))) {
+        size.factors.norm <- sizeFactors(x)
     }
-    .doublet_cells(assay(x, i=assay.type), size.factor.norm=size.factor.norm, ..., subset.row=subset.row)
+    .doublet_cells(assay(x, i=assay.type), size.factors.norm=size.factors.norm, ..., subset.row=subset.row)
 })

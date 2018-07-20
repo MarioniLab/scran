@@ -82,9 +82,8 @@ setGeneric("doubletCluster", function(x, ...) standardGeneric("doubletCluster"))
 #' @export
 setMethod("doubletCluster", "ANY", .doublet_cluster)
 
-#' @importFrom SummarizedExperiment assay "assay<-"
-#' @importFrom SingleCellExperiment reducedDim isSpike
 #' @export
+#' @importFrom SummarizedExperiment assay
 setMethod("doubletCluster", "SingleCellExperiment", function(x, ..., subset.row=NULL, assay.type="counts", get.spikes=FALSE) {
     subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
     .doublet_cluster(assay(x, i=assay.type), ..., subset.row=subset.row)
