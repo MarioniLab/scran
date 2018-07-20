@@ -169,14 +169,12 @@ test_that("denoisePCA works with a DataFrame input", {
     pcs2 <- denoisePCA(lcounts, technical=dec, subset.row=chosen, value="pca")
     expect_equal(ref2, pcs2)
 
-    # Testing the rescaling to enforce the total variance in dec$total.
+    # Testing the rescaling to force the total variance in dec$total to match the observed variance.
     rescaled <- runif(nrow(lcounts))
     lcountsX <- lcounts * rescaled
+    ref2 <- denoisePCA(lcountsX, technical=dec$tech * rescaled^2, value="pca")
     pcs3 <- denoisePCA(lcountsX, technical=dec, value="pca")
-    expect_equal(ref, pcs3)
-
-    lr3 <- denoisePCA(lcountsX, technical=dec, value="lowrank")
-    expect_equal(ref.lr * rescaled, lr3)
+    expect_equal(ref2, pcs3)
 })
 
 test_that("denoisePCA works with IRLBA", {
@@ -310,14 +308,6 @@ test_that("parallelPCA works as expected", {
 })
 
 test_that("parallelPCA works with different settings", {
-    # Responds correctly to scaling.
-    scaling <- runif(nrow(lcounts))
-    set.seed(100)
-    pcs <- parallelPCA(lcounts, value="pca", niters=3, scale=scaling)
-    set.seed(100)
-    pcs2 <- parallelPCA(lcounts*scaling, value="pca", niters=3)
-    expect_identical(pcs, pcs2)
-
     # Responds correctly to subsetting.
     chosen <- sample(nrow(lcounts), 100)
     set.seed(100)
@@ -325,22 +315,6 @@ test_that("parallelPCA works with different settings", {
     set.seed(100)
     pcs2 <- parallelPCA(lcounts[chosen,,drop=FALSE], value="pca", niters=3)
     expect_identical(pcs, pcs2)
-
-    # Responds correctly to both.
-    set.seed(100)
-    pcs <- parallelPCA(lcounts, value="pca", niters=3, subset.row=chosen, scale=scaling)
-    set.seed(100)
-    pcs2 <- parallelPCA((scaling * lcounts)[chosen,,drop=FALSE], value="pca", niters=3)
-    expect_identical(pcs, pcs2)
-})
-
-test_that("parallelPCA works with low rank approximations", {
-    scaling <- runif(nrow(lcounts))
-    set.seed(100)
-    lr <- parallelPCA(lcounts, value="lowrank", niters=3, scale=scaling)
-    set.seed(100)
-    lr2 <- parallelPCA(lcounts*scaling, value="lowrank", niters=3)/scaling
-    expect_equal(lr, lr2)
 
     # Checking that subsetting and projections work.
     set.seed(100)
