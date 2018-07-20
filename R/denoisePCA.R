@@ -39,9 +39,9 @@
 
     # Setting up the PCA function and its arguments.
     value <- match.arg(value)
-    svdfun <- .PCA_overlord(max.rank, approximate=approximate, extra.args=irlba.args, 
+    original <- .PCA_overlord(t(y), max.rank, 
+        approximate=approximate, extra.args=irlba.args, 
         keep.left=(value!="n"), keep.right=(value=="lowrank"))
-    original <- svdfun(t(y))
 
     # Choosing the number of PCs.
     var.exp <- original$d^2 / (ncol(y) - 1)
