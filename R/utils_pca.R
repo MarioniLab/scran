@@ -1,6 +1,8 @@
 #' @importFrom stats svd
-.PCA_overlord <- function(max.rank, approximate=FALSE, extra.args=list(), keep.left=TRUE, keep.right=TRUE)
-# Returns a function to perform the PCA given a log-expression matrix.
+.PCA_overlord <- function(y, max.rank, approximate=FALSE, extra.args=list(), keep.left=TRUE, keep.right=TRUE)
+# Performs the PCA given a log-expression matrix.
+# Switches between svd() and irlba() on request.
+# Output format is guaranteed to be the same.
 {
     if (approximate) {
         arg.max <- pmatch(names(extra.args), "maxit")
@@ -8,33 +10,29 @@
             extra.args$maxit <- max(1000, max.rank*10)
         }
 
-        FUN <- function(y) {
-            max.rank <- min(max.rank, dim(y)-1L) # Note the -1 here, due to IRLBA's approximateness.
-            all.args <- c(list(A=y, nv=max.rank, nu=max.rank, scale.=FALSE, center=TRUE), extra.args)
-            out <- do.call(irlba::irlba, all.args)
-            if (!keep.left) {
-                out$u <- NULL
-            }
-            if (!keep.right) {
-                out$v <- NULL
-            }
-            out
+        max.rank <- min(max.rank, dim(y)-1L) # Note the -1 here, due to IRLBA's approximateness.
+        all.args <- c(list(A=y, nv=max.rank, nu=max.rank, scale.=FALSE, center=TRUE), extra.args)
+        out <- do.call(irlba::irlba, all.args)
+
+        if (!keep.left) {
+            out$u <- NULL
         }
+        if (!keep.right) {
+            out$v <- NULL
+        }
+
     } else {
-        FUN <- function(y) {
-            max.rank <- min(max.rank, dim(y))
-            y <- scale(y, center=TRUE, scale=FALSE)
+        max.rank <- min(max.rank, dim(y))
+        y <- scale(y, center=TRUE, scale=FALSE)
 
-            nu <- ifelse(keep.left, max.rank, 0L)
-            nv <- ifelse(keep.right, max.rank, 0L)
+        nu <- ifelse(keep.left, max.rank, 0L)
+        nv <- ifelse(keep.right, max.rank, 0L)
 
-            out <- svd(y, nu=nu, nv=nv)
-            out$d <- out$d[seq_len(max.rank)]
-            out
-        }
+        out <- svd(y, nu=nu, nv=nv)
+        out$d <- out$d[seq_len(max.rank)]
     }
 
-    FUN
+    return(out)
 }
 
 .keep_rank_in_range <- function(chosen, min.rank, nd)
