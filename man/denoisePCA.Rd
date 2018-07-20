@@ -83,8 +83,9 @@ The exception is when \code{get.spikes=FALSE}, whereby zeroes are returned for a
 \section{Handling uninteresting factors of variation}{
 Previous versions of this function allowed users to specify a \code{design} matrix to regress out uninteresting factors of variation.
 This behaviour is now defunct in favour of users running appropriate batch correction functions beforehand.
-If a batch-corrected expression matrix is supplied in \code{x}, users should also supply a DataFrame as \code{technical},
-as calculation of the residual variance or mean from a corrected matrix is not accurate without knowledge of the blocking factors.
+If \code{x} is a batch-corrected expression matrix, \code{technical} should \emph{not} be a function.
+Rather, users should supply a DataFrame from \code{\link{decomposeVar}} or \code{\link{combineVar}}.
+This is because calculation of the residual variance (or mean) from a corrected matrix is not accurate, so precomputed values are necessary.
 
 Any correction should preserve the residual variance of each gene for the variances to be correctly interpreted.
 Specifically, calculation of the variance within each batch should yield the same result in both the corrected and original matrices.
@@ -95,6 +96,12 @@ This simply involves fitting a linear model and removing undesired coefficients,
 \item \code{\link{mnnCorrect}} will identify cells of the same biological identity across batches, and use them to compute correction vectors.
 This usually requires setting \code{cos.norm.out=FALSE} and \code{sigma} to some large value to preserve the variance.
 }
+
+Note that, if \code{technical} is a DataFrame, the \code{denoisePCA} function will also adjust scale the precomputed variances to match the sample variance of each gene in \code{x}.
+Specifically, variance components are scaled until \code{technical$total} is equal to the sample variance.
+This reflects the fact that the PCA (and the variance explained by each PC) does not account for the loss of residual degrees of freedom due to blocking factors.
+Scaling adjusts the estimated technical component to match the decreased total when the sample variance is used instead of the residual variance,
+and ensures that we have a correct estimate of the proportion of the sample variance driven by technical noise.
 }
 
 \author{
