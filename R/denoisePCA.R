@@ -1,8 +1,10 @@
 #' @importFrom DelayedArray DelayedArray
 #' @importFrom DelayedMatrixStats rowVars rowMeans2
+#' @importClassesFrom S4Vectors DataFrame
+#' @importFrom methods is
 .denoisePCA <- function(x, technical, subset.row=NULL,
-                        value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100, 
-                        approximate=FALSE, rand.seed=1000, irlba.args=list())
+    value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100, 
+    approximate=FALSE, rand.seed=1000, irlba.args=list())
 # Performs PCA and chooses the number of PCs to keep based on the technical noise.
 # This is done on the residuals if a design matrix is supplied.
 #
@@ -11,16 +13,13 @@
 {
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     x2 <- DelayedArray(x)
-    scale <- NULL
+    all.var <- rowVars(x2, rows=subset.row)
 
     # Processing different mechanisms through which we specify the technical component.
     if (is(technical, "DataFrame")) { 
-        x.var <- rowVars(x2)
-        scale <- sqrt(technical$total/x.var) # Making sure everyone has the reported total variance.
-        all.var <- technical$total[subset.row]
-        tech.var <- technical$tech[subset.row]
+        scale <- all.var/technical$total[subset.row] # Making sure everyone has the reported total variance.
+        tech.var <- technical$tech[subset.row] * scale
     } else {
-        all.var <- rowVars(x2, rows=subset.row)
         if (is.function(technical)) {
             all.means <- rowMeans2(x2, rows=subset.row)
             tech.var <- technical(all.means)
@@ -32,34 +31,25 @@
     # Filtering out genes with negative biological components.
     keep <- all.var > tech.var
     use.rows <- subset.row[keep]
+    y <- x[use.rows,,drop=FALSE] 
+
     tech.var <- tech.var[keep]
     all.var <- all.var[keep]
     total.tech <- sum(tech.var)
 
-    # Subsetting and scaling the matrix.
-    y <- x[use.rows,,drop=FALSE] 
-    if (!is.null(scale)) {
-        y <- y * scale[use.rows]
-    }
-
     # Setting up the PCA function and its arguments.
     value <- match.arg(value)
-    args <- list(y=t(y), max.rank=max.rank, value=value)
-    if (approximate) {
-        svdfun <- .irlba_svd
-        args <- c(args, irlba.args)
-    } else {
-        svdfun <- .full_svd
-    }
+    svdfun <- .PCA_overlord(max.rank, approximate=approximate, extra.args=irlba.args, 
+        keep.left=(value!="n"), keep.right=(value=="lowrank"))
+    original <- svdfun(t(y))
 
-    # Runing the PCA and choosing the number of PCs.
-    original <- do.call(svdfun, args)
+    # Choosing the number of PCs.
     var.exp <- original$d^2 / (ncol(y) - 1)
     npcs <- .get_npcs_to_keep(var.exp, total.tech, total=sum(all.var))
     npcs <- .keep_rank_in_range(npcs, min.rank, length(var.exp))
 
     # Processing remaining aspects.
-    out.val <- .convert_to_output(original, npcs, value, x, scale, use.rows)
+    out.val <- .convert_to_output(original, npcs, value, x, use.rows)
     attr(out.val, "percentVar") <- var.exp/sum(all.var)
     return(out.val)
 } 
