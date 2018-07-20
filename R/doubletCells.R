@@ -1,11 +1,12 @@
-#' @importFrom scater librarySizeFactors normalize
+#' @importFrom scater librarySizeFactors normalizeMatrix
 #' @importFrom BiocGenerics "sizeFactors<-" sizeFactors
 #' @importFrom SingleCellExperiment SingleCellExperiment logcounts
 #' @importFrom BiocParallel SerialParam bpmapply
 #' @importFrom Matrix crossprod rowMeans
 #' @importFrom stats median
 #' @importFrom kmknn findKNN findNeighbors queryNeighbors
-.doublet_cells <- function(x, d=50, k=20, approximate=FALSE, subset.row=NULL, multiple=1, block=10000, BPPARAM=SerialParam())
+.doublet_cells <- function(x, size.factors.norm=NULL, size.factors.content=NULL,
+        k=50, subset.row=NULL, niters=max(10000, ncol(x)), block=10000, d=50, approximate=FALSE, irlba.args=list(), BPPARAM=SerialParam())
 # Simulates doublets and uses a mutual nearest-neighbour approach to match them to real cells.
 # 
 # written by Aaron Lun
@@ -14,10 +15,14 @@
     if (!is.null(subset.row)) {
         x <- x[subset.row,,drop=FALSE]
     }
-    sce <- SingleCellExperiment(list(counts=x))
-    sizeFactors(sce) <- librarySizeFactors(x)
-    sce <- normalize(sce, return_log=TRUE)
-    y <- logcounts(sce, withDimnames=FALSE)
+    if (is.null(size.factors.norm)) {
+        size.factors.norm <- librarySizeFactors(x)
+    }
+    if (!is.null(size.factors.content)) {
+        x <- normalizeMatrix(x, size.factors.content)
+        size.factors.norm <- size.factors.norm/size.factors.content
+    }
+    y <- normalizeMatrix(x, size.factors.norm)
 
     # Running the SVD.
     args <- list(y=t(y), max.rank=d, value="lowrank")
@@ -28,7 +33,7 @@
         svdfun <- .full_svd
     }
     svd.out <- do.call(svdfun, args)
-    pcs <- sweep(svd.out$u, 2L, svd.out$d, FUN="*", check.margin = FALSE)
+    pcs <- .convert_to_output(svd.out, ncomp=d, value="pca")
 
     # Simulating doublets.
     collected <- list()
@@ -38,14 +43,12 @@
 
     while (current < niters) {
         to.make <- min(block, niters - current)
-        sim <- x[,sample(ncol(x), to.make, replace=TRUE),drop=FALSE] + x[,sample(ncol(x), to.make, replace=TRUE),drop=FALSE]
-            
-		# Normalizing by their library sizes.
-        sim.sce <- SingleCellExperiment(list(counts=sim))
-        sizeFactors(sim.sce) <- librarySizeFactors(sim.sce)
-        sim.sce <- normalize(sim.sce, return_log=TRUE)
-        sim.y <- logcounts(sim.sce, withDimnames=FALSE)
-       
+        left <- sample(ncol(x), to.make, replace=TRUE)
+        right <- sample(ncol(x), to.make, replace=TRUE)
+        sim.x <- x[,left,drop=FALSE] + x[,right,drop=FALSE]
+        sim.sf <- size.factors.norm[left] + size.factors.norm[right]
+        sim.y <- normalizeMatrix(sim, sim.sf)
+
         # Projecting onto the PC space of the original data.
         sim.pcs <- crossprod(sim.y, svd.out$v)
         collected[[counter]] <- sim.pcs
@@ -71,3 +74,24 @@
 
     rel.dens/multiple
 }
+
+##############################
+# S4 method definitions here #
+##############################
+
+#' @export
+setGeneric("doubletCells", function(x, ...) standardGeneric("doubletCells"))
+
+#' @export
+setMethod("doubletCells", "ANY", .doublet_cells)
+
+#' @export
+#' @importFrom SummarizedExperiment assay 
+#' @importFrom BiocGenerics sizeFactors
+setMethod("doubletCells", "SingleCellExperiment", function(x, size.factor.norm=NA, ..., subset.row=NULL, assay.type="counts", get.spikes=FALSE) {
+    subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
+    if (any(is.na(size.factor.norm))) { 
+        size.factor.norm <- sizeFactors(x)     
+    }
+    .doublet_cells(assay(x, i=assay.type), size.factor.norm=size.factor.norm, ..., subset.row=subset.row)
+})
