@@ -26,14 +26,9 @@
     y <- normalizeMatrix(x, size.factors.norm)
 
     # Running the SVD.
-    args <- list(y=t(y), max.rank=d, value="lowrank")
-    if (approximate) {
-        svdfun <- .irlba_svd
-        args <- c(args, irlba.args)
-    } else {
-        svdfun <- .full_svd
-    }
-    svd.out <- do.call(svdfun, args)
+    svd.out <- .PCA_overlord(t(y), max.rank=d, 
+        approximate=approximate, extra.args=irlba.args, 
+        keep.left=TRUE, keep.right=TRUE)
     pcs <- .convert_to_output(svd.out, ncomp=d, value="pca")
 
     all.means <- rowMeans(y)
