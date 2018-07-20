@@ -7,7 +7,7 @@
 \description{Perform a parallel analysis to choose the number of principal components.}
 
 \usage{
-\S4method{parallelPCA}{ANY}(x, subset.row=NULL, scale=NULL, value=c("pca", "n", "lowrank"), 
+\S4method{parallelPCA}{ANY}(x, subset.row=NULL, value=c("pca", "n", "lowrank"), 
     min.rank=5, max.rank=100, niters=50, threshold=0.1, approximate=FALSE, 
     irlba.args=list(), BPPARAM=SerialParam())
 
@@ -21,7 +21,6 @@
 or a SingleCellExperiment object containing such values for \code{parallelPCA,SingleCellExperiment-method}.}
 \item{subset.row}{A logical, integer or character vector indicating the rows of \code{x} to use for PCA.
 All genes are used by default.}
-\item{scale}{A numeric vector specifying the scaling to apply to each row of \code{x}, if any.}
 \item{value}{A string specifying the type of value to return; the PCs, the number of retained components, or a low-rank approximation.}
 \item{min.rank, max.rank}{Integer scalars specifying the minimum and maximum number of PCs to retain.}
 \item{niters}{Integer scalar specifying the number of iterations to use for the parallel analysis.}
