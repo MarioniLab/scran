@@ -11,7 +11,7 @@
     k=50, subset.row=NULL, niters=max(10000, ncol(x)), block=10000, d=50, 
     approximate=FALSE, irlba.args=list(), BPPARAM=SerialParam())
 
-\S4method{doubletCells}{SingleCellExperiment}(x, size.factor.norm=NA, ..., subset.row=NULL, 
+\S4method{doubletCells}{SingleCellExperiment}(x, size.factors.norm=NA, ..., subset.row=NULL, 
     assay.type="counts", get.spikes=FALSE)
 }
 
