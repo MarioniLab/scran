@@ -19,11 +19,11 @@
         size.factors.norm <- librarySizeFactors(x)
     }
     if (!is.null(size.factors.content)) {
-        x <- normalizeMatrix(x, size.factors.content)
+        x <- normalizeMatrix(x, size.factors.content, return_log=FALSE, centre_size_factors=FALSE)
         size.factors.norm <- size.factors.norm/size.factors.content
     }
 
-    y <- normalizeMatrix(x, size.factors.norm)
+    y <- normalizeMatrix(x, size.factors.norm, centre_size_factors=FALSE)
 
     # Running the SVD.
     svd.out <- .PCA_overlord(t(y), max.rank=d, 
@@ -45,7 +45,7 @@
         right <- sample(ncol(x), to.make, replace=TRUE)
         sim.x <- x[,left,drop=FALSE] + x[,right,drop=FALSE]
         sim.sf <- size.factors.norm[left] + size.factors.norm[right]
-        sim.y <- normalizeMatrix(sim.x, sim.sf)
+        sim.y <- normalizeMatrix(sim.x, sim.sf, centre_size_factors=FALSE)
 
         # Projecting onto the PC space of the original data.
         sim.pcs <- crossprod(sim.y, svd.out$v)
