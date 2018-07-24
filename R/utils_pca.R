@@ -1,4 +1,3 @@
-#' @importFrom stats svd
 .PCA_overlord <- function(y, max.rank, approximate=FALSE, extra.args=list(), keep.left=TRUE, keep.right=TRUE)
 # Performs the PCA given a log-expression matrix.
 # Switches between svd() and irlba() on request.
