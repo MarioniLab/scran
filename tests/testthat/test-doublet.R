@@ -1,5 +1,4 @@
-# This tests the doublet-discovery machinery,
-# though there is little to do other than run the function.
+# This tests the doublet-discovery machinery.
 # library(scran); library(testthat); source("test-doublet.R")
 
 set.seed(9900001)
@@ -31,8 +30,7 @@ test_that("doubletCluster works correctly with vanilla tests", {
     expect_equal(dbl$lib.size2[1], ls1/ls3)
 
     # Checking the proportions.
-    expect_equal(dbl$prop,
-        as.integer(table(clusters)[rownames(dbl)])/length(clusters))
+    expect_equal(dbl$prop, as.integer(table(clusters)[rownames(dbl)])/length(clusters))
 
     # Checking that p-values are reverse-sorted.
     expect_false(is.unsorted(-dbl$p.value))
@@ -45,6 +43,39 @@ test_that("doubletCluster works correctly with vanilla tests", {
     dbl2$source1 <- LETTERS[as.integer(dbl2$source1)]
     dbl2$source2 <- LETTERS[as.integer(dbl2$source2)]
     expect_identical(dbl2, re.dbl)
+})
+
+test_that("doubletCluster agrees with a reference implementation", {
+    mu3 <- 2^rnorm(ngenes)
+    counts.3 <- matrix(rpois(ngenes*100, mu3), nrow=ngenes)
+    counts <- cbind(counts.1, counts.2, counts.3, counts.m)
+    clusters <- rep(1:4, c(ncol(counts.1), ncol(counts.2), ncol(counts.3), ncol(counts.m)))
+
+    dbl <- doubletCluster(counts, clusters)
+    ref <- findMarkers(scater::normalizeMatrix(counts, scater::librarySizeFactors(counts)), clusters, full.stats=TRUE)
+
+    for (x in rownames(dbl)) {
+        stats <- ref[[x]]
+        all.pops <- setdiff(rownames(dbl), x)
+        combos <- combn(all.pops, 2)
+
+        # Effectively a re-implentation of the two inner loops.
+        collected <- apply(combos, 2, function(chosen) {
+            fields <- paste0("stats.", chosen)
+            stats1 <- stats[[fields[1]]]
+            stats2 <- stats[[fields[2]]]
+            p <- pmax(stats1$p.value, stats2$p.value)
+            p[sign(stats1$logFC)!=sign(stats2$logFC)] <- 1
+            adj.p <- p.adjust(p, method="BH")
+            list(best=rownames(stats)[which.min(p)], p.val=min(adj.p), N=sum(adj.p <= 0.05))
+        })
+
+        to.use <- which.min(unlist(lapply(collected, function(o) o$N)))
+        expect_identical(dbl[x,"N"], collected[[to.use]]$N)
+        expect_identical(dbl[x,"p.value"], collected[[to.use]]$p.val)
+        expect_identical(dbl[x,"best"], collected[[to.use]]$best)
+        expect_identical(sort(c(dbl[x,"source1"],dbl[x,"source2"])), sort(combos[,to.use]))
+    }
 })
 
 test_that("doubletCluster works correctly with row subsets", {
@@ -90,7 +121,7 @@ test_that("doubletCluster works correctly with SingleCellExperiment", {
 
     # With both spike-ins _and_ subset.row specified.
     keep <- c(sample(which(isSpike(sce)), 10), sample(which(!isSpike(sce)), 10))
-       dbl5 <- doubletCluster(sce, clusters, subset.row=keep)
+    dbl5 <- doubletCluster(sce, clusters, subset.row=keep)
     ref4 <- doubletCluster(counts(sce), clusters, subset.row=setdiff(keep, which(isSpike(sce))))
     expect_identical(ref4, dbl5)
 })
