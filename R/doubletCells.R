@@ -2,7 +2,7 @@
 #' @importFrom BiocGenerics "sizeFactors<-" sizeFactors
 #' @importFrom SingleCellExperiment SingleCellExperiment logcounts
 #' @importFrom BiocParallel SerialParam bpmapply
-#' @importFrom Matrix crossprod rowMeans
+#' @importFrom Matrix rowMeans
 #' @importFrom stats median
 #' @importFrom kmknn findKNN findNeighbors queryNeighbors
 .doublet_cells <- function(x, size.factors.norm=NULL, size.factors.content=NULL,
@@ -30,32 +30,7 @@
         approximate=approximate, extra.args=irlba.args, 
         keep.left=TRUE, keep.right=TRUE)
     pcs <- .convert_to_output(svd.out, ncomp=d, value="pca")
-
-    all.means <- rowMeans(y)
-    mean.correction <- colSums(all.means * svd.out$v)
-
-    # Simulating doublets.
-    collected <- list()
-    counter <- 1L
-    current <- 0L
-
-    while (current < niters) {
-        to.make <- min(block, niters - current)
-        left <- sample(ncol(x), to.make, replace=TRUE)
-        right <- sample(ncol(x), to.make, replace=TRUE)
-        sim.x <- x[,left,drop=FALSE] + x[,right,drop=FALSE]
-        sim.sf <- size.factors.norm[left] + size.factors.norm[right]
-        sim.y <- normalizeMatrix(sim.x, sim.sf, centre_size_factors=FALSE)
-
-        # Projecting onto the PC space of the original data.
-        sim.pcs <- crossprod(sim.y, svd.out$v)
-        sim.pcs <- sweep(sim.pcs, 2L, mean.correction, FUN="-", check.margin=FALSE)
-        collected[[counter]] <- sim.pcs
-        counter <- counter + 1L
-        current <- current + block
-    }
-
-    sim.pcs <- do.call(rbind, collected)
+    sim.pcs <- .spawn_doublet_pcs(x, size.factors.norm, V=svd.out$v, centers=rowMeans(y), niters=niters, block=block)
 
     # Computing densities, using a distance computed from the kth nearest neighbor.
     pre.pcs <- precluster(pcs)
@@ -69,6 +44,33 @@
     }, self=self.dist, sim=sim.dist, limit=dist2nth, BPPARAM=BPPARAM)
 
     rel.dens/(niters/ncol(x))
+}
+
+#' @importFrom Matrix crossprod
+#' @importFrom scater normalizeMatrix
+.spawn_doublet_pcs <- function(x, size.factors, V, centers, niters=10000L, block=10000L) {
+    collected <- list()
+    counter <- 1L
+    current <- 0L
+    mean.correction <- colSums(centers * V)
+
+    while (current < niters) {
+        to.make <- min(block, niters - current)
+        left <- sample(ncol(x), to.make, replace=TRUE)
+        right <- sample(ncol(x), to.make, replace=TRUE)
+        sim.x <- x[,left,drop=FALSE] + x[,right,drop=FALSE]
+        sim.sf <- size.factors[left] + size.factors[right]
+        sim.y <- normalizeMatrix(sim.x, sim.sf, centre_size_factors=FALSE)
+
+        # Projecting onto the PC space of the original data.
+        sim.pcs <- crossprod(sim.y, V)
+        sim.pcs <- sweep(sim.pcs, 2L, mean.correction, FUN="-", check.margin=FALSE)
+        collected[[counter]] <- sim.pcs
+        counter <- counter + 1L
+        current <- current + block
+    }
+
+    do.call(rbind, collected)
 }
 
 ##############################
