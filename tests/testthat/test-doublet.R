@@ -229,8 +229,8 @@ test_that("other settings for doubletCells work correctly", {
     set.seed(2000)
     sim <- doubletCells(counts, d=5)
     set.seed(2000)
-    ref <- doubletCells(counts, approximate=TRUE, irlba.args=list(tol=1e-12), d=5)
-    expect_true(all( abs(sim-ref)/(sim+ref+1e-6) < 0.1 ) )
+    ref <- doubletCells(counts, approximate=TRUE, irlba.args=list(tol=1e-12, work=50, maxit=20000), d=5)
+    expect_true(median( abs(sim-ref)/(sim+ref+1e-6) ) < 0.01)
 
     # Responds correctly to blocking.
     set.seed(3000)
@@ -240,4 +240,47 @@ test_that("other settings for doubletCells work correctly", {
     sim2 <- doubletCells(counts, niters=20000)
     expect_equal(sim2, ref, tol=0.1)
 })
+
+set.seed(9900006)
+test_that("doubletCells works correctly for SCE objects", {
+    sce <- SingleCellExperiment(list(counts=counts))
+
+    set.seed(1000)
+    ref <- doubletCells(counts)
+    set.seed(1000)
+    dbl <- doubletCells(sce)
+    expect_identical(ref, dbl)
+
+    # With a different assay.
+    assay(sce, "whee") <- counts + rpois(length(counts), lambda=2)
+    set.seed(1001)
+    ref2 <- doubletCells(assay(sce, "whee"))
+    set.seed(1001)
+    dbl2 <- doubletCells(sce, assay.type="whee")
+    expect_identical(ref2, dbl2)
+
+    # With spike-ins that get used.
+    isSpike(sce, "ERCC") <- sample(nrow(sce), 20)
+    set.seed(1000)
+    dbl3 <- doubletCells(sce, get.spikes=TRUE)
+    expect_identical(ref, dbl3)
+
+    # ... or ignored.
+    set.seed(1002)
+    dbl4 <- doubletCells(sce)
+    set.seed(1002)
+    ref3 <- doubletCells(counts(sce), subset.row=!isSpike(sce))
+    expect_identical(ref3, dbl4)
+
+    # With both spike-ins _and_ subset.row specified.
+    rand.nospiked <- sample(which(!isSpike(sce)), 10)
+    rand.spiked <- sample(which(isSpike(sce)), 10)
+
+    set.seed(1003)
+    expect_warning(dbl5 <- doubletCells(sce, subset.row=c(rand.spiked, rand.nospiked)), "greater than available")
+    set.seed(1003)
+    expect_warning(ref4 <- doubletCells(counts(sce), subset.row=rand.nospiked),  "greater than available")
+    expect_identical(ref4, dbl5)
+})
+
 
