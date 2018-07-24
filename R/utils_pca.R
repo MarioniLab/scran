@@ -51,6 +51,11 @@
         return(ncomp)
     }
 
+    if (ncomp > ncol(svd.out$u)) {
+        warning("requested number of components greater than available rank")
+        ncomp <- ncol(svd.out$u)
+    }
+
     ix <- seq_len(ncomp)
     U <- svd.out$u[,ix,drop=FALSE]
     D <- svd.out$d[ix]
