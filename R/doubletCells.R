@@ -1,5 +1,4 @@
 #' @importFrom scater librarySizeFactors normalizeMatrix
-#' @importFrom BiocGenerics "sizeFactors<-" sizeFactors
 #' @importFrom SingleCellExperiment SingleCellExperiment logcounts
 #' @importFrom BiocParallel SerialParam bpmapply
 #' @importFrom Matrix rowMeans

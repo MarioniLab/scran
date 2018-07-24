@@ -49,9 +49,8 @@
 
                 if (N < best.N) {
                     best.N <- N
-                    chosen <- which.min(max.p)[1] # [1] gives NA when there are no genes, which avoids nrow mismatch in DataFrame().
-                    best.gene <- chosen
-                    best.p <- adj.p[chosen]
+                    best.gene <- which.min(max.p)[1] # [1] gives NA when there are no genes, which avoids nrow mismatch in DataFrame().
+                    best.p <- adj.p[best.gene]
                     best.parents <- c(i1, i2)
                 }
             }
