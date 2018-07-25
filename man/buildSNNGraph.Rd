@@ -73,7 +73,7 @@ However, by default, \code{directed=FALSE} such that an undirected graph is retu
 In practice, PCA is performed on \code{x} to obtain the first \code{d} principal components.
 This is necessary in order to perform the k-NN search (done using the \code{\link[kmknn]{findKNN}} function) in reasonable time.
 By default, the first 50 components are chosen, which should retain most of the substructure in the data set.
-If \code{d} is \code{NA} or less than the number of cells, no dimensionality reduction is performed.
+If \code{d} is \code{NA} or greater than or equal to the number of cells, no dimensionality reduction is performed.
 
 If \code{pc.approx=TRUE}, \code{\link[irlba]{prcomp_irlba}} will be used to quickly obtain the first \code{d} PCs.
 While this algorithm does converge towards the exact PCs, it performs a random initialization and thus is technically dependent on the session seed.
