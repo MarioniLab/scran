@@ -13,6 +13,9 @@
     if (length(clusters)!=ncells) {
         stop("length of 'clusters' does not equal 'ncol(x)'")
     }
+    if (nlevels(clusters) < 2L) {
+        stop("need at least two unique levels in 'clusters'")
+    }
     pval.type <- match.arg(pval.type) 
     direction <- match.arg(direction)  
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)

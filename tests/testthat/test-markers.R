@@ -572,11 +572,9 @@ test_that("findMarkers behaves sensibly with silly inputs", {
         expect_identical(colnames(current), c("Top", "FDR", paste0("logFC.", setdiff(as.character(1:3), i))))
     }    
     
-    # No cells.
-    out <- findMarkers(exprs(X)[,0], clusters=integer(0))
-    expect_identical(length(out), 0L)    
-    expect_error(findMarkers(exprs(X)[,0], clusters=integer(0), design=matrix(0,0,0)), 
-                 "contrasts can be applied only to factors with 2 or more levels")
+    # Throws errors with only one cluster, or no cells.
+    expect_error(findMarkers(exprs(X), clusters=rep(1, length.out=ncol(X))), "need at least two unique levels")
+    expect_error(findMarkers(exprs(X)[,0], clusters=integer(0)), "need at least two unique levels")
 
     # Mismatch in dimensions.
     expect_error(findMarkers(exprs(X), clusters=1), "length of 'clusters' does not equal 'ncol(x)'", fixed=TRUE)
