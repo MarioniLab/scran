@@ -93,8 +93,7 @@ test_that("doubletCluster works correctly with row subsets", {
     expect_true(all(out$N==0L))
 
     # While we're here, trying out empty columns.
-    out <- doubletCluster(counts[,0], clusters[0])
-    expect_identical(out, ref[0,])
+    expect_error(doubletCluster(counts[,0], clusters[0]), "need at least three")
 })
 
 test_that("doubletCluster works correctly with SingleCellExperiment", {

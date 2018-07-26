@@ -8,6 +8,10 @@
 # written by Aaron Lun
 # created 16 April 2018
 {
+    if (length(unique(clusters)) < 3L) {
+        stop("need at least three clusters to detect doublet clusters")
+    }
+
     # Computing normalized counts using the library size (looking for compositional differences!)
     sce <- SingleCellExperiment(list(counts=x))
     sizeFactors(sce) <- librarySizeFactors(x, subset_row=subset.row)
