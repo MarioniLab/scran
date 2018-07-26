@@ -82,7 +82,10 @@ For full reproducibility, users are advised to call \code{\link{set.seed}} befor
 Expression values in \code{x} should typically be on the log-scale, e.g., log-transformed counts.
 Ranks can also be used for greater robustness, e.g., from \code{\link{quickCluster}} with \code{get.ranks=TRUE}.
 (Dimensionality reduction is still okay when ranks are provided - running PCA on ranks is equivalent to running MDS on the distance matrix derived from Spearman's rho.)
-If the input matrix is already transposed, \code{transposed=TRUE} avoids an unnecessary internal transposition. 
+
+If the input matrix \code{x} is already transposed for the ANY method, \code{transposed=TRUE} avoids an unnecessary internal transposition.
+A typical use case is when \code{x} contains some reduced dimension coordinates with cells in the rows.
+In such cases, setting \code{transposed=TRUE} and \code{d=NA} will use the input coordinates directly for graph-building.
 
 By default, spike-in transcripts are removed from the expression matrix in \code{buildSNNGraph,SCESet-method}.
 However, any non-\code{NULL} setting of \code{subset.row} will override \code{get.spikes}.
