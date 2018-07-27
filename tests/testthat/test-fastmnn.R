@@ -130,7 +130,7 @@ test_that("fastMNN works as expected for two batches", {
     pcs <- multiBatchPCA(B1, B2, d=10, approximate=FALSE)
     out.pre <- fastMNN(pcs[[1]], pcs[[2]], pc.input=TRUE)
     out.norm <- fastMNN(B1, B2, d=10, cos.norm=FALSE, approximate=FALSE)
-    expect_equal(out.pre, out.norm)
+    expect_equal(out.pre, out.norm[1:3])
 })
 
 set.seed(1200005)
