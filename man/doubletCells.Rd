@@ -8,8 +8,9 @@
 
 \usage{
 \S4method{doubletCells}{ANY}(x, size.factors.norm=NULL, size.factors.content=NULL,
-    k=50, subset.row=NULL, niters=max(10000, ncol(x)), block=10000, d=50, 
-    approximate=FALSE, irlba.args=list(), BPPARAM=SerialParam())
+    k=50, subset.row=NULL, niters=max(10000, ncol(x)), block=10000, 
+    force.match=FALSE, force.k=20, d=50, approximate=FALSE, 
+    irlba.args=list(), BPPARAM=SerialParam())
 
 \S4method{doubletCells}{SingleCellExperiment}(x, size.factors.norm=NA, ..., subset.row=NULL, 
     assay.type="counts", get.spikes=FALSE)
@@ -29,6 +30,8 @@ For the SingleCellExperiment method, this may be \code{NA}, in which case \code{
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{niters}{An integer scalar specifying how many simulated doublets should be generated.}
 \item{block}{An integer scalar controlling the rate of doublet generation, to keep memory usage low.}
+\item{force.match}{A logical scalar indicating whether remapping of simulated doublets to original cells should be performed.}
+\item{force.k}{An integer scalar specifying the number of neighbours to use for remapping if \code{force.match=TRUE}.}
 \item{d}{An integer scalar specifying the number of components to retain after the PCA.}
 \item{approximate}{A logical scalar indicating whether \code{\link[irlba]{irlba}} should be used to perform the initial PCA.}
 \item{irlba.args}{A list of arguments to pass to \code{\link[irlba]{irlba}} when \code{approximate=TRUE}.}
@@ -53,7 +56,7 @@ Simulated doublets are projected into the low-dimensional space using the rotati
 A tricube kernel is used to compute the density around each cell.
 The bandwidth of the kernel is set to the median distance to the \code{k} nearest neighbour across all cells.
 
-It is worth clarifying the role of the two size factor arguments:
+The two size factor arguments have different roles:
 \itemize{
 \item \code{size.factors.norm} contains the size factors to be used for normalization prior to PCA and distance calculations.
 This can be set to ensure that the low-dimensional space is consistent with that in the rest of the analysis.
@@ -61,6 +64,11 @@ This can be set to ensure that the low-dimensional space is consistent with that
 This is usually computed from spike-in RNA and ensures that the simulated doublets have the correct ratio of contributions from the original cells.
 }
 It is possible to set both of these arguments, as they will not interfere with each other.
+
+If \code{force.match=TRUE}, simulated doublets will be remapped to the nearest neighbours in the original data.
+This is done by taking the (tricube-weighted) average of the PC scores for the \code{force.k} nearest neighbors.
+The aim is to adjust for unknown differences in RNA content that would cause the simulated doublets to be systematically displaced from their true locations.
+However, it may also result in spuriously high scores for single cells that happen to be close to a cluster of simulated doublets.
 }
 
 \author{
