@@ -79,11 +79,10 @@
                 .Deprecated(msg="'rand.seed=' is deprecated.\nUse 'set.seed' externally instead.")
                 set.seed(rand.seed)
             }
-            pc <- do.call(irlba::prcomp_irlba, c(list(x=x, n=d, scale.=FALSE, center=TRUE, retx=TRUE), irlba.args))
-        } else {
-            pc <- prcomp(x, rank.=d, scale.=FALSE, center=TRUE)
         }
-        x <- pc$x
+
+        svd.out <- .centered_SVD(x, max.rank=d, approximate=pc.approx, extra.args=irlba.args, keep.right=FALSE)
+        x <- .svd_to_pca(svd.out, d, named=FALSE)
     }
    
     # Finding the KNNs. 

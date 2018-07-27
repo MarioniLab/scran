@@ -20,12 +20,11 @@
     
     # Running the PCA function once.
     value <- match.arg(value)
-    original <- .PCA_overlord(y, max.rank, 
-        approximate=approximate, extra.args=irlba.args, 
+    svd.out <- .centered_SVD(y, max.rank, approximate=approximate, extra.args=irlba.args, 
         keep.left=(value!="n"), keep.right=(value=="lowrank"))
 
     # Running it once, and then multiple times after permutation.
-    original.d2 <- original$d^2
+    original.d2 <- svd.out$d^2
     permuted <- bplapply(rep(max.rank, niters), FUN=.parallel_PA, y=y,
         approximate=approximate, extra.args=irlba.args, BPPARAM=BPPARAM)
     permutations <- do.call(cbind, permuted)
@@ -41,7 +40,11 @@
     npcs <- .keep_rank_in_range(npcs, min.rank, length(original.d2))
 
     # Collating the return value.
-    out.val <- .convert_to_output(original, npcs, value, x0, subset.row)
+    out.val <- switch(value, 
+        n=npcs,
+        pca=.svd_to_pca(svd.out, npcs),
+        lowrank=.svd_to_lowrank(svd.out, npcs, x0, subset.row)
+    )
 
     var.exp <- original.d2 / (ncol(x) - 1)
     all.var <- sum(rowVars(DelayedArray(x)))
@@ -56,7 +59,7 @@
 # We set keep.left=keep.right=FALSE to avoid computing the left/right eigenvectors, which are unnecessary here.
 {
     re.y <- .Call(cxx_shuffle_matrix, y)
-    out <- .PCA_overlord(re.y, ..., keep.left=FALSE, keep.right=FALSE)
+    out <- .centered_SVD(re.y, ..., keep.left=FALSE, keep.right=FALSE)
     out$d^2
 }
 

@@ -25,10 +25,9 @@
     y <- normalizeMatrix(x, size.factors.norm, centre_size_factors=FALSE)
 
     # Running the SVD.
-    svd.out <- .PCA_overlord(t(y), max.rank=d, 
-        approximate=approximate, extra.args=irlba.args, 
+    svd.out <- .centered_SVD(t(y), max.rank=d, approximate=approximate, extra.args=irlba.args, 
         keep.left=TRUE, keep.right=TRUE)
-    pcs <- .convert_to_output(svd.out, ncomp=d, value="pca")
+    pcs <- .svd_to_pca(svd.out, ncomp=d, named=FALSE)
     sim.pcs <- .spawn_doublet_pcs(x, size.factors.norm, V=svd.out$v, centers=rowMeans(y), niters=niters, block=block)
 
     # Computing densities, using a distance computed from the kth nearest neighbor.
