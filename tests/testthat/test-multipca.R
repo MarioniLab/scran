@@ -43,7 +43,7 @@ test_that("multi-sample PCA works as expected", {
     expect_equal(ref.dist, out.dist)
     
     out2 <- scran:::.multi_pca(list(test1, cbind(test2, test2)), d=nrow(test1))
-    out.dist2 <- as.matrix(dist(do.call(rbind, out2)))
+    out.dist2 <- as.matrix(dist(do.call(rbind, as.list(out2))))
     everything2 <- rbind(everything, t(test2))
     ref.dist2 <- as.matrix(dist(everything2)) 
     expect_equal(out.dist2, ref.dist2)
