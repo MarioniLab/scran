@@ -21,7 +21,7 @@ multiBatchPCA <- function(..., d=50, approximate=FALSE, irlba.args=list(), subse
 #' @importFrom BiocParallel SerialParam
 #' @importFrom methods as
 #' @importClassesFrom S4Vectors List
-#' @importFrom BiocGenerics metadata<-
+#' @importFrom S4Vectors metadata<-
 .multi_pca <- function(mat.list, subset.row=NULL, d=50, approximate=FALSE, irlba.args=list(), use.crossprod=FALSE, BPPARAM=SerialParam()) 
 # Internal function that uses DelayedArray to do the centering and scaling,
 # to avoid actually realizing the matrices in memory.
