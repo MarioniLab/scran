@@ -159,6 +159,33 @@ test_that("doubletCells PC spawning works correctly", {
     expect_identical(dim(sim.pcs), c(25000L, ncol(SVD$v)))
 })
 
+set.seed(99000021)
+test_that("tricube weighted remapping works correctly", {
+    X <- matrix(rnorm(10000), ncol=10)
+    Y <- matrix(rnorm(10000, sd=1.5), ncol=10)
+
+    # Passing via ... works.
+    sim <- scran:::.tricube_weighted_remapping(X, Y, k=20)
+    expect_equal(sim, scran:::.tricube_weighted_remapping(X, Y, precomputed=kmknn::precluster(Y), k=20))
+
+    # Check to reference calculation works.
+    closest <- kmknn::queryKNN(query=X, X=Y, k=20)
+    rel.dist <- closest$distance / closest$distance[,20]
+    
+    tricube <- (1 - rel.dist^3)^3
+    weight <- tricube/rowSums(tricube)
+    output <- matrix(0, nrow(X), ncol(X))
+    for (kdx in seq_len(nrow(closest$index))) {
+        output[kdx,] <- colSums(Y[closest$index[kdx,],,drop=FALSE] * weight[kdx,])
+    }
+
+    expect_equal(output, sim)
+    
+    # Still happy if the number of neighbors is larger than that available.
+    expect_warning(sim <- scran:::.tricube_weighted_remapping(X, Y[1:10,], k=20), "capped")
+    expect_equal(sim, scran:::.tricube_weighted_remapping(X, Y[1:10,], k=10))
+})
+
 set.seed(9900003)
 test_that("size factor variations in doubletCells work correctly", {
     sf1 <- runif(ncol(counts))
@@ -210,6 +237,9 @@ test_that("high-level tests for doubletCells work correctly", {
 
     out <- doubletCells(jitter(cbind(counts.A, counts.B, counts.C))) # fails without size factor info.
     expect_true(max(out[clusters==3]) < min(out[clusters!=3]))
+
+    out <- doubletCells(jitter(cbind(counts.A, counts.B, counts.C)), force.match=TRUE) # recovers with forced matching.
+    expect_true(min(out[clusters==3]) > max(out[clusters!=3]))
 })
 
 set.seed(9900005)
