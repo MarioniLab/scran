@@ -5,7 +5,8 @@
 #' @importFrom stats median
 #' @importFrom kmknn findKNN findNeighbors queryNeighbors
 .doublet_cells <- function(x, size.factors.norm=NULL, size.factors.content=NULL,
-        k=50, subset.row=NULL, niters=max(10000, ncol(x)), block=10000, d=50, approximate=FALSE, irlba.args=list(), BPPARAM=SerialParam())
+    k=50, subset.row=NULL, niters=max(10000, ncol(x)), block=10000, force.match=FALSE, force.k=20,
+    d=50, approximate=FALSE, irlba.args=list(), BPPARAM=SerialParam())
 # Simulates doublets and uses a mutual nearest-neighbour approach to match them to real cells.
 #
 # written by Aaron Lun
@@ -35,6 +36,10 @@
     pre.pcs <- precluster(pcs)
     self.dist <- findKNN(precomputed=pre.pcs, k=k, BPPARAM=BPPARAM, get.index=FALSE)$distance
     dist2nth <- median(self.dist[,ncol(self.dist)])
+
+    if (force.match) {
+        sim.pcs <- .tricube_weighted_remapping(sim.pcs, pcs, precomputed=pre.pcs, k=force.k, BPPARAM=BPPARAM)        
+    }
 
     self.dist <- findNeighbors(precomputed=pre.pcs, threshold=dist2nth, BPPARAM=BPPARAM, get.index=FALSE)$distance
     sim.dist <- queryNeighbors(sim.pcs, query=pcs, threshold=dist2nth, BPPARAM=BPPARAM, get.index=FALSE)$distance
@@ -70,6 +75,24 @@
     }
 
     do.call(rbind, collected)
+}
+
+#' @importFrom kmknn queryKNN
+.tricube_weighted_remapping <- function(simulated, original, ...)
+# Computing tricube-weighted coordinates for remapping simulated cells to their closest originals.
+{
+    closest <- queryKNN(query=simulated, X=original, ...)
+    max.dist <- closest$distance[,ncol(closest$distance)]
+    rel.dist <- closest$distance / max.dist
+
+    tricube <- (1 - rel.dist^3)^3
+    weight <- tricube/rowSums(tricube)
+    output <- matrix(0, nrow(simulated), ncol(simulated))
+    for (kdx in seq_len(ncol(closest$index))) {
+        output <- output + original[closest$index[,kdx],,drop=FALSE] * weight[,kdx]
+    }
+    
+    return(output)
 }
 
 ##############################
