@@ -40,7 +40,9 @@ Users can also force the algorithm to only use a subset of genes with \code{subs
 }
 
 \value{
-A list of numeric matrices where each matrix corresponds to a batch and contains the first \code{d} PCs (columns) for all cells in the batch (rows).
+A \linkS4class{List} of numeric matrices where each matrix corresponds to a batch and contains the first \code{d} PCs (columns) for all cells in the batch (rows).
+
+The metadata also contains a matrix of rotation vectors, which can be used to construct a low-rank approximation of the input matrices.
 }
 
 \author{
