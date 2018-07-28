@@ -1,8 +1,9 @@
 #' @export
 #' @importFrom BiocParallel SerialParam
+#' @importFrom S4Vectors DataFrame Rle
 fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE, 
     irlba.args=list(), subset.row=NULL, auto.order=FALSE, pc.input=FALSE,
-    assay.type="logcounts", use.spikes=FALSE, BPPARAM=SerialParam()) 
+    compute.variances=FALSE, assay.type="logcounts", use.spikes=FALSE, BPPARAM=SerialParam()) 
 # A faster version of the MNN batch correction approach.
 # 
 # written by Aaron Lun
@@ -14,6 +15,7 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
         stop("at least two batches must be specified") 
     }
 
+    # Creating the PCA input, if it is not already low-dimensional.
     if (!pc.input) {
         out <- .SCEs_to_matrices(batches, assay.type=assay.type, subset.row=subset.row, use.spikes=use.spikes)
         batches <- out$batches
@@ -31,6 +33,18 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
         .check_batch_consistency(batches, byrow=FALSE)
         pc.mat <- batches
     }
+
+    # Other pre-flight checks.
+    var.kept <- rep(1, nbatches)
+    re.order <- NULL 
+    if (!is.logical(auto.order)) {
+        re.order <- as.integer(auto.order)
+        if (!identical(sort(re.order), seq_len(nbatches))) {
+            stop("integer 'auto.order' must contain a permutation of 1:nbatches") 
+        }
+        auto.order <- FALSE
+    }
+    use.order <- !is.null(re.order)
 
     mnn.pairings <- vector("list", nbatches-1L)
     for (bdx in 2:nbatches) {
@@ -51,14 +65,16 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
                 processed <- c(processed, d.out$other)
             }
         } else {
-            # Otherwise, using consecutive batches in the supplied order.
+            # Using the suggested merge order, or the supplied order in ...
             if (bdx==2L) {
-                refdata <- pc.mat[[1]]
-                processed <- 1L
+                ref.idx <- if (use.order) re.order[1] else 1L
+                refdata <- pc.mat[[ref.idx]]
+                processed <- ref.idx
             }
-            curdata <- pc.mat[[bdx]]
+            cur.idx <- if (use.order) re.order[bdx] else bdx
+            curdata <- pc.mat[[cur.idx]]
             mnn.sets <- find.mutual.nn(refdata, curdata, k1=k, k2=k, BPPARAM=BPPARAM)
-            processed <- c(processed, bdx)
+            processed <- c(processed, cur.idx)
         }
 
         # Estimate the overall batch vector.
@@ -66,8 +82,17 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
         overall.batch <- colMeans(ave.out$averaged)
 
         # Remove variation along the batch vector.
+        if (compute.variances) {
+            var.before <- .compute_intra_var(refdata, curdata, pc.mat, processed)
+        }
+
         refdata <- .center_along_batch_vector(refdata, overall.batch)
         curdata <- .center_along_batch_vector(curdata, overall.batch)
+
+        if (compute.variances) {
+            var.after <- .compute_intra_var(refdata, curdata, pc.mat, processed)
+            var.kept[seq_len(bdx)] <- var.kept[seq_len(bdx)] * var.after/var.before
+        }
 
         # Repeating the MNN discovery, now that the spread along the batch vector is removed.
 #        re.mnn.sets <- find.mutual.nn(refdata, curdata, k1=k, k2=k, BPPARAM=BPPARAM)
@@ -80,24 +105,47 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
         mnn.pairings[[bdx-1L]] <- DataFrame(first=mnn.sets$first, second=mnn.sets$second + nrow(refdata))
         refdata <- rbind(refdata, curdata)
     }
+
+    # Adjusting the output back to the specified order.
+    if (auto.order || use.order) {
+        ordering <- vector("list", nbatches)
+        last <- 0L
+        for (idx in processed) { 
+            ncells <- nrow(pc.mat[[idx]])
+            ordering[[idx]] <- last + seq_len(ncells)
+            last <- last + ncells
+        }
+        ordering <- unlist(ordering)
+        refdata <- refdata[ordering,,drop=FALSE]
+
+        relocate <- ordering
+        relocate[ordering] <- seq_along(ordering)
+        for (x in seq_along(mnn.pairings)) {
+            current <- mnn.pairings[[x]]
+            current$first <- relocate[current$first]
+            current$second <- relocate[current$second]
+            mnn.pairings[[x]] <- current
+        }
+        
+        var.kept[processed] <- var.kept
+    }
     
     # Characterizing the original order of the batches and cells.
     if (!is.null(names(batches))) {
-        batch.ids <- names(batches)
+        batch.labels <- names(batches)
     } else {
-        batch.ids <- seq_along(batches)
+        batch.labels <- seq_along(batches)
     }
-    batch.ids <- batch.ids[processed]
-    ncells <- vapply(pc.mat, FUN=nrow, FUN.VALUE=0L)[processed]
-
-    batch.ids <- rep(batch.ids, ncells)
-    cell.ids <- unlist(lapply(ncells, seq_len), use.names=FALSE)
-    origin <- DataFrame(batch=batch.ids, cell=cell.ids)
+    ncells <- vapply(pc.mat, FUN=nrow, FUN.VALUE=0L)
+    batch.ids <- Rle(batch.labels, ncells)
 
     # Formatting the output.
-    output <- list(corrected=refdata, origin=origin, pairs=mnn.pairings)
+    output <- list(corrected=refdata, batch=batch.ids, pairs=mnn.pairings, order=batch.labels[processed])
     if (!pc.input) {
         output$rotation <- metadata(pc.mat)$rotation
+    }
+    if (compute.variances) {
+        output$lost.var <- 1 - var.kept
     }
     return(output)
 }
@@ -113,7 +161,7 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
     corvec <- rowsum(corvec, mnn2)
     npairs <- table(mnn2)
     stopifnot(identical(names(npairs), rownames(corvec)))
-    corvec <- corvec/as.vector(npairs)
+    corvec <- unname(corvec)/as.vector(npairs)
     list(averaged=corvec, second=as.integer(names(npairs)))
 }
 
@@ -150,6 +198,28 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
     }
     
     return(curdata)
+}
+
+############################################
+# Variance calculation functions.
+
+#' @importFrom DelayedArray DelayedArray
+#' @importFrom DelayedMatrixStats colVars
+#' @importFrom utils head
+.compute_intra_var <- function(reference, current, all.pcs, order) {
+    all.var <- numeric(length(order))
+
+    last <- 0L
+    dm <- DelayedArray(reference)
+    for (i in seq_len(length(order)-1L)) {
+        cur.ncells <- nrow(all.pcs[[order[i]]])
+        chosen <- last + seq_len(cur.ncells)
+        all.var[i] <- sum(colVars(dm, rows=chosen))
+        last <- last + cur.ncells
+    }
+
+    all.var[length(order)] <- sum(colVars(DelayedArray(current)))
+    return(all.var)
 }
 
 ############################################
