@@ -7,7 +7,8 @@
 \usage{
 fastMNN(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE, 
     irlba.args=list(), subset.row=NULL, auto.order=FALSE, pc.input=FALSE,
-    assay.type="logcounts", use.spikes=FALSE, BPPARAM=SerialParam()) 
+    compute.variances=FALSE, assay.type="logcounts", use.spikes=FALSE, 
+    BPPARAM=SerialParam()) 
 }
 
 \arguments{
@@ -23,10 +24,14 @@ Here, rows are cells and columns are dimensions (the latter should be common acr
 \item{cos.norm}{A logical scalar indicating whether cosine normalization should be performed on the input data prior to calculating distances between cells.}
 \item{ndist}{A numeric scalar specifying the threshold beyond which neighbours are to be ignored when computing correction vectors.
 Each threshold is defined in terms of the number of median distances.}
-\item{d, approximate, irlba.args}{Further arguments to pass to \code{\link{multiBatchPCA}}.}
+\item{d, approximate, irlba.args}{Further arguments to pass to \code{\link{multiBatchPCA}}.
+Setting \code{approximate=TRUE} is recommended for large data sets with many cells.}
 \item{subset.row}{A vector specifying the genes to use, providing equivalent behaviour to subsetting each object in \code{...}.
 All genes are used by default.}
-\item{auto.order}{Logical scalar indicating whether re-ordering of batches should be performed to maximize the number of MNN pairs at each step.}
+\item{auto.order}{Logical scalar indicating whether re-ordering of batches should be performed to maximize the number of MNN pairs at each step.
+
+Alternatively, an integer vector containing a permutation of \code{1:N} where \code{N} is the number of batches.}
+\item{compute.variances}{Logical scalar indicating whether the percentage of variance lost due to non-orthogonality should be computed.}
 \item{pc.input}{Logical scalar indicating whether the values in \code{...} are already low-dimensional, e.g., the output of \code{\link{multiBatchPCA}}.}
 \item{assay.type}{A string or integer scalar specifying the assay containing the expression values, if SingleCellExperiment objects are present in \code{...}.}
 \item{use.spikes}{A logical scalar specifying whether spike-in transcripts should be used, if SingleCellExperiment objects are present in \code{...}.}
@@ -37,14 +42,14 @@ All genes are used by default.}
 A named list containing:
 \describe{
 \item{\code{corrected}:}{A matrix with number of columns equal to \code{d}, and number of rows equal to the total number of cells in \code{...}.
-Cells are ordered in the same manner as supplied in \code{...} if \code{auto.order=FALSE},
-otherwise the batches will be re-ordered as determined by the algorithm.}
-\item{\code{origin}:}{A DataFrame containing the \code{batch} field (integer, or character if \code{...} is named), 
-which specifies the batch of origin for each row (i.e., cell) in \code{corrected};
-and the \code{cell} field (integer), which specifies the column of origin for each row in \code{corrected}.} 
+Cells are ordered in the same manner as supplied in \code{...}.}
+\item{\code{batch}:}{A \linkS4class{Rle} containing the batch of origin for each row (i.e., cell) in \code{corrected}.}
 \item{\code{pairs}:}{A list of DataFrames specifying which pairs of cells in \code{corrected} were identified as MNNs at each step.} 
 }
+
 If \code{pc.input=FALSE}, an additional \code{rotation} field will be present, containing the matrix of rotation vectors from \code{\link{multiBatchPCA}}.
+
+If \code{compute.variances=TRUE}, an additional \code{lost.var} field will be present containing a numeric vector of percentages of variances lost for each batch.
 }
 
 \details{
@@ -67,6 +72,11 @@ The correction vectors are then recalculated with the adjusted coordinates (but 
 The default setting of \code{cos.norm=TRUE} provides some protection against differences in scaling for arbitrary expression matrices.
 However, if possible, we recommend using the output of \code{\link{multiBatchNorm}} as input to \code{fastMNN}.
 This will equalize coverage on the count level before the log-transformation, which is a more accurate rescaling than cosine normalization on the log-values.
+
+If \code{compute.variances=TRUE}, the function will compute the percentage of variance that is parallel to the average correction vectors at each merge step.
+This represents the variance that is not orthogonal to the batch effect and subsequently lost upon correction.
+Large proportions suggest that there is biological structure that is parallel to the batch effect, 
+corresponding to violations of the assumption that the batch effect is orthogonal to the biological subspace.
 }
 
 \section{Controlling the merge order}{
@@ -75,6 +85,11 @@ However, if \code{auto.order=TRUE}, batches are ordered to maximize the number o
 The aim is to improve the stability of the correction by first merging more similar batches with more MNN pairs.
 This can be somewhat time-consuming as MNN pairs need to be iteratively recomputed for all possible batch pairings.
 It is often more convenient for the user to specify an appropriate ordering based on prior knowledge about the batches.
+
+If \code{auto.order} is an integer vector, it is treated as an ordering permutation with which to merge batches.
+For example, if \code{auto.order=c(4,1,3,2)}, batches 4 and 1 in \code{...} are merged first, followed by batch 3 and then batch 2.
+This is often more convenient than changing the order manually in \code{...}, which would alter the order of batches in the output \code{corrected} matrix.
+Indeed, no matter what the setting of \code{auto.order} is, the order of cells in the output corrected matrix is \emph{always} the same.
 
 Further control of the merge order can be achieved by performing the multi-sample PCA outside of this function with \code{\link{multiBatchPCA}}.
 Then, batches can be progressively merged by repeated calls to \code{fastMNN} with \code{pc.input=TRUE}.
