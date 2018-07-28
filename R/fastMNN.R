@@ -205,7 +205,6 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
 
 #' @importFrom DelayedArray DelayedArray
 #' @importFrom DelayedMatrixStats colVars
-#' @importFrom utils head
 .compute_intra_var <- function(reference, current, all.pcs, order) {
     all.var <- numeric(length(order))
 
