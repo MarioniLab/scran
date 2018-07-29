@@ -43,7 +43,7 @@ test_that("multi-sample PCA works as expected", {
     expect_equal(ref.dist, out.dist)
     
     out2 <- scran:::.multi_pca(list(test1, cbind(test2, test2)), d=nrow(test1))
-    out.dist2 <- as.matrix(dist(do.call(rbind, out2)))
+    out.dist2 <- as.matrix(dist(do.call(rbind, as.list(out2))))
     everything2 <- rbind(everything, t(test2))
     ref.dist2 <- as.matrix(dist(everything2)) 
     expect_equal(out.dist2, ref.dist2)
@@ -181,6 +181,10 @@ test_that("multi-sample PCA works with high-level options", {
     ref <- multiBatchPCA(test1, test2, d=3, subset.row=i)
     out <- multiBatchPCA(test1[i,], test2[i,], d=3)
     expect_equal(ref, out)
+
+    # Respects names.
+    out <- multiBatchPCA(A=test1, V=test2, d=3)
+    expect_identical(names(out), c("A", "V"))
 
     # Behaves with SCE objects as input.
     sce1 <- SingleCellExperiment(list(logcounts=test1))

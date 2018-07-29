@@ -19,6 +19,9 @@ multiBatchPCA <- function(..., d=50, approximate=FALSE, irlba.args=list(), subse
 #' @importFrom DelayedArray DelayedArray t
 #' @importFrom DelayedMatrixStats rowMeans2
 #' @importFrom BiocParallel SerialParam
+#' @importFrom methods as
+#' @importClassesFrom S4Vectors List
+#' @importFrom S4Vectors metadata<-
 .multi_pca <- function(mat.list, subset.row=NULL, d=50, approximate=FALSE, irlba.args=list(), use.crossprod=FALSE, BPPARAM=SerialParam()) 
 # Internal function that uses DelayedArray to do the centering and scaling,
 # to avoid actually realizing the matrices in memory.
@@ -66,6 +69,9 @@ multiBatchPCA <- function(..., d=50, approximate=FALSE, irlba.args=list(), subse
     for (idx in seq_along(centered)) {
         final[[idx]] <- as.matrix(t(centered[[idx]]) %*% svd.out$v)
     }
+
+    final <- as(final, "List")
+    metadata(final) <- list(rotation=svd.out$v)
     return(final)
 }
 

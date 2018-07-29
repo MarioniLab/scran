@@ -16,13 +16,11 @@ test_that("averaging correction vectors works as expected", {
         collected[[idx]] <- colMeans(correct[by.mnn[[idx]],,drop=FALSE])
     }
     ref <- do.call(rbind, collected)
-    rownames(ref) <- names(by.mnn)
 
     # Comparing the implementation in scran.
     out <- scran:::.average_correction(test1, mnn1, test2, mnn2)  
     expect_equal(out$averaged, ref)
     expect_identical(out$second, sort(unique(mnn2)))
-    expect_identical(as.integer(rownames(out$averaged)), out$second)
 })
 
 set.seed(1200002)
@@ -75,17 +73,30 @@ test_that("tricube weighting works correctly", {
     expect_equal(ref, out)
 })
 
-CHECK_PAIRINGS <- function(origin, pairings) {
-    expect_identical(unique(origin$batch[pairings[[1]]$first]), origin$batch[1])
+CHECK_PAIRINGS <- function(mnn.out) {
+    origin <- as.vector(mnn.out$batch)
+    pairings <- mnn.out$pairs
+    order <- mnn.out$order
+
+    sofar <- unique(origin[pairings[[1]]$first])
+    expect_identical(sofar, order[1L])
+    counter <- 1L
 
     for (p in pairings) {
-        expect_true(all(p$first < p$second))
+        sbatch <- origin[p$second]
+        usecond <- unique(sbatch)
+        expect_identical(length(usecond), 1L)
 
-        sbatch <- origin$batch[p$second]
-        expect_identical(length(unique(sbatch)), 1L)
+        fbatch <- origin[p$first]
+        expect_true(!any(fbatch == usecond))
+   
+        ufirst <- unique(fbatch) 
+        expect_identical(sofar, sort(ufirst))
+        sofar <- sort(c(ufirst, usecond))
+        expect_identical(sofar, sort(order[seq_along(sofar)]))
 
-        fbatch <- origin$batch[p$first]
-        expect_true(!any(fbatch %in% sbatch))
+        expect_identical(length(sofar), counter + 1L)
+        counter <- counter + 1L
     }
 
     return(NULL)
@@ -98,21 +109,20 @@ test_that("fastMNN works as expected for two batches", {
 
     out <- fastMNN(B1, B2, d=50) # corrected values
     expect_identical(dim(out$corrected), c(ncol(B1) + ncol(B2), 50L))
-    expect_identical(out$origin$batch, rep(1:2, c(ncol(B1), ncol(B2))))
-    expect_identical(out$origin$cell, c(seq_len(ncol(B1)), seq_len(ncol(B2))))
-    CHECK_PAIRINGS(out$origin, out$pairs)
+    expect_identical(as.integer(out$batch), rep(1:2, c(ncol(B1), ncol(B2))))
+    expect_identical(out$order, 1:2)
+    CHECK_PAIRINGS(out)
     
     # Dimension choice behaves correctly.
     out.10 <- fastMNN(B1, B2, d=10) 
     expect_identical(ncol(out.10$corrected), 10L)
-    CHECK_PAIRINGS(out.10$origin, out.10$pairs)
+    CHECK_PAIRINGS(out.10)
 
     # Handles names correctly.
     out.n <- fastMNN(X=B1, Y=B2, d=50) 
     expect_identical(out$corrected, out.n$corrected)
-    expect_identical(out.n$origin$batch, rep(c("X", "Y"), c(ncol(B1), ncol(B2))))
-    expect_identical(out.n$origin$cell, c(seq_len(ncol(B1)), seq_len(ncol(B2))))
-    CHECK_PAIRINGS(out.n$origin, out.n$pairs)
+    expect_identical(as.character(out.n$batch), rep(c("X", "Y"), c(ncol(B1), ncol(B2))))
+    CHECK_PAIRINGS(out.n)
 
     # Behaves if we turn off cosine-norm.
     nB1 <- t(t(B1)/ sqrt(colSums(B1^2)))
@@ -130,27 +140,69 @@ test_that("fastMNN works as expected for two batches", {
     pcs <- multiBatchPCA(B1, B2, d=10, approximate=FALSE)
     out.pre <- fastMNN(pcs[[1]], pcs[[2]], pc.input=TRUE)
     out.norm <- fastMNN(B1, B2, d=10, cos.norm=FALSE, approximate=FALSE)
-    expect_equal(out.pre, out.norm)
+    expect_equal(out.pre, out.norm[setdiff(names(out.norm), "rotation")])
+})
+
+set.seed(1200004)
+test_that("variance loss calculations work as expected", {
+    PC1 <- matrix(rnorm(10000), ncol=10) # Batch 1 
+    PC2 <- matrix(rnorm(20000), ncol=10) # Batch 2
+
+    out <- scran:::.compute_intra_var(PC1, PC2, list(PC1, PC2), c(1L, 2L))
+    expect_identical(out[1], sum(DelayedMatrixStats::colVars(DelayedArray(PC1))))
+    expect_identical(out[2], sum(DelayedMatrixStats::colVars(DelayedArray(PC2))))
+
+    # Alternative ordering. 
+    out2 <- scran:::.compute_intra_var(PC2, PC1, list(PC1, PC2), c(2L, 1L))
+    expect_identical(out, rev(out2))
+
+    # Multiple lengths.
+    out3 <- scran:::.compute_intra_var(rbind(PC1, PC1), PC2, list(PC1, PC2), c(1L, 1L, 2L))
+    expect_identical(out3, out[c(1,1,2)])
+
+    # Checking that we comput something.
+    mnn.out <- fastMNN(PC1, PC2, pc.input=TRUE, compute.variances=TRUE)
+    expect_identical(length(mnn.out$lost.var), 2L)
+    mnn.out2 <- fastMNN(PC2, PC1, auto.order=2:1, pc.input=TRUE, compute.variances=TRUE)
+    expect_identical(mnn.out$lost.var, rev(mnn.out2$lost.var))
 })
 
 set.seed(1200005)
-test_that("fastMNN works as expected for three batches, with auto-ordering", {
+test_that("fastMNN works as expected for three batches, with re- and auto-ordering", {
     B1 <- matrix(rnorm(10000), nrow=100) # Batch 1 
     B2 <- matrix(rnorm(20000), nrow=100) # Batch 2
     B3 <- matrix(rnorm(5000), nrow=100) # Batch 2
 
     out <- fastMNN(B1, B2, B3, d=50) # corrected values
     expect_identical(dim(out$corrected), c(ncol(B1) + ncol(B2) + ncol(B3), 50L))
-    expect_identical(out$origin$batch, rep(1:3, c(ncol(B1), ncol(B2), ncol(B3))))
-    expect_identical(out$origin$cell, c(seq_len(ncol(B1)), seq_len(ncol(B2)), seq_len(ncol(B3))))
-    CHECK_PAIRINGS(out$origin, out$pairs)
+    expect_identical(as.integer(out$batch), rep(1:3, c(ncol(B1), ncol(B2), ncol(B3))))
+    expect_identical(out$order, 1:3)
+    CHECK_PAIRINGS(out)
+    
+    # Testing the re-ordering algorithms.
+    out.re <- fastMNN(B3=B3, B2=B2, B1=B1, auto.order=c(3,2,1))
+    CHECK_PAIRINGS(out.re)
+
+    back.to.original <- order(out.re$batch)
+    expect_equal(out$corrected, out.re$corrected[back.to.original,])
+    expect_identical(out.re$order, c("B1", "B2", "B3"))
+
+    for (i in seq_along(out$pairs)) {
+        expect_identical(out$pairs[[i]]$first, match(out.re$pairs[[i]]$first, back.to.original))
+        expect_identical(out$pairs[[i]]$second, match(out.re$pairs[[i]]$second, back.to.original))
+    }
+
+    expect_equal(out$rotation, out.re$rotation)
 
     # Testing the auto-ordering algorithms. 
     out.auto <- fastMNN(B1, B2, B3, d=50, auto.order=TRUE) 
     expect_identical(dim(out$corrected), dim(out.auto$corrected))
-    expect_identical(out.auto$origin$batch, rep(c(2L, 1L, 3L), c(ncol(B2), ncol(B1), ncol(B3)))) # 3 should be last, with the fewest cells => fewest MNNs.
-    expect_identical(out.auto$origin$cell, c(seq_len(ncol(B2)), seq_len(ncol(B1)), seq_len(ncol(B3))))
-    CHECK_PAIRINGS(out.auto$origin, out.auto$pairs)
+    expect_identical(out.auto$batch, out$batch)
+    expect_identical(out.auto$order, c(2L, 1L, 3L)) # 3 should be last, with the fewest cells => fewest MNNs.
+    CHECK_PAIRINGS(out.auto)
+
+    out.re.auto <- fastMNN(B1, B2, B3, auto.order=out.auto$order)
+    expect_equal(out.auto, out.re.auto)
 
     # Testing the internal auto-ordering functions.
     fmerge <- scran:::.define_first_merge(list(t(B1), t(B2), t(B3)), k=20)   
@@ -214,4 +266,7 @@ test_that("fastMNN fails on silly inputs", {
     rownames(xB1) <- sample(nrow(B1))
     rownames(xB2) <- sample(nrow(B2))
     expect_error(fastMNN(xB1, xB2), "row names are not the same")
+
+    # Fails if auto.order is not in 1:nbatches.
+    expect_error(fastMNN(B1, B2, auto.order=1:3), "permutation of")
 })

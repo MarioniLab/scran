@@ -37,19 +37,22 @@
     all.var <- all.var[keep]
     total.tech <- sum(tech.var)
 
-    # Setting up the PCA function and its arguments.
+    # Setting up the SVD results. 
     value <- match.arg(value)
-    original <- .PCA_overlord(t(y), max.rank, 
-        approximate=approximate, extra.args=irlba.args, 
-        keep.left=(value!="n"), keep.right=(value=="lowrank"))
+    svd.out <- .centered_SVD(t(y), max.rank, approximate=approximate, extra.args=irlba.args, 
+        keep.left=(value!="n"), keep.right=(value=="lowrank")) 
 
     # Choosing the number of PCs.
-    var.exp <- original$d^2 / (ncol(y) - 1)
+    var.exp <- svd.out$d^2 / (ncol(y) - 1)
     npcs <- .get_npcs_to_keep(var.exp, total.tech, total=sum(all.var))
     npcs <- .keep_rank_in_range(npcs, min.rank, length(var.exp))
 
     # Processing remaining aspects.
-    out.val <- .convert_to_output(original, npcs, value, x, use.rows)
+    out.val <- switch(value, 
+        n=npcs,
+        pca=.svd_to_pca(svd.out, npcs),
+        lowrank=.svd_to_lowrank(svd.out, npcs, x, use.rows)
+    )
     attr(out.val, "percentVar") <- var.exp/sum(all.var)
     return(out.val)
 } 

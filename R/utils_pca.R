@@ -1,4 +1,4 @@
-.PCA_overlord <- function(y, max.rank, approximate=FALSE, extra.args=list(), keep.left=TRUE, keep.right=TRUE)
+.centered_SVD <- function(y, max.rank, approximate=FALSE, extra.args=list(), keep.left=TRUE, keep.right=TRUE)
 # Performs the PCA given a log-expression matrix.
 # Switches between svd() and irlba() on request.
 # Output format is guaranteed to be the same.
@@ -41,17 +41,12 @@
     max(chosen, min(min.rank, nd))
 }
 
-#' @importFrom DelayedArray DelayedArray
-#' @importFrom DelayedMatrixStats rowMeans2
-.convert_to_output <- function(svd.out, ncomp, value, original.mat, subset.row)
-# Obtaining the desired output from the function; either the number of PCs,
-# or the PCs themselves, or a low-rank approximation of the original matrix.
+.svd_to_pca <- function(svd.out, ncomp, named=TRUE) 
+# Converts centred results to PCs.
 {
-    if (value=="n") {
-        return(ncomp)
-    }
-
-    if (ncomp > ncol(svd.out$u)) {
+    if (is.null(svd.out$u)) {
+        stop("missing 'U' in SVD results")
+    } else if (ncomp > ncol(svd.out$u)) {
         warning("requested number of components greater than available rank")
         ncomp <- ncol(svd.out$u)
     }
@@ -62,14 +57,33 @@
 
     # Pulling out the PCs (column-multiplying the left eigenvectors).
     pcs <- sweep(U, 2L, D, FUN="*", check.margin = FALSE)
-    if (value=="pca") {
+    if (named) {
         colnames(pcs) <- sprintf("PC%i", ix)
-        return(pcs)
     }
+    return(pcs)
+}
+
+#' @importFrom DelayedArray DelayedArray
+#' @importFrom DelayedMatrixStats rowMeans2
+.svd_to_lowrank <- function(svd.out, ncomp, original.mat, subset.row)
+# Obtaining the desired output from the function; either the number of PCs,
+# or the PCs themselves, or a low-rank approximation of the original matrix.
+{
+    if (is.null(svd.out$u) || is.null(svd.out$v)) {
+        stop("missing 'U' or 'V' in SVD results")
+    } else if (ncomp > ncol(svd.out$u)) {
+        warning("requested number of components greater than available rank")
+        ncomp <- ncol(svd.out$u)
+    }
+
+    ix <- seq_len(ncomp)
+    U <- svd.out$u[,ix,drop=FALSE]
+    V <- svd.out$v[,ix,drop=FALSE]
+    D <- svd.out$d[ix]
 
     # Creating a low-rank approximation by reforming UDV'.
     # Note that we transpose to match dimensions, so it's really V(UD)'.
-    V <- svd.out$v[,ix,drop=FALSE]
+    pcs <- sweep(U, 2L, D, FUN="*", check.margin = FALSE)
     hits <- tcrossprod(V, pcs)
     all.means <- rowMeans2(DelayedArray(original.mat))
 
@@ -92,6 +106,5 @@
         output[leftovers,] <- tcrossprod(left.x %*% U, U)
     }
 
-    output <- output + all.means
-    return(output)
+    return(output + all.means)
 }
