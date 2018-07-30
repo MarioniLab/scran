@@ -53,10 +53,14 @@ An edge is drawn between all pairs of cells that share at least one neighbour.
 The weight of the edge between two cells is determined by the ranking of the shared nearest neighbors.
 More shared neighbors, or shared neighbors that are close to both cells, will yield larger weights.
 
-The aim is to use the SNN graph to perform community-based clustering, using various methods in the \pkg{igraph} package.
-This is faster/more memory efficient than hierarchical clustering for large numbers of cells.
+The aim is to use the SNN graph to perform clustering of cells via community detection algorithms in the \pkg{igraph} package.
+This is faster and more memory efficient than hierarchical clustering for large numbers of cells.
 In particular, it avoids the need to construct a distance matrix for all pairs of cells.
+Only the identities of nearest neighbours are required, which can be obtained quickly with methods in the \pkg{kmknn} package.
+
 The choice of \code{k} can be roughly interpreted as the minimum cluster size.
+Smaller values of \code{k} will generally yield smaller, more resolved clusters upon running community detection algorithms.
+By comparison, increasing \code{k} will increase the connectivity of the graph and make it more difficult to resolve different communities.
 
 Note that the setting of \code{k} here is slightly different from that used in SNN-Cliq.
 The original implementation considers each cell to be its first nearest neighbor that contributes to \code{k}.
