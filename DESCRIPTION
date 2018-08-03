@@ -32,4 +32,4 @@ SystemRequirements: C++11
 LinkingTo: beachmat, Rcpp, Rhdf5lib
 Author: Aaron Lun [aut, cre], Karsten Bach [aut], Jong Kyoung Kim [ctb],
         Antonio Scialdone [ctb], Laleh Haghverdi [ctb]
-RoxygenNote: 6.0.1
+RoxygenNote: 6.1.0

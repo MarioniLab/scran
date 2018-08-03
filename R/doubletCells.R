@@ -1,4 +1,4 @@
-#' @importFrom scater librarySizeFactors normalizeMatrix
+#' @importFrom scater librarySizeFactors normalizeCounts
 #' @importFrom SingleCellExperiment SingleCellExperiment logcounts
 #' @importFrom BiocParallel SerialParam bpmapply
 #' @importFrom Matrix rowMeans
@@ -19,11 +19,11 @@
         size.factors.norm <- librarySizeFactors(x)
     }
     if (!is.null(size.factors.content)) {
-        x <- normalizeMatrix(x, size.factors.content, return_log=FALSE, centre_size_factors=FALSE)
+        x <- normalizeCounts(x, size.factors.content, return_log=FALSE, centre_size_factors=FALSE)
         size.factors.norm <- size.factors.norm/size.factors.content
     }
 
-    y <- normalizeMatrix(x, size.factors.norm, centre_size_factors=FALSE)
+    y <- normalizeCounts(x, size.factors.norm, centre_size_factors=FALSE)
 
     # Running the SVD.
     svd.out <- .centered_SVD(t(y), max.rank=d, approximate=approximate, extra.args=irlba.args, 
@@ -50,7 +50,7 @@
 }
 
 #' @importFrom Matrix crossprod
-#' @importFrom scater normalizeMatrix
+#' @importFrom scater normalizeCounts
 .spawn_doublet_pcs <- function(x, size.factors, V, centers, niters=10000L, block=10000L) {
     collected <- list()
     counter <- 1L
@@ -63,7 +63,7 @@
         right <- sample(ncol(x), to.make, replace=TRUE)
         sim.x <- x[,left,drop=FALSE] + x[,right,drop=FALSE]
         sim.sf <- size.factors[left] + size.factors[right]
-        sim.y <- normalizeMatrix(sim.x, sim.sf, centre_size_factors=FALSE)
+        sim.y <- normalizeCounts(sim.x, sim.sf, centre_size_factors=FALSE)
 
         # Projecting onto the PC space of the original data.
         sim.pcs <- crossprod(sim.y, V)
