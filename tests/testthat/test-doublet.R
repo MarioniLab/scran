@@ -52,7 +52,7 @@ test_that("doubletCluster agrees with a reference implementation", {
     clusters <- rep(1:4, c(ncol(counts.1), ncol(counts.2), ncol(counts.3), ncol(counts.m)))
 
     dbl <- doubletCluster(counts, clusters)
-    ref <- findMarkers(scater::normalizeMatrix(counts, scater::librarySizeFactors(counts)), clusters, full.stats=TRUE)
+    ref <- findMarkers(scater::normalizeCounts(counts, scater::librarySizeFactors(counts)), clusters, full.stats=TRUE)
 
     for (x in rownames(dbl)) {
         stats <- ref[[x]]
