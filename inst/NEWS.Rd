@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.9.13}{\itemize{
+\section{Version 1.9.18}{\itemize{
 \item Removed selectorPlot(), exploreData() functions.
     
 \item Fixed underflow problem in mnnCorrect() when dealing with the Gaussian kernel.
@@ -30,6 +30,8 @@ Supported parallelized cluster-wise processing.
 Throw errors upon min.mean=NULL, which used to be valid.
 
 \item Added the fastMNN() function to provide a faster, more stable alternative for MNN correction.
+
+\item Added BPPARAM= option for parallelized execution in makeTechTrend().
 }}
 
 \section{Version 1.8.0}{\itemize{
