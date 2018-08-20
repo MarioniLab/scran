@@ -6,7 +6,7 @@
 
 \usage{
 makeTechTrend(means, size.factors=1, tol=1e-6, dispersion=0, 
-    pseudo.count=1, x=NULL) 
+    pseudo.count=1, x=NULL, BPPARAM=SerialParam()) 
 }
 
 \arguments{
@@ -21,6 +21,7 @@ If zero, this is equivalent to a Poisson distribution.}
 \item{pseudo.count}{A numeric scalar specifying the pseudo-count to be added to the scaled counts before log-transformation.}
 \item{x}{A SingleCellExperiment object from which \code{size.factors} and \code{pseudo.count} are extracted,
 and \code{means} can be automatically inferred.}
+\item{BPPARAM}{A BiocParallelParam object indicating whether and how parallelization should be performed across \code{means}.}
 }
 
 \details{
