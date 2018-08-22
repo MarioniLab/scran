@@ -6,7 +6,7 @@
  */
 
 template <class V, class M>
-SEXP subset_and_divide_internal(const M in, SEXP inmat, SEXP row_subset, SEXP col_subset) {
+SEXP subset_and_divide_internal(M in, SEXP row_subset, SEXP col_subset) {
     // Checking subset vectors
     auto rsubout=check_subset_vector(row_subset, in->get_nrow());
     const size_t rslen=rsubout.size();
@@ -21,12 +21,11 @@ SEXP subset_and_divide_internal(const M in, SEXP inmat, SEXP row_subset, SEXP co
         end_row=*std::max_element(rsubout.begin(), rsubout.end())+1;
     }
 
-    // Setting up the output structures.
+    // Setting up the output structures - only ever using in-memory matrices, as computeSumFactors() can't handle too many cells anyway.
     Rcpp::NumericVector libsizes(cslen);
     Rcpp::NumericVector outgoing(rslen), averaged(rslen);
 
-    beachmat::output_param oparam(inmat, false, true);
-    oparam.set_chunk_dim(rslen, 1); // pure-column chunks for random access, if HDF5.
+    beachmat::output_param oparam=(in->get_matrix_type()==beachmat::SPARSE ? beachmat::SPARSE_PARAM : beachmat::SIMPLE_PARAM);
     auto omat=beachmat::create_numeric_output(rslen, cslen, oparam);
 
     auto lbIt=libsizes.begin();
@@ -75,10 +74,10 @@ SEXP subset_and_divide(SEXP matrix, SEXP row_subset, SEXP col_subset) {
     int rtype=beachmat::find_sexp_type(matrix);
     if (rtype==INTSXP) {
         auto input=beachmat::create_integer_matrix(matrix);
-        return subset_and_divide_internal<Rcpp::IntegerVector>(input.get(), matrix, row_subset, col_subset);
+        return subset_and_divide_internal<Rcpp::IntegerVector>(input.get(), row_subset, col_subset);
     } else {
         auto input=beachmat::create_numeric_matrix(matrix);
-        return subset_and_divide_internal<Rcpp::NumericVector>(input.get(), matrix, row_subset, col_subset);
+        return subset_and_divide_internal<Rcpp::NumericVector>(input.get(), row_subset, col_subset);
     }
     END_RCPP
 }
