@@ -26,7 +26,8 @@ test_that("quickCluster correctly computes the ranks", {
         r/sqrt(sum(r^2))/2
     })
     expect_equal(emp.ranks, ref)
-    
+
+    # Works correctly with shuffling.
     shuffled <- c(50:100, 401:350, 750:850)
     emp.ranks <- quickCluster(dummy, get.ranks=TRUE, subset.row=shuffled)
     ref <- apply(dummy, 2, FUN=function(y) {
@@ -35,9 +36,13 @@ test_that("quickCluster correctly computes the ranks", {
         r/sqrt(sum(r^2))/2
     })
     expect_equal(emp.ranks, ref)
-})
 
-# Checking out that clustering is consistent with that based on correlations.
+    # Works correctly on sparse matrices.
+    sparse <- Matrix::rsparsematrix(ngenes, ncells, density=0.1)
+    out <- quickCluster(sparse, get.ranks=TRUE, min.mean=0)
+    ref <- quickCluster(as.matrix(sparse), get.ranks=TRUE, min.mean=0)
+    expect_identical(out, ref)
+})
 
 set.seed(300001)
 test_that("quickCluster is consistent with clustering on correlations", {
@@ -217,4 +222,12 @@ test_that("quickCluster works on SingleCellExperiment objects", {
                      quickCluster(counts(X)[setdiff(subset.row, 1:20),]))
     expect_identical(quickCluster(X, subset.row=subset.row, get.spikes=TRUE), 
                      quickCluster(counts(X)[subset.row,]))   
+})
+
+set.seed(20003)
+test_that("quickCluster works on sparse matrices", {
+    sparse <- Matrix::rsparsematrix(ngenes, ncells, density=0.1)
+    out <- quickCluster(sparse, min.mean=0)
+    ref <- quickCluster(as.matrix(sparse), min.mean=0)
+    expect_identical(out, ref)
 })
