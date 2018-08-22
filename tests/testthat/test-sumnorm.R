@@ -59,6 +59,20 @@ test_that("subset and division is correct", {
 
     # Checking the logic of the mean abundance.
     expect_equal(cur.out[[3]]*mean(cur.out[[1]]), scater::calcAverage(chosen))
+
+    # Works with sparse matrices (and returns sparse matrices).
+    y <- matrix(rpois(ngenes*ncells, lambda=1), nrow=ngenes, ncol=ncells)
+    y <- as(y, "dgCMatrix")
+    subset.row <- sample(ngenes, 500)
+    subset.col <- sample(ncells, 100)
+    cur.out <- .Call(scran:::cxx_subset_and_divide, y, subset.row-1L, subset.col-1L)
+
+    chosen <- y[subset.row,subset.col]
+    expect_equal(cur.out[[1]], Matrix::colSums(chosen))
+    divved <- t(t(chosen)/Matrix::colSums(chosen))
+    expect_equal(cur.out[[2]], divved)
+    expect_s4_class(cur.out[[2]], "dgCMatrix")
+    expect_equal(cur.out[[3]], Matrix::rowMeans(divved))
 })
 
 coreCheck <- function(x, sphere, pool.sizes)
@@ -362,6 +376,25 @@ test_that("other solving options work properly", {
     }
     expect_warning(outx <- computeSumFactors(dummy, errors=TRUE), "errors=TRUE is no longer supported")
     expect_equal(as.numeric(outx), out)
+})
+
+set.seed(200111)
+test_that("computeSumFactors works properly on alternative representations", {
+    library(Matrix)
+    X <- as(matrix(rpois(100000, lambda=1), ncol=100), "dgCMatrix")
+    X_ <- as.matrix(X)
+    
+    library(HDF5Array)
+    Y <- as(matrix(rpois(100000, lambda=5), ncol=100), "HDF5Array")
+    Y_ <- as.matrix(Y)
+
+    sf1 <- computeSumFactors(X_, min.mean=0)
+    sf2 <- computeSumFactors(X, min.mean=0)
+    expect_identical(sf1, sf2)
+    
+    sf1 <- computeSumFactors(Y_, min.mean=0)
+    sf2 <- computeSumFactors(Y, min.mean=0)
+    expect_identical(sf1, sf2)
 })
 
 set.seed(20012)

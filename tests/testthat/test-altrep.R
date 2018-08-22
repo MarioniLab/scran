@@ -28,16 +28,6 @@ test_that("cyclone runs properly", {
     expect_identical(assignments1, assignments2)
 })
 
-test_that("computeSumFactors runs properly", {
-    sf1 <- computeSumFactors(X_, min.mean=0)
-    sf2 <- computeSumFactors(X, min.mean=0)
-    expect_identical(sf1, sf2)
-
-    sf1 <- computeSumFactors(Y_, min.mean=0)
-    sf2 <- computeSumFactors(Y, min.mean=0)
-    expect_identical(sf1, sf2)
-})
-
 test_that("Variance estimation runs properly", {
     fit1 <- trendVar(X) 
     dec1 <- decomposeVar(X, fit1)
