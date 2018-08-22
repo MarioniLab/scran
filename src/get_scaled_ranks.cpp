@@ -13,12 +13,12 @@ SEXP average_ranks_internal(const M mat, SEXP intype, SEXP subset, SEXP transpos
     int out_nr=(do_transpose ? ncells : slen);
     int out_nc=(do_transpose ? slen : ncells);
 
-    // Various other bits and pieces.
+    // Various other bits and pieces - note that we always create a simple matrix, as quickCluster wouldn't work otherwise.
     std::deque<std::pair<T, int> > collected(slen);
     const double mean_adj=double(slen-1)/2;
     V incoming(ngenes);
     Rcpp::NumericVector outgoing(slen);
-    auto omat=beachmat::create_numeric_output(out_nr, out_nc, beachmat::output_param(intype, true, false));
+    auto omat=beachmat::create_numeric_output(out_nr, out_nc, beachmat::SIMPLE_PARAM);
 
     for (size_t c=0; c<ncells; ++c) {
         mat->get_col(c, incoming.begin());
