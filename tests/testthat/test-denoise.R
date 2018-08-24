@@ -175,6 +175,13 @@ test_that("denoisePCA works with a DataFrame input", {
     ref2 <- denoisePCA(lcountsX, technical=dec$tech * rescaled^2, value="pca")
     pcs3 <- denoisePCA(lcountsX, technical=dec, value="pca")
     expect_equal(ref2, pcs3)
+
+    # Handles all-zero rows with zero variance, where scaling would be undefined.
+    lcounts[1,] <- 0
+    dec$total[1] <- dec$tech[1] <- dec$bio[1] <- 0
+    ref2 <- denoisePCA(lcounts, technical=dec$tech, value="pca")
+    pcs3 <- denoisePCA(lcounts, technical=dec, value="pca")
+    expect_equal(ref2, pcs3)
 })
 
 test_that("denoisePCA works with IRLBA", {

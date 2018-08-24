@@ -18,6 +18,7 @@
     # Processing different mechanisms through which we specify the technical component.
     if (is(technical, "DataFrame")) { 
         scale <- all.var/technical$total[subset.row] # Making sure everyone has the reported total variance.
+        scale[is.na(scale)] <- 0
         tech.var <- technical$tech[subset.row] * scale
     } else {
         if (is.function(technical)) {
