@@ -12,7 +12,7 @@ void get_tricube_average(size_t i, M mat,
     // Computing the bandwidth.
     const size_t nneighbors=indices.nrow();
     const size_t midpoint=std::ceil(nneighbors/2)-1;
-    const double bandwidth = curD[midpoint] * ndist;
+    const double bandwidth = std::max(0.00000001, curD[midpoint] * ndist);
 
     const size_t ngenes=mat->get_nrow();
     std::fill(out, out+ngenes, 0);

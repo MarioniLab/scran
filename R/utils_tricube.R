@@ -7,6 +7,7 @@
         mid.dist <- distances[,middle]
         bandwidth <- mid.dist * ndist;
     }
+    bandwidth <- max(1e-8, bandwidth)
 
     rel.dist <- distances/bandwidth
     rel.dist[rel.dist > 1] <- 1 # don't use pmin(), as this destroys dimensions.
