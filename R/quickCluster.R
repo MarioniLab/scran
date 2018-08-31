@@ -39,19 +39,9 @@
         }
     }
 
-    # Subsetting features.
-    subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
-    if (!is.null(min.mean) && all(dim(x)>0L)) {
-        further.subset <- calcAverage(x, subset_row=subset.row) >= min.mean
-        subset.row <- subset.row[further.subset]
-    }
-
-    # Obtaining scaled/centred ranks to compute cosine distances.
-    # Using this instead of colRanks to support dgCMatrix, HDF5Array objects.
-    get.ranks <- as.logical(get.ranks)
-    method <- match.arg(method)
-    rkout <- .Call(cxx_get_scaled_ranks, x, subset.row-1L, !get.ranks)
+    rkout <- scaledColRanks(x, subset.row=subset.row, min.mean=min.mean, transposed=!get.ranks)
     if (get.ranks) {
+        .Deprecated(msg="'get.ranks=TRUE' is deprecated.\nUse 'scaledColRanks' instead.")
         return(rkout)
     }
 
