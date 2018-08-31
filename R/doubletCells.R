@@ -82,16 +82,7 @@
 {
     closest <- queryKNN(query=simulated, X=original, ...)
     max.dist <- closest$distance[,ncol(closest$distance)]
-    rel.dist <- closest$distance / max.dist
-
-    tricube <- (1 - rel.dist^3)^3
-    weight <- tricube/rowSums(tricube)
-    output <- matrix(0, nrow(simulated), ncol(simulated))
-    for (kdx in seq_len(ncol(closest$index))) {
-        output <- output + original[closest$index[,kdx],,drop=FALSE] * weight[,kdx]
-    }
-    
-    return(output)
+    .compute_tricube_average(original, closest$index, closest$distance, max.dist)
 }
 
 ##############################

@@ -188,16 +188,9 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
 
     middle <- ceiling(safe.k/2L)
     mid.dist <- closest$distance[,middle]
-    rel.dist <- closest$distance / (mid.dist * ndist)
-    rel.dist[rel.dist > 1] <- 1
-
-    tricube <- (1 - rel.dist^3)^3
-    weight <- tricube/rowSums(tricube)
-    for (kdx in seq_len(safe.k)) {
-        curdata <- curdata + correction[closest$index[,kdx],,drop=FALSE] * weight[,kdx]
-    }
+    weighted.correction <- .compute_tricube_average(correction, closest$index, closest$distance, mid.dist*ndist)
     
-    return(curdata)
+    curdata + weighted.correction
 }
 
 ############################################
