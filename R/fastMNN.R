@@ -185,11 +185,7 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
     cur.uniq <- curdata[in.mnn,,drop=FALSE]
     safe.k <- min(k, nrow(cur.uniq))
     closest <- queryKNN(query=curdata, X=cur.uniq, k=safe.k, BPPARAM=BPPARAM)
-
-    middle <- ceiling(safe.k/2L)
-    mid.dist <- closest$distance[,middle]
-    weighted.correction <- .compute_tricube_average(correction, closest$index, closest$distance, mid.dist*ndist)
-    
+    weighted.correction <- .compute_tricube_average(correction, closest$index, closest$distance, ndist=ndist)
     curdata + weighted.correction
 }
 

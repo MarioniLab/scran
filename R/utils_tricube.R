@@ -1,7 +1,15 @@
-.compute_tricube_average <- function(vals, indices, distances, bandwidth) 
+.compute_tricube_average <- function(vals, indices, distances, bandwidth=NULL, ndist=3) 
 # Centralized function to compute tricube averages.
+# Bandwidth is set at 'ndist' times the median distance, if not specified.
 {
-    rel.dist <- pmin(1, distances/bandwidth)
+    if (is.null(bandwidth)) {
+        middle <- ceiling(ncol(indices)/2L)
+        mid.dist <- distances[,middle]
+        bandwidth <- mid.dist * ndist;
+    }
+
+    rel.dist <- distances/bandwidth
+    rel.dist[rel.dist > 1] <- 1 # don't use pmin(), as this destroys dimensions.
     tricube <- (1 - rel.dist^3)^3
     weight <- tricube/rowSums(tricube)
 

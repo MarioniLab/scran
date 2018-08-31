@@ -3,10 +3,12 @@
 #' @importFrom BiocParallel SerialParam bpmapply
 #' @importFrom Matrix rowMeans
 #' @importFrom stats median
-#' @importFrom kmknn findKNN findNeighbors queryNeighbors
+#' @importFrom kmknn findKNN findNeighbors queryNeighbors queryKNN
 .doublet_cells <- function(x, size.factors.norm=NULL, size.factors.content=NULL,
-    k=50, subset.row=NULL, niters=max(10000, ncol(x)), block=10000, force.match=FALSE, force.k=20,
-    d=50, approximate=FALSE, irlba.args=list(), BPPARAM=SerialParam())
+    k=50, subset.row=NULL, niters=max(10000, ncol(x)), block=10000, 
+    d=50, approximate=FALSE, irlba.args=list(), 
+    force.match=FALSE, force.k=20, force.ndist=3,
+    BPPARAM=SerialParam())
 # Simulates doublets and uses a mutual nearest-neighbour approach to match them to real cells.
 #
 # written by Aaron Lun
@@ -31,17 +33,20 @@
     pcs <- .svd_to_pca(svd.out, ncomp=d, named=FALSE)
     sim.pcs <- .spawn_doublet_pcs(x, size.factors.norm, V=svd.out$v, centers=rowMeans(y), niters=niters, block=block)
 
-    # Computing densities, using a distance computed from the kth nearest neighbor.
+    # Force doublets to nearest neighbours in the original data set.
     pre.pcs <- precluster(pcs)
+    if (force.match) {
+        closest <- queryKNN(query=sim.pcs, k=force.k, BPPARAM=BPPARAM, precomputed=pre.pcs)
+        sim.pcs <- .compute_tricube_average(pcs, closest$index, closest$distance, ndist=force.ndist)
+    }
+
+    # Computing densities, using a distance computed from the kth nearest neighbor.
     self.dist <- findKNN(precomputed=pre.pcs, k=k, BPPARAM=BPPARAM, get.index=FALSE)$distance
     dist2nth <- median(self.dist[,ncol(self.dist)])
 
-    if (force.match) {
-        sim.pcs <- .tricube_weighted_remapping(sim.pcs, pcs, precomputed=pre.pcs, k=force.k, BPPARAM=BPPARAM)        
-    }
-
     self.dist <- findNeighbors(precomputed=pre.pcs, threshold=dist2nth, BPPARAM=BPPARAM, get.index=FALSE)$distance
     sim.dist <- queryNeighbors(sim.pcs, query=pcs, threshold=dist2nth, BPPARAM=BPPARAM, get.index=FALSE)$distance
+
     rel.dens <- bpmapply(FUN=function(self, sim, limit) {
         sum((1 - (sim/limit)^3)^3)/sum((1 - (self/limit)^3)^3)
     }, self=self.dist, sim=sim.dist, limit=dist2nth, BPPARAM=BPPARAM)
@@ -74,15 +79,6 @@
     }
 
     do.call(rbind, collected)
-}
-
-#' @importFrom kmknn queryKNN
-.tricube_weighted_remapping <- function(simulated, original, ...)
-# Computing tricube-weighted coordinates for remapping simulated cells to their closest originals.
-{
-    closest <- queryKNN(query=simulated, X=original, ...)
-    max.dist <- closest$distance[,ncol(closest$distance)]
-    .compute_tricube_average(original, closest$index, closest$distance, max.dist)
 }
 
 ##############################
