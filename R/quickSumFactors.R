@@ -1,14 +1,20 @@
 #' @importFrom kmknn findKNN
 #' @importFrom methods is
 #' @importClassesFrom Matrix dgCMatrix
-.quick_sum_factors_per_block <- function(x, k=20, d=50, approximate=FALSE, irlba.args=list(), subset.row=NULL, min.mean=1)
+.quick_sum_factors_per_block <- function(x, k=20, d=50, approximate=FALSE, irlba.args=list(), min.mean=1, subset.row=NULL)
 # Implements a much faster method based on local averages to compute size factors.
 # Avoids the need for explicit clustering outside of the algorithm.
 # 
 # written by Aaron Lun
 # created 31 August 2018
 {
-    pcs <- .ranked_PCA(x, subset.row=subset.row, min.mean=min.mean, max.rank=d, approximate=approximate, extra.args=irlba.args)
+    if (!is.null(subset.row)) {
+        x <- x[subset.row,,drop=FALSE]
+    }
+    if (!is(x, "dgCMatrix")) { # Avoid costly re-reading from file for file-backed matrices.
+        x <- as.matrix(x) 
+    }
+    pcs <- .libnorm_PCA(x, max.rank=d, approximate=approximate, extra.args=irlba.args)
     nn.out <- findKNN(pcs, k=k)
     
     # Choosing the densest cell to be the reference.
@@ -18,17 +24,16 @@
     }
     ref.cell <- which.min(nn.out$distance[,last])
 
-    if (!is(x, "dgCMatrix")) { # Avoid costly re-reading from file for file-backed matrices.
-        x <- as.matrix(x) 
-    }
     .quick_sum_cpp_wrapper(x, nn.out$index, nn.out$distance, ref.cell, min.mean=min.mean, ndist=3)
 }
 
-.ranked_PCA <- function(x, subset.row=NULL, min.mean=1, max.rank=50, approximate=FALSE, extra.args=list())
-# Performs PCA in rank space. 
+#' @importFrom scater librarySizeFactors normalizeCounts
+.libnorm_PCA <- function(x, max.rank=50, approximate=FALSE, extra.args=list())
+# Performs PCA on the expression profiles after library size normalization.
 {
-    rkout <- scaledColRanks(x, subset.row=subset.row, transposed=TRUE, withDimnames=FALSE, min.mean=min.mean)
-    SVD <- .centered_SVD(rkout, max.rank=max.rank, approximate=approximate, extra.args=extra.args, keep.right=FALSE)
+    sf <- librarySizeFactors(x)
+    y <- normalizeCounts(x, size_factors=sf, return_log=TRUE)
+    SVD <- .centered_SVD(t(y), max.rank=max.rank, approximate=approximate, extra.args=extra.args, keep.right=FALSE)
     .svd_to_pca(SVD, ncomp=max.rank)
 }
 
@@ -63,11 +68,14 @@
     all.norm <- bpmapply(FUN=.quick_norm_bpl_wrapper, chosen=indices, MoreArgs=all.args, SIMPLIFY=FALSE, USE.NAMES=FALSE, BPPARAM=BPPARAM)
 
     # Choosing a reference block from the within-block references.
-    ref.pcs <- .ranked_PCA(x, subset.row=subset.row, min.mean=min.mean, max.rank=1, approximate=approximate, extra.args=irlba.args)
+    # This is done by picking the block in the middle of the first PC.
+    all.ref <- do.call(rbind, lapply(all.norm, "[[", i="ref"))
+    ref.pcs <- .libnorm_PCA(all.ref, max.rank=1, approximate=approximate, extra.args=irlba.args)
     ref.block <- which.min(abs(ref.pcs - median(ref.pcs)))
     true.ref <- all.norm[[ref.block]]$ref
     true.lib <- sum(true.ref)
 
+    # Scaling all size factors to the new reference.
     all.output <- numeric(ncol(x))    
     for (i in seq_along(indices)) {
         cur.sf <- all.norm[[i]]$sf
