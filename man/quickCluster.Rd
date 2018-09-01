@@ -21,7 +21,8 @@
 }
 \item{min.size}{An integer scalar specifying the minimum size of each cluster.}
 \item{max.size}{An integer scalar specifying the maximum size of each cluster.}
-\item{get.ranks}{A logical scalar specifying whether a matrix of adjusted ranks should be returned.}
+\item{get.ranks}{Deprecated, a logical scalar specifying whether a matrix of adjusted ranks should be returned.
+Use \code{\link{scaledColRanks}} directly instead.}
 \item{method}{A string specifying the clustering method to use.}
 \item{pc.approx}{Argument passed to \code{\link{buildSNNGraph}} when \code{method="igraph"}, otherwise ignored.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
