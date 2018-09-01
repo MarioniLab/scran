@@ -264,17 +264,10 @@ setMethod("computeSumFactors", "ANY", .computeSumFactors)
 #' @importFrom SummarizedExperiment assay 
 #' @importFrom BiocGenerics "sizeFactors<-"
 #' @export
-setMethod("computeSumFactors", "SingleCellExperiment", 
-          function(x, ..., min.mean=1, subset.row=NULL, 
-                   assay.type="counts", get.spikes=FALSE, sf.out=FALSE) { 
- 
-    if (is.null(subset.row) && !is.null(min.mean)) {
-        no.warn <- TRUE # avoid triggering the message of the subsetting was not originally specified
-    }
-
+setMethod("computeSumFactors", "SingleCellExperiment", function(x, ..., min.mean=1, subset.row=NULL, assay.type="counts", get.spikes=FALSE, sf.out=FALSE) 
+{ 
     subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
-    sf <- .computeSumFactors(assay(x, i=assay.type), subset.row=subset.row, 
-                             min.mean=min.mean, ...) 
+    sf <- .computeSumFactors(assay(x, i=assay.type), subset.row=subset.row, min.mean=min.mean, ...) 
 
     if (sf.out) { 
         return(sf) 
