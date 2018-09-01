@@ -42,7 +42,7 @@
 
     # Computing densities, using a distance computed from the kth nearest neighbor.
     self.dist <- findKNN(precomputed=pre.pcs, k=k, BPPARAM=BPPARAM, get.index=FALSE)$distance
-    dist2nth <- median(self.dist[,ncol(self.dist)])
+    dist2nth <- pmax(1e-8, median(self.dist[,ncol(self.dist)]))
 
     self.dist <- findNeighbors(precomputed=pre.pcs, threshold=dist2nth, BPPARAM=BPPARAM, get.index=FALSE)$distance
     sim.dist <- queryNeighbors(sim.pcs, query=pcs, threshold=dist2nth, BPPARAM=BPPARAM, get.index=FALSE)$distance
