@@ -1,6 +1,6 @@
 #' @importFrom BiocParallel bplapply SerialParam
-.computeSumFactors <- function(x, sizes=seq(20, 100, 5), clusters=NULL, ref.clust=NULL, max.cluster.size=3000, 
-                               positive=FALSE, errors=FALSE, min.mean=1, subset.row=NULL, BPPARAM=SerialParam())
+.computeSumFactors <- function(x, sizes=seq(21, 101, 5), clusters=NULL, ref.clust=NULL, max.cluster.size=3000, 
+    positive=FALSE, errors=FALSE, min.mean=1, var.nmads=3, subset.row=NULL, BPPARAM=SerialParam())
 # This contains the function that performs normalization on the summed counts.
 # It also provides support for normalization within clusters, and then between
 # clusters to make things comparable. It can also switch to linear inverse models
@@ -44,16 +44,15 @@
 
     # Computing normalization factors within each cluster.
     all.norm <- bplapply(indices, FUN=.per_cluster_normalize, x=x, sizes=sizes, subset.row=subset.row, 
-        min.mean=min.mean, positive=positive, errors=errors, BPPARAM=BPPARAM)
+        min.mean=min.mean, var.nmads=var.nmads, positive=positive, errors=errors, BPPARAM=BPPARAM)
 
     clust.nf <- lapply(all.norm, "[[", i="final.nf")
     clust.profile <- lapply(all.norm, "[[", i="ave.cell")
-    clust.libsizes <- lapply(all.norm, "[[", i="cur.libs")
-    clust.meanlib <- vapply(all.norm, FUN="[[", i="mean.lib", FUN.VALUE=0)
+    clust.libsizes <- lapply(all.norm, "[[", i="scaling")
 
     # Adjusting size factors between clusters.
-    rescaling.factors <- .rescale_clusters(clust.profile, clust.meanlib, ref.clust=ref.clust, 
-                                           min.mean=min.mean, clust.names=names(indices))
+    clust.meanlib <- vapply(clust.libsizes, FUN=mean, FUN.VALUE=0)
+    rescaling.factors <- .rescale_clusters(clust.profile, clust.meanlib, ref.clust=ref.clust, min.mean=min.mean, clust.names=names(indices))
     clust.nf.scaled <- vector("list", nclusters)
     for (clust in seq_len(nclusters)) { 
         clust.nf.scaled[[clust]] <- clust.nf[[clust]] * rescaling.factors[[clust]]
@@ -75,8 +74,11 @@
 # Internal functions.
 #############################################################
 
-#' @importFrom Matrix qr qr.coef
-.per_cluster_normalize <- function(x, curdex, sizes, subset.row, min.mean=1, positive=FALSE, errors=FALSE) 
+#' @importFrom Matrix qr qr.coef colSums rowMeans
+#' @importFrom scater isOutlier
+#' @importFrom DelayedArray DelayedArray
+#' @importFrom DelayedMatrixStats colMedians
+.per_cluster_normalize <- function(x, curdex, sizes, subset.row, min.mean=1, var.nmads=1, positive=FALSE, errors=FALSE) 
 # Computes the normalization factors _within_ each cluster,
 # along with the reference pseudo-cell used for normalization. 
 # Written as a separate function so that bplapply operates in the scran namespace.
@@ -92,19 +94,34 @@
         }
     } 
 
-    cur.out <- .Call(cxx_subset_and_divide, x, subset.row-1L, curdex-1L) 
-    cur.libs <- cur.out[[1]]
-    exprs <- cur.out[[2]]
-    ave.cell <- cur.out[[3]]
+    x <- x[subset.row,curdex,drop=FALSE]
+    if (!is(exprs, "dgCMatrix")) {
+        x <- as.matrix(x)
+    }
+    cur.libs <- colSums(x)
+    scaling <- pmax(1, colMedians(DelayedArray(x)))
+    exprs <- sweep(x, 2, scaling, "/", check.margin=FALSE)
 
-    # Filtering by mean (easier to do it here in R, rather than C++).
-    mean.lib <- mean(cur.libs)
-    high.ave <- min.mean/mean.lib <= ave.cell # mimics calcAverage
-    if (!all(high.ave)) { 
-        exprs <- exprs[high.ave,,drop=FALSE]
-        use.ave.cell <- ave.cell[high.ave]
+    # Filtering to remove genes with outlier CV2 values:
+    if (is.finite(var.nmads)) { 
+        cv2.out <- improvedCV2(exprs, is.spike=NA)
+        bio.cv2 <- log(cv2.out$cv2/cv2.out$trend)
+        available <- !is.na(bio.cv2)
+        keep.lowvar <- logical(nrow(exprs))
+        keep.lowvar[available] <- !isOutlier(bio.cv2[available], nmads=var.nmads, type="higher") 
     } else {
-        use.ave.cell <- ave.cell
+        keep.lowvar <- !logical(nrow(exprs))
+    }
+
+    # Filtering by mean:
+    ave.cell <- rowMeans(exprs)
+    high.ave <- min.mean <= ave.cell * mean(scaling) # mimics calcAverage(x, use_size_factors=scaling).
+    
+    use.ave.cell <- ave.cell
+    keep <- keep.lowvar & high.ave
+    if (!all(keep)) { 
+        exprs <- exprs[keep,,drop=FALSE]
+        use.ave.cell <- use.ave.cell[keep]
     }
 
     # Using our summation approach.
@@ -129,7 +146,7 @@
         }
     }
 
-    return(list(final.nf=final.nf, ave.cell=ave.cell, cur.libs=cur.libs, mean.lib=mean.lib))
+    list(final.nf=final.nf, ave.cell=ave.cell, scaling=scaling)
 }
 
 .generateSphere <- function(lib.sizes) 
@@ -264,10 +281,10 @@ setMethod("computeSumFactors", "ANY", .computeSumFactors)
 #' @importFrom SummarizedExperiment assay 
 #' @importFrom BiocGenerics "sizeFactors<-"
 #' @export
-setMethod("computeSumFactors", "SingleCellExperiment", function(x, ..., min.mean=1, subset.row=NULL, assay.type="counts", get.spikes=FALSE, sf.out=FALSE) 
+setMethod("computeSumFactors", "SingleCellExperiment", function(x, ..., subset.row=NULL, assay.type="counts", get.spikes=FALSE, sf.out=FALSE) 
 { 
     subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
-    sf <- .computeSumFactors(assay(x, i=assay.type), subset.row=subset.row, min.mean=min.mean, ...) 
+    sf <- .computeSumFactors(assay(x, i=assay.type), subset.row=subset.row, ...) 
 
     if (sf.out) { 
         return(sf) 
