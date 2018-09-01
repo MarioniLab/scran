@@ -14,8 +14,13 @@ scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
     }
 
     rkout <- .Call(cxx_get_scaled_ranks, x, subset.row-1L, transposed)
-    if (withDimnames) {
-        dimnames(rkout) <- dimnames(x)
+
+    if (withDimnames && !is.null(dimnames(x))) {
+        dn <- list(rownames(x)[subset.row], colnames(x))
+        if (transposed) { 
+            dn <- rev(dn)
+        }
+        dimnames(rkout) <- dn
     }
     return(rkout)
 }
