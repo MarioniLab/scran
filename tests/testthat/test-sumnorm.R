@@ -44,10 +44,42 @@ test_that("ring construction is correct", {
     expect_identical(r[out][1:101], r[out][102:202]) # Repeated for easy windowing
 })
 
+set.seed(20002)
+test_that("subset and division is correct", {
+    x <- matrix(rpois(ngenes*ncells, lambda=10), nrow=ngenes, ncol=ncells)
+    subset.row <- sample(ngenes, 500)
+    subset.col <- sample(ncells, 100)
+    cur.out <- .Call(scran:::cxx_subset_and_divide, x, subset.row-1L, subset.col-1L)
+
+    chosen <- x[subset.row,subset.col]
+    expect_equal(cur.out[[1]], colSums(chosen))
+    divved <- t(t(chosen)/colSums(chosen))
+    expect_equal(cur.out[[2]], divved)
+    expect_equal(cur.out[[3]], rowMeans(divved))
+
+    # Checking the logic of the mean abundance.
+    expect_equal(cur.out[[3]]*mean(cur.out[[1]]), scater::calcAverage(chosen))
+
+    # Works with sparse matrices (and returns sparse matrices).
+    y <- matrix(rpois(ngenes*ncells, lambda=1), nrow=ngenes, ncol=ncells)
+    y <- as(y, "dgCMatrix")
+    subset.row <- sample(ngenes, 500)
+    subset.col <- sample(ncells, 100)
+    cur.out <- .Call(scran:::cxx_subset_and_divide, y, subset.row-1L, subset.col-1L)
+
+    chosen <- y[subset.row,subset.col]
+    expect_equal(cur.out[[1]], Matrix::colSums(chosen))
+    divved <- t(t(chosen)/Matrix::colSums(chosen))
+    expect_equal(cur.out[[2]], divved)
+    expect_s4_class(cur.out[[2]], "dgCMatrix")
+    expect_equal(cur.out[[3]], Matrix::rowMeans(divved))
+})
+
 coreCheck <- function(x, sphere, pool.sizes)
 # Mocking up the core function for creating the linear system.
 {
-    ave.cell <- scater::calcAverage(x)
+    x <- t(t(x)/colSums(x))
+    ave.cell <- rowMeans(x)
 
     #  Manually running through these.
     all.mat <- all.vals <- vector("list", sum(pool.sizes)*ncells)
@@ -109,11 +141,11 @@ library(Matrix)
 sumInR <- function(x, sizes, center=TRUE, min.mean=0)
 # Creating a quick R implementation for comparison.
 {
+    keep <- scater::calcAverage(x) >= pmax(1e-8, min.mean)
     lib.sizes <- colSums(x)
-    ref <- scater::calcAverage(x)
-    keep <- ref >= pmax(1e-8, min.mean)
+    x <- t(t(x)/lib.sizes)
     x <- x[keep,,drop=FALSE]
-    ref <- ref[keep]
+    ref <- rowMeans(x)
 
     ncells <- length(lib.sizes)
     o <- scran:::.generateSphere(lib.sizes)
@@ -126,10 +158,11 @@ sumInR <- function(x, sizes, center=TRUE, min.mean=0)
 
     nf <- Matrix::solve(Matrix::qr(final.mat), final.val)
     nf <- as.numeric(nf)
+    sf <- nf * lib.sizes
     if (center) {
-        nf <- nf/mean(nf)
+        sf <- sf/mean(sf)
     }
-    return(nf)
+    return(sf)
 }
 
 set.seed(20004)
@@ -162,15 +195,16 @@ test_that("computeSumFactors correctly ignores low-abundance genes", {
     sizes <- seq(20, 100, 5)
 
     # Can't subset 'dummy' directly for testing, as that would change the library sizes.
-    outA <- computeSumFactors(dummy, min.mean=0.5, sizes=sizes)
+    outA <- computeSumFactors(dummy, min.mean=0.5)
     expect_equal(outA, sumInR(dummy, sizes=sizes, min.mean=0.5))
-    outB <- computeSumFactors(dummy, min.mean=1, sizes=sizes)
+    outB <- computeSumFactors(dummy, min.mean=1)
     expect_equal(outB, sumInR(dummy, sizes=sizes, min.mean=1))
 
     expect_false(isTRUE(all.equal(outA, outB))) # ensure it's not trivial equality.
+    expect_equal(scater::calcAverage(dummy), colMeans(t(dummy)/colSums(dummy)) * mean(colSums(dummy))) # checking the calculation.
 
     # Interacts properly with the subsetting.
-    out <- computeSumFactors(dummy, min.mean=1, subset.row=1:500, sizes=sizes)
+    out <- computeSumFactors(dummy, min.mean=1, subset.row=1:500)
     expect_equal(out, sumInR(dummy[1:500,], sizes=sizes, min.mean=1))
 })
 
@@ -186,8 +220,9 @@ test_that("computeSumFactors behaves correctly with clustering", {
     ref1 <- sumInR(dummy[,clusters==1], sizes, center=FALSE) # Avoid centering, as this destroys relative information.
     ref2 <- sumInR(dummy[,clusters==2], sizes, center=FALSE)
 
-    pseudo1 <- scater::calcAverage(dummy[,clusters==1])
-    pseudo2 <- scater::calcAverage(dummy[,clusters==2])
+    adj <- t(t(dummy)/colSums(dummy))
+    pseudo1 <- rowMeans(adj[,clusters==1])
+    pseudo2 <- rowMeans(adj[,clusters==2])
     ref2 <- ref2*median(pseudo2/pseudo1)
 
     ref <- numeric(ncells)
@@ -210,13 +245,18 @@ test_that("computeSumFactors behaves correctly with clustering and a mean thresh
     ref1 <- sumInR(l1, sizes, center=FALSE, min.mean=1)
     ref2 <- sumInR(l2, sizes, center=FALSE, min.mean=1)
 
+    adj1 <- t(t(l1)/colSums(l1))
+    adj2 <- t(t(l2)/colSums(l2))
+    pseudo1 <- rowMeans(adj1)
+    pseudo2 <- rowMeans(adj2)
+
     ave1 <- scater::calcAverage(l1)
     ave2 <- scater::calcAverage(l2)
     grand <- scater::calcAverage(cbind(ave1, ave2))
     expect_equal(grand, (ave1/sum(ave1) + ave2/sum(ave2))/2 * (sum(ave1) + sum(ave2))/2) # check calculation.
 
     keep <- grand >= 1 # The grand mean applies during re-scaling across clusters.
-    ref2 <- ref2*median(ave2[keep]/ave1[keep])
+    ref2 <- ref2*median(pseudo2[keep]/pseudo1[keep])
 
     ref <- numeric(ncells)
     ref[clusters==1] <- ref1
@@ -238,8 +278,9 @@ test_that("computeSumFactors correctly subsets 'sizes' for small clusters", {
 
     expect_warning(obs <- computeSumFactors(dummy, sizes=sizes, cluster=clusters, min.mean=0), "not enough cells in at least one cluster")
     ref2 <- sumInR(dummy[,clusters==2], sizes, center=FALSE) # Ensure that second cluster isn't affected by subsetting of sizes.
-    pseudo1 <- scater::calcAverage(dummy[,clusters==1])
-    pseudo2 <- scater::calcAverage(dummy[,clusters==2])
+    adj <- t(t(dummy)/colSums(dummy))
+    pseudo1 <- rowMeans(adj[,clusters==1])
+    pseudo2 <- rowMeans(adj[,clusters==2])
     ref2 <- ref2 * median(pseudo2/pseudo1)
 
     ref <- numeric(ncells)
@@ -361,7 +402,7 @@ test_that("computeSumFactors throws errors correctly", {
     dummy <- matrix(rpois(ncells*ngenes, lambda=10), nrow=ngenes, ncol=ncells)
     expect_error(computeSumFactors(dummy, min.mean=NULL), "turn off abundance filtering")
     expect_error(computeSumFactors(dummy[,0,drop=FALSE]), "not enough cells in at least one cluster")
-    expect_error(computeSumFactors(dummy[0,,drop=FALSE]), "insufficient features for median calculations")
+    expect_error(computeSumFactors(dummy[0,,drop=FALSE]), "cells should have non-zero library sizes")
     expect_error(computeSumFactors(dummy, sizes=c(10, 10, 20)), "'sizes' are not unique")
     expect_error(computeSumFactors(dummy, clusters=integer(0)), "'ncol(x)' is not equal to 'length(clusters)'", fixed=TRUE)
 })
