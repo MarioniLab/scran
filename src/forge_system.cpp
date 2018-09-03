@@ -55,10 +55,14 @@ SEXP forge_system_internal (M emat, SEXP ref, SEXP ordering, SEXP poolsizes) {
 
     // Various other bits and pieces.
     std::vector<double> combined(ngenes), ratios(ngenes);
-    const bool is_even=bool(ngenes%2==0);
-    const int halfway=int(ngenes/2);
     auto rowIt=row_num.begin(), colIt=col_num.begin();
     auto orIt=order.begin();
+
+    if (ngenes==0) {
+        throw std::runtime_error("insufficient features for median calculations");
+    }
+    const bool is_even=bool(ngenes%2==0);
+    const int halfway=int(ngenes/2);
 
     // Running through the sliding windows.
     for (size_t win=0; win<ncells; ++win, ++orIt) {
