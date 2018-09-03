@@ -9,8 +9,8 @@
 \usage{
 \S4method{doubletCells}{ANY}(x, size.factors.norm=NULL, size.factors.content=NULL,
     k=50, subset.row=NULL, niters=max(10000, ncol(x)), block=10000, 
-    force.match=FALSE, force.k=20, force.ndist=3, d=50, approximate=FALSE, 
-    irlba.args=list(), BPPARAM=SerialParam())
+    d=50, approximate=FALSE, irlba.args=list(), force.match=FALSE, 
+    force.k=20, force.ndist=3, BPPARAM=SerialParam())
 
 \S4method{doubletCells}{SingleCellExperiment}(x, size.factors.norm=NA, ..., subset.row=NULL, 
     assay.type="counts", get.spikes=FALSE)
@@ -30,12 +30,12 @@ For the SingleCellExperiment method, this may be \code{NA}, in which case \code{
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{niters}{An integer scalar specifying how many simulated doublets should be generated.}
 \item{block}{An integer scalar controlling the rate of doublet generation, to keep memory usage low.}
-\item{force.match}{A logical scalar indicating whether remapping of simulated doublets to original cells should be performed.}
-\item{force.k}{An integer scalar specifying the number of neighbours to use for remapping if \code{force.match=TRUE}.}
-\item{force.ndist}{A numeric scalar specifying the bandwidth for remapping if \code{force.match=TRUE}.}
 \item{d}{An integer scalar specifying the number of components to retain after the PCA.}
 \item{approximate}{A logical scalar indicating whether \code{\link[irlba]{irlba}} should be used to perform the initial PCA.}
 \item{irlba.args}{A list of arguments to pass to \code{\link[irlba]{irlba}} when \code{approximate=TRUE}.}
+\item{force.match}{A logical scalar indicating whether remapping of simulated doublets to original cells should be performed.}
+\item{force.k}{An integer scalar specifying the number of neighbours to use for remapping if \code{force.match=TRUE}.}
+\item{force.ndist}{A numeric scalar specifying the bandwidth for remapping if \code{force.match=TRUE}.}
 \item{BPPARAM}{A BiocParallelParam object specifying whether the nearest-neighbour searches should be parallelized.}
 \item{...}{Additional arguments to pass to the ANY method.}
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}

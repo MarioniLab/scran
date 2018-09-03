@@ -7,12 +7,12 @@
 \description{Methods to normalize single-cell RNA-seq data by deconvolving size factors from cell pools.}
 
 \usage{
-\S4method{computeSumFactors}{ANY}(x, sizes=seq(20, 100, 5), clusters=NULL, ref.clust=NULL,
+\S4method{computeSumFactors}{ANY}(x, sizes=seq(21, 101, 5), clusters=NULL, ref.clust=NULL,
     max.cluster.size=3000, positive=FALSE, errors=FALSE, min.mean=1, 
     subset.row=NULL, BPPARAM=SerialParam())
 
-\S4method{computeSumFactors}{SingleCellExperiment}(x, ..., min.mean=1, subset.row=NULL, 
-    assay.type="counts", get.spikes=FALSE, sf.out=FALSE)
+\S4method{computeSumFactors}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="counts",
+    get.spikes=FALSE, sf.out=FALSE)
 }
 
 \arguments{
