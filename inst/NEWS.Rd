@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.9.18}{\itemize{
+\section{Version 1.9.20}{\itemize{
 \item Removed selectorPlot(), exploreData() functions.
     
 \item Fixed underflow problem in mnnCorrect() when dealing with the Gaussian kernel.
@@ -10,9 +10,13 @@ Dropped the default sigma= in mnnCorrect() for better default performance.
 
 \item Supported parallelized block-wise processing in quickCluster().
 Deprecated max.size= in favour of max.cluster.size= in computeSumFactors().
+Deprecated get.ranks= in favour of scaledColRanks().
 
 \item Added max.cluster.size= argument to computeSumFactors().
 Supported parallelized cluster-wise processing.
+Removed pre-scaling by library size to avoid amplifying errors upon re-scaling. 
+
+\item Added the scaledColRanks() function for computing scaled and centred column ranks.
 
 \item Supported parallelized gene-wise processing in trendVar() and decomposeVar().
 
