@@ -195,16 +195,16 @@ test_that("computeSumFactors correctly ignores low-abundance genes", {
     sizes <- seq(20, 100, 5)
 
     # Can't subset 'dummy' directly for testing, as that would change the library sizes.
-    outA <- computeSumFactors(dummy, min.mean=0.5)
+    outA <- computeSumFactors(dummy, min.mean=0.5, sizes=sizes)
     expect_equal(outA, sumInR(dummy, sizes=sizes, min.mean=0.5))
-    outB <- computeSumFactors(dummy, min.mean=1)
+    outB <- computeSumFactors(dummy, min.mean=1, sizes=sizes)
     expect_equal(outB, sumInR(dummy, sizes=sizes, min.mean=1))
 
     expect_false(isTRUE(all.equal(outA, outB))) # ensure it's not trivial equality.
     expect_equal(scater::calcAverage(dummy), colMeans(t(dummy)/colSums(dummy)) * mean(colSums(dummy))) # checking the calculation.
 
     # Interacts properly with the subsetting.
-    out <- computeSumFactors(dummy, min.mean=1, subset.row=1:500)
+    out <- computeSumFactors(dummy, min.mean=1, subset.row=1:500, sizes=sizes)
     expect_equal(out, sumInR(dummy[1:500,], sizes=sizes, min.mean=1))
 })
 

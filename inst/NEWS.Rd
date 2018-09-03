@@ -14,7 +14,6 @@ Deprecated get.ranks= in favour of scaledColRanks().
 
 \item Added max.cluster.size= argument to computeSumFactors().
 Supported parallelized cluster-wise processing.
-Removed pre-scaling by library size to avoid amplifying errors upon re-scaling. 
 
 \item Added the scaledColRanks() function for computing scaled and centred column ranks.
 

@@ -89,14 +89,12 @@
         }
     } 
 
-    exprs <- x[subset.row,curdex,drop=FALSE]
-    if (!is(exprs, "dgCMatrix")) {
-        exprs <- as.matrix(exprs)
-    }
-    cur.libs <- colSums(exprs)
+    vals <- .Call(cxx_subset_and_divide, x, subset.row-1L, curdex-1L)
+    cur.libs <- vals[[1]]
+    exprs <- vals[[2]]
+    ave.cell <- vals[[3]] * mean(cur.libs)
 
     # Filtering by mean:
-    ave.cell <- calcAverage(exprs, use_size_factors=cur.libs)
     high.ave <- min.mean <= ave.cell 
     use.ave.cell <- ave.cell
     if (!all(high.ave)) { 
@@ -126,7 +124,7 @@
         }
     }
 
-    list(final.nf=final.nf, ave.cell=ave.cell)
+    list(final.nf=final.nf * cur.libs, ave.cell=ave.cell)
 }
 
 .generateSphere <- function(lib.sizes) 
