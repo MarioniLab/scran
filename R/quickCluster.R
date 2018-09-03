@@ -50,6 +50,7 @@
         stop('fewer cells than the minimum cluster size')
     } 
 
+    method <- match.arg(method)
     if (method=="igraph") { 
         g <- buildSNNGraph(rkout, pc.approx=pc.approx, transposed=TRUE, ...)
         out <- cluster_fast_greedy(g)
