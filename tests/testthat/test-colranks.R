@@ -71,6 +71,25 @@ test_that("scaledColRanks naming is handled correctly", {
 })
 
 set.seed(430003)
+test_that("scaledColRanks handles sparsity requests", {
+	mat <- matrix(rnbinom(ncells*ngenes, mu=1, size=20), ncol=ncells, nrow=ngenes)
+    ref <- scaledColRanks(mat)
+
+    library(Matrix)
+    rnks <- scaledColRanks(mat, as.sparse=TRUE)
+    centred <- sweep(rnks, 2, Matrix::colMeans(rnks), "-")
+    centred <- as.matrix(centred)
+    dimnames(centred) <- NULL
+    expect_equal(centred, ref)
+
+    rnks <- scaledColRanks(mat, as.sparse=TRUE, transposed=TRUE)
+    centred <- rnks - Matrix::rowMeans(rnks)
+    centred <- as.matrix(centred)
+    dimnames(centred) <- NULL
+    expect_equal(centred, t(ref))
+})
+
+set.seed(430004)
 test_that("scaledColRanks handles silly inputs", {
 	mat <- matrix(rnbinom(ncells*ngenes, mu=10, size=20), ncol=ncells, nrow=ngenes)
     expect_error(out <- scaledColRanks(mat[0,,drop=FALSE]), "rank variances of zero")

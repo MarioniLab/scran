@@ -5,7 +5,8 @@
 \description{Compute scaled column ranks from each cell's expression profile for distance calculations based on rank correlations.}
 
 \usage{
-scaledColRanks(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, withDimnames=TRUE)
+scaledColRanks(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
+    as.sparse=FALSE, withDimnames=TRUE)
 }
 
 \arguments{
@@ -14,6 +15,7 @@ scaledColRanks(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, withDimnames
     \item{min.mean}{A numeric scalar specifying the filter to be applied on the average count for each feature prior to computing ranks.
     Disabled by setting to \code{NULL}.}
     \item{transposed}{A logical scalar specifying whether the output should be transposed.}
+    \item{as.sparse}{A logical scalar indicating whether the output should be sparse.}
     \item{withDimnames}{A logical scalar specifying whether the output should contain the dimnames of \code{x}.}
 }
 
@@ -25,6 +27,10 @@ If \code{transposed=TRUE}, this matrix is transposed so that rows correspond to 
 \details{
 Euclidean distances computed based on the output rank matrix are equivalent to distances computed from Spearman's rank correlation.
 This can be used in clustering, nearest-neighbour searches, etc. as a robust alternative to Euclidean distances computed directly from \code{x}. 
+
+If \code{as.sparse=TRUE}, the most common average rank is set to zero in the output.
+This can be useful for highly sparse input data where zeroes have the same rank and are themselves returned as zeroes.
+Obviously, this means that the ranks are not centred, so this will have to be done manually prior to any downstream distance calculations.
 }
 
 \author{
