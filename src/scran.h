@@ -53,7 +53,7 @@ SEXP overlap_exprs(SEXP, SEXP, SEXP, SEXP);
 
 // Clustering functions.
 
-SEXP get_scaled_ranks(SEXP, SEXP, SEXP);
+SEXP get_scaled_ranks(SEXP, SEXP, SEXP, SEXP);
 
 SEXP build_snn(SEXP);
 

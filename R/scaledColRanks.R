@@ -1,6 +1,6 @@
 #' @export
 #' @importFrom scater calcAverage
-scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, withDimnames=TRUE)
+scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, as.sparse=FALSE, withDimnames=TRUE)
 # Obtaining scaled/centred ranks to compute cosine distances.
 # Using this instead of colRanks to support dgCMatrix, HDF5Array objects.
 # 
@@ -13,7 +13,7 @@ scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
         subset.row <- subset.row[further.subset]
     }
 
-    rkout <- .Call(cxx_get_scaled_ranks, x, subset.row-1L, transposed)
+    rkout <- .Call(cxx_get_scaled_ranks, x, subset.row-1L, transposed, as.sparse)
 
     if (withDimnames && !is.null(dimnames(x))) {
         dn <- list(rownames(x)[subset.row], colnames(x))

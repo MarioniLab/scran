@@ -34,7 +34,7 @@ static const R_CallMethodDef all_call_entries[] = {
 
     // Clustering functions.
     REGISTER(build_snn, 1),
-    REGISTER(get_scaled_ranks, 3),
+    REGISTER(get_scaled_ranks, 4),
 
     // Miscellaneous functions.
     REGISTER(get_residuals, 5),
