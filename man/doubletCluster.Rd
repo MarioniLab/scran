@@ -31,29 +31,30 @@ For the SingleCellExperiment method, additional arguments to pass to the ANY met
 }
 
 \value{
-A DataFrame containing one row per cluster with the following fields:
+A DataFrame containing one row per query cluster with the following fields:
 \describe{
-    \item{\code{N}:}{Integer, number of genes that are significantly non-intermediate in the current cluster compared to the two putative source clusters.}
     \item{\code{source1}:}{String specifying the identity of the first source cluster.}
     \item{\code{source2}:}{String specifying the identity of the second source cluster.}
-    \item{\code{best}:}{String specifying the identify of the top gene with the lowest p-value against the doublet hypothesis for this combination of current and source clusters.}
+    \item{\code{N}:}{Integer, number of genes that are significantly non-intermediate in the query cluster compared to the two putative source clusters.}
+    \item{\code{best}:}{String specifying the identify of the top gene with the lowest p-value against the doublet hypothesis for this combination of query and source clusters.}
     \item{\code{p.value}:}{Numeric, containing the adjusted p-value for the \code{best} gene.} 
-    \item{\code{prop}:}{Numeric, proportion of cells in the current cluster.}
-    \item{\code{lib.size1}:}{Numeric, ratio of the median library sizes for the first source cluster to the current cluster.}
-    \item{\code{lib.size2}:}{Numeric, ratio of the median library sizes for the second source cluster to the current cluster.}
+    \item{\code{lib.size1}:}{Numeric, ratio of the median library sizes for the first source cluster to the query cluster.}
+    \item{\code{lib.size2}:}{Numeric, ratio of the median library sizes for the second source cluster to the query cluster.}
+    \item{\code{prop}:}{Numeric, proportion of cells in the query cluster.}
+    \item{\code{all.pairs}:}{A \linkS4class{SimpleList} object containing the above statistics for every pair of potential source clusters.}
 }
-Each row is named according to its cluster.
+Each row is named according to its query cluster.
 }
 
 \details{
 This function detects clusters of doublet cells in a manner similar to the method used by Bach et al. (2017).
-For each cluster, we examine all possible pairs of \dQuote{source} clusters, hypothesizing that the current cluster is a doublet formed from the two sources.
-If so, gene expression in the current cluster should be strictly intermediate between the two sources after library size normalization.
+For each \dQuote{query} cluster, we examine all possible pairs of \dQuote{source} clusters, hypothesizing that the query consists of doublets formed from the two sources.
+If so, gene expression in the query cluster should be strictly intermediate between the two sources after library size normalization.
 
 We apply pairwise t-tests to the normalized log-expression profiles (see \code{\link[scater]{normalize}}) to reject this null hypothesis.
-This is done by identifying genes that are consistently up- or down-regulated in the current cluster compared to \emph{both} of the sources.
+This is done by identifying genes that are consistently up- or down-regulated in the query compared to \emph{both} of the sources.
 We count the number of genes that reject the null hypothesis at the specified FDR \code{threshold}.
-For each cluster, the most likely pair of source clusters is that which minimizes the number of significant genes.
+For each query cluster, the most likely pair of source clusters is that which minimizes the number of significant genes.
 
 Potential doublet clusters are identified using the following characteristics:
 \itemize{
@@ -62,12 +63,16 @@ The threshold can be identified by looking for small outliers in \code{log(N)} a
 under the assumption that most clusters are \emph{not} doublets (and thus should have high \code{N}).
     \item A reasonable proportion of cells in the cluster, i.e., \code{prop}.
 This requires some expectation of the doublet rate in the experimental protocol. 
-    \item Library sizes of the source clusters that are below that of the current cluster, i.e., \code{lib.size*} values below unity.
+    \item Library sizes of the source clusters that are below that of the query cluster, i.e., \code{lib.size*} values below unity.
 This assumes that the doublet cluster will contain more RNA and have more counts than either of the two source clusters.    
 }
 
+For each query cluster, the function will only report the pair of source clusters with the lowest \code{N}.
+It is possible that a source pair with slightly higher (but still low) value of \code{N} may have more appropriate \code{lib.size*} values.
+Thus, it may be valuable to examine \code{all.pairs} in the output, especially in over-clustered data sets with closely neighbouring clusters.
+
 The reported \code{p.value} is of little use in a statistical sense, and is only provided for inspection.
-Technically, it could be treated as the Simes combined p-value against the doublet hypothesis for the current cluster.
+Technically, it could be treated as the Simes combined p-value against the doublet hypothesis for the query cluster.
 However, this does not account for the multiple testing across all pairs of clusters for each chosen cluster, 
 especially as we are chosing the pair that is most concordant with the doublet null hypothesis.
 

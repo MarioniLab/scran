@@ -1,4 +1,4 @@
-# This tests the doublet-discovery machinery.
+# This tests the doublet discovery machinery in scran.
 # library(scran); library(testthat); source("test-doublet.R")
 
 set.seed(9900001)
@@ -12,6 +12,21 @@ counts.m <- matrix(rpois(ngenes*20, mu1+mu2), nrow=ngenes)
 
 counts <- cbind(counts.1, counts.2, counts.m)
 clusters <- rep(1:3, c(ncol(counts.1), ncol(counts.2), ncol(counts.m)))
+
+RENAMER <- function(val, fields, mapping) 
+# A convenience function for remapping internal fields upon subsetting or renaming.
+# This is necessary for some equality checks below.
+{
+    new.pairs <- val$all.pairs
+    for (f in fields) {
+        val[[f]] <- mapping[as.integer(val[[f]])]
+        for (i in seq_along(new.pairs)) {
+            new.pairs[[i]][[f]] <- mapping[as.integer(new.pairs[[i]][[f]])]
+        }
+    }
+    val$all.pairs <- new.pairs
+    val
+}
 
 ###################################################
 
@@ -38,10 +53,10 @@ test_that("doubletCluster works correctly with vanilla tests", {
     # Checking that we get equivalent results with character cluster input.
     re.clusters <- LETTERS[clusters]
     re.dbl <- doubletCluster(counts, re.clusters)
-    dbl2 <- dbl
+
+    dbl2  <- RENAMER(dbl, c("source1", "source2"), LETTERS)
     rownames(dbl2) <- LETTERS[as.integer(rownames(dbl2))]
-    dbl2$source1 <- LETTERS[as.integer(dbl2$source1)]
-    dbl2$source2 <- LETTERS[as.integer(dbl2$source2)]
+    names(dbl2$all.pairs) <- LETTERS[as.integer(names(dbl2$all.pairs))]
     expect_identical(dbl2, re.dbl)
 })
 
@@ -67,13 +82,23 @@ test_that("doubletCluster agrees with a reference implementation", {
             p <- pmax(stats1$p.value, stats2$p.value)
             p[sign(stats1$logFC)!=sign(stats2$logFC)] <- 1
             adj.p <- p.adjust(p, method="BH")
-            list(best=rownames(stats)[which.min(p)], p.val=min(adj.p), N=sum(adj.p <= 0.05))
+            data.frame(best=rownames(stats)[which.min(p)], p.val=min(adj.p), N=sum(adj.p <= 0.05), stringsAsFactors=FALSE)
         })
 
-        to.use <- which.min(unlist(lapply(collected, function(o) o$N)))
-        expect_identical(dbl[x,"N"], collected[[to.use]]$N)
-        expect_identical(dbl[x,"p.value"], collected[[to.use]]$p.val)
-        expect_identical(dbl[x,"best"], collected[[to.use]]$best)
+        collected <- do.call(rbind, collected)
+        o <- order(collected$N)
+
+        obs <- dbl[x,"all.pairs"][[1]]
+        expect_identical(obs$source1, pmax(combos[2,], combos[1,])[o])
+        expect_identical(obs$source2, pmin(combos[1,], combos[2,])[o])
+        expect_identical(obs$N, collected$N[o])
+        expect_identical(obs$best, collected$best[o])
+        expect_equal(obs$p.value, collected$p.val[o])
+
+        to.use <- o[1]
+        expect_identical(dbl[x,"N"], collected[to.use, "N"])
+        expect_identical(dbl[x,"p.value"], collected[to.use, "p.val"])
+        expect_identical(dbl[x,"best"], collected[to.use, "best"])
         expect_identical(sort(c(dbl[x,"source1"],dbl[x,"source2"])), sort(combos[,to.use]))
     }
 })
@@ -82,7 +107,7 @@ test_that("doubletCluster works correctly with row subsets", {
     chosen <- sample(ngenes, 20)
     dbl0 <- doubletCluster(counts, clusters, subset.row=chosen)
     ref <- doubletCluster(counts[chosen,], clusters)
-    ref$best <- as.character(chosen)[as.integer(ref$best)]
+    ref <- RENAMER(ref, "best", as.character(chosen))
     expect_identical(dbl0, ref)
 
     # Trying out empty rows.

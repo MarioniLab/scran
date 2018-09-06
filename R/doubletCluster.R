@@ -1,6 +1,8 @@
 #' @importFrom scater librarySizeFactors normalize
 #' @importFrom BiocGenerics "sizeFactors<-" sizeFactors
 #' @importFrom stats p.adjust
+#' @importFrom methods as
+#' @importClassesFrom S4Vectors SimpleList
 .doublet_cluster <- function(x, clusters, subset.row=NULL, threshold=0.05, ...) 
 # Finds evidence that a cluster is _not_ a doublet of two other clusters.
 # Absence of such evidence should be a warning flag for that cluster.
@@ -18,25 +20,23 @@
     sce <- normalize(sce, return_log=TRUE)
 
     degs <- findMarkers(sce, clusters=clusters, subset.row=subset.row, full.stats=TRUE, ...)
-    med.lib.size <- lapply(split(sizeFactors(sce), clusters), median)
+    med.lib.size <- vapply(split(sizeFactors(sce), clusters), FUN=median, FUN.VALUE=0)
 	n.cluster <- table(clusters)/length(clusters)
 
-    # Setting up the output (done here to ensure that the final DataFrame is defined even with no clusters).
+    # Setting up the output.
     all.clusters <- names(degs)
-    collected <- vector("list", length(all.clusters))
-    names(collected) <- all.clusters
-    collected[[1]] <- DataFrame(N=integer(0), source1=character(0), source2=character(0),
-            best=character(0), p.value=numeric(0), prop=numeric(0),
-            lib.size1=numeric(0), lib.size2=numeric(0), row.names=character(0))
+    collected.top <- collected.all <- vector("list", length(all.clusters))
+    names(collected.top) <- names(collected.all) <- all.clusters
 
     # Running through all pairs of clusters and testing against the third cluster.
     for (ref in all.clusters) {
         ref.stats <- degs[[ref]]
         remnants <- setdiff(all.clusters, ref)
-        best.N <- Inf
-        best.p <- 1
-        best.gene <- NA_integer_
-        best.parents <- NA_integer_
+
+        num <- length(remnants) * (length(remnants) - 1L)/2L
+        all.N <- all.gene <- all.parent1 <- all.parent2 <- integer(num)
+        all.p <- numeric(num)
+        idx <- 1L
 
         for (i1 in seq_along(remnants)) {
             stats1 <- ref.stats[[paste0("stats.", remnants[i1])]] 
@@ -49,29 +49,36 @@
                     
                 # Correcting across genes.
                 adj.p <- p.adjust(max.p, method="BH")
-                N <- sum(adj.p <= threshold, na.rm=TRUE)
+                best.gene <- which.min(max.p)[1] # [1] gives NA when there are no genes, which avoids nrow mismatch in DataFrame().
 
-                if (N < best.N) {
-                    best.N <- N
-                    best.gene <- which.min(max.p)[1] # [1] gives NA when there are no genes, which avoids nrow mismatch in DataFrame().
-                    best.p <- adj.p[best.gene]
-                    best.parents <- c(i1, i2)
-                }
+                all.N[idx] <- sum(adj.p <= threshold, na.rm=TRUE)
+                all.gene[idx] <- best.gene
+                all.p[idx] <- adj.p[best.gene]
+                all.parent1[idx] <- i1
+                all.parent2[idx] <- i2
+                idx <- idx + 1L
             }
         }
 
-        parent1 <- remnants[best.parents[1]]
-        parent2 <- remnants[best.parents[2]]
-        collected[[ref]] <- DataFrame(N=best.N, source1=parent1, source2=parent2,
-            best=rownames(ref.stats)[best.gene], p.value=best.p, 
-			prop=n.cluster[[ref]],
-            lib.size1=med.lib.size[[parent1]]/med.lib.size[[ref]], 
-			lib.size2=med.lib.size[[parent2]]/med.lib.size[[ref]], 
-            row.names=ref)
+        # Formatting the output.
+        parent1 <- remnants[all.parent1]
+        parent2 <- remnants[all.parent2]
+
+        stats <- DataFrame(source1=parent1, source2=parent2, 
+            N=all.N, best=rownames(ref.stats)[all.gene], p.value=all.p,
+            lib.size1=unname(med.lib.size[parent1]/med.lib.size[ref]), 
+			lib.size2=unname(med.lib.size[parent2]/med.lib.size[ref]))
+
+        o <- order(all.N)
+        top <- cbind(stats[o[1],], prop=n.cluster[[ref]])
+        rownames(top) <- ref
+        collected.top[[ref]] <- top
+        collected.all[[ref]] <- stats[o,]
     }
 
     # Returning the DataFrame of compiled results.
-    out <- do.call(rbind, collected)
+    out <- do.call(rbind, collected.top)
+    out$all.pairs <- as(collected.all, "SimpleList")
     out[order(out$N),]
 }
 
