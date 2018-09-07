@@ -13,9 +13,8 @@ Imports: SummarizedExperiment, S4Vectors, BiocGenerics,
         Rcpp (>= 0.12.14), stats, methods, utils, Matrix, scater, 
         edgeR, limma, dynamicTreeCut, kmknn, igraph, statmod, 
         DelayedArray, DelayedMatrixStats
-Suggests: testthat, BiocStyle, knitr, beachmat, HDF5Array, limSolve, 
-        org.Mm.eg.db, DESeq2, monocle, pracma, Biobase, irlba,
-        aroma.light
+Suggests: testthat, BiocStyle, knitr, beachmat, HDF5Array, irlba, 
+        org.Mm.eg.db, DESeq2, monocle, pracma, Biobase, aroma.light
 biocViews: Normalization, Sequencing, RNASeq, Software, GeneExpression,
         Transcriptomics, SingleCell, Visualization, BatchEffect,
         Clustering
