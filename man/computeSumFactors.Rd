@@ -8,8 +8,8 @@
 
 \usage{
 \S4method{computeSumFactors}{ANY}(x, sizes=seq(21, 101, 5), clusters=NULL, ref.clust=NULL,
-    max.cluster.size=3000, positive=FALSE, errors=FALSE, min.mean=1, 
-    subset.row=NULL, BPPARAM=SerialParam())
+    max.cluster.size=3000, positive=FALSE, errors=FALSE, scaling=NULL,
+    min.mean=1, subset.row=NULL, BPPARAM=SerialParam())
 
 \S4method{computeSumFactors}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="counts",
     get.spikes=FALSE, sf.out=FALSE)
@@ -26,6 +26,7 @@
 \item{max.cluster.size}{An integer scalar specifying the maximum number of cells in each cluster.}
 \item{positive}{A logical scalar indicating whether linear inverse models should be used to enforce positive estimates.}
 \item{errors}{A logical scalar indicating whether the standard error should be returned. This option is deprecated, see below.}
+\item{scaling}{A numeric scalar containing scaling factors to adjust the counts prior to computing size factors.}
 \item{min.mean}{A numeric scalar specifying the minimum (library size-adjusted) average count of genes to be used for normalization.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{BPPARAM}{A BiocParallelParam object specifying whether and how clusters should be processed in parallel.}
@@ -36,13 +37,13 @@
 }
 
 \section{Overview of the deconvolution method}{
-The \code{computeSumFactors} function provides an implementation of the deconvolution strategy for normalization.
-Briefly, a pool of cells is selected and the counts for those cells are summed together.
-The count sums for this pool is normalized against an average reference pseudo-cell, constructed by averaging the counts across all cells.
+The \code{computeSumFactors} function provides an implementation of the deconvolution strategy (Lun et al., 2016) for scaling normalization of sparse count data.
+Briefly, a pool of cells is selected and the expression profiles for those cells are summed together.
+The pooled expression profile is normalized against an average reference pseudo-cell, constructed by averaging the counts across all cells.
 This defines a size factor for the pool as the median ratio between the count sums and the average across all genes.
 
-Now, the bias for the pool is equal to the sum of the biases for the constituent cells.
-The same applies for the size factors (which are effectively estimates of the bias for each cell).
+The scaling bias for the pool is equal to the sum of the biases for the constituent cells.
+The same applies for the size factors, as these are effectively estimates of the bias for each cell.
 This means that the size factor for the pool can be written as a linear equation of the size factors for the cells.
 Repeating this process for multiple pools will yield a linear system that can be solved to obtain the size factors for the individual cells.
 
@@ -51,11 +52,56 @@ The advantage is that the pool-based estimates are more accurate, as summation r
 This accuracy will feed back into the deconvolution process, thus improving the accuracy of the cell-based size factors.
 }
 
+\section{Pooling with a sliding window}{
+Within each cluster (if not specified, all cells are put into a single cluster), cells are sorted by increasing library size and a sliding window is applied to this ordering.
+Each location of the window defines a pool of cells with similar library sizes.
+This avoids inflated estimation errors for very small cells when they are pooled with very large cells.
+Sliding the window will construct an over-determined linear system that can be solved by least-squares methods to obtain cell-specific size factors.
+
+Window sliding is repeated with different window sizes to construct the linear system, as specified by \code{sizes}.
+By default, the number of cells in each window ranges from 21 to 101.
+Using a range of window sizes improves the precision of the estimates, at the cost of increased computational complexity.
+The defaults were chosen to provide a reasonable compromise between these two considerations.
+The default choice also avoids rare cases of linear dependencies and unstable estimates when all pool sizes are not co-prime with the number of cells.
+
+The smallest window should be large enough so that the pool-based size factors are, on average, non-zero.
+We recommend window sizes no lower than 20 for UMI data, though smaller windows may be possible for read count data.
+}
+
+\section{Prescaling to improve accuracy}{ 
+The simplest approach to pooling is to simply add the counts together for all cells in each pool.
+However, this is suboptimal as any errors in the estimation of the pooled size factor will propagate to all component cell-specific size factors upon solving the linear system.
+If the error is distributed evenly across all cell-specific size factors, the small size factors will have larger relative errors compared to the large size factors.
+
+To avoid this, we perform \dQuote{prescaling} where we divide the counts by a cell-specific factor prior to pooling.
+The prescaling factor should be close to the true size factor for each cell.
+(Obviously, the true size factor is unknown so we use the library size for each cell instead.)
+Solving the linear system constructed with prescaled values should yield estimates that are more-or-less equal across all cells.
+Thus, given similar absolute errors, the relative errors for all cells will also be similar.
+
+The default usage assumes that the library size is roughly proportional to the true size factor.
+This can be violated in pathological scenarios involving extreme differential expression.
+In such cases, we recommend running \code{computeSumFactors} twice to improve accuracy.
+The first run is done as usual and will yield an initial estimate of the size factor for each cell.
+In the second run, we use our initial estimates for prescaling by supplying them to the \code{scaling} argument, 
+This weakens the assumption above by avoiding large inaccuracies in the prescaling factor.
+
+Obviously, this involves twice as much computational work.
+As a result, performing multiple iterations is not the default recommendation, especially as the benefits are only apparent in extreme circumstances.
+}
+
+\section{Solving the linear system}{
+The linear system is solved using the sparse QR decomposition from the \pkg{Matrix} package.
+However, this has known problems when the linear system becomes too large (see \url{https://stat.ethz.ch/pipermail/r-help/2011-August/285855.html}).
+In such cases, set \code{clusters} to break up the linear system into smaller, more manageable components that can be solved separately.
+The default \code{max.cluster.size} will arbitrarily break up the cell population (within each cluster, if specified) so that we never pool more than 3000 cells.
+}
+
 \section{Normalization within and between clusters}{
 In general, it is more appropriate to pool more similar cells to avoid violating the assumption of a non-DE majority of genes across the data set.
 This can be done by specifying the \code{clusters} argument where cells in each cluster have similar expression profiles.
 Deconvolution is subsequently applied on the cells within each cluster.
-Each cluster should contain a sufficient number of cells for pooling -- an error is thrown if the number of cells is less than the maximum value of \code{sizes}.
+Each cluster should contain a sufficient number of cells for pooling -- a warning is raised if the number of cells is less than the maximum value of \code{sizes}.
 A convenince function \code{\link{quickCluster}} is provided for rapid clustering based on Spearman's rank correlation.
 
 Size factors computed within each cluster must be rescaled for comparison between clusters.
@@ -63,25 +109,6 @@ This is done by normalizing between clusters to identify the rescaling factor.
 One cluster is chosen as a ``reference'' (by default, that with the median of the mean per-cell library sizes is used) to which all others are normalized.
 Ideally, a cluster that is not extremely different from all other clusters should be used as the reference.
 This can be specified using \code{ref.clust} if there is prior knowledge about which cluster is most suitable, e.g., from PCA or t-SNE plots.
-}
-
-\section{Additional details about pooling and deconvolution}{
-Within each cluster (if not specified, all cells are put into a single cluster), cells are sorted by increasing library size and a sliding window is applied to this ordering.
-Each location of the window defines a pool of cells with similar library sizes.
-This avoids inflated estimation errors for very small cells when they are pooled with very large cells.
-Sliding the window will construct an over-determined linear system that can be solved by least-squares methods to obtain cell-specific size factors.
-
-Window sliding is repeated with different window sizes to construct the linear system, as specified by \code{sizes}.
-By default, the number of cells in each window ranges from 20 to 100.
-Using a range of window sizes improves the precision of the estimates, at the cost of increased computational complexity.
-The defaults were chosen to provide a reasonable compromise between these two considerations.
-The smallest window should be large enough so that the pool-based size factors are, on average, non-zero.
-We recommend window sizes no lower than 20 for UMI data, though smaller windows may be possible for read count data.
-
-The linear system is solved using the sparse QR decomposition from the \pkg{Matrix} package.
-However, this has known problems when the linear system becomes too large (see \url{https://stat.ethz.ch/pipermail/r-help/2011-August/285855.html}).
-In such cases, set \code{clusters} to break up the linear system into smaller, more manageable components that can be solved separately.
-The default \code{max.cluster.size} will arbitrarily break up the cell population (within each cluster, if specified) so that we never pool more than 3000 cells.
 }
 
 \section{Dealing with negative size factors}{ 
@@ -95,7 +122,7 @@ To avoid negative size factors, the best solution is to increase the stringency 
 \item If only a few negative size factors are present, they are likely to correspond to a few low-quality cells with few expressed features.
 Such cells are difficult to normalize reliably under any approach, and can be removed by increasing the stringency of the quality control.
 \item If many negative size factors are present, it is probably due to insufficient filtering of low-abundance genes.
-This results in many zero counts and pooled size factors of zero, and can be fixed by filtering out more genes.
+This results in many zero counts and pooled size factors of zero, and can be fixed by filtering out more genes with a higher \code{min.mean}.
 }
 Another approach is to increase in the number of \code{sizes} to improve the precision of the estimates.
 This reduces the chance of obtaining negative size factors due to estimation error, for cells where the true size factors are very small.
