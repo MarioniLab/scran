@@ -49,30 +49,39 @@ test_that("subset and division is correct", {
     x <- matrix(rpois(ngenes*ncells, lambda=10), nrow=ngenes, ncol=ncells)
     subset.row <- sample(ngenes, 500)
     subset.col <- sample(ncells, 100)
-    cur.out <- .Call(scran:::cxx_subset_and_divide, x, subset.row-1L, subset.col-1L)
+    cur.out <- .Call(scran:::cxx_subset_and_divide, x, subset.row-1L, subset.col-1L, NULL)
 
     chosen <- x[subset.row,subset.col]
     expect_equal(cur.out[[1]], colSums(chosen))
     divved <- t(t(chosen)/colSums(chosen))
     expect_equal(cur.out[[2]], divved)
-    expect_equal(cur.out[[3]], rowMeans(divved))
-
-    # Checking the logic of the mean abundance.
-    expect_equal(cur.out[[3]]*mean(cur.out[[1]]), scater::calcAverage(chosen))
+    expect_equal(cur.out[[3]], scater::calcAverage(chosen))
 
     # Works with sparse matrices (and returns sparse matrices).
     y <- matrix(rpois(ngenes*ncells, lambda=1), nrow=ngenes, ncol=ncells)
     y <- as(y, "dgCMatrix")
     subset.row <- sample(ngenes, 500)
     subset.col <- sample(ncells, 100)
-    cur.out <- .Call(scran:::cxx_subset_and_divide, y, subset.row-1L, subset.col-1L)
+    cur.out <- .Call(scran:::cxx_subset_and_divide, y, subset.row-1L, subset.col-1L, NULL)
 
     chosen <- y[subset.row,subset.col]
     expect_equal(cur.out[[1]], Matrix::colSums(chosen))
     divved <- t(t(chosen)/Matrix::colSums(chosen))
     expect_equal(cur.out[[2]], divved)
     expect_s4_class(cur.out[[2]], "dgCMatrix")
-    expect_equal(cur.out[[3]], Matrix::rowMeans(divved))
+    expect_equal(cur.out[[3]], scater::calcAverage(chosen))
+
+    # Check scaling behaviour.
+    truth <- runif(ncells)
+    truth <- truth/mean(truth)
+    cur.out <- .Call(scran:::cxx_subset_and_divide, x, subset.row-1L, subset.col-1L, truth)
+
+    chosen <- x[subset.row,subset.col]
+    subtruth <- truth[subset.col]
+    expect_equal(cur.out[[1]], subtruth)
+    divved <- t(t(chosen)/subtruth)
+    expect_equal(cur.out[[2]], divved)
+    expect_equal(cur.out[[3]], rowMeans(divved) * mean(subtruth))
 })
 
 coreCheck <- function(x, sphere, pool.sizes)
@@ -206,6 +215,28 @@ test_that("computeSumFactors correctly ignores low-abundance genes", {
     # Interacts properly with the subsetting.
     out <- computeSumFactors(dummy, min.mean=1, subset.row=1:500, sizes=sizes)
     expect_equal(out, sumInR(dummy[1:500,], sizes=sizes, min.mean=1))
+})
+
+set.seed(200051)
+test_that("computeSumFactors responds to scaling requests", {
+    truth <- runif(ncells, 0.5, 1.5)
+    dummy <- matrix(rpois(ngenes*ncells, lambda=truth), nrow=ngenes, ncol=ncells, byrow=TRUE)
+
+    outA <- computeSumFactors(dummy, min.mean=0, scaling=NULL)
+    outB <- computeSumFactors(dummy, min.mean=0, scaling=scater::librarySizeFactors(dummy))
+    expect_equal(outA, outB)
+
+    outC <- computeSumFactors(dummy, min.mean=0, scaling=truth)
+    expect_false(isTRUE(all.equal(outA, outC)))
+
+    # Matching it to what is expected.
+    truth.order <- 1 + rank(truth)/1e10 # ensuring the sphere order is the same.
+    outD <- computeSumFactors(t(t(dummy)/(truth/mean(truth))), min.mean=0, scaling=truth.order)
+    outD <- outD * truth
+    expect_equal(outD/mean(outD), outC/mean(outC))
+
+    # Throws upon silly inputs.
+    expect_error(computeSumFactors(dummy, min.mean=0, scaling=1), "should be equal")
 })
 
 ####################################################################################################
