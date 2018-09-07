@@ -17,7 +17,7 @@ extern "C" {
 
 SEXP forge_system (SEXP, SEXP, SEXP, SEXP);
 
-SEXP subset_and_divide(SEXP, SEXP, SEXP); 
+SEXP subset_and_divide(SEXP, SEXP, SEXP, SEXP); 
 
 // Cell cycle calling.
 
