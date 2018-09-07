@@ -1,6 +1,6 @@
 #' @importFrom BiocParallel bplapply SerialParam
 .computeSumFactors <- function(x, sizes=seq(21, 101, 5), clusters=NULL, ref.clust=NULL, max.cluster.size=3000, 
-    positive=FALSE, errors=FALSE, min.mean=1, subset.row=NULL, BPPARAM=SerialParam())
+    positive=FALSE, errors=FALSE, scaling=NULL, min.mean=1, subset.row=NULL, BPPARAM=SerialParam())
 # This contains the function that performs normalization on the summed counts.
 # It also provides support for normalization within clusters, and then between
 # clusters to make things comparable. It can also switch to linear inverse models
@@ -44,7 +44,7 @@
 
     # Computing normalization factors within each cluster.
     all.norm <- bplapply(indices, FUN=.per_cluster_normalize, x=x, sizes=sizes, subset.row=subset.row, 
-        min.mean=min.mean, positive=positive, errors=errors, BPPARAM=BPPARAM)
+        min.mean=min.mean, positive=positive, errors=errors, scaling=scaling, BPPARAM=BPPARAM)
 
     clust.nf <- lapply(all.norm, "[[", i="final.nf")
     clust.profile <- lapply(all.norm, "[[", i="ave.cell")
@@ -71,9 +71,8 @@
 # Internal functions.
 #############################################################
 
-#' @importFrom Matrix qr qr.coef colSums 
-#' @importFrom scater calcAverage
-.per_cluster_normalize <- function(x, curdex, sizes, subset.row, min.mean=1, positive=FALSE, errors=FALSE) 
+#' @importFrom Matrix qr qr.coef 
+.per_cluster_normalize <- function(x, curdex, sizes, subset.row, min.mean=1, positive=FALSE, errors=FALSE, scaling=NULL) 
 # Computes the normalization factors _within_ each cluster,
 # along with the reference pseudo-cell used for normalization. 
 # Written as a separate function so that bplapply operates in the scran namespace.
@@ -89,10 +88,10 @@
         }
     } 
 
-    vals <- .Call(cxx_subset_and_divide, x, subset.row-1L, curdex-1L)
-    cur.libs <- vals[[1]]
+    vals <- .Call(cxx_subset_and_divide, x, subset.row-1L, curdex-1L, scaling)
+    scaling <- vals[[1]]
     exprs <- vals[[2]]
-    ave.cell <- vals[[3]] * mean(cur.libs)
+    ave.cell <- vals[[3]] # equivalent to calcAverage().
 
     # Filtering by mean:
     high.ave <- min.mean <= ave.cell 
@@ -103,7 +102,7 @@
     }
 
     # Using our summation approach.
-    sphere <- .generateSphere(cur.libs)
+    sphere <- .generateSphere(scaling)
     new.sys <- .create_linear_system(exprs, use.ave.cell, sphere, cur.sizes) 
     design <- new.sys$design
     output <- new.sys$output
@@ -124,7 +123,7 @@
         }
     }
 
-    list(final.nf=final.nf * cur.libs, ave.cell=ave.cell)
+    list(final.nf=final.nf * scaling, ave.cell=ave.cell)
 }
 
 .generateSphere <- function(lib.sizes) 
