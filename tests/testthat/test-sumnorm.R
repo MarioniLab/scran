@@ -398,15 +398,17 @@ test_that("computeSumFactors works on SingleCellExperiment objects", {
 })
 
 set.seed(20011)
-test_that("other solving options work properly", {
-    dummy <- matrix(rpois(ncells*ngenes, lambda=10), nrow=ngenes, ncol=ncells)
-    out <- computeSumFactors(dummy)
-    if (.Platform$OS.type!="windows") { # Because limSolve doesn't build on Windows, apparently.
-        outx <- computeSumFactors(dummy, positive=TRUE)
-        expect_true(all(abs(outx -  out) < 1e-3)) # need to be a bit generous here, the solution code is different.
-    }
-    expect_warning(outx <- computeSumFactors(dummy, errors=TRUE), "errors=TRUE is no longer supported")
-    expect_equal(as.numeric(outx), out)
+test_that("setting positive=TRUE behaves properly", {
+    lambda <- c(rep(1e-2, 100), 2^rnorm(200))
+    dummy <- matrix(rpois(length(lambda)*ngenes, lambda=lambda), nrow=ngenes, ncol=length(lambda), byrow=TRUE)
+    expect_warning(out <- computeSumFactors(dummy), "negative")
+    expect_true(all(out > 0)) 
+
+    expect_warning(out2 <- computeSumFactors(dummy, positive=FALSE), "negative")
+    expect_true(any(out2 < 0))
+
+    okay <- out2 > 0
+    expect_equal(out[okay]/mean(out[okay]), out2[okay]/mean(out2[okay]))    
 })
 
 set.seed(200111)

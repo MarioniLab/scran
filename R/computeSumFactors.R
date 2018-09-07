@@ -1,6 +1,6 @@
 #' @importFrom BiocParallel bplapply SerialParam
 .computeSumFactors <- function(x, sizes=seq(21, 101, 5), clusters=NULL, ref.clust=NULL, max.cluster.size=3000, 
-    positive=FALSE, errors=FALSE, scaling=NULL, min.mean=1, subset.row=NULL, BPPARAM=SerialParam())
+    positive=TRUE, scaling=NULL, min.mean=1, subset.row=NULL, BPPARAM=SerialParam())
 # This contains the function that performs normalization on the summed counts.
 # It also provides support for normalization within clusters, and then between
 # clusters to make things comparable. It can also switch to linear inverse models
@@ -44,7 +44,7 @@
 
     # Computing normalization factors within each cluster.
     all.norm <- bplapply(indices, FUN=.per_cluster_normalize, x=x, sizes=sizes, subset.row=subset.row, 
-        min.mean=min.mean, positive=positive, errors=errors, scaling=scaling, BPPARAM=BPPARAM)
+        min.mean=min.mean, positive=positive, scaling=scaling, BPPARAM=BPPARAM)
 
     clust.nf <- lapply(all.norm, "[[", i="final.nf")
     clust.profile <- lapply(all.norm, "[[", i="ave.cell")
@@ -71,8 +71,9 @@
 # Internal functions.
 #############################################################
 
-#' @importFrom Matrix qr qr.coef 
-.per_cluster_normalize <- function(x, curdex, sizes, subset.row, min.mean=1, positive=FALSE, errors=FALSE, scaling=NULL) 
+#' @importFrom Matrix qr qr.coef colSums
+#' @importFrom scater nexprs
+.per_cluster_normalize <- function(x, curdex, sizes, subset.row, min.mean=1, positive=FALSE, scaling=NULL) 
 # Computes the normalization factors _within_ each cluster,
 # along with the reference pseudo-cell used for normalization. 
 # Written as a separate function so that bplapply operates in the scran namespace.
@@ -107,23 +108,20 @@
     design <- new.sys$design
     output <- new.sys$output
 
-    # Weighted least-squares (inverse model for positivity).
-    if (positive) { 
-        design <- as.matrix(design)
-        fitted <- limSolve::lsei(A=design, B=output, G=diag(cur.cells), H=numeric(cur.cells), type=2)
-        final.nf <- fitted$X
-    } else {
-        QR <- qr(design)
-        final.nf <- qr.coef(QR, output)
-        if (any(final.nf < 0)) { 
-            warning("encountered negative size factor estimates")
-        }
-        if (errors) {
-            warning("errors=TRUE is no longer supported")
+    # Weighted least-squares.
+    QR <- qr(design)
+    final.nf <- qr.coef(QR, output)
+    final.nf <- final.nf * scaling
+
+    if (any(final.nf < 0)) {
+        warning("encountered negative size factor estimates")
+        if (positive) {
+            num.detected <- nexprs(exprs, byrow=FALSE)
+            final.nf <- cleanSizeFactors(final.nf, num.detected) 
         }
     }
 
-    list(final.nf=final.nf * scaling, ave.cell=ave.cell)
+    list(final.nf=final.nf, ave.cell=ave.cell)
 }
 
 .generateSphere <- function(lib.sizes) 

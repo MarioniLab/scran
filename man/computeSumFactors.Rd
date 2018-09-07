@@ -127,10 +127,9 @@ This results in many zero counts and pooled size factors of zero, and can be fix
 Another approach is to increase in the number of \code{sizes} to improve the precision of the estimates.
 This reduces the chance of obtaining negative size factors due to estimation error, for cells where the true size factors are very small.
 
-As a last resort, some protection can be provided by setting \code{positive=TRUE}, which will use linear inverse models to solve the system.
-This ensures that non-negative values for the size factors will always be obtained.
-Note that some cells may still have size factors of zero and should be removed prior to downstream analysis.
-Such occurrences are unavoidable -- rather, the aim is to prevent negative values from affecting the estimates for all other cells.
+As a last resort, \code{positive=TRUE} is set by default, which uses \code{\link{cleanSizeFactors}} to coerce any negative estimates to positive values.
+This ensures that, at the very least, downstream analysis is possible even if the size factors for affected cells are not accurate.
+Users can skip this step by setting \code{positive=FALSE} to perform their own diagnostics or coercions.
 }
 
 \section{Gene selection}{
