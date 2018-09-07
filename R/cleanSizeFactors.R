@@ -16,13 +16,13 @@ cleanSizeFactors <- function(size.factors, num.detected, control=nls.control(war
     }
 
     # Solving for initial conditions.
-    lower <- median(size.factors) > size.factors
-    fit <- lm(num.detected[lower] ~ 0 + size.factors[lower])
+    lower <- median(X) > X
+    fit <- lm(Y[lower] ~ 0 + X[lower])
     A <- unname(coef(fit))
 
     below <- which(Y < A*X)
     top <- below[which.max(Y[below])]
-    B <- A / Y[top] - 1 / X[top] # must be positive due to 'below'.
+    B <- unname(A / Y[top] - 1 / X[top]) # must be positive due to 'below'.
 
     # Using logs to enforce positivity.
     init <- log(c(logA=A, logB=B)) 
