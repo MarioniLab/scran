@@ -8,8 +8,8 @@
 
 \usage{
 \S4method{computeSumFactors}{ANY}(x, sizes=seq(21, 101, 5), clusters=NULL, ref.clust=NULL,
-    max.cluster.size=3000, positive=FALSE, errors=FALSE, scaling=NULL,
-    min.mean=1, subset.row=NULL, BPPARAM=SerialParam())
+    max.cluster.size=3000, positive=TRUE, scaling=NULL, min.mean=1,
+    subset.row=NULL, BPPARAM=SerialParam())
 
 \S4method{computeSumFactors}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="counts",
     get.spikes=FALSE, sf.out=FALSE)
@@ -25,7 +25,6 @@
 \item{ref.clust}{A level of \code{clusters} to be used as the reference cluster for inter-cluster normalization.}
 \item{max.cluster.size}{An integer scalar specifying the maximum number of cells in each cluster.}
 \item{positive}{A logical scalar indicating whether linear inverse models should be used to enforce positive estimates.}
-\item{errors}{A logical scalar indicating whether the standard error should be returned. This option is deprecated, see below.}
 \item{scaling}{A numeric scalar containing scaling factors to adjust the counts prior to computing size factors.}
 \item{min.mean}{A numeric scalar specifying the minimum (library size-adjusted) average count of genes to be used for normalization.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
@@ -155,7 +154,7 @@ Similarly, only the genes selected by \code{subset.row} and with average counts 
 
 \section{Obtaining standard errors}{
 Previous versions of \code{computeSumFactors} would return the standard error for each size factor when \code{errors=TRUE}.
-This is no longer the case, as standard error estimation from the linear model is not reliable.
+This argument is no longer available as we have realized that standard error estimation from the linear model is not reliable.
 Errors are likely underestimated due to correlations between pool-based size factors when they are computed from a shared set of underlying counts.
 Users wishing to obtain a measure of uncertainty are advised to perform simulations instead, using the original size factor estimates to scale the mean counts for each cell.
 Standard errors can then be calculated as the standard deviation of the size factor estimates across simulation iterations.
