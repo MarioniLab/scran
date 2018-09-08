@@ -37,6 +37,10 @@ Here, we use the number of detected features as this is more robust to different
 Of course, it is not theoretically guaranteed to yield the correct size factor, but a rough guess is better than a negative value.
 }
 
+\value{
+A numeric vector identical to \code{size.factors} but with all non-positive size factors replaced with fitted values from the curve.
+}
+
 \author{
 Aaron Lun
 }
