@@ -49,8 +49,8 @@ A numeric vector of doublet scores for each cell in \code{x}.
 \details{
 This function simulates doublets by adding the count vectors for two randomly chosen cells in \code{x}.
 For each cell, we compute the density of simulated doublets and compare it to the density of original cells.
-Genuine doublets should have a high density of simulated doublets, relative to the density of its neighbourhood.
-Thus, the doublet score for each cell is defined as the ratio of densities of simulated doublets to original cells.
+Genuine doublets should have a high density of simulated doublets relative to the density of its neighbourhood.
+Thus, the doublet score for each cell is defined as the ratio of densities of simulated doublets to the (squared) density of the original cells.
 
 Densities are calculated in low-dimensional space after a PCA on the log-normalized expression matrix of \code{x}.
 Simulated doublets are projected into the low-dimensional space using the rotation vectors computed from the original cells.

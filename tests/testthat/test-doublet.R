@@ -233,12 +233,14 @@ test_that("high-level tests for doubletCells work correctly", {
     X <- cbind(counts.A, counts.B, counts.C) 
     out <- doubletCells(X, size.factors.content=sf.spike)
     expect_true(min(out[clusters==3]) > max(out[clusters!=3]))
+    expect_true(min(out[clusters==3]) > 2 * max(out[clusters!=3]))
 
-    out <- doubletCells(X) # fails without size factor info.
-    expect_true(max(out[clusters==3]) < min(out[clusters!=3]))
+    out <- doubletCells(X) # fails without size factor info; differences are basically negligible.
+    expect_true(max(out[clusters==3]) < 2 * min(out[clusters!=3]))
 
     out <- scran:::.doublet_cells(X, force.match=TRUE, k=20) # recovers with forced matching.
     expect_true(min(out[clusters==3]) > max(out[clusters!=3]))
+    expect_true(min(out[clusters==3]) > 2*max(out[clusters!=3]))
 })
 
 set.seed(9900005)
