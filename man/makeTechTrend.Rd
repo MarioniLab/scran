@@ -6,7 +6,7 @@
 
 \usage{
 makeTechTrend(means, size.factors=1, tol=1e-6, dispersion=0, 
-    pseudo.count=1, x=NULL, BPPARAM=SerialParam()) 
+    pseudo.count=1, approx.npts=Inf, x=NULL, BPPARAM=SerialParam())
 }
 
 \arguments{
@@ -17,8 +17,9 @@ If supplied, these should be centred at unity.}
 \item{tol}{A numeric scalar specifying the tolerance for approximating the mean/variance.
 Lower values result in greater accuracy.}
 \item{dispersion}{A numeric scalar specifying the dispersion for the NB distribution.
-If zero, this is equivalent to a Poisson distribution.}
+If zero, a Poisson distribution is used.}
 \item{pseudo.count}{A numeric scalar specifying the pseudo-count to be added to the scaled counts before log-transformation.}
+\item{approx.npts}{An integer scalar specifying the number of interpolation points to use.
 \item{x}{A SingleCellExperiment object from which \code{size.factors} and \code{pseudo.count} are extracted,
 and \code{means} can be automatically inferred.}
 \item{BPPARAM}{A BiocParallelParam object indicating whether and how parallelization should be performed across \code{means}.}
@@ -41,6 +42,12 @@ This means that the function is directly usable as a replacement for the \code{t
 If \code{x} is set, \code{pseudo.count} is overridden by \code{metadata(sce)$log.exprs.offset};
 \code{size.factors} is overridden by \code{sizeFactors(sce)} (or the column sums of \code{counts(sce)}, if no size factors are specified);
 and \code{means} is automatically determined from the range of row averages of \code{logcounts(sce)} (after undoing the log-transformation).
+
+If \code{approx.npts} is finite and less than \code{length(size.factors)}, an approximate approach is used to construct the trend.
+We define \code{approx.npts} evenly spaced points (on the log-scale) between the smallest and largest size factors.
+Each point is treated as a proxy size factor and used to construct a count distribution as previously described.
+The expected log-count (and expected sum of squares) at each point is computed, and interpolation is used to obtain the corresponding values at the actual size factors.
+This avoids constructing separate distributions for each element of \code{size.factors}.
 }
 
 \value{

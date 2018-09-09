@@ -78,6 +78,26 @@ test_that("makeTechTrend values are close to simulated means/variances", {
     expect_true(abs(out(mean(log.values)) - var(log.values)) < 5e-3)
 })
 
+test_that("makeTechTrend performs approximations correctly", {
+    sf <- runif(200)
+    sf <- sf/mean(sf)
+
+    # Checking that the calculations are exactly correct with perfect interpolation.
+    out <- makeTechTrend(1:100/10, pseudo.count=1, size.factors=sf)
+    out2 <- makeTechTrend(1:100/10, pseudo.count=1, size.factors=sf, approx.npts=200)
+    expect_equal(environment(out)$z$x, environment(out2)$z$x)
+    expect_equal(environment(out)$z$y, environment(out2)$z$y)
+
+    # Checking that the calculations are close enough with non-trivial interpolation.
+    out <- makeTechTrend(1:100/10, pseudo.count=1, size.factors=sf)
+    out2 <- makeTechTrend(1:100/10, pseudo.count=1, size.factors=sf, approx.npts=100)
+    expect_equal(environment(out)$z$x, environment(out2)$z$x, 1e-6)
+    expect_equal(environment(out)$z$y, environment(out2)$z$y, 1e-6)
+
+    # Throws errors.
+    expect_error(makeTechTrend(1:100, pseudo.count=1, size.factors=sf, approx.npts=1), "at least 2")
+})
+
 test_that("makeTechTrend handles other options properly", {
     # Handles parallelization properly.
     sf <- c(0.1, 0.5, 1, 1.5, 1.9)
