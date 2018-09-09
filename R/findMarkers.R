@@ -1,7 +1,8 @@
 #' @importFrom S4Vectors DataFrame
 #' @importFrom stats p.adjust
-.findMarkers <- function(x, clusters, block=NULL, design=NULL, pval.type=c("any", "all"), direction=c("any", "up", "down"), 
-                         lfc=0, log.p=FALSE, full.stats=FALSE, subset.row=NULL)
+.findMarkers <- function(x, clusters, gene.names=rownames(x), block=NULL, design=NULL, 
+    pval.type=c("any", "all"), direction=c("any", "up", "down"), 
+    lfc=0, log.p=FALSE, full.stats=FALSE, subset.row=NULL)
 # Uses limma to find the markers that are differentially expressed between clusters,
 # given a log-expression matrix and some blocking factors in 'design' or 'block'.
 #
@@ -18,13 +19,21 @@
     }
     pval.type <- match.arg(pval.type) 
     direction <- match.arg(direction)  
+
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
+    if (is.null(gene.names)) {
+        gene.names <- subset.row
+    } else if (length(gene.names)!=nrow(x)) {
+        stop("length of 'gene.names' is not equal to the number of rows")
+    } else {
+        gene.names <- gene.names[subset.row]
+    }
 
     # Estimating the parameters.
     if (!is.null(block) || is.null(design)) {
-        fit <- .test_block_internal(x, subset.row, clusters, block=block, direction=direction, lfc=lfc, full.stats=full.stats)
+        fit <- .test_block_internal(x, subset.row, clusters, block=block, direction=direction, lfc=lfc, full.stats=full.stats, gene.names=gene.names)
     } else {
-        fit <- .fit_lm_internal(x, subset.row, clusters, design=design, direction=direction, lfc=lfc, full.stats=full.stats)
+        fit <- .fit_lm_internal(x, subset.row, clusters, design=design, direction=direction, lfc=lfc, full.stats=full.stats, gene.names=gene.names)
     }
 
     # Figuring out how to rank within each DataFrame.
@@ -85,10 +94,6 @@
         }
 
         # Producing the output object.
-        gene.names <- rownames(x)[subset.row]
-        if (is.null(gene.names)) { 
-            gene.names <- subset.row
-        }
         marker.set <- DataFrame(preamble, stat.df, check.names=FALSE, row.names=gene.names)
         marker.set <- marker.set[gene.order,,drop=FALSE]
         output[[host]] <- marker.set
@@ -101,7 +106,7 @@
 # Internal functions (blocking)
 ###########################################################
 
-.test_block_internal <- function(x, subset.row, clusters, block=NULL, direction="any", lfc=0, full.stats=FALSE) 
+.test_block_internal <- function(x, subset.row, clusters, block=NULL, direction="any", lfc=0, full.stats=FALSE, gene.names=NULL) 
 # This looks at every level of the blocking factor and performs
 # t-tests between pairs of clusters within each blocking level.
 {
@@ -193,8 +198,8 @@
                 out.stats[[target]][[host]] <- -com.lfc
             } else {
                 # Alternatively, saving all of the stats as a DataFrame.
-                out.stats[[host]][[target]] <- .create_full_stats(com.lfc, hvt.p, rownames(x))
-                out.stats[[target]][[host]] <- .create_full_stats(-com.lfc, tvh.p, rownames(x))
+                out.stats[[host]][[target]] <- .create_full_stats(com.lfc, hvt.p, gene.names)
+                out.stats[[target]][[host]] <- .create_full_stats(-com.lfc, tvh.p, gene.names)
             }
         }
     }
@@ -255,7 +260,7 @@
 
 #' @importFrom stats model.matrix
 #' @importFrom limma lmFit contrasts.fit
-.fit_lm_internal <- function(x, subset.row, clusters, design, direction="any", lfc=0, full.stats=FALSE)
+.fit_lm_internal <- function(x, subset.row, clusters, design, direction="any", lfc=0, full.stats=FALSE, gene.names=NULL)
 # This fits a linear model to each gene and performs a t-test for 
 # differential expression between clusters.
 {
@@ -318,8 +323,8 @@
                 out.stats[[host]][[target]] <- cur.lfc
                 out.stats[[target]][[host]] <- -cur.lfc
             } else {
-                out.stats[[host]][[target]] <- .create_full_stats(cur.lfc, hvt.p, rownames(x))
-                out.stats[[target]][[host]] <- .create_full_stats(-cur.lfc, tvh.p, rownames(x))
+                out.stats[[host]][[target]] <- .create_full_stats(cur.lfc, hvt.p, gene.names)
+                out.stats[[target]][[host]] <- .create_full_stats(-cur.lfc, tvh.p, gene.names)
             }
         }
     }
@@ -460,8 +465,7 @@
 
 #' @importFrom S4Vectors DataFrame
 .create_full_stats <- function(cur.lfc, cur.p, gene.names) {
-    I(DataFrame(logFC=cur.lfc, log.p.value=as.vector(cur.p), 
-                check.names=FALSE, row.names=gene.names))
+    I(DataFrame(logFC=cur.lfc, log.p.value=as.vector(cur.p), check.names=FALSE, row.names=gene.names))
 }
 
 ###########################################################
