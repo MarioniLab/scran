@@ -2,9 +2,9 @@
 #' @importFrom Matrix colSums rowMeans
 #' @importFrom SingleCellExperiment logcounts
 #' @importFrom stats splinefun
-#' @importFrom BiocParallel SerialParam bplapply
+#' @importFrom BiocParallel SerialParam bplapply bpmapply
 #' @export
-makeTechTrend <- function(means, size.factors=1, tol=1e-6, dispersion=0, pseudo.count=1, approximate=FALSE, x=NULL, BPPARAM=SerialParam()) 
+makeTechTrend <- function(means, size.factors=1, tol=1e-6, dispersion=0, pseudo.count=1, approx.npts=Inf, x=NULL, BPPARAM=SerialParam()) 
 # This generates NB-distributed counts with the specified 
 # dispersion in order to fit the mean-variance trend to the
 # log-normalized counts. Designed for droplet data where
@@ -34,15 +34,36 @@ makeTechTrend <- function(means, size.factors=1, tol=1e-6, dispersion=0, pseudo.
         stop("size factors should be centred at unity") 
     }
 
-    if (approximate) {
-        approx.out <- .approximate_log_stats(means, size.factors, dispersion, pseudo.count)
-        collected.means <- approx.out$mean
-        collected.vars <- approx.out$var
+    to.core <- .worker_assign(length(means), BPPARAM)
+    by.core <- .split_vector_by_workers(means, to.core)
+
+    if (is.finite(approx.npts)) {
+        if (approx.npts < 2) {
+            stop("'approx.npts' should be at least 2")
+        }
+
+        # Approximating by fitting a spline with respect to the size factors.
+        # This avoids having to compute these statistics for each size factor.
+        lsf <- log(size.factors)
+        if (length(lsf) <= approx.npts) {
+            lpts <- lsf
+        } else {
+            lpts <- seq(min(lsf), max(lsf), length.out=approx.npts)
+        }
+        pts <- exp(lpts)
+
+        out.expected <- bplapply(by.core, FUN=.tech_mean_computer, size.factors=pts, 
+            tol=tol, dispersion=dispersion, pseudo.count=pseudo.count, BPPARAM=BPPARAM)
+        collected.means <- .interpolate_and_average(lpts, unlist(out.expected, recursive=FALSE), lsf)
+
+        by.core.constant <- .split_vector_by_workers(collected.means, to.core)
+        out.sqdiff <- bpmapply(FUN=.tech_var_computer, means=by.core, logmeans=by.core.constant, 
+            MoreArgs=list(size.factors=pts, tol=tol, dispersion=dispersion, pseudo.count=pseudo.count), 
+            BPPARAM=BPPARAM, SIMPLIFY=FALSE, USE.NAMES=FALSE)
+        collected.vars <- .interpolate_and_average(lpts, unlist(out.sqdiff, recursive=FALSE), lsf)
 
     } else {
         # Calling the C++ code to do the heavy lifting.
-        to.core <- .worker_assign(length(means), BPPARAM)
-        by.core <- .split_vector_by_workers(means, to.core)
         raw.out <- bplapply(by.core, FUN=.tech_trend_computer, size.factors=size.factors, 
             tol=tol, dispersion=dispersion, pseudo.count=pseudo.count, BPPARAM=BPPARAM)
 
@@ -60,33 +81,24 @@ makeTechTrend <- function(means, size.factors=1, tol=1e-6, dispersion=0, pseudo.
     .Call(cxx_calc_log_count_stats, means, size.factors, tol, dispersion, pseudo.count)
 }
 
-.approximate_log_stats <- function(means, size.factors, dispersion, pseudo.count) 
-# Applies Taylor series approximations to compute the moments.
+.tech_mean_computer <- function(means, size.factors, tol, dispersion, pseudo.count)
+# A helper function to ensure that the scran namespace is used in SnowParam().
 {
-    output.mean <- output.var <- numeric(length(means))
-    for (i in seq_along(means)) {
-        cur.mean <- means[i]
-        cell.mean <- cur.mean * size.factors
-        cell.var <- cell.mean + dispersion * cell.mean^2
-        inside <- cur.mean + pseudo.count # equal to [E(X)/s + p]
-
-        # E[log(X/s + p)] ~= log[E(X)/s + p] - 1/2 * var(X) / [E(X)/s + p]^2 / s^2 
-        # ... where X ~ NB(mu*s, d)
-        mus <- log(inside) - 0.5 * cell.var / size.factors^2 / inside^2
-        grand.mean <- mean(mus)
-        output.mean[i] <- grand.mean
-
-        # E[log(X/s + p)^2] ~= log[E(X)/s + p]^2 + { 1/[E(X)/s + p]^2 - log[E(X)/s + p] / [E(X)/s + p]^2 } * var(X) / s^2
-        exp.sq <- log(inside)^2 + ( 1/inside^2 - log(inside) / inside^2 ) * cell.var / size.factors^2
-
-        # Remember that we want to compute the variance of the gene relative to the grand mean!
-        output.var[i] <- mean(exp.sq - 2 * mus * grand.mean + grand.mean^2)
-    }
-
-    # Need to divide by log(2) or log(2)^2.
-    output.mean <- output.mean/log(2)
-    output.var <- output.var/log(2)^2
-    list(mean=output.mean, var=output.var)
+    .Call(cxx_calc_log_expected, means, size.factors, tol, dispersion, pseudo.count)
 }
 
+.tech_var_computer <- function(means, size.factors, tol, dispersion, pseudo.count, logmeans)
+# A helper function to ensure that the scran namespace is used in SnowParam().
+{
+    .Call(cxx_calc_log_sqdiff, means, size.factors, tol, dispersion, pseudo.count, logmeans)
+}
 
+#' @importFrom stats spline
+.interpolate_and_average <- function(x, y.list, xout) 
+# Fits a spline to x against each element of y,
+# interpolates at xout and then computes the average.
+{
+    vapply(y.list, FUN=function(y) {
+        mean(spline(x, y, xout=xout)$y)
+    }, FUN.VALUE=0)
+}

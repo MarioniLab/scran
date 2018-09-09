@@ -45,6 +45,10 @@ SEXP fit_oneway(SEXP, SEXP, SEXP);
 
 SEXP calc_log_count_stats(SEXP, SEXP, SEXP, SEXP, SEXP);
 
+SEXP calc_log_expected(SEXP, SEXP, SEXP, SEXP, SEXP);
+
+SEXP calc_log_sqdiff(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+
 // DE analysis functions.
 
 SEXP combine_simes(SEXP, SEXP);
