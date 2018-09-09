@@ -7,9 +7,9 @@
 \description{Find candidate marker genes for clusters of cells, by testing for differential expression between clusters.}
 
 \usage{
-\S4method{findMarkers}{ANY}(x, clusters, block=NULL, design=NULL,
-    pval.type=c("any", "all"), direction=c("any", "up", "down"), 
-    lfc=0, log.p=FALSE, full.stats=FALSE, subset.row=NULL)
+\S4method{findMarkers}{ANY}(x, clusters, gene.names=rownames(x), block=NULL, design=NULL,
+    pval.type=c("any", "all"), direction=c("any", "up", "down"), lfc=0, 
+    log.p=FALSE, full.stats=FALSE, subset.row=NULL)
 
 \S4method{findMarkers}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", 
     get.spikes=FALSE) 
@@ -23,6 +23,7 @@
 \item{clusters}{
 A vector of cluster identities for all cells.
 }
+\item{gene.names}{A character vector of gene names with one value for each row of \code{x}.}
 \item{block}{A factor specifying the blocking level for each cell.}
 \item{design}{A numeric matrix containing blocking terms, i.e., uninteresting factors driving expression across cells.}
 \item{pval.type}{A string specifying the type of combined p-value to be computed, i.e., Simes' or IUT.}
@@ -30,7 +31,7 @@ A vector of cluster identities for all cells.
 \item{lfc}{A positive numeric scalar specifying the log-fold change threshold to be tested against.}
 \item{log.p}{A logical scalar indicating if log-transformed p-values/FDRs should be returned.}
 \item{full.stats}{A logical scalar indicating whether all statistics (i.e., raw and BH-adjusted p-values) should be returned for each pairwise comparison.}
-\item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
+\item{subset.row}{A logical, integer or character scalar specifying the rows of \code{x} to use.}
 \item{...}{Additional arguments to pass to the ANY method.}
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
 \item{get.spikes}{A logical scalar specifying whether decomposition should be performed for spike-ins.}
