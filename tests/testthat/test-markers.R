@@ -193,9 +193,9 @@ test_that("findMarkers runs properly with blocking: basic checks", {
     # All values should be the same if one block contains only one group.
     re.clusters <- clusters
     re.clusters[blocked==1] <- 1
-    output <- findMarkers(X, re.clusters, blocked)
+    output <- findMarkers(X, re.clusters, block=blocked)
     keep <- blocked!=1
-    ref <- findMarkers(X[,keep], re.clusters[keep], blocked[keep])
+    ref <- findMarkers(X[,keep], re.clusters[keep], block=blocked[keep])
     expect_equal(ref, output)
 
     # If one block contains only one sample from each group, gene ordering and p-values 
@@ -317,7 +317,7 @@ test_that("findMarkers runs properly with blocking: missing/singleton group chec
     subclust <- rep(1:3, each=3)
     subblock <- rep(1:3, 3)
 
-    output <- findMarkers(subX, subclust, subblock)
+    output <- findMarkers(subX, subclust, block=subblock)
     for (i in names(output)) {
         expect_true(all(is.na(output[[i]]$Top)))
         for (j in setdiff(names(output), i)) {
@@ -334,7 +334,7 @@ test_that("findMarkers runs properly with blocking: missing/singleton group chec
     re.block <- rep(1, ncells)
     re.block[1:2] <- 2
 
-    output <- findMarkers(stuff, re.clusters, re.block) 
+    output <- findMarkers(stuff, re.clusters, block=re.block) 
     in.11 <- stuff[,re.block==1 & re.clusters==1]
     in.12 <- stuff[,re.block==1 & re.clusters==2]
     w.b2 <- 1/2
@@ -346,7 +346,7 @@ test_that("findMarkers runs properly with blocking: missing/singleton group chec
     
     re.clusters[] <- 2
     re.clusters[1:2] <- 1:2
-    output <- findMarkers(stuff, re.clusters, re.block) 
+    output <- findMarkers(stuff, re.clusters, block=re.block) 
     expect_equal(output[[2]]$logFC.1, unname(stuff[,2]-stuff[,1]))
     
     # We correctly get NA values if block is confounded with group.
@@ -357,9 +357,9 @@ test_that("findMarkers runs properly with blocking: missing/singleton group chec
     re.block <- blocked
     re.clusters[re.block==1] <- "A"
 
-    output <- findMarkers(stuff, re.clusters, re.block) 
+    output <- findMarkers(stuff, re.clusters, block=re.block) 
     keep <- re.block != 1
-    ref <- findMarkers(stuff[,keep], re.clusters[keep], re.block[keep]) 
+    ref <- findMarkers(stuff[,keep], re.clusters[keep], block=re.block[keep]) 
 
     for (x in 1:3) {
         cur.out <- output[[x]]
