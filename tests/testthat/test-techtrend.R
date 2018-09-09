@@ -64,13 +64,18 @@ test_that("makeTechTrend compares correctly to a reference", {
     expect_equal(ref[[2]], out[[2]])
 })
 
-test_that("makeTechTrend values are close to simulated means/variances", {    
-	out <- makeTechTrend(c(1, 5), pseudo.count=2, size.factors=c(0.5, 1.5))
-    log.values <- c(log2(rpois(1e6, lambda=0.5)/0.5 + 2), log2(rpois(1e6, lambda=1.5)/1.5 + 2)) # at 1
+test_that("makeTechTrend values are close to simulated means/variances", {
+    logrpois <- function(m, s, p) {
+        log2(rpois(1e6, lambda=m*s)/s + p)
+    }
+
+    out <- makeTechTrend(c(1, 5), pseudo.count=2, size.factors=c(0.5, 1.5))
+    log.values <- c(logrpois(1, 0.5, 2), logrpois(1, 1.5, 2)) # at 1
     expect_true(abs(out(mean(log.values)) - var(log.values)) < 5e-3)
-    log.values <- c(log2(rpois(1e6, lambda=0.5*5)/0.5 + 2), log2(rpois(1e6, lambda=1.5*5)/1.5 + 2)) # at 5
+    log.values <- c(logrpois(5, 0.5, 2), logrpois(5, 1.5, 2)) # at 5
     expect_true(abs(out(mean(log.values)) - var(log.values)) < 5e-3)
 
+    # With a NB distribution.
     out <- makeTechTrend(c(1, 5), dispersion=0.1)
     log.values <- log2(rnbinom(1e6, mu=1, size=10) + 1)
     expect_true(abs(out(mean(log.values)) - var(log.values)) < 5e-3)

@@ -19,7 +19,7 @@ Lower values result in greater accuracy.}
 \item{dispersion}{A numeric scalar specifying the dispersion for the NB distribution.
 If zero, a Poisson distribution is used.}
 \item{pseudo.count}{A numeric scalar specifying the pseudo-count to be added to the scaled counts before log-transformation.}
-\item{approx.npts}{An integer scalar specifying the number of interpolation points to use.
+\item{approx.npts}{An integer scalar specifying the number of interpolation points to use.}
 \item{x}{A SingleCellExperiment object from which \code{size.factors} and \code{pseudo.count} are extracted,
 and \code{means} can be automatically inferred.}
 \item{BPPARAM}{A BiocParallelParam object indicating whether and how parallelization should be performed across \code{means}.}
