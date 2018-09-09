@@ -491,11 +491,23 @@ test_that("findMarkers works correctly with subsetting and spikes", {
     out2 <- findMarkers(exprs(X), clusters=clust$cluster)
     expect_identical(out, out2)
 
-    # Works with subsetting and spikes.
+    # Works with subsetting.
     out <- findMarkers(X, clusters=clust$cluster, subset.row=100:1)
     out2 <- findMarkers(X[100:1,], clusters=clust$cluster)
     expect_identical(out, out2)
-    
+
+    out <- findMarkers(X, clusters=clust$cluster, subset.row=1:10, full.stats=TRUE) 
+    out2 <- findMarkers(X[1:10,], clusters=clust$cluster, full.stats=TRUE)
+    expect_identical(out, out2)
+    expect_identical(rownames(out[[1]]$stats.2), rownames(out[[1]])) # names propagate to internal DFs.
+
+    out <- findMarkers(X, clusters=clust$cluster, subset.row=2:11, full.stats=TRUE, gene.names=NULL) # switches to using 'subset.row' as the row names. 
+    out2 <- findMarkers(unname(X)[2:11,], clusters=clust$cluster, full.stats=TRUE, gene.names=2:11)
+    expect_identical(out, out2)
+    expect_identical(rownames(out[[1]]$stats.2), rownames(out[[1]])) 
+    expect_identical(sort(as.integer(rownames(out[[1]]))), 2:11)
+
+    # Works with spikes.
     isSpike(X, "ERCC") <- 1:100
     out <- findMarkers(X, clusters=clust$cluster)
     out2 <- findMarkers(exprs(X)[-(1:100),], clusters=clust$cluster)
@@ -571,7 +583,10 @@ test_that("findMarkers behaves sensibly with silly inputs", {
         expect_identical(nrow(current), 0L) 
         expect_identical(colnames(current), c("Top", "FDR", paste0("logFC.", setdiff(as.character(1:3), i))))
     }    
-    
+
+    # Not proper naming.
+    expect_error(findMarkers(X, clusters=rep(1:3, length.out=ncol(X)), gene.names=integer(0)), "not equal to")
+
     # Throws errors with only one cluster, or no cells.
     expect_error(findMarkers(exprs(X), clusters=rep(1, length.out=ncol(X))), "need at least two unique levels")
     expect_error(findMarkers(exprs(X)[,0], clusters=integer(0)), "need at least two unique levels")
