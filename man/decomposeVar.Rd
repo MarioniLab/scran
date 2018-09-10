@@ -23,7 +23,8 @@
     A list containing the output of \code{\link{trendVar}}, run on log-expression values for spike-in genes.
 }
 \item{block}{A factor containing the level of a blocking factor for each cell.}
-\item{design}{A numeric matrix describing the uninteresting factors contributing to expression in each cell.}
+\item{design}{A numeric matrix describing the uninteresting factors contributing to expression in each cell.
+Alternatively, a single factor for one-way layouts.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
 \item{BPPARAM}{A BiocParallelParam object indicating whether and how parallelization should be performed across genes.}
 \item{...}{
@@ -60,6 +61,7 @@ For p-values, Stouffer's method is used on the group-specific p-values returned 
 In this case, a linear model is fitted to the expression profile for each gene, and the variance is calculated from the residual variance of the fit.
 The technical component is estimated as the fitted value of the trend at the mean expression across all cells for that gene.
 This approach is useful for covariates or additive models that cannot be expressed as a one-way layout for use in \code{block}.
+Of course, one-way layouts can still be specified as a full design matrix or by passing a factor directly as \code{design}.
 }
 
 If either of these arguments are \code{NA}, they will be extracted from \code{fit}, assuming that the same cells were used to fit the trend.
@@ -67,7 +69,7 @@ If \code{block} is specified, this will override any setting of \code{design}.
 Use of \code{block} is generally favoured as group-specific means result in a better estimate of the technical component than an average mean across all groups.
 
 Note that the use of either \code{block} or \code{design} assumes that there are no systematic differences in the size factors across levels of an uninteresting factor.
-If such differences are present, we suggest using \code{\link{combineVar}} instead, see the discussion in \code{?\link{trendVar}} for more details.
+If such differences are present, we suggest using \code{\link{multiBlockVar}} instead, see the discussion in \code{?\link{trendVar}} for more details.
 }
 
 \section{Feature selection}{
