@@ -1,18 +1,47 @@
 #include "scran.h"
 
 template <class V>
-double get_proportion (const V& expr, const int& minpairs, const Rcpp::IntegerVector& marker1, const Rcpp::IntegerVector& marker2) {
+double get_proportion (const V& expr, const int& minpairs, const Rcpp::IntegerVector& marker1, const Rcpp::IntegerVector& marker2, double threshold=NA_REAL) {
     int was_first=0, was_total=0;
-    auto m2It=marker2.begin();
+    const bool short_cut = !ISNA(threshold);
+
     auto eIt=expr.begin();
-    for (auto m1It=marker1.begin(); m1It!=marker1.end(); ++m1It, ++m2It) {
+    const size_t npairs=marker1.size();
+    auto m1It=marker1.begin(), m2It=marker2.begin();
+
+    for (size_t m=0; m<npairs; ++m, ++m1It, ++m2It) {
         const auto& first=*(eIt+*m1It);
         const auto& second=*(eIt+*m2It);
-        if (first > second) { ++was_first; }
-        if (first != second) { ++was_total; }      
+
+        if (first != second) { 
+            ++was_total; 
+            if (first > second) { 
+                ++was_first; 
+            }
+        }
+
+        // Returning if all we need to know is whether the score is greater than or less than 'threshold'.
+        // We only check every hundred pairs to avoid redundant calculations.
+        if (short_cut && was_total >= minpairs && was_total % 100 == 0) {
+            const size_t leftovers=npairs - m - 1;
+            const double max_total=was_total + leftovers;
+            if (static_cast<double>(was_first + leftovers)/max_total < threshold) {
+                return -1;
+            } else if (static_cast<double>(was_first)/max_total > threshold) {
+                return 1;
+            }
+        }
     }
-    if (was_total < minpairs) { return NA_REAL; }
-    return double(was_first)/was_total;
+
+    if (was_total < minpairs) { 
+        return NA_REAL; 
+    }
+
+    const double output=static_cast<double>(was_first)/was_total;
+    if (short_cut) {
+        return output - threshold;
+    }
+    return output;
 }
 
 template <class V, class M>
@@ -70,9 +99,10 @@ SEXP shuffle_scores_internal (M mat_ptr,
         int below=0, total=0;
         for (int it=0; it < nit; ++it) {
             Rx_shuffle(current_exprs.begin(), current_exprs.end());
-            const double newscore=get_proportion(current_exprs, minp, marker1, marker2);
+
+            const double newscore=get_proportion(current_exprs, minp, marker1, marker2, curscore);
             if (!ISNA(newscore)) { 
-                if (newscore < curscore) { ++below; }
+                if (newscore < 0) { ++below; }
                 ++total;
             }
         }
