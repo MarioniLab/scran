@@ -26,7 +26,8 @@
 \item{spline.args}{A named list of arguments to pass to \code{\link[aroma.light]{robustSmoothSpline}} when \code{method="spline"}.}
 \item{nls.args}{A named list of arguments to pass to \code{\link{nls}} when \code{parametric=TRUE}.}
 \item{block}{A factor specifying the blocking level for each cell.}
-\item{design}{A numeric matrix describing the uninteresting factors contributing to expression in each cell.}
+\item{design}{A numeric matrix describing the uninteresting factors contributing to expression in each cell.
+Alternatively, a single factor can be supplied for one-way layouts.}
 \item{weighted}{A logical scalar indicated whether weighted trend fitting should be performed when \code{block!=NULL}.}
 \item{min.mean}{A numeric scalar specifying the minimum mean log-expression in order for a gene to be used for trend fitting.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
@@ -88,10 +89,9 @@ The trend is then fitted to the pooled observations, where observations from dif
 This effectively multiplies the number of points by the number of levels in \code{block}.
 If both \code{block} and \code{design} are specified, \code{block} will take priority and \code{design} will be ignored.
 
-The final approach is to subset the data set for each level of the blocking factor, re-run \code{\link{normalize}} for each subset to centre the size factors (see below),
-and run \code{\link{trendVar}} and \code{\link{decomposeVar}} for each subset separately.
-Results from all levels are then consolidated using the \code{\link{combineVar}} function.
-This is the most correct approach if there are systematic differences in the size factors (spike-in or endogenous) between levels.
+The final approach is to subset the data set for each level of the blocking factor and model the variances within each block separately.
+This is done using the \code{\link{multiBlockVar}} function, see its documentation for more details.
+Separate modelling and trend fitting is the most correct approach if there are systematic differences in the size factors (spike-in or endogenous) between levels.
 With the other two methods, such differences would be normalized out in the full log-expression matrix, preventing proper estimation of the level-specific abundance.
 
 Assuming there are no differences in the size factors between levels, we suggest using \code{block} wherever possible instead of \code{design}.
@@ -165,7 +165,7 @@ Otherwise, a numeric matrix of variances where each row corresponds to a spike-i
 \item{\code{resid.df}:}{An integer scalar specifying the residual d.f. used for variance estimation of each spike-in transcript, if \code{block=NULL}.
 Otherwise, a integer vector where each entry specifies the residual d.f. used in each level of \code{block}.}
 \item{\code{block}:}{A factor identical to the input \code{block}, only returned if it was not \code{NULL}.}
-\item{\code{design}:}{A numeric matrix identical to the input \code{design}, only returned if it was not \code{NULL} and \code{block=NULL}.}
+\item{\code{design}:}{A numeric matrix (or factor) identical to the input \code{design}, only returned if it was not \code{NULL} and \code{block=NULL}.}
 \item{\code{trend}:}{A function that returns the fitted value of the trend at any mean.}
 \item{\code{df2}:}{A numeric scalar, specifying the second degrees of freedom for a scaled F-distribution describing the variability of variance estimates around the trend.}
 }
