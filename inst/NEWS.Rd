@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.9.21}{\itemize{
+\section{Version 1.9.22}{\itemize{
 \item Removed selectorPlot(), exploreData() functions.
     
 \item Fixed underflow problem in mnnCorrect() when dealing with the Gaussian kernel.
@@ -18,6 +18,7 @@ Supported parallelized cluster-wise processing.
 \item Added the scaledColRanks() function for computing scaled and centred column ranks.
 
 \item Supported parallelized gene-wise processing in trendVar() and decomposeVar().
+Support direct use of a factor in design= for efficiency.
 
 \item Added doubletCluster() to detect clusters that consist of doublets of other clusters.
 
