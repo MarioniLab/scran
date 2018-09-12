@@ -58,7 +58,7 @@ If \code{parametric=TRUE}, a non-linear curve of the form
 \deqn{y = \frac{ax}{x^n + b}}{y = ax/(x^n + b)}
 is fitted to the variances against the means using \code{\link{nls}}.
 Starting values and the number of iterations are automatically set if not explicitly specified in \code{nls.args}.
-A smoothing algorihtm is then applied to the log-ratios of the variance to the fitted value for each gene.
+A smoothing algorithm is then applied to the log-ratios of the variance to the fitted value for each gene.
 The aim is to use the parametric curve to reduce the sharpness of the expected mean-variance relationship[for easier smoothing.
 Conversely, the parametric form is not exact, so the smoothers will model any remaining trends in the residuals.
 
