@@ -127,10 +127,34 @@ test_that("combineMarkers works with renamed fields", {
     expect_identical(sum(colnames(extreme[["2"]])=="log.p.value"), 2L)
 })
 
+test_that("combineMarkers correctly returns the full stats", {
+    stuff <- combineMarkers(output, groups, full.stats=TRUE)
+    all.groups <- as.character(seq_len(ngroups)) 
+
+    for (x in all.groups) {
+        for (y in setdiff(all.groups, x)) {
+            current <- stuff[[x]][,paste0("stats.", y)]
+            current <- as.data.frame(current)
+            correspondence <- which(groups[,1]==x & groups[,2]==y)            
+            expect_identical(current, output[[correspondence]][rownames(current),])
+        }
+    }
+})
+
 test_that("combineMarkers works with silly inputs", {
-    expect_identical(combineMarkers(output[0], groups[0,]), setNames(List(), character(0)))
     expect_error(combineMarkers(output[1], groups[0,]), "must be equal")
-   
+    expect_identical(combineMarkers(output[0], groups[0,]), setNames(List(), character(0)))
+
+    empty <- combineMarkers(lapply(output, FUN=function(x){ x[0,] }), groups)
+    expect_identical(names(empty), as.character(seq_len(ngroups)))
+    expect_identical(unname(vapply(empty, nrow, 0L)), integer(ngroups))
+    expect_equal(unname(vapply(empty, ncol, 0L)), rep(ngroups + 2L, ngroups))
+
+    empty <- combineMarkers(lapply(output, FUN=function(x){ x[0,] }), groups, full.stats=TRUE)
+    expect_identical(names(empty), as.character(seq_len(ngroups)))
+    expect_identical(unname(vapply(empty, nrow, 0L)), integer(ngroups))
+    expect_equal(unname(vapply(empty, ncol, 0L)), rep(ngroups + 2L, ngroups))
+
     # Ignores missing levels entirely.
     as.df <- data.frame(factor(groups[,1], levels=seq_len(ngroups+1)), factor(groups[,2]))
     ref <- combineMarkers(output, groups)

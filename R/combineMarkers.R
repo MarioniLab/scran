@@ -78,7 +78,7 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
 
         # Saving effect sizes or all statistics.
         if (full.stats) {
-            cur.stats <- lapply(cur.stats, FUN=as, Class="DataFrame")
+            cur.stats <- lapply(cur.stats, FUN=function(x) { I(as(x, Class="DataFrame")) })
             stat.df <- do.call(DataFrame, c(cur.stats, list(check.names=FALSE)))
         } else {
             all.effects <- lapply(cur.stats, "[[", i=effect.field)
