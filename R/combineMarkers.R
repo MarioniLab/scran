@@ -13,6 +13,14 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
 # written by Aaron Lun
 # created 13 September 2018
 {
+    if (length(de.lists)!=nrow(pairs)) {
+        stop("'nrow(pairs)' must be equal to 'length(de.lists)'")
+    }
+    if (is.null(output.field)) {
+        output.field <- if (full.stats) "stats" else effect.field
+    }
+    pval.type <- match.arg(pval.type)
+
     # Checking that all genes are the same across lists.
     gene.names <- NULL
     for (x in seq_along(de.lists)) {
@@ -26,12 +34,8 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
         }
     }
 
-    if (is.null(output.field)) {
-        output.field <- if (full.stats) "stats" else effect.field
-    }
-
     # Processing by the first element of each pair.
-    by.first <- split(seq_along(de.lists), pairs[,1])
+    by.first <- split(seq_along(de.lists), pairs[,1], drop=TRUE)
     output <- vector("list", length(by.first))
     names(output) <- names(by.first)
 
@@ -39,6 +43,11 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
         chosen <- by.first[[host]]
         targets <- pairs[chosen, 2]
         cur.stats <- de.lists[by.first[[host]]]
+
+        target.o <- order(targets)
+        target.o <- target.o[!is.na(targets[target.o])]
+        targets <- targets[target.o]
+        cur.stats <- cur.stats[target.o]
 
         all.p <- lapply(cur.stats, "[[", i=pval.field)
         all.p <- do.call(cbind, all.p)
@@ -56,25 +65,15 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
             gene.order <- order(pval)
         }
 
-        # Adding significance statistics. 
-        raw <- pval
-        if (log.p.in) {
+        # Correcting for multiple testing.
+        if (log.p.out) {
             corrected <- .logBH(pval)
-            if (log.p.out) {
-                raw <- exp(raw)
-                corrected <- exp(corrected)
-            }
         } else {
-            raw <- pval
             corrected <- p.adjust(pval, method="BH")
-            if (log.p.out) {
-                raw <- log(raw)
-                corrected <- log(corrected)
-            }
         }
         
         prefix <- if (log.p.out) "log." else ""
-        preamble[[paste0(prefix, "p.value")]] <- raw
+        preamble[[paste0(prefix, "p.value")]] <- pval 
         preamble[[paste0(prefix, "FDR")]] <- corrected 
 
         # Saving effect sizes or all statistics.
