@@ -8,7 +8,7 @@
 # created 22 March 2017
 {
     fit <- pairwiseTTests(x, clusters, block=block, design=design, direction=direction, lfc=lfc, gene.names=gene.names, log.p=TRUE, subset.row=subset.row)
-    combineMarkers(fit$statistics, fit$pairs, pval.type=pval.type, log.p.in=TRUE, log.p.out=log.p, full.stats=full.stats)
+    combineMarkers(fit$statistics, fit$pairs, pval.type=pval.type, log.p.in=TRUE, log.p.out=log.p, full.stats=full.stats, pval.field="log.p.value")
 }
 
 #' @export
