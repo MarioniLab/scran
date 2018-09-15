@@ -211,7 +211,7 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
     stats <- .Call(cxx_fit_linear_model, QR$qr, QR$qraux, x, subset.row - 1L, TRUE)
     coefficients <- stats[[1]]
     coefficients[QR$pivot,] <- coefficients
-    sigma2 <- stats[[3]]
+    sigma2 <- pmax(stats[[3]], 1e-8) # avoid unlikely but possible problems with discreteness.
 
     # Running through every pair of clusters.
     out.stats <- .create_output_container(clust.vals)
