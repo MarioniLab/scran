@@ -1,4 +1,5 @@
 #' @export
+#' @importFrom S4Vectors DataFrame
 pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("any", "up", "down"),
     lfc=0, log.p=FALSE, gene.names=rownames(x), subset.row=NULL)
 # Performs pairwise Welch t-tests between clusters.
@@ -267,8 +268,8 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
         left <- pt(cur.t, df=cur.df, lower.tail=TRUE, log.p=TRUE)
         right <- pt(cur.t, df=cur.df, lower.tail=FALSE, log.p=TRUE)
     } else {
-        upper.t <- (cur.lfc - thresh.lfc)/cur.err
-        lower.t <- (cur.lfc + thresh.lfc)/cur.err
+        upper.t <- (cur.lfc - thresh.lfc)/sqrt(cur.err)
+        lower.t <- (cur.lfc + thresh.lfc)/sqrt(cur.err)
 
         left.lower <- pt(lower.t, df=cur.df, lower.tail=TRUE, log.p=TRUE)
         right.upper <- pt(upper.t, df=cur.df, lower.tail=FALSE, log.p=TRUE)
