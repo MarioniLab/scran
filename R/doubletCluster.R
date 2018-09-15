@@ -44,16 +44,16 @@
                 stats2 <- ref.stats[[paste0("stats.", remnants[i2])]] 
 
                 # Obtaining the IUT and setting opposing log-fold changes to 1.
-                max.p <- pmax(stats1$p.value, stats2$p.value)
-                max.p[sign(stats1$logFC) != sign(stats2$logFC)] <- 1
+                max.log.p <- pmax(stats1$log.p.value, stats2$log.p.value)
+                max.log.p[sign(stats1$logFC) != sign(stats2$logFC)] <- 0
                     
                 # Correcting across genes.
-                adj.p <- p.adjust(max.p, method="BH")
-                best.gene <- which.min(max.p)[1] # [1] gives NA when there are no genes, which avoids nrow mismatch in DataFrame().
+                log.adj.p <- .logBH(max.log.p)
+                best.gene <- which.min(max.log.p)[1] # [1] gives NA when there are no genes, which avoids nrow mismatch in DataFrame().
 
-                all.N[idx] <- sum(adj.p <= threshold, na.rm=TRUE)
+                all.N[idx] <- sum(log.adj.p <= log(threshold), na.rm=TRUE)
                 all.gene[idx] <- best.gene
-                all.p[idx] <- adj.p[best.gene]
+                all.p[idx] <- exp(log.adj.p[best.gene])
                 all.parent1[idx] <- i1
                 all.parent2[idx] <- i2
                 idx <- idx + 1L
