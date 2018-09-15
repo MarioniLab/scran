@@ -52,6 +52,14 @@ Note that DataFrames are only created for clusters present in \code{pairs[,1]}.
 Clusters unique to \code{pairs[,2]} will only be present within each DataFrame as Y.
 }
 
+\details{
+An obvious strategy to characterizing differences between clusters is to look for genes that are differentially expressed (DE) between them.
+However, this entails a number of comparisons between all pairs of clusters to comprehensively identify genes that define each cluster.
+For all pairwise comparisons involving a single cluster, we would like to consolidate the DE results into a single list of candidate marker genes.
+This is the intention of the \code{combineMarkers} function.
+DE statistics from any testing regime can be supplied to this function - see the Examples for how this is done with t-tests from \code{\link{pairwiseTTests}}.
+}
+
 \section{Consolidating p-values into a ranking}{
 By default, each table is sorted by the \code{Top} value when \code{pval.type="any"}.
 This is the minimum rank across all pairwise comparisons for each gene, and specifies the size of the candidate marker set.
@@ -80,6 +88,7 @@ Properly correcting for multiple testing is not generally possible when \code{cl
 }
 
 \seealso{
+\code{\link{pairwiseTTests}},
 \code{\link{findMarkers}}
 }
 
@@ -95,4 +104,15 @@ Bioequivalence trials, intersection-union tests and equivalence confidence sets.
 
 \author{
 Aaron Lun
+}
+
+\examples{
+# Using the mocked-up data 'y2' from this example.
+example(computeSpikeFactors) 
+y2 <- normalize(y2)
+kout <- kmeans(t(logcounts(y2)), centers=2) # Any clustering method is okay.
+
+out <- pairwiseTTests(logcounts(y2), clusters=paste0("Cluster", kout$cluster))
+comb <- combineMarkers(out$statistics, out$pairs)
+comb[["Cluster1"]]
 }
