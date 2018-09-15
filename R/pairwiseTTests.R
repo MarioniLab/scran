@@ -197,14 +197,8 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
     clust.vals <- levels(clusters)
     colnames(full.design) <- clust.vals
 
-    # Removing terms to avoid linear dependencies on the intercept.
     if (nrow(design)!=ncol(x)) {
         stop("'nrow(design)' is not equal to 'ncol(x)'")
-    }
-    out <- qr.solve(design, cbind(rep(1, nrow(design))))
-    to.drop <- abs(out) > 1e-8
-    if (any(to.drop)) {
-        design <- design[,-which(to.drop)[1],drop=FALSE]
     }
     full.design <- cbind(full.design, design) # Other linear dependencies will trigger errors in .ranksafe_QR.
 
@@ -241,7 +235,7 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
             target <- clust.vals[tdex]
             cur.lfc <- ref.coef - coefficients[tdex,]
 
-            test.out <- .run_t_test(cur.lfc, lfit2$stdev.unscaled[tdex]*sqrt(sigma2), resid.df, thresh.lfc=lfc, direction=direction)
+            test.out <- .run_t_test(cur.lfc, lfit2$stdev.unscaled[tdex]^2*sigma2, resid.df, thresh.lfc=lfc, direction=direction)
             hvt.p <- .choose_leftright_pvalues(test.out$left, test.out$right, direction=direction)
             tvh.p <- .choose_leftright_pvalues(test.out$right, test.out$left, direction=direction)
 
