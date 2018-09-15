@@ -79,7 +79,7 @@ test_that("doubletCluster agrees with a reference implementation", {
             fields <- paste0("stats.", chosen)
             stats1 <- stats[[fields[1]]]
             stats2 <- stats[[fields[2]]]
-            p <- pmax(stats1$p.value, stats2$p.value)
+            p <- pmax(exp(stats1$log.p.value), exp(stats2$log.p.value))
             p[sign(stats1$logFC)!=sign(stats2$logFC)] <- 1
             adj.p <- p.adjust(p, method="BH")
             data.frame(best=rownames(stats)[which.min(p)], p.val=min(adj.p), N=sum(adj.p <= 0.05), stringsAsFactors=FALSE)
@@ -97,7 +97,7 @@ test_that("doubletCluster agrees with a reference implementation", {
 
         to.use <- o[1]
         expect_identical(dbl[x,"N"], collected[to.use, "N"])
-        expect_identical(dbl[x,"p.value"], collected[to.use, "p.val"])
+        expect_equal(dbl[x,"p.value"], collected[to.use, "p.val"])
         expect_identical(dbl[x,"best"], collected[to.use, "best"])
         expect_identical(sort(c(dbl[x,"source1"],dbl[x,"source2"])), sort(combos[,to.use]))
     }
