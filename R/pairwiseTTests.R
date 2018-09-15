@@ -179,7 +179,7 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
     }
 
     all.Z <- lapply(log.pvals, qnorm, log.p=TRUE)
-    final <- .weighted_average_vals(all.Z, weights, weighted=TRUE)
+    final <- Reduce("+", mapply(all.Z, weights, FUN="*", SIMPLIFY=FALSE)) / sqrt(sum(weights^2))
     pnorm(final, log.p=TRUE)
 }
 
