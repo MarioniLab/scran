@@ -24,18 +24,23 @@ That is, the set of first p-values from all vectors will be combined, followed b
 This is useful for combining p-values for each gene across different hypothesis tests.
 
 Fisher's method, Stouffer's Z method and Simes' method test the joint null hypothesis, i.e., that all of the individual null hypotheses in the set are true.
+The joint null is rejected if any of the individual nulls are rejected.
+However, each test has different characteristics:
 \itemize{
     \item Fisher's method requires independence of the test statistic.
         It is useful in asymmetric scenarios, i.e., when the null is only rejected in one of the tests in the set.
+        Thus, a low p-value in any test is sufficient to obtain a low combined p-value.
     \item Stouffer's Z method require independence of the test statistic.
-        It favours symmetric rejection and can accommodate weights.
+        It favours symmetric rejection and is less sensitive to a single low p-value, requiring more consistently low p-values to yield a low combined p-value.
+        It can also accommodate weighting of the different p-values.
     \item Simes' method technically requires independence but tends to be quite robust to dependencies between tests.
+        See Sarkar and Chung (1997) for details, as well as work on the related Benjamini-Hochberg method.
+        It favours asymmetric rejection and is less powerful than the other two methods under independence.
 }
 
 Berger's intersection-union test examines a different global null hypothesis, i.e., that at least one of the individual null hypotheses are true.
 Rejection in the IUT indicates that all of the individual nulls have been rejected.
-This is a statistically rigorous equivalent of a naive intersection operation.
-However, note that it can be quite conservative.
+This is the statistically rigorous equivalent of a naive intersection operation.
 }
 
 \value{
@@ -62,6 +67,10 @@ An improved Bonferroni procedure for multiple tests of significance.
 Berger RL and Hsu JC (1996).
 Bioequivalence trials, intersection-union tests and equivalence confidence sets.
 \emph{Statist. Sci.} 11, 283-319.
+
+Sarkar SK and Chung CK (1997).
+The Simes method for multiple hypothesis testing with positively dependent test statistics.
+\emph{J. Am. Stat. Assoc.} 92, 1601-1608.
 }
 
 \examples{
