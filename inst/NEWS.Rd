@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.9.22}{\itemize{
+\section{Version 1.9.24}{\itemize{
 \item Removed selectorPlot(), exploreData() functions.
     
 \item Fixed underflow problem in mnnCorrect() when dealing with the Gaussian kernel.
@@ -30,13 +30,27 @@ Support direct use of a factor in design= for efficiency.
 
 \item Added multiBatchNorm() function for consistent downscaling across batches prior to batch correction.
 
+\item Added cleanSizeFactors() to coerce non-positive size factors to positive values based on number of detected genes.
+
 \item Minor improvement to how mean filtering is done for rescaling across clusters in computeSumFactors().
 Throw errors upon min.mean=NULL, which used to be valid.
+Switched positive=TRUE behaviour to use cleanSizeFactors().
 
 \item Added the fastMNN() function to provide a faster, more stable alternative for MNN correction.
 
 \item Added BPPARAM= option for parallelized execution in makeTechTrend().
 Added approx.npts= option for interpolation-based approximation for many cells.
+
+\item Added pairwiseTTests() for direct calculation of pairwise t-statistics between groups.
+
+\item Added combineMarkers() to consolidate arbitrary pairwise comparisons into a marker list.
+
+\item Bugfixes to uses of block=, lfc= and design= arguments in findMarkers().
+Refactored to use pairwiseTTests() and combineMarkers() internally.
+
+\item Bugfixes to the use of Stouffer's Z method in combineVar().
+
+\item Added combinePValues() as a centralized internal function to combine p-values.
 }}
 
 \section{Version 1.8.0}{\itemize{
