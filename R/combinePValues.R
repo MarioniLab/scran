@@ -32,7 +32,7 @@ combinePValues <- function(..., method=c("fisher", "z", "simes", "berger"), weig
             }
             
             n[n==0] <- NA_real_ # ensure that we get NA outputs.
-            pchisq(-2*X, df=2*n, lower.tail=FALSE)
+            pchisq(-2*X, df=2*n, lower.tail=FALSE, log.p=log.p)
         },
         simes={
             .Call(cxx_combine_simes, input, log.p)
