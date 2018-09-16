@@ -8,6 +8,9 @@ combinePValues <- function(..., method=c("fisher", "z", "simes", "berger"), weig
 # created 16 September 2018
 {
     input <- list(...)
+    if (length(input)==1L) {
+        return(unname(input[[1]])) # returning directly.
+    }
     Np <- unique(lengths(input))
     if (length(Np) != 1) {
         stop("all p-value vectors must have the same length")

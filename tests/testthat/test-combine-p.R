@@ -13,6 +13,11 @@ TESTER <- function(p1, p2, p3, method, weights=NULL) {
         log(combinePValues(p1, p2, p3, method=method, weights=weights))
     )
 
+    # Handles solo inputs.
+    expect_equal(p1, combinePValues(p1, method=method, weights=weights[1]))
+    expect_equal(p2, combinePValues(p2, method=method, weights=weights[2]))
+    expect_equal(p3, combinePValues(p3, method=method, weights=weights[3]))
+
     # Handles empty inputs.
     expect_equal(
         combinePValues(p1[0], p2[0], p3[0], method=method, weights=weights),
