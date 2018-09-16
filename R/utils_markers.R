@@ -1,24 +1,3 @@
-.combine_pvalues <- function(P, pval.type="any", log.p.in=FALSE, log.p.out=FALSE) 
-# This function combines the p-values using Simes' method or via the IUT.
-# Additional arguments are involved to specify whether the input/output should be logged.
-{
-    if (pval.type=="any") { 
-        # Computing the Simes p-value (with NA protection).
-        P <- .Call(cxx_combine_simes, P, log.p.in)
-    } else {
-        # Computing the IUT p-value.
-        P <- P[.find_largest_col(P)]
-    }
-
-    # Deciding what to return (at this point, P is the same log-status as it was supplied).
-    if (log.p.in && !log.p.out) { 
-        P <- exp(P) 
-    } else if (!log.p.in && log.p.out) {
-        P <- log(P)
-    }
-    return(P)
-}
-
 .logBH <- function(log.p.val) 
 # Same as log(p.adjust(exp(log.p.val), method="BH")), without
 # the need to undo and redo the log-transformations.
