@@ -12,7 +12,9 @@ combinePValues(..., method=c("fisher", "z", "simes", "berger"),
 \arguments{
 \item{...}{Two or more numeric vectors of p-values of the same length.}
 \item{method}{A string specifying the combining strategy to use.}
-\item{weights}{A numeric vector of positive weights, with one value per vector in \code{...}, only used when \code{method="z"}.}
+\item{weights}{A numeric vector of positive weights, with one value per vector in \code{...}.
+Alternatively, a list of numeric vectors of weights, with one vector per element in \code{...}.
+This is only used when \code{method="z"}.}
 \item{log.p}{Logical scalar indicating whether the p-values in \code{...} are log-transformed.}
 }
 

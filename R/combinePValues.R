@@ -42,16 +42,19 @@ combinePValues <- function(..., method=c("fisher", "z", "simes", "berger"), weig
                 weights <- rep(1, length(input))
             } else if (length(weights)!=length(input)) {
                 stop("'length(weights)' must be equal to number of vectors in '...'")
-            } else if (any(is.na(weights) | weights<=0)) {
-                stop("weights must be positive")
+            } else {
+                check <- unlist(lapply(weights, range))
+                if (any(is.na(check) | check<=0)) {
+                    stop("weights must be positive")
+                }
             }
 
             Z <- W2 <- numeric(Np)
             for (i in seq_along(input)) {
                 current <- input[[i]]
                 keep <- !is.na(current)
-                Z[keep] <- Z[keep] + qnorm(current[keep], log.p=log.p) * weights[i]
-                W2 <- W2 + ifelse(keep, weights[i]^2, 0)
+                Z[keep] <- Z[keep] + qnorm(current[keep], log.p=log.p) * weights[[i]]
+                W2 <- W2 + ifelse(keep, weights[[i]]^2, 0)
             }
 
             W2[W2==0] <- NA_real_ # ensure we get NA outputs.

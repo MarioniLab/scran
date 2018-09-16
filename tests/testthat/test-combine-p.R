@@ -75,8 +75,14 @@ test_that("Stouffer's Z method works correctly", {
 
     TESTER(p1, p2, p3, method="z", weights=c(5, 2, 3))
 
+    # Handles weights as a list.
+    expect_equal(pnorm(Q), combinePValues(p1, p2, p3, method="z", weights=as.list(W))) 
+    expect_equal(pnorm(Q), combinePValues(p1, p2, p3, method="z", weights=lapply(W, rep, length.out=length(p1))))
+
     # Throws errors correctly.
     expect_error(combinePValues(p1,p2,p3,method="z", weights=1), "must be equal")
+    expect_error(combinePValues(p1,p2,p3,method="z", weights=list(-1, 1, 2)), "must be positive")
+    expect_error(combinePValues(p1,p2,p3,method="z", weights=list(NA, 1, 2)), "must be positive")
 })
 
 test_that("Berger's IUT works correctly", {
