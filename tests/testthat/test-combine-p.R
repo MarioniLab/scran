@@ -49,12 +49,22 @@ test_that("Fisher's method works correctly", {
     pout <- combinePValues(p1, p2, p3, method="fisher")
     expect_equal(pout, pchisq(-2*rowSums(log(cbind(p1, p2, p3))), df=6, lower.tail=FALSE))
     TESTER(p1, p2, p3, method="fisher")
+    
+    # Behaves sensibly at edge cases.
+    expect_equal(combinePValues(0, 0, method="fisher"), 0)
+    expect_equal(combinePValues(0, 1, method="fisher"), 0)
+    expect_equal(combinePValues(1, 1, method="fisher"), 1)
 })
 
 test_that("Simes' method works correctly", {
     pout <- combinePValues(p1, p2, p3, method="simes")
     expect_equal(pout, apply(cbind(p1, p2, p3), 1, FUN=function(p) { min(p.adjust(p, method="BH")) })) 
     TESTER(p1, p2, p3, method="simes")
+
+    # Behaves sensibly at edge cases.
+    expect_equal(combinePValues(0, 0, method="simes"), 0)
+    expect_equal(combinePValues(0, 1, method="simes"), 0)
+    expect_equal(combinePValues(1, 1, method="simes"), 1)
 })
 
 test_that("Stouffer's Z method works correctly", {
@@ -83,9 +93,19 @@ test_that("Stouffer's Z method works correctly", {
     expect_error(combinePValues(p1,p2,p3,method="z", weights=1), "must be equal")
     expect_error(combinePValues(p1,p2,p3,method="z", weights=list(-1, 1, 2)), "must be positive")
     expect_error(combinePValues(p1,p2,p3,method="z", weights=list(NA, 1, 2)), "must be positive")
+
+    # Behaves sensibly at edge cases.
+    expect_equal(combinePValues(0, 0, method="z"), 0)
+    expect_equal(combinePValues(0, 1, method="z"), 0.5)
+    expect_equal(combinePValues(1, 1, method="z"), 1)
 })
 
 test_that("Berger's IUT works correctly", {
     expect_equal(combinePValues(p1, p2, p3, method="berger"), pmax(p1, p2, p3)) 
     TESTER(p1, p2, p3, method="berger")
+
+    # Behaves sensibly at edge cases.
+    expect_equal(combinePValues(0, 0, method="berger"), 0)
+    expect_equal(combinePValues(0, 1, method="berger"), 1)
+    expect_equal(combinePValues(1, 1, method="berger"), 1)
 })

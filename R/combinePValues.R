@@ -57,6 +57,11 @@ combinePValues <- function(..., method=c("fisher", "z", "simes", "berger"), weig
                 W2 <- W2 + ifelse(keep, weights[[i]]^2, 0)
             }
 
+            # Combining p-values of 0 and 1 will yield zscores of -Inf + Inf => NaN.
+            # Here, we set them to 0 to get p-values of 0.5, as the Z-method doesn't
+            # give coherent answers when you have p-values at contradicting extremes.
+            Z[is.nan(Z)] <- 0
+
             W2[W2==0] <- NA_real_ # ensure we get NA outputs.
             pnorm(Z/sqrt(W2), log.p=log.p) 
         },
