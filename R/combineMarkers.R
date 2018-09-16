@@ -19,7 +19,9 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
     if (is.null(output.field)) {
         output.field <- if (full.stats) "stats" else effect.field
     }
+
     pval.type <- match.arg(pval.type)
+    method <- switch(pval.type, any="simes", all="berger")
 
     # Checking that all genes are the same across lists.
     gene.names <- NULL
@@ -50,13 +52,12 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
         cur.stats <- cur.stats[target.o]
 
         all.p <- lapply(cur.stats, "[[", i=pval.field)
-        all.p <- do.call(cbind, all.p)
-        pval <- .combine_pvalues(all.p, pval.type=pval.type, log.p.in=log.p.in, log.p.out=log.p.out)
+        pval <- do.call(combinePValues, c(all.p, list(method=method, log.p=log.p.in)))
         preamble <- DataFrame(row.names=gene.names)
 
         # Determining rank.
         if (pval.type=="any") {
-            rank.out <- .rank_top_genes(all.p)
+            rank.out <- .rank_top_genes2(all.p)
             min.rank <- rank.out$rank
             min.p <- rank.out$value
             gene.order <- order(min.rank, min.p)
@@ -65,11 +66,17 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
             gene.order <- order(pval)
         }
 
-        # Correcting for multiple testing.
-        if (log.p.out) {
+        # Correcting for multiple testing. We try to preserve the log-ness as long as we can,
+        # to avoid underflow upon exp()'ing that could be avoided by correction.
+        if (log.p.in) {
             corrected <- .logBH(pval)
         } else {
             corrected <- p.adjust(pval, method="BH")
+        }
+        if (log.p.out!=log.p.in) {
+            transFUN <- if (log.p.out) log else exp
+            pval <- transFUN(pval)
+            corrected <- transFUN(corrected)
         }
         
         prefix <- if (log.p.out) "log." else ""
@@ -94,3 +101,21 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
 
     return(as(output, "List"))
 }
+
+.rank_top_genes2 <- function(metrics) 
+# This computes the rank and the minimum metric for each gene.
+{
+    ncon <- length(metrics)
+    ngenes <- if (ncon) length(metrics[[1]]) else 0L
+    min.rank <- min.val <- rep(NA_integer_, ngenes)
+
+    for (con in seq_len(ncon)) { 
+        cur.val <- metrics[[con]]
+        cur.rank <- rank(cur.val, ties.method="first", na.last="keep")
+        min.rank <- pmin(min.rank, cur.rank, na.rm=TRUE)
+        min.val <- pmin(min.val, cur.val, na.rm=TRUE)
+    }
+    
+    return(list(rank=min.rank, value=min.val))
+}
+
