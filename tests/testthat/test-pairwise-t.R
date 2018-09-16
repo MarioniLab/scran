@@ -150,22 +150,9 @@ BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
         ave.lfc <- colSums(all.lfc * block.weights) / sum(block.weights)
         expect_equal(ave.lfc, ref.res$logFC)
 
-        # Doing the same for the p-values (for direction="any", we combine in each direction first).
-        up.pval <- do.call(rbind, block.up)
-        keep <- !is.na(up.pval[,1])
-        if (any(keep)) { 
-            up.Q <- qnorm(up.pval[keep,,drop=FALSE])
-            up.Q <- colSums(up.Q * block.weights[keep]) / sqrt(sum(block.weights[keep]^2))
-            up.p <- pnorm(up.Q)
-            
-            down.pval <- do.call(rbind, block.down)
-            down.Q <- qnorm(down.pval[keep,,drop=FALSE])
-            down.Q <- colSums(down.Q * block.weights[keep]) / sqrt(sum(block.weights[keep]^2))
-            down.p <- pnorm(down.Q)
-        } else {
-            up.p <- down.p <- rep(NA_real_, nrow(ref.res))
-        }
-
+        # Combining p-values in each direction.
+        up.p <- do.call(combinePValues, c(block.up, list(method="z", weights=block.weights)))
+        down.p <- do.call(combinePValues, c(block.down, list(method="z", weights=block.weights)))
         if (direction=="any") {
             expect_equal(pmin(up.p, down.p) * 2, ref.res$p.value)
         } else if (direction=="up") {

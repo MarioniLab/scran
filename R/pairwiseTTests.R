@@ -118,8 +118,13 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
             }
 
             # Combining the p-values for each side across blocks.
-            com.left <- .run_stouffer(all.left, all.weight, valid.test)
-            com.right <- .run_stouffer(all.right, all.weight, valid.test)
+            if (any(valid.test)) { 
+                comb.args <- list(method="z", weights=all.weight[valid.test], log.p=TRUE)
+                com.left <- do.call(combinePValues, c(all.left[valid.test], comb.args))
+                com.right <- do.call(combinePValues, c(all.right[valid.test], comb.args))
+            } else {
+                com.left <- com.right <- rep(NA_real_, length(all.left[[1]]))
+            }
 
             # Flipping left/right to get the p-value from the reversed comparison.
             hvt.p <- .choose_leftright_pvalues(com.left, com.right, direction=direction)
@@ -156,31 +161,6 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
         cur.err <- cur.df <- NA_real_
     }
     return(list(err=cur.err, test.df=cur.df))
-}
-
-#' @importFrom stats qnorm pnorm
-.run_stouffer <- function(log.pvals, weights, valid)
-# Uses Stouffer's method to combine the one-sided p-values, with weights for each column.
-# Only valid tests are used, i.e., with non-zero d.f. for computing the test statistic.
-# We also skip the calculations if there's only one or no tests.
-{
-    ngenes <- length(log.pvals[[1]])
-
-    if (!all(valid)) {
-        log.pvals <- log.pvals[valid]
-        weights <- weights[valid]
-    }
-
-    NC <- length(log.pvals)
-    if (NC==1L) {
-        return(log.pvals[[1]])
-    } else if (NC==0L) {
-        return(rep(NA_real_, ngenes))
-    }
-
-    all.Z <- lapply(log.pvals, qnorm, log.p=TRUE)
-    final <- Reduce("+", mapply(all.Z, weights, FUN="*", SIMPLIFY=FALSE)) / sqrt(sum(weights^2))
-    pnorm(final, log.p=TRUE)
 }
 
 ###########################################################
