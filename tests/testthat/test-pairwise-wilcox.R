@@ -1,5 +1,5 @@
 # Tests the pairwiseWilcox() function.
-# library(scran); library(testthat); source("test-pairwise-t.R")
+# library(scran); library(testthat); source("test-pairwise-wilcox.R")
 
 REFFUN <- function(y, grouping, direction="any") 
 # A reference function using the t.test function.
@@ -14,19 +14,23 @@ REFFUN <- function(y, grouping, direction="any")
         for (target in setdiff(clust.vals, host)) {
             target.y <- y[,grouping==target,drop=FALSE]
 
-            if (ncol(host.y)>1L && ncol(target.y)>1L) {
-                pval <- numeric(nrow(y))
+            if (ncol(host.y) * ncol(target.y) > 1L) {
+                effect <- pval <- numeric(nrow(y))
                 for (i in seq_along(pval)) {
-                    # Avoid incessant warnings from ties.
-                    pval[i] <- suppressWarnings(wilcox.test(host.y[i,], target.y[i,], alternative=alt.hyp)$p.value)
+                    result <- wilcox.test(host.y[i,], target.y[i,], alternative=alt.hyp, exact=FALSE)
+                    effect[i] <- result$statistic / (ncol(host.y) * ncol(target.y))
+                    pval[i] <- result$p.value
                 }
             } else {
-                pval <- rep(NA_real_, nrow(y))
+                pval <- effect <- rep(NA_real_, nrow(y))
+                if (ncol(host.y) && ncol(target.y)) {
+                    effect <- unname(1 + sign(host.y[,1] - target.y[,1])) / 2
+                }
             }
             
 			currow <- which(output$pairs[,1]==host & output$pairs[,2]==target)
             curres <- output$statistics[[currow]]
-			expect_equal(unname(curres$logFC), unname(rowMeans(host.y) - rowMeans(target.y)))
+			expect_equal(unname(curres$effect), effect)
             expect_equal(pval, curres$p.value)
             expect_equal(p.adjust(pval, method="BH"), curres$FDR)
             expect_identical(rownames(y), rownames(curres))
@@ -37,14 +41,14 @@ REFFUN <- function(y, grouping, direction="any")
 
 set.seed(80000)
 ncells <- 200
-ngenes <- 250
+ngenes <- 150
 means <- 2^runif(ngenes, -1, 5)
 dummy <- matrix(rnbinom(ngenes*ncells, mu=means, size=5), ncol=ncells, nrow=ngenes)
 X <- scater::normalizeCounts(dummy, colSums(dummy))
 rownames(X) <- seq_len(nrow(X))
 
 set.seed(8000001)
-test_that("pairwiseWilcox works as expected without blocking or design matrices", {
+test_that("pairwiseWilcox works as expected without blocking", {
     clust <- kmeans(t(X), centers=3)
     clusters <- as.factor(clust$cluster)
 
@@ -125,26 +129,30 @@ BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
             if (N1==0 || N2==0) {
                 next
             } 
-
             block.weights[[B]] <- N1 * N2
-            block.res <- pairwiseWilcox(y[,chosen], grouping[chosen], direction=direction, ...)
-            to.use <- which(block.res$pairs$first==curpair[1] & block.res$pairs$second==curpair[2])
 
-            block.lfc[[B]] <- block.res$statistics[[to.use]]$logFC
             if (direction=="any") { 
                 # Recovering one-sided p-values for separate combining across blocks.
-                going.up <- block.lfc[[B]] > 0
-                curp <- block.res$statistics[[to.use]]$p.value/2
-                block.up[[B]] <- ifelse(going.up, curp, 1-curp)
-                block.down[[B]] <- ifelse(!going.up, curp, 1-curp)
+                block.res.up <- pairwiseWilcox(y[,chosen], grouping[chosen], direction="up", ...)
+                to.use.up <- which(block.res.up$pairs$first==curpair[1] & block.res.up$pairs$second==curpair[2])
+                block.res.down <- pairwiseWilcox(y[,chosen], grouping[chosen], direction="down", ...)
+                to.use.down <- which(block.res.down$pairs$first==curpair[1] & block.res.down$pairs$second==curpair[2])
+
+                block.lfc[[B]] <- block.res.up$statistics[[to.use.up]]$effect
+                middled <- abs(block.lfc[[B]] - 0.5) * N1 * N2 < 0.25 # see comments in pairwiseWilcox().
+                block.up[[B]] <- ifelse(middled, 0.5, block.res.up$statistics[[to.use.up]]$p.value)
+                block.down[[B]] <- ifelse(middled, 0.5, block.res.down$statistics[[to.use.down]]$p.value)
             } else {
+                block.res <- pairwiseWilcox(y[,chosen], grouping[chosen], direction=direction, ...)
+                to.use <- which(block.res$pairs$first==curpair[1] & block.res$pairs$second==curpair[2])
+                block.lfc[[B]] <- block.res$statistics[[to.use]]$effect
                 block.up[[B]] <- block.down[[B]] <- block.res$statistics[[to.use]]$p.value
             }
         }
 
         block.weights <- unlist(block.weights)
         if (length(block.weights)==0) {
-            expect_equal(ref.res$logFC, rep(NA_real_, nrow(ref.res)))
+            expect_equal(ref.res$effect, rep(NA_real_, nrow(ref.res)))
             expect_equal(ref.res$p.value, rep(NA_real_, nrow(ref.res)))
             next
         }
@@ -152,13 +160,14 @@ BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
         # Taking a weighted average.
         all.lfc <- do.call(rbind, block.lfc)
         ave.lfc <- colSums(all.lfc * block.weights) / sum(block.weights)
-        expect_equal(ave.lfc, ref.res$logFC)
+        expect_equal(ave.lfc, ref.res$effect)
 
         # Combining p-values in each direction.
         up.p <- do.call(combinePValues, c(block.up, list(method="z", weights=block.weights)))
         down.p <- do.call(combinePValues, c(block.down, list(method="z", weights=block.weights)))
+
         if (direction=="any") {
-            expect_equal(pmin(up.p, down.p) * 2, ref.res$p.value)
+            expect_equal(pmin(up.p, down.p, 0.5) * 2, ref.res$p.value)
         } else if (direction=="up") {
             expect_equal(up.p, ref.res$p.value)
         } else if (direction=="down") {
@@ -205,9 +214,7 @@ test_that("pairwiseWilcox with blocking works across multiple cores", {
     clusters <- as.factor(clust$cluster)
     block <- sample(3, ncol(X), replace=TRUE)
     ref <- pairwiseWilcox(X, clusters, block=block)
-
     expect_equal(ref, pairwiseWilcox(X, clusters, block=block, BPPARAM=MulticoreParam(2)))
-    expect_equal(ref, pairwiseWilcox(X, clusters, block=block, BPPARAM=SnowParam(2)))
 })
 
 set.seed(80000022)
@@ -228,7 +235,7 @@ test_that("pairwiseWilcox with blocking responds to non-standard level ordering"
 
 set.seed(8000004)
 test_that("pairwiseWilcox behaves as expected with subsetting", {
-    y <- matrix(rnorm(12000), ncol=12)
+    y <- matrix(rnorm(1200), ncol=12)
     g <- gl(4,3)
     X <- cbind(runif(ncol(y)))
 
@@ -237,20 +244,12 @@ test_that("pairwiseWilcox behaves as expected with subsetting", {
         pairwiseWilcox(y, g, subset.row=1:10),
         pairwiseWilcox(y[1:10,], g)
     )
-    expect_identical(
-        pairwiseWilcox(y, g, design=X, subset.row=1:10),
-        pairwiseWilcox(y[1:10,], g, design=X)
-    )
 
     # Logical subsetting.
     keep <- rbinom(nrow(y), 1, 0.5)==1
     expect_identical(
         pairwiseWilcox(y, g, subset.row=keep),
         pairwiseWilcox(y[keep,], g, gene.names=which(keep))
-    )
-    expect_identical(
-        pairwiseWilcox(y, g, design=X, subset.row=keep),
-        pairwiseWilcox(y[keep,], g, design=X, gene.names=which(keep))
     )
 
     # Character subsetting.
@@ -260,15 +259,11 @@ test_that("pairwiseWilcox behaves as expected with subsetting", {
         pairwiseWilcox(y, g, subset.row=chosen),
         pairwiseWilcox(y[chosen,], g)
     )
-    expect_identical(
-        pairwiseWilcox(y, g, design=X, subset.row=chosen),
-        pairwiseWilcox(y[chosen,], g, design=X)
-    )
 })
 
 set.seed(8000005)
 test_that("pairwiseWilcox behaves as expected with log-transformation", {
-    y <- matrix(rnorm(12000), ncol=20)
+    y <- matrix(rnorm(1200), ncol=20)
     g <- gl(5,4)
     X <- cbind(rnorm(ncol(y)))
 
@@ -278,18 +273,7 @@ test_that("pairwiseWilcox behaves as expected with log-transformation", {
     expect_identical(ref$pairs, out$pairs)
 
     for (i in seq_along(ref$statistics)) {
-        expect_equal(ref$statistics[[i]]$logFC, out$statistics[[i]]$logFC)
-        expect_equal(log(ref$statistics[[i]]$p.value), out$statistics[[i]]$log.p.value)
-        expect_equal(log(ref$statistics[[i]]$FDR), out$statistics[[i]]$log.FDR)
-    }
-
-    # For linear modelling:
-    ref <- pairwiseWilcox(y, g, design=X)
-    out <- pairwiseWilcox(y, g, design=X, log.p=TRUE)
-    expect_identical(ref$pairs, out$pairs)
-
-    for (i in seq_along(ref$statistics)) {
-        expect_equal(ref$statistics[[i]]$logFC, out$statistics[[i]]$logFC)
+        expect_equal(ref$statistics[[i]]$effect, out$statistics[[i]]$effect)
         expect_equal(log(ref$statistics[[i]]$p.value), out$statistics[[i]]$log.p.value)
         expect_equal(log(ref$statistics[[i]]$FDR), out$statistics[[i]]$log.FDR)
     }
@@ -297,15 +281,12 @@ test_that("pairwiseWilcox behaves as expected with log-transformation", {
 
 set.seed(8000006)
 test_that("pairwiseWilcox fails gracefully with silly inputs", {
-    y <- matrix(rnorm(12000), ncol=20)
+    y <- matrix(rnorm(1200), ncol=20)
     g <- gl(5,4)
-    X <- cbind(rnorm(ncol(y)))
 
     # Errors on incorrect inputs.
     expect_error(pairwiseWilcox(y[,0], g), "does not equal")
     expect_error(pairwiseWilcox(y, rep(1, ncol(y))), "need at least two")
-    expect_error(pairwiseWilcox(y, g, design=X[0,,drop=FALSE]), "is not equal")
-    expect_error(pairwiseWilcox(y, g, design=cbind(rep(1, ncol(y)))), "not of full rank")
     expect_error(pairwiseWilcox(y, g, gene.names="A"), "not equal to the number of rows")
 
     # No genes.
@@ -313,22 +294,12 @@ test_that("pairwiseWilcox fails gracefully with silly inputs", {
     expect_identical(length(empty$statistics), nrow(empty$pairs))
     expect_true(all(sapply(empty$statistics, nrow)==0L))
 
-    empty <- pairwiseWilcox(y[0,], g, design=X)
-    expect_identical(length(empty$statistics), nrow(empty$pairs))
-    expect_true(all(sapply(empty$statistics, nrow)==0L))
-
     # Avoid NA p-values when variance is zero.
     clusters <- rep(1:2, each=ncol(y)/2)
     stuff <- matrix(clusters, ngenes, ncol(y), byrow=TRUE)
     out <- pairwiseWilcox(stuff, clusters)
-    expect_true(all(out$statistics[[1]]$FDR < 1e-8))
-    expect_true(all(out$statistics[[2]]$FDR < 1e-8))
-    expect_equal(out$statistics[[1]]$logFC, rep(-1, ngenes))
-    expect_equal(out$statistics[[2]]$logFC, rep(1, ngenes))
-
-    out <- pairwiseWilcox(stuff, clusters, design=X)
-    expect_true(all(out$statistics[[1]]$FDR < 1e-8))
-    expect_true(all(out$statistics[[2]]$FDR < 1e-8))
-    expect_equal(out$statistics[[1]]$logFC, rep(-1, ngenes))
-    expect_equal(out$statistics[[2]]$logFC, rep(1, ngenes))
+    expect_true(all(out$statistics[[1]]$FDR < 1e-4))
+    expect_true(all(out$statistics[[2]]$FDR < 1e-4))
+    expect_equal(out$statistics[[1]]$effect, rep(0, ngenes))
+    expect_equal(out$statistics[[2]]$effect, rep(1, ngenes))
 })
