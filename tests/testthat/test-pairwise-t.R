@@ -115,10 +115,10 @@ FACTORCHECK <- function(left, right) {
 }
 
 set.seed(70000011)
-test_that("pairwiseTTests behaves with different types of factors", {
+test_that("pairwiseTTests responds to non-standard level ordering", {
     clusters <- sample(LETTERS[1:5], ncol(X), replace=TRUE)
     f1 <- factor(clusters)
-    f2 <- factor(clusters, rev(levels(f2)))
+    f2 <- factor(clusters, rev(levels(f1)))
     FACTORCHECK(pairwiseTTests(X, f1), pairwiseTTests(X, f2))
 })
 
@@ -236,10 +236,10 @@ test_that("pairwiseTTests with blocking works across multiple cores", {
 })
 
 set.seed(70000022)
-test_that("pairwiseTTests with blocking behaves with different types of factors", {
+test_that("pairwiseTTests with blocking responds to non-standard level ordering", {
     clusters <- sample(LETTERS[1:5], ncol(X), replace=TRUE)
     f1 <- factor(clusters)
-    f2 <- factor(clusters, rev(levels(f2)))
+    f2 <- factor(clusters, rev(levels(f1)))
 
     b <- sample(1:3, ncol(X), replace=TRUE)
     FACTORCHECK(pairwiseTTests(X, f1, block=b), pairwiseTTests(X, f2, block=b))
@@ -324,10 +324,10 @@ test_that("pairwiseTTests with linear models works across multiple cores", {
 })
 
 set.seed(70000032)
-test_that("pairwiseTTests with linear models behaves with different types of factors", {
+test_that("pairwiseTTests with linear models responds to non-standard level ordering", {
     clusters <- sample(LETTERS[1:5], ncol(X), replace=TRUE)
     f1 <- factor(clusters)
-    f2 <- factor(clusters, rev(levels(f2)))
+    f2 <- factor(clusters, rev(levels(f1)))
 
     covariate <- cbind(runif(ncol(X)))
     FACTORCHECK(pairwiseTTests(X, f1, design=covariate), pairwiseTTests(X, f2, design=covariate))
