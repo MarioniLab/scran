@@ -38,7 +38,7 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
 
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel bplapply SerialParam
-#' @importFrom stats pwilcox
+#' @importFrom stats pnorm 
 .blocked_wilcox <- function(x, subset.row, clusters, block=NULL, direction="any", gene.names=NULL, log.p=TRUE, tol=tol, BPPARAM=SerialParam())
 # This looks at every level of the blocking factor and performs
 # t-tests between pairs of clusters within each blocking level.
@@ -59,7 +59,7 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
     # Computing across blocks.
     clust.vals <- levels(clusters)
     nblocks <- length(block)
-    all.stats <- all.n <- vector("list", nblocks)
+    all.stats <- all.ties <- all.n <- vector("list", nblocks)
 
     for (b in seq_along(block)) {
         chosen <- block[[b]]
@@ -68,15 +68,20 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
         names(all.n[[b]]) <- clust.vals
         
         cur.groups <- split(chosen - 1L, cur.clusters)
-        raw.stats <- bplapply(by.core, FUN=.find_overlap_exprs, x=x, by.group=cur.groups, tol=tol, BPPARAM=BPPARAM)
+        bpl.out <- bplapply(by.core, FUN=.find_overlap_exprs, x=x, by.group=cur.groups, tol=tol, BPPARAM=BPPARAM)
+        raw.stats <- lapply(bpl.out, "[[", i=1)
+        raw.ties <- lapply(bpl.out, "[[", i=2)
 
-        cons.stats <- vector("list", length(clust.vals))
-        names(cons.stats) <- clust.vals
+        cons.stats <- cons.ties <- vector("list", length(clust.vals))
+        names(cons.stats) <- names(cons.ties) <- clust.vals
         for (i in seq_along(cons.stats)) {
             cons.stats[[i]] <- do.call(rbind, lapply(raw.stats, "[[", i=i))
-            colnames(cons.stats[[i]]) <- clust.vals[seq_len(i-1L)]
+            cons.ties[[i]] <- do.call(rbind, lapply(raw.ties, "[[", i=i))
+            colnames(cons.stats[[i]]) <- colnames(cons.ties[[i]]) <- clust.vals[seq_len(i-1L)]
         }
+
         all.stats[[b]] <- cons.stats
+        all.ties[[b]] <- cons.ties
     }
 
     # Organizing into some pairwise output.
@@ -98,11 +103,17 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
                 cur.prod <- host.n * target.n
 
                 all.effect[[b]] <- cur.effect / cur.prod
-                all.left[[b]] <- pwilcox(cur.effect, host.n, target.n, log.p=TRUE, lower.tail=TRUE)
-                all.right[[b]] <- pwilcox(cur.effect, host.n, target.n, log.p=TRUE, lower.tail=FALSE)
-
                 all.weight[b] <- cur.prod
-                valid.test[b] <- host.n > 0L && target.n > 0L
+                valid.test[b] <- cur.prod > 1.5 # 'cur.prod' is still nominally integer, so use 1.5 to avoid numerical imprecision upon an exact comparison.
+
+                # Approximate Wilcoxon with continuity correction: ripped straight from wilcox.test() in stats.
+                TIESUM <- all.ties[[b]][[host]][,target]
+                z <- cur.effect - cur.prod/2
+                SIGMA <- sqrt((host.n * target.n/12) * ((host.n + target.n + 1) - TIESUM/((host.n + target.n) * (host.n + target.n - 1))))
+
+                CORRECTION <- if (direction=="any") ifelse(abs(z) < 0.25, 0, 0.5) else 0.5 # using 0.25 to avoid numerical imprecision; z should go up in units of 0.5's.
+                all.left[[b]] <- pnorm((z + CORRECTION)/SIGMA, log.p=TRUE)
+                all.right[[b]] <- pnorm((z - CORRECTION)/SIGMA, log.p=TRUE, lower.tail=FALSE)
             }
 
             # Combining the p-values for each side across blocks.
@@ -118,10 +129,14 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
             hvt.p <- .choose_leftright_pvalues(com.left, com.right, direction=direction)
             tvh.p <- .choose_leftright_pvalues(com.right, com.left, direction=direction)
 
+            # Capping on the log-scale, as the continuity correction means that quantiles are not symmetric around zero with Stouffer's Z.
+            hvt.p <- pmin(hvt.p, 0)
+            tvh.p <- pmin(tvh.p, 0)
+
             # Symmetric effects, hence the '1-'.
             com.effect <- .weighted_average_vals(all.effect, all.weight, weighted=TRUE)
-            out.stats[[host]][[target]] <- .create_full_stats(com.effect, hvt.p, gene.names, log.p=log.p)
-            out.stats[[target]][[host]] <- .create_full_stats(1-com.effect, tvh.p, gene.names, log.p=log.p)
+            out.stats[[host]][[target]] <- .create_full_stats(effect=com.effect, p=hvt.p, gene.names=gene.names, log.p=log.p)
+            out.stats[[target]][[host]] <- .create_full_stats(effect=1-com.effect, p=tvh.p, gene.names=gene.names, log.p=log.p)
         }
     }
 	
