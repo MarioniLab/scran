@@ -139,8 +139,8 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
 
             # Symmetrical log-fold changes, hence the -1.
             com.lfc <- .weighted_average_vals(all.lfc, all.weight, weighted=TRUE)
-            out.stats[[host]][[target]] <- .create_full_stats(logFC=com.lfc, hvt.p, gene.names, log.p=log.p)
-            out.stats[[target]][[host]] <- .create_full_stats(logFC=-com.lfc, tvh.p, gene.names, log.p=log.p)
+            out.stats[[host]][[target]] <- .create_full_stats(logFC=com.lfc, p=hvt.p, gene.names=gene.names, log.p=log.p)
+            out.stats[[target]][[host]] <- .create_full_stats(logFC=-com.lfc, p=tvh.p, gene.names=gene.names, log.p=log.p)
         }
     }
 	
@@ -231,8 +231,8 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
             hvt.p <- .choose_leftright_pvalues(test.out$left, test.out$right, direction=direction)
             tvh.p <- .choose_leftright_pvalues(test.out$right, test.out$left, direction=direction)
 
-            out.stats[[host]][[target]] <- .create_full_stats(logFC=cur.lfc, hvt.p, gene.names, log.p=log.p)
-            out.stats[[target]][[host]] <- .create_full_stats(logFC=-cur.lfc, tvh.p, gene.names, log.p=log.p)
+            out.stats[[host]][[target]] <- .create_full_stats(logFC=cur.lfc, p=hvt.p, gene.names=gene.names, log.p=log.p)
+            out.stats[[target]][[host]] <- .create_full_stats(logFC=-cur.lfc, p=tvh.p, gene.names=gene.names, log.p=log.p)
         }
     }
 
