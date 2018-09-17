@@ -230,9 +230,7 @@ test_that("pairwiseTTests with blocking works across multiple cores", {
     clusters <- as.factor(clust$cluster)
     block <- sample(3, ncol(X), replace=TRUE)
     ref <- pairwiseTTests(X, clusters, block=block)
-
     expect_equal(ref, pairwiseTTests(X, clusters, block=block, BPPARAM=MulticoreParam(2)))
-    expect_equal(ref, pairwiseTTests(X, clusters, block=block, BPPARAM=SnowParam(2)))
 })
 
 set.seed(70000022)
@@ -318,9 +316,7 @@ test_that("pairwiseTTests with linear models works across multiple cores", {
     clusters <- as.factor(clust$cluster)
     covariate <- cbind(runif(ncol(X)))
     ref <- pairwiseTTests(X, clusters, design=covariate)
-
     expect_equal(ref, pairwiseTTests(X, clusters, design=covariate, BPPARAM=MulticoreParam(2)))
-    expect_equal(ref, pairwiseTTests(X, clusters, design=covariate, BPPARAM=SnowParam(2)))
 })
 
 set.seed(70000032)

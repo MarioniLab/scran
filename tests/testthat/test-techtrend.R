@@ -107,14 +107,11 @@ test_that("makeTechTrend handles other options properly", {
     # Handles parallelization properly.
     sf <- c(0.1, 0.5, 1, 1.5, 1.9)
     means <- 0:20/5
-	out1 <- makeTechTrend(means, pseudo.count=1, size.factors=sf)
-	out2 <- makeTechTrend(means, pseudo.count=1, size.factors=sf, BPPARAM=MulticoreParam(2))
-	out3 <- makeTechTrend(means, pseudo.count=1, size.factors=sf, BPPARAM=SnowParam(3))
-
+    out1 <- makeTechTrend(means, pseudo.count=1, size.factors=sf)
+    out2 <- makeTechTrend(means, pseudo.count=1, size.factors=sf, BPPARAM=MulticoreParam(2))
     expect_equal(out1(means), out2(means))
-    expect_equal(out1(means), out3(means))
 
-    # Handles zeroes properly.
+    # Returns a zero when a zero is provided.
     expect_equal(out1(0), 0)
 
     # Chucks an error when size factors are not centred.
