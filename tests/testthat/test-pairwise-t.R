@@ -97,6 +97,31 @@ test_that("pairwiseTTests works as expected without blocking or design matrices"
     expect_equal(out$statistics[subset], ref$statistics)
 })
 
+FACTORCHECK <- function(left, right) {
+    expect_identical(names(left), names(right))
+
+    oL <- order(left$pairs[,1], left$pairs[,2])
+    oR <- order(right$pairs[,1], right$pairs[,2])
+    expect_identical(left$pairs[oL,], right$pairs[oR,])
+
+    expect_identical(names(left$statistics)[oL], names(right$statistics)[oR])
+    for (x in seq_along(oL)) {
+        curleft <- left$statistics[[oL[x]]]
+        curright <- right$statistics[[oR[x]]]
+        expect_identical(sort(colnames(curleft)), sort(colnames(curright)))
+        expect_equal(curleft, curright[,colnames(curleft)])
+    }
+    return(TRUE)
+}
+
+set.seed(70000011)
+test_that("pairwiseTTests behaves with different types of factors", {
+    clusters <- sample(LETTERS[1:5], ncol(X), replace=TRUE)
+    f1 <- factor(clusters)
+    f2 <- factor(clusters, rev(levels(f2)))
+    FACTORCHECK(pairwiseTTests(X, f1), pairwiseTTests(X, f2))
+})
+
 ###################################################################
 
 BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
@@ -199,6 +224,31 @@ test_that("pairwiseTTests works as expected with blocking", {
     BLOCKFUN(X, re.clust, re.block)
 })
 
+set.seed(70000021)
+test_that("pairwiseTTests with blocking works across multiple cores", {
+    clust <- kmeans(t(X), centers=3)
+    clusters <- as.factor(clust$cluster)
+    block <- sample(3, ncol(X), replace=TRUE)
+    ref <- pairwiseTTests(X, clusters, block=block)
+
+    expect_equal(ref, pairwiseTTests(X, clusters, block=block, BPPARAM=MulticoreParam(2)))
+    expect_equal(ref, pairwiseTTests(X, clusters, block=block, BPPARAM=SnowParam(2)))
+})
+
+set.seed(70000022)
+test_that("pairwiseTTests with blocking behaves with different types of factors", {
+    clusters <- sample(LETTERS[1:5], ncol(X), replace=TRUE)
+    f1 <- factor(clusters)
+    f2 <- factor(clusters, rev(levels(f2)))
+
+    b <- sample(1:3, ncol(X), replace=TRUE)
+    FACTORCHECK(pairwiseTTests(X, f1, block=b), pairwiseTTests(X, f2, block=b))
+
+    b1 <- factor(b, 1:3)
+    b2 <- factor(b, 3:1)
+    FACTORCHECK(pairwiseTTests(X, f1, block=b1), pairwiseTTests(X, f2, block=b2))
+})
+
 ###################################################################
 
 LINEARFUN <- function(y, grouping, design, direction="any", lfc=0) {
@@ -260,6 +310,32 @@ test_that("pairwiseTTests works as expected with a design matrix", {
     LINEARFUN(X, clusters, alternative, lfc=0.2)
     LINEARFUN(X, clusters, alternative, lfc=0.2, direction="up")
     LINEARFUN(X, clusters, alternative, lfc=0.2, direction="down")
+})
+
+set.seed(70000031)
+test_that("pairwiseTTests with linear models works across multiple cores", {
+    clust <- kmeans(t(X), centers=3)
+    clusters <- as.factor(clust$cluster)
+    covariate <- cbind(runif(ncol(X)))
+    ref <- pairwiseTTests(X, clusters, design=covariate)
+
+    expect_equal(ref, pairwiseTTests(X, clusters, design=covariate, BPPARAM=MulticoreParam(2)))
+    expect_equal(ref, pairwiseTTests(X, clusters, design=covariate, BPPARAM=SnowParam(2)))
+})
+
+set.seed(70000032)
+test_that("pairwiseTTests with linear models behaves with different types of factors", {
+    clusters <- sample(LETTERS[1:5], ncol(X), replace=TRUE)
+    f1 <- factor(clusters)
+    f2 <- factor(clusters, rev(levels(f2)))
+
+    covariate <- cbind(runif(ncol(X)))
+    FACTORCHECK(pairwiseTTests(X, f1, design=covariate), pairwiseTTests(X, f2, design=covariate))
+
+    d1 <- cbind(sample(0:1, ncol(X), replace=TRUE), sample(0:1, ncol(X), replace=TRUE))
+    d2 <- d1
+    d2[,1] <- d2[,1] + d2[,2]
+    FACTORCHECK(pairwiseTTests(X, f1, design=d1), pairwiseTTests(X, f2, design=d2))
 })
 
 ###################################################################
