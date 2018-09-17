@@ -25,12 +25,9 @@ pairwiseTTests(x, clusters, block=NULL, design=NULL,
 
 \details{
 This function performs t-tests to identify differentially expressed genes (DEGs) between pairs of clusters.
-For each cluster, the log-fold changes and other statistics from all relevant pairwise comparisons are combined into a single table.
-A list of such tables is returned for all clusters to define a set of potential marker genes.
-
-Users can specify the genes to check for differential expression (DE) by setting the \code{subset.row} argument.
-In addition, spike-in transcripts are ignored in the SingleCellExperiment method when \code{get.spikes=FALSE}.
-If this is set, it will intersect with any non-\code{NULL} value of \code{subset.row}, i.e., only non-spike-in transcripts in the specified set will be used.
+A list of tables is returned where each table contains the statistics for all genes for a comparison between each pair of clusters.
+This can be examined directly or used as input to \code{\link{combineMarkers}} for marker gene detection.
+Users can specify the genes to check for differential expression by setting the \code{subset.row} argument.
 }
 
 \section{Explanation of the hypothesis tests}{
