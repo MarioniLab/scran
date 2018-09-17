@@ -139,8 +139,8 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
 
             # Symmetrical log-fold changes, hence the -1.
             com.lfc <- .weighted_average_vals(all.lfc, all.weight, weighted=TRUE)
-            out.stats[[host]][[target]] <- .create_full_stats(com.lfc, hvt.p, gene.names, log.p=log.p)
-            out.stats[[target]][[host]] <- .create_full_stats(-com.lfc, tvh.p, gene.names, log.p=log.p)
+            out.stats[[host]][[target]] <- .create_full_stats(logFC=com.lfc, hvt.p, gene.names, log.p=log.p)
+            out.stats[[target]][[host]] <- .create_full_stats(logFC=-com.lfc, tvh.p, gene.names, log.p=log.p)
         }
     }
 	
@@ -231,8 +231,8 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
             hvt.p <- .choose_leftright_pvalues(test.out$left, test.out$right, direction=direction)
             tvh.p <- .choose_leftright_pvalues(test.out$right, test.out$left, direction=direction)
 
-            out.stats[[host]][[target]] <- .create_full_stats(cur.lfc, hvt.p, gene.names, log.p=log.p)
-            out.stats[[target]][[host]] <- .create_full_stats(-cur.lfc, tvh.p, gene.names, log.p=log.p)
+            out.stats[[host]][[target]] <- .create_full_stats(logFC=cur.lfc, hvt.p, gene.names, log.p=log.p)
+            out.stats[[target]][[host]] <- .create_full_stats(logFC=-cur.lfc, tvh.p, gene.names, log.p=log.p)
         }
     }
 
@@ -285,48 +285,4 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
 # stable fashion, i.e., without actually running the 'exp's.
 {
     pmax(x, y) + log1p(exp(-abs(x-y)))
-}
-
-.choose_leftright_pvalues <- function(left, right, direction="any")
-# Choosing whether to use the p-values from the left (lower.tail), or
-# the p-values from the right (upper.tail), or to make it two-sided.
-# Assumes 'left' and 'right' are log-transformed p-values.
-{
-    if (direction=="up") {
-        return(right)
-    } else if (direction=="down") {
-        return(left)
-    } else {
-        log.p.out <- pmin(left, right) + log(2)
-        return(log.p.out)
-    }
-}
-
-###########################################################
-# Internal functions (output formatting)
-###########################################################
-
-.create_output_container <- function(clust.vals) {
-    out <- vector("list", length(clust.vals))
-    names(out) <- clust.vals
-    for (i in seq_along(clust.vals)) {
-        targets <- clust.vals[-i]
-        collected <- vector("list", length(targets))
-        names(collected) <- targets
-        host <- clust.vals[i]
-        out[[host]] <- collected
-    }
-    return(out)
-}
-
-#' @importFrom S4Vectors DataFrame
-#' @importFrom stats p.adjust
-.create_full_stats <- function(cur.lfc, cur.p, gene.names, log.p=TRUE) {
-    cur.p <- as.vector(cur.p)
-    if (log.p) {
-        DataFrame(logFC=cur.lfc, log.p.value=cur.p, log.FDR=.logBH(cur.p), check.names=FALSE, row.names=gene.names)
-    } else {
-        cur.p <- exp(cur.p)
-        DataFrame(logFC=cur.lfc, p.value=cur.p, FDR=p.adjust(cur.p, method="BH"), check.names=FALSE, row.names=gene.names)
-    }
 }
