@@ -1,7 +1,8 @@
 #' @export
 #' @importFrom S4Vectors DataFrame
+#' @importFrom BiocParallel SerialParam
 pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("any", "up", "down"),
-    lfc=0, log.p=FALSE, gene.names=rownames(x), subset.row=NULL)
+    lfc=0, log.p=FALSE, gene.names=rownames(x), subset.row=NULL, BPPARAM=SerialParam())
 # Performs pairwise Welch t-tests between clusters.
 #
 # written by Aaron Lun
@@ -28,13 +29,13 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
     direction <- match.arg(direction)
 
     if (!is.null(block) || is.null(design)) {
-        results <- .test_block_internal(x, subset.row, clusters, block=block, direction=direction, lfc=lfc, gene.names=gene.names, log.p=log.p)
+        results <- .test_block_internal(x, subset.row, clusters, block=block, direction=direction, lfc=lfc, gene.names=gene.names, log.p=log.p, BPPARAM=BPPARAM)
     } else {
-        results <- .fit_lm_internal(x, subset.row, clusters, design=design, direction=direction, lfc=lfc, gene.names=gene.names, log.p=log.p)
+        results <- .fit_lm_internal(x, subset.row, clusters, design=design, direction=direction, lfc=lfc, gene.names=gene.names, log.p=log.p, BPPARAM=BPPARAM)
     }
 
     first <- rep(names(results), lengths(results))
-    second <- unlist(lapply(results, names))
+    second <- unlist(lapply(results, names), use.names=FALSE)
     results <- unlist(results, recursive=FALSE, use.names=FALSE)
     names(results) <- NULL
     list(statistics=results, pairs=DataFrame(first=first, second=second))
@@ -45,44 +46,50 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
 ###########################################################
 
 #' @importFrom S4Vectors DataFrame
-.test_block_internal <- function(x, subset.row, clusters, block=NULL, direction="any", lfc=0, gene.names=NULL, log.p=TRUE)
+#' @importFrom BiocParallel bplapply SerialParam
+.test_block_internal <- function(x, subset.row, clusters, block=NULL, direction="any", lfc=0, gene.names=NULL, log.p=TRUE, BPPARAM=SerialParam())
 # This looks at every level of the blocking factor and performs
 # t-tests between pairs of clusters within each blocking level.
 {
-    ncells <- ncol(x)
+    nclusters <- nlevels(clusters)
     if (is.null(block)) {
-        by.block <- list(`1`=seq_len(ncells))
+        all.clusters <- factor(as.integer(clusters), seq_len(nclusters))
+        nblocks <- 1L
     } else {
-        if (length(block)!=ncells) {
+        if (length(block)!=ncol(x)) {
             stop("length of 'block' does not equal 'ncol(x)'")
         }
-        by.block <- split(seq_len(ncells), block)
+        block <- factor(block)
+        nblocks <- nlevels(block)
+        all.clusters <- factor(as.integer(clusters) + (as.integer(block) - 1L) * nclusters, seq_len(nblocks*nclusters))
     }
 
     # Calculating the statistics for each block.
-    out.means <- vector("list", length(by.block))
-    out.s2 <- out.n <- out.means
+    all.blocks <- split(seq_along(all.clusters) - 1L, all.clusters)
+    wout <- .worker_assign(length(subset.row), BPPARAM)
+    by.core <- .split_vector_by_workers(subset.row, wout)
+    
+    raw.stats <- bplapply(by.core, FUN=.fit_oneway, x=x, by.block=all.blocks, BPPARAM=BPPARAM)
+    all.means <- do.call(rbind, lapply(raw.stats, FUN="[[", i=1))
+    all.vars <- do.call(rbind, lapply(raw.stats, FUN="[[", i=2))
+    all.n <- table(all.clusters)
+
     clust.vals <- levels(clusters)
+    out.s2 <- out.means <- out.n <- vector("list", nblocks)
+    for (b in seq_len(nblocks)) {
+        chosen <- (b-1L) * nclusters + seq_len(nclusters)
+        means <- all.means[,chosen,drop=FALSE]
+        sigma2 <- all.vars[,chosen,drop=FALSE]
+        cur.n <- as.vector(all.n[chosen])
 
-    for (b in seq_along(by.block)) {
-        curblock <- by.block[[b]]
-        by.cluster <- split(curblock - 1L, clusters[curblock], drop=FALSE)
-        stopifnot(identical(names(by.cluster), clust.vals))
-
-        stats <- .Call(cxx_fit_oneway, by.cluster, x, subset.row - 1L)
-        means <- stats[[1]]
-        sigma2 <- stats[[2]]
-        colnames(means) <- colnames(sigma2) <- clust.vals
-
+        colnames(means) <- colnames(sigma2) <- names(cur.n) <- clust.vals
         out.means[[b]] <- means
         out.s2[[b]] <- sigma2
-        out.n[[b]] <- lengths(by.cluster)
+        out.n[[b]] <- cur.n 
     }
 
     # Running through all pairs of comparisons.
     out.stats <- .create_output_container(clust.vals)
-    nblocks <- length(by.block)
-
     for (i in seq_along(clust.vals)) {
         host <- clust.vals[i]
         targets <- clust.vals[seq_len(i-1L)]
@@ -169,7 +176,8 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
 
 #' @importFrom stats model.matrix
 #' @importFrom limma lmFit contrasts.fit
-.fit_lm_internal <- function(x, subset.row, clusters, design, direction="any", lfc=0, gene.names=NULL, log.p=TRUE)
+#' @importFrom BiocParallel bplapply SerialParam
+.fit_lm_internal <- function(x, subset.row, clusters, design, direction="any", lfc=0, gene.names=NULL, log.p=TRUE, BPPARAM=SerialParam())
 # This fits a linear model to each gene and performs a t-test for
 # differential expression between clusters.
 {
@@ -188,10 +196,14 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
     if (resid.df <= 0L) {
         stop("no residual d.f. in design matrix for variance estimation")
     }
-    stats <- .Call(cxx_fit_linear_model, QR$qr, QR$qraux, x, subset.row - 1L, TRUE)
-    coefficients <- stats[[1]]
+
+    wout <- .worker_assign(length(subset.row), BPPARAM)
+    by.core <- .split_vector_by_workers(subset.row, wout)
+    raw.stats <- bplapply(by.core, FUN=.fit_linear_model, qr=QR$qr, qraux=QR$qraux, x=x, get.coef=TRUE, BPPARAM=BPPARAM)
+    coefficients <- do.call(cbind, lapply(raw.stats, "[[", i=1))
     coefficients[QR$pivot,] <- coefficients
-    sigma2 <- pmax(stats[[3]], 1e-8) # avoid unlikely but possible problems with discreteness.
+    sigma2 <- unlist(lapply(raw.stats, "[[", i=3))
+    sigma2 <- pmax(sigma2, 1e-8) # avoid unlikely but possible problems with discreteness.
 
     # Running through every pair of clusters.
     out.stats <- .create_output_container(clust.vals)

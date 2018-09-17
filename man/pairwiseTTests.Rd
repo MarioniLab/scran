@@ -7,7 +7,7 @@
 \usage{
 pairwiseTTests(x, clusters, block=NULL, design=NULL, 
 	direction=c("any", "up", "down"), lfc=0, log.p=FALSE, 
-	gene.names=rownames(x), subset.row=NULL)
+	gene.names=rownames(x), subset.row=NULL, BPPARAM=SerialParam())
 }
 
 \arguments{
@@ -20,6 +20,7 @@ pairwiseTTests(x, clusters, block=NULL, design=NULL,
 \item{log.p}{A logical scalar indicating if log-transformed p-values/FDRs should be returned.}
 \item{gene.names}{A character vector of gene names with one value for each row of \code{x}.}
 \item{subset.row}{A logical, integer or character scalar specifying the rows of \code{x} to use.}
+\item{BPPARAM}{A BiocParallelParam object indicating whether and how parallelization should be performed across genes.}
 }
 
 \details{
