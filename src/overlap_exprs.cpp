@@ -22,8 +22,7 @@ SEXP overlap_exprs_internal(const M mat, const Rcpp::List& groups, SEXP subset, 
         std::vector<int>& last_added=sources.back();
         for (auto laIt=last_added.begin(); laIt!=last_added.end(); ++laIt) {
             int& current=(*laIt);
-            --current; // get to 0-based indexing.
-            if (current<0 || current>=int(ncells)) { 
+            if (current<0 || current>=static_cast<int>(ncells)) { 
                 throw std::runtime_error("indices in 'groups' out of range");
             }
         }
@@ -33,41 +32,16 @@ SEXP overlap_exprs_internal(const M mat, const Rcpp::List& groups, SEXP subset, 
     
     // Setting up the output matrices to hold the overlap proportions.
     Rcpp::List pout(ngroups);
-    std::deque<Rcpp::NumericVector::iterator> pptrs(ngroups*ngroups);
-    int counter=0;
-        
+    std::vector<std::vector<Rcpp::NumericMatrix::iterator> > pptrs(ngroups);
     for (size_t i=0; i<ngroups; ++i) {
-        Rcpp::NumericMatrix tmpx(slen, ngroups-1);
+        Rcpp::NumericMatrix tmpx(slen, i);
         auto pIt=tmpx.begin();
         pout[i]=tmpx;
 
-        for (size_t j=0; j<ngroups; ++j, ++counter) {
-            if (i!=j) { 
-                pptrs[counter] = pIt;
-                pIt += slen;
-            }
-        }
-    }
-
-    // Calclulating the number of cells for each pair of groups.
-    Rcpp::List nout(ngroups);
-    std::deque<double> ncellpairs(ngroups*ngroups);
-    counter=0;
-
-    for (size_t i=0; i<ngroups; ++i) {
-        const size_t isize=sources[i].size();
-        Rcpp::NumericVector tmpx(ngroups-1);
-        auto nIt=tmpx.begin();
-        nout[i]=tmpx;
-
-        for (int j=0; j<ngroups; ++j, ++counter) {
-            const size_t jsize=sources[j].size();
-            if (i!=j) { 
-                if (isize && jsize) { 
-                    (*nIt) = (ncellpairs[counter] = double(jsize) * double(isize));
-                }
-                ++nIt;
-            }
+        pptrs[i].resize(i);
+        for (size_t j=0; j<i; ++j) {
+            pptrs[i][j] = pIt;
+            pIt += slen;
         }
     }
 
@@ -99,8 +73,7 @@ SEXP overlap_exprs_internal(const M mat, const Rcpp::List& groups, SEXP subset, 
                 const size_t ncells2=group2.size();
                 if (ncells2==0) { continue; }
 
-                int counter=i1*ngroups + i2;
-                double& score=(*(pptrs[counter]++)=0); // Referencing and bumping it up.
+                double& score=(*(pptrs[i1][i2]++)=0); // Referencing and bumping it up.
                 size_t c2_left=0; 
                 size_t c2_right=0;
 
@@ -110,20 +83,13 @@ SEXP overlap_exprs_internal(const M mat, const Rcpp::List& groups, SEXP subset, 
                     const T right=cur1 + tol;
                     while (c2_left < ncells2 && group2[c2_left] <= left) { ++c2_left; } // c2_left points to first element in range.
                     while (c2_right < ncells2 && group2[c2_right] < right) { ++c2_right; } // c2_right points to first element out of range.
-                    score += double(c2_left) + double(c2_right - c2_left)*0.5;
+                    score += static_cast<double>(c2_left) + static_cast<double>(c2_right - c2_left)*0.5;
                 }
-
-                // Adding the symmetric value.
-                counter=i2*ngroups + i1; 
-                *(pptrs[counter]++)=(ncellpairs[counter] - score);
             }
         } 
     }
 
-    Rcpp::List output(2);
-    output[0]=pout;
-    output[1]=nout;
-    return output;
+    return pout;
 }
 
 SEXP overlap_exprs(SEXP exprs, SEXP subset, SEXP bygroup, SEXP tolerance) {
