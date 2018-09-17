@@ -9,7 +9,7 @@
 \usage{
 \S4method{findMarkers}{ANY}(x, clusters, gene.names=rownames(x), block=NULL, design=NULL,
     pval.type=c("any", "all"), direction=c("any", "up", "down"), lfc=0, 
-    log.p=FALSE, full.stats=FALSE, subset.row=NULL)
+    log.p=FALSE, full.stats=FALSE, subset.row=NULL, BPPARAM=SerialParam())
 
 \S4method{findMarkers}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", 
     get.spikes=FALSE) 
@@ -30,6 +30,7 @@
 \item{log.p}{A logical scalar indicating if log-transformed p-values/FDRs should be returned.}
 \item{full.stats}{A logical scalar indicating whether all statistics (i.e., raw and BH-adjusted p-values) should be returned for each pairwise comparison.}
 \item{subset.row}{A logical, integer or character scalar specifying the rows of \code{x} to use.}
+\item{BPPARAM}{A BiocParallelParam object indicating whether and how parallelization should be performed across genes.}
 \item{...}{Additional arguments to pass to the ANY method.}
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
 \item{get.spikes}{A logical scalar specifying whether decomposition should be performed for spike-ins.}
@@ -39,7 +40,8 @@
 This function provides a convenience wrapper for marker gene identification, based on running \code{\link{pairwiseTTests}} and passing the result to \code{\link{combineMarkers}}.
 All of the arguments above are supplied directly to one of these two functions.
 
-Note that, if \code{full.stats=TRUE}, the p-values for each pairwise comparison will be log-transformed regardless of the value of \code{log.p}.
+Note that \code{log.p} only affects the combined p-values and FDRs.
+If \code{full.stats=TRUE}, the p-values for each pairwise comparison will be log-transformed regardless of the value of \code{log.p}.
 }
 
 \value{

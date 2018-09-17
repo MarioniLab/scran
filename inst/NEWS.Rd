@@ -47,6 +47,7 @@ Added approx.npts= option for interpolation-based approximation for many cells.
 
 \item Bugfixes to uses of block=, lfc= and design= arguments in findMarkers().
 Refactored to use pairwiseTTests() and combineMarkers() internally.
+Added BPPARAM= option for parallelized execution.
 
 \item Bugfixes to the use of Stouffer's Z method in combineVar().
 

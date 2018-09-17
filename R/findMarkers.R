@@ -1,13 +1,14 @@
+#' @importFrom BiocParallel SerialParam
 .findMarkers <- function(x, clusters, gene.names=rownames(x), block=NULL, design=NULL, 
     pval.type=c("any", "all"), direction=c("any", "up", "down"), 
-    lfc=0, log.p=FALSE, full.stats=FALSE, subset.row=NULL)
+    lfc=0, log.p=FALSE, full.stats=FALSE, subset.row=NULL, BPPARAM=SerialParam())
 # Uses limma to find the markers that are differentially expressed between clusters,
 # given a log-expression matrix and some blocking factors in 'design' or 'block'.
 #
 # written by Aaron Lun
 # created 22 March 2017
 {
-    fit <- pairwiseTTests(x, clusters, block=block, design=design, direction=direction, lfc=lfc, gene.names=gene.names, log.p=TRUE, subset.row=subset.row)
+    fit <- pairwiseTTests(x, clusters, block=block, design=design, direction=direction, lfc=lfc, gene.names=gene.names, log.p=TRUE, subset.row=subset.row, BPPARAM=BPPARAM)
     combineMarkers(fit$statistics, fit$pairs, pval.type=pval.type, log.p.in=TRUE, log.p.out=log.p, full.stats=full.stats, pval.field="log.p.value")
 }
 
