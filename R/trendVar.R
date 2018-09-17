@@ -203,8 +203,8 @@
     .Call(cxx_fit_oneway, by.block, x, chosen - 1L)
 }
 
-.fit_linear_model <- function(qr, qraux, x, chosen) {
-    .Call(cxx_fit_linear_model, qr, qraux, x, chosen - 1L, FALSE)
+.fit_linear_model <- function(qr, qraux, x, chosen, get.coef=FALSE) {
+    .Call(cxx_fit_linear_model, qr, qraux, x, chosen - 1L, get.coef)
 }
 
 #########################################################
