@@ -142,3 +142,10 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
 	
     out.stats
 }
+
+.find_overlap_exprs <- function(x, subset.row, by.group, tol) 
+# Pass all arguments explicitly rather than via function environment
+# (preserve scran namespace, avoid duplication of memory in bplapply).
+{
+    .Call(cxx_overlap_exprs, x, subset.row, by.group, tol)
+}
