@@ -4,7 +4,6 @@ template <class V>
 double get_proportion (const V& expr, const int& minpairs, const Rcpp::IntegerVector& marker1, const Rcpp::IntegerVector& marker2, double threshold=NA_REAL) {
     int was_first=0, was_total=0;
     const bool short_cut = !ISNA(threshold);
-    constexpr double TOL=0.00000001;
 
     auto eIt=expr.begin();
     const size_t npairs=marker1.size();
@@ -23,13 +22,14 @@ double get_proportion (const V& expr, const int& minpairs, const Rcpp::IntegerVe
 
         // Returning if all we need to know is whether the score is greater than or less than 'threshold'.
         // We only check every hundred pairs to avoid redundant calculations.
-        // We also have some tolerance to avoid problems with numerical imprecision.
         if (short_cut && was_total >= minpairs && was_total % 100 == 0) {
             const size_t leftovers=npairs - m - 1;
             const double max_total=was_total + leftovers;
-            if (static_cast<double>(was_first + leftovers)/max_total + TOL < threshold) {
+
+            // +1 to avoid incorrect early termination due to numerical imprecision upon equality.
+            if (static_cast<double>(was_first + leftovers + 1)/max_total < threshold) { 
                 return -1;
-            } else if (static_cast<double>(was_first)/max_total > threshold + TOL) {
+            } else if (was_first && static_cast<double>(was_first - 1)/max_total > threshold) { // -1 for the same reason (need 'was_first' check to avoid underflow).
                 return 1;
             }
         }
@@ -41,7 +41,7 @@ double get_proportion (const V& expr, const int& minpairs, const Rcpp::IntegerVe
 
     const double output=static_cast<double>(was_first)/was_total;
     if (short_cut) {
-        return output - threshold;
+        return output < threshold ? -1 : 1;
     }
     return output;
 }
