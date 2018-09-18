@@ -2,8 +2,8 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.9.24}{\itemize{
-\item Removed selectorPlot(), exploreData() functions.
+\section{Version 1.9.25}{\itemize{
+\item Removed selectorPlot(), exploreData() functions in favour of iSEE.
     
 \item Fixed underflow problem in mnnCorrect() when dealing with the Gaussian kernel.
 Dropped the default sigma= in mnnCorrect() for better default performance.
@@ -14,6 +14,10 @@ Deprecated get.ranks= in favour of scaledColRanks().
 
 \item Added max.cluster.size= argument to computeSumFactors().
 Supported parallelized cluster-wise processing.
+Increased all pool sizes to avoid rare failures if number of cells is a multiple of 5.
+Minor improvement to how mean filtering is done for rescaling across clusters in computeSumFactors().
+Throw errors upon min.mean=NULL, which used to be valid.
+Switched positive=TRUE behaviour to use cleanSizeFactors().
 
 \item Added the scaledColRanks() function for computing scaled and centred column ranks.
 
@@ -31,10 +35,6 @@ Support direct use of a factor in design= for efficiency.
 \item Added multiBatchNorm() function for consistent downscaling across batches prior to batch correction.
 
 \item Added cleanSizeFactors() to coerce non-positive size factors to positive values based on number of detected genes.
-
-\item Minor improvement to how mean filtering is done for rescaling across clusters in computeSumFactors().
-Throw errors upon min.mean=NULL, which used to be valid.
-Switched positive=TRUE behaviour to use cleanSizeFactors().
 
 \item Added the fastMNN() function to provide a faster, more stable alternative for MNN correction.
 
