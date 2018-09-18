@@ -33,7 +33,7 @@ Each row should specify the pair being compared for the corresponding element of
 \value{
 A named \linkS4class{List} of \linkS4class{DataFrame}s where each DataFrame contains the consolidated results for the cluster of the same name.
 
-Within each DataFrame(e.g., cluster X), rows correspond to genes with the fields:
+Within each DataFrame (say, the entry for cluster X), rows correspond to genes with the fields:
 \describe{
 \item{\code{Top}:}{Integer, the minimum rank across all pairwise comparisons.
 Only reported if \code{rank.type="any"}.}
@@ -89,8 +89,9 @@ Properly correcting for multiple testing is not generally possible when \code{cl
 }
 
 \seealso{
-\code{\link{pairwiseTTests}},
-\code{\link{findMarkers}}
+\code{\link{pairwiseTTests}} and \code{\link{pairwiseWilcox}} for functions that can generate \code{de.lists} and \code{pairs}.
+
+\code{\link{findMarkers}} and \code{\link{overlapExprs}} provide wrappers that use \code{combineMarkers} on the t-test or Wilcoxon test results.
 }
 
 \references{

@@ -51,9 +51,9 @@ See \code{?\link{combineMarkers}} for more details on the output format.
 }
 
 \seealso{
-\code{\link{pairwiseWilcox}},
-\code{\link{combineMarkers}},
-\code{\link{findMarkers}}
+See \code{\link{pairwiseWilcox}} and \code{\link{combineMarkers}} for the component functions.
+
+See \code{\link{findMarkers}} for the equivalent function using t-tests.
 }
 
 \examples{

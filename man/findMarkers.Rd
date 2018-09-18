@@ -54,8 +54,9 @@ Aaron Lun
 }
 
 \seealso{
-\code{\link{pairwiseTTests}},
-\code{\link{combineMarkers}}
+See \code{\link{pairwiseTTests}} and \code{\link{combineMarkers}} for the individual functions.
+
+See \code{\link{overlapExprs}} for the equivalent function using t-tests.
 }
 
 \examples{
