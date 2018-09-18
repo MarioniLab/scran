@@ -28,13 +28,16 @@ A list of tables is returned where each table contains the statistics for all ge
 This can be examined directly or used as input to \code{\link{combineMarkers}} for marker gene detection.
 Users can specify the genes to check for differential expression by setting the \code{subset.row} argument.
 
-Effect sizes represent the probability of sampling an observation in one cluster that is \emph{greater} than a random value sampled from the other cluster.
-Thus, effect sizes close to 1 indicate that the probability mass of the first cluster is completely above that of the second cluster.
-Conversely, effect sizes close to 0 mean that all observations in the first cluster are below those of the second cluster.
+Effect sizes are computed as overlap proportions.
+Consider the distribution of expression values for gene X within each of two groups of cells A and B.
+The overlap proportion is defined as the probability that a randomly selected cell in A has a greater expression value of X than a randomly selected cell in B. 
+Overlap proportions near 0 (A is lower than B) or 1 (A is higher than B) indicate that the expression distributions are well-separated. 
+The Wilcoxon rank sum test effectively tests for significant deviations from an overlap proportion of 0.5.
 
 Wilcoxon rank sum tests are more robust to outliers and insensitive to non-normality, in contrast to t-tests in \code{\link{pairwiseTTests}}.
 However, they take longer to run, the effect sizes are less interpretable, and there are more subtle violations of its assumptions in real data.
 For example, the i.i.d. assumptions are unlikely to hold after scaling normalization due to differences in variance.
+Also note that we approximate the distribution of the Wilcoxon rank sum statistic to deal with large numbers of cells and ties.
 }
 
 \section{Blocking on uninteresting factors}{
@@ -56,14 +59,15 @@ This can be used to focus on genes that are upregulated in each cluster of inter
 To interpret the setting of \code{direction}, consider the DataFrame for cluster X, in which we are comparing to another cluster Y.
 If \code{direction="up"}, genes will only be significant in this DataFrame if they are upregulated in cluster X compared to Y.
 If \code{direction="down"}, genes will only be significant if they are downregulated in cluster X compared to Y.
+See \code{?\link{wilcox.test}} for more details on the interpretation of one-sided Wilcoxon rank sum tests.
 }
 
 \value{
 A list is returned containing \code{statistics}, a list of \linkS4class{DataFrame}s where each element contains the statistics for a comparison between a pair of clusters;
 and \code{pairs}, a DataFrame specifying the identity of pairs being compared in each entry of \code{statistics}.
 
-In each DataFrame, the effect size represents the probability of sampling a value in the \code{first} cluster greater than a random value from the \code{second} cluster.
-Note that the order of clusters will affect the sign of the log-fold change and, when \code{direction!="any"}, the size of the p-value itself.
+In each DataFrame, the overlap proportion represents the probability of sampling a value in the \code{first} cluster greater than a random value from the \code{second} cluster.
+Note that the order of clusters will affect the value of the overlap and, when \code{direction!="any"}, the size of the p-value itself.
 }
 
 \author{
