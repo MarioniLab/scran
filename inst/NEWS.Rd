@@ -43,11 +43,16 @@ Added approx.npts= option for interpolation-based approximation for many cells.
 
 \item Added pairwiseTTests() for direct calculation of pairwise t-statistics between groups.
 
+\item Added pairwiseWilcox() for direct calculation of pairwise Wilcoxon rank sum tests between groups.
+
 \item Added combineMarkers() to consolidate arbitrary pairwise comparisons into a marker list.
 
 \item Bugfixes to uses of block=, lfc= and design= arguments in findMarkers().
 Refactored to use pairwiseTTests() and combineMarkers() internally.
 Added BPPARAM= option for parallelized execution.
+
+\item Refactored overlapExprs() to sort by p-value based on pairwiseWilcox() and combineMarkers().
+Removed design= argument as it is not compatible with p-value calculations.
 
 \item Bugfixes to the use of Stouffer's Z method in combineVar().
 
