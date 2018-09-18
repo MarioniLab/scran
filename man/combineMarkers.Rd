@@ -42,7 +42,8 @@ This is a Simes' p-value if \code{rank.type="any"}, otherwise it is an IUT p-val
 \item{\code{log.p.value}:}{Numeric, the log-transformed version of \code{p.value} if \code{log.p.out=TRUE}.}
 \item{\code{FDR}:}{Numeric, the BH-adjusted p-value for each gene if \code{log.p.out=FALSE}.}
 \item{\code{log.FDR}:}{Numeric, the log-transformed adjusted p-value for each gene if \code{log.p.out=TRUE}.}
-\item{\code{logFC.Y}:}{Numeric for every other cluster Y in \code{clusters}, containing the effect size of X compared to Y when \code{full.stats=FALSE}.}
+\item{\code{logFC.Y}:}{Numeric for every other cluster Y in \code{clusters}, containing the effect size of the comparison of X to Y when \code{full.stats=FALSE}.
+Note that this is named according to the \code{output.field} prefix and so may not necessarily contain the log-fold change.}
 \item{\code{stats.Y}:}{DataFrame for every other cluster Y in \code{clusters}, returned when \code{full.stats=TRUE}.
 This contains the same fields in the corresponding entry of \code{de.lists} for the X versus Y comparison.}
 }
