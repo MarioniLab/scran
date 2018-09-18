@@ -135,8 +135,8 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
 
             # Symmetric effects, hence the '1-'.
             com.effect <- .weighted_average_vals(all.effect, all.weight, weighted=TRUE)
-            out.stats[[host]][[target]] <- .create_full_stats(effect=com.effect, p=hvt.p, gene.names=gene.names, log.p=log.p)
-            out.stats[[target]][[host]] <- .create_full_stats(effect=1-com.effect, p=tvh.p, gene.names=gene.names, log.p=log.p)
+            out.stats[[host]][[target]] <- .create_full_stats(overlap=com.effect, p=hvt.p, gene.names=gene.names, log.p=log.p)
+            out.stats[[target]][[host]] <- .create_full_stats(overlap=1-com.effect, p=tvh.p, gene.names=gene.names, log.p=log.p)
         }
     }
 	
