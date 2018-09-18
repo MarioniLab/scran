@@ -11,8 +11,8 @@
     pval.type=c("any", "all"), direction=c("any", "up", "down"), tol=1e-8, 
     log.p=FALSE, full.stats=FALSE, subset.row=NULL, BPPARAM=SerialParam()) 
 
-\S4method{overlapExprs}{SingleCellExperiment}(x, ..., subset.row=NULL, lower.bound=NULL, 
-    assay.type="logcounts", get.spikes=FALSE) 
+\S4method{overlapExprs}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts",
+    get.spikes=FALSE) 
 }
 
 \arguments{
@@ -24,7 +24,7 @@
 A vector of group assignments for all cells.
 }
 \item{gene.names}{A character vector of gene names with one value for each row of \code{x}.}
-\item{design}{A numeric matrix containing blocking terms, i.e., uninteresting factors driving expression across cells.}
+\item{block}{A factor specifying the blocking level for each cell.}
 \item{pval.type}{A string specifying the type of combined p-value to be computed, i.e., Simes' or IUT.}
 \item{direction}{A string specifying which direction of change in expression should be used to rank genes in the output.}
 \item{tol}{A numeric scalar specifying the tolerance with which ties are considered.}
