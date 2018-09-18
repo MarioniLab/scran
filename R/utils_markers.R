@@ -48,29 +48,3 @@
     repval[o] <- repval
     return(repval)
 }
-
-.rank_top_genes <- function(metrics) 
-# This computes the rank and the minimum metric for each gene.
-{
-    ngenes <- nrow(metrics)
-    ncon <- ncol(metrics)
-    min.rank <- min.val <- rep(NA_integer_, ngenes)
-
-    for (con in seq_len(ncon)) { 
-        cur.val <- metrics[,con]
-        cur.rank <- rank(cur.val, ties.method="first", na.last="keep")
-        min.rank <- pmin(min.rank, cur.rank, na.rm=TRUE)
-        min.val <- pmin(min.val, cur.val, na.rm=TRUE)
-    }
-    
-    return(list(rank=min.rank, value=min.val))
-}
-
-.find_largest_col <- function(metrics) 
-# Finds the indices of the largest entry in each row.
-{
-    metrics[is.na(metrics)] <- -Inf # protection against NAs.
-    largest <- max.col(metrics)
-    cbind(seq_along(largest), largest)
-}
-

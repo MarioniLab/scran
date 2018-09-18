@@ -57,7 +57,7 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
 
         # Determining rank.
         if (pval.type=="any") {
-            rank.out <- .rank_top_genes2(all.p)
+            rank.out <- .rank_top_genes(all.p)
             min.rank <- rank.out$rank
             min.p <- rank.out$value
             gene.order <- order(min.rank, min.p)
@@ -102,7 +102,7 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
     return(as(output, "List"))
 }
 
-.rank_top_genes2 <- function(metrics) 
+.rank_top_genes <- function(metrics) 
 # This computes the rank and the minimum metric for each gene.
 {
     ncon <- length(metrics)
