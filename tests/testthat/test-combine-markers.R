@@ -1,11 +1,11 @@
 # Tests combineMarkers().
-# library(scran); library(testthat); source("test-comb-markers.R")
+# library(scran); library(testthat); source("test-combine-markers.R")
 
 set.seed(1000)
 
 # Setting up some reference data.
 ngroups <- 10
-groups <- cbind(rep(seq_len(ngroups), ngroups), rep(seq_len(ngroups), each=ngroups))
+groups <- cbind(rep(seq_len(ngroups), each=ngroups), rep(seq_len(ngroups), ngroups)) 
 groups <- groups[groups[,1]!=groups[,2],]    
 
 output <- list()
@@ -23,7 +23,7 @@ test_that("combineMarkers is the same as a reference impementation", {
 
     # With the IUT.
     comb.all <- combineMarkers(output, groups, pval.type="all")
-    expect_identical(names(comb.all), as.character(seq_len(ngroups)))
+    expect_identical(names(comb.any), as.character(seq_len(ngroups)))
 
     # Comparing to reference calculations.
     for (x in as.character(seq_len(ngroups))) {
@@ -63,15 +63,53 @@ test_that("combineMarkers is the same as a reference impementation", {
     }
 })
 
-test_that("combineMarkers is insensitive to the order of inputs", {
+test_that("combineMarkers responds to the pairing input", {
+    # Handles different ordering of pairs.
     s <- sample(nrow(groups))
     comb.any <- combineMarkers(output, groups)
     alt.any <- combineMarkers(output[s], groups[s,])
-    expect_identical(comb.any, alt.any)
+    expect_identical(names(alt.any), as.character(unique(groups[s,1])))
 
     comb.all <- combineMarkers(output, groups, pval.type="all")
     alt.all <- combineMarkers(output[s], groups[s,], pval.type="all")
-    expect_identical(comb.all, alt.all)
+    expect_identical(names(alt.all), as.character(unique(groups[s,1])))
+
+    first <- as.character(groups[,1])
+    second <- as.character(groups[,2])
+    for (x in names(comb.any)) {
+        old.order <- second[first==x]
+        cur.any <- comb.any[[x]]
+        expect_equal(tail(colnames(cur.any), -3), paste0("logFC.", old.order))
+        cur.all <- comb.all[[x]]
+        expect_equal(tail(colnames(cur.all), -2), paste0("logFC.", old.order))
+
+        new.order <- second[s][first[s]==x]
+        cur.any.alt <- alt.any[[x]]
+        expect_equal(tail(colnames(cur.any.alt), -3), paste0("logFC.", new.order))
+        cur.all.alt <- alt.all[[x]]
+        expect_equal(tail(colnames(cur.all.alt), -2), paste0("logFC.", new.order))
+
+        expect_equal(cur.any, cur.any.alt[,colnames(cur.any)])
+        expect_equal(cur.all, cur.all.alt[,colnames(cur.all)])
+    }
+
+    # Handles direct character input.
+    groups2 <- LETTERS[groups]
+    dim(groups2) <- dim(groups)
+    re.comb <- combineMarkers(output, groups2)
+    expect_identical(names(re.comb), LETTERS[as.integer(names(comb.any))])
+
+    for (x in seq_along(re.comb)) {
+        cur1 <- comb.any[[x]]
+        cur2 <- re.comb[[x]]
+
+        g <- as.integer(sub("logFC.", "", tail(colnames(cur1), -3)))
+        g2 <- paste0("logFC.", LETTERS[g])
+        expect_equal(tail(colnames(cur2), -3), g2)
+
+        colnames(cur2) <- colnames(cur1)
+        expect_equal(cur1, cur2)
+    }
 })
 
 test_that("combineMarkers works with log-transformations", {
@@ -150,10 +188,10 @@ test_that("combineMarkers works with silly inputs", {
     expect_identical(unname(vapply(empty, nrow, 0L)), integer(ngroups))
     expect_equal(unname(vapply(empty, ncol, 0L)), rep(ngroups + 2L, ngroups))
 
-    empty <- combineMarkers(lapply(output, FUN=function(x){ x[0,] }), groups, full.stats=TRUE)
-    expect_identical(names(empty), as.character(seq_len(ngroups)))
-    expect_identical(unname(vapply(empty, nrow, 0L)), integer(ngroups))
-    expect_equal(unname(vapply(empty, ncol, 0L)), rep(ngroups + 2L, ngroups))
+    empty.full <- combineMarkers(lapply(output, FUN=function(x){ x[0,] }), groups, full.stats=TRUE)
+    expect_identical(names(empty), names(empty.full))
+    expect_identical(unname(vapply(empty.full, nrow, 0L)), integer(ngroups))
+    expect_equal(unname(vapply(empty.full, ncol, 0L)), rep(ngroups + 2L, ngroups))
 
     # Ignores missing levels entirely.
     as.df <- data.frame(factor(groups[,1], levels=seq_len(ngroups+1)), factor(groups[,2]))
@@ -174,7 +212,7 @@ test_that("combineMarkers works with silly inputs", {
     output0 <- output
     output0[[1]]$p.value <- NA_real_
     ref <- combineMarkers(output0, groups)
-    ref[["2"]]$logFC.1 <- NULL
+    ref[["1"]]$logFC.2 <- NULL
     lost <- combineMarkers(output0[-1], groups[-1,])
     expect_identical(ref, lost)
 })

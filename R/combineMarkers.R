@@ -37,19 +37,19 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
     }
 
     # Processing by the first element of each pair.
-    by.first <- split(seq_along(de.lists), pairs[,1], drop=TRUE)
+    first.fac <- factor(pairs[,1], unique(pairs[,1]))
+    by.first <- split(seq_along(de.lists), first.fac, drop=TRUE)
     output <- vector("list", length(by.first))
     names(output) <- names(by.first)
 
     for (host in names(by.first)) {
         chosen <- by.first[[host]]
         targets <- pairs[chosen, 2]
-        cur.stats <- de.lists[by.first[[host]]]
+        cur.stats <- de.lists[chosen]
 
-        target.o <- order(targets)
-        target.o <- target.o[!is.na(targets[target.o])]
-        targets <- targets[target.o]
-        cur.stats <- cur.stats[target.o]
+        keep <- !is.na(targets)
+        targets <- targets[keep]
+        cur.stats <- cur.stats[keep]
 
         all.p <- lapply(cur.stats, "[[", i=pval.field)
         pval <- do.call(combinePValues, c(all.p, list(method=method, log.p=log.p.in)))

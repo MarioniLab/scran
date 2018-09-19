@@ -19,7 +19,7 @@ Rows should be named by the feature name in the same order for all elements.
 }
 \item{pairs}{
 A matrix, data.frame or \linkS4class{DataFrame} with two columns and number of rows equal to the length of \code{de.lists}.
-Each row should specify the pair being compared for the corresponding element of \code{de.lists}.
+Each row should specify the pair of clusters being compared for the corresponding element of \code{de.lists}.
 }
 \item{pval.field}{A string specifying the column name of each element of \code{de.lists} that contains the p-value.}
 \item{effect.field}{A string specifying the column name of each element of \code{de.lists} that contains the effect size.}
@@ -33,7 +33,7 @@ Each row should specify the pair being compared for the corresponding element of
 \value{
 A named \linkS4class{List} of \linkS4class{DataFrame}s where each DataFrame contains the consolidated results for the cluster of the same name.
 
-Within each DataFrame (say, the entry for cluster X), rows correspond to genes with the fields:
+Within each DataFrame (say, the DataFrame for cluster X), rows correspond to genes with the fields:
 \describe{
 \item{\code{Top}:}{Integer, the minimum rank across all pairwise comparisons.
 Only reported if \code{rank.type="any"}.}
@@ -48,6 +48,9 @@ Note that this is named according to the \code{output.field} prefix and so may n
 This contains the same fields in the corresponding entry of \code{de.lists} for the X versus Y comparison.}
 }
 Genes are ranked by the \code{Top} column (if available) and then the \code{p.value} column.
+
+DataFrames are sorted according to the order of cluster IDs in \code{pairs[,1]}.
+The \code{logFC.Y} columns are sorted according to the order of cluster IDs in \code{pairs[,2]} within the corresponding level of the first cluster.
 
 Note that DataFrames are only created for clusters present in \code{pairs[,1]}.
 Clusters unique to \code{pairs[,2]} will only be present within each DataFrame as Y.
