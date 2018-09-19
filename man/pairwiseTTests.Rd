@@ -43,6 +43,8 @@ Blocking levels are ignored if no p-value was reported, e.g., if there were insu
 If \code{design} is specified, a linear model is instead fitted to the expression profile for each gene.
 This linear model will include the \code{clusters} as well as any blocking factors in \code{design}.
 A t-test is then performed to identify DEGs between pairs of clusters, using the values of the relevant coefficients and the gene-wise residual variance.
+Note that \code{design} must be full rank when combined with the \code{clusters} terms, i.e., no confounding variables.
+Similarly, any intercept column should be removed beforehand.
 
 Note that \code{block} will override any \code{design} if both are specified.
 This reflects our preference for the former, which accommodates differences in the variance of expression in each cluster via Welch's t-test.
