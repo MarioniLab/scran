@@ -67,9 +67,14 @@ DE statistics from any testing regime can be supplied to this function - see the
 \section{Consolidating p-values into a ranking}{
 By default, each table is sorted by the \code{Top} value when \code{pval.type="any"}.
 This is the minimum rank across all pairwise comparisons for each gene, and specifies the size of the candidate marker set.
-Taking all rows with \code{Top} values no greater than some integer X will yield a set containing the top X genes (ranked by significance) from each pairwise comparison.
-For example, if X is 5, the set will consist of the \emph{union} of the top 5 genes from each pairwise comparison.
+Taking all rows with \code{Top} values less than or equal to X will yield a marker set containing the top X genes (ranked by significance) from each pairwise comparison.
 The marker set for each cluster allows it to be distinguished from every other cluster based on the expression of at least one gene.
+
+To demonstrate, let us define a marker set with an X of 1 for a given cluster.
+The set of genes with \code{Top <= 1} will contain the top gene from each pairwise comparison to another cluster.
+If X is, say, 5, the set will consist of the \emph{union} of the top 5 genes from each pairwise comparison.
+Obviously, multiple genes can have the same \code{Top} as different genes may have the same rank across different pairwise comparisons.
+Conversely, the marker set may be smaller than \code{Top} and the product of the number of other clusters, as the same gene may be shared across different comparisons.
 
 This approach does not explicitly favour genes that are uniquely expressed in a cluster.
 Such a strategy is often too stringent, especially in cases involving overclustering or cell types defined by combinatorial gene expression.
