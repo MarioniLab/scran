@@ -14,7 +14,8 @@ pairwiseTTests(x, clusters, block=NULL, design=NULL,
 \item{x}{A numeric matrix-like object of normalized log-expression values, where each column corresponds to a cell and each row corresponds to an endogenous gene.}
 \item{clusters}{A vector of cluster identities for all cells.}
 \item{block}{A factor specifying the blocking level for each cell.}
-\item{design}{A numeric matrix containing blocking terms, i.e., uninteresting factors driving expression across cells.}
+\item{design}{A numeric matrix containing blocking terms for uninteresting factors.
+Note that these should not be confounded with \code{clusters} or contain an intercept, see Details.}
 \item{direction}{A string specifying the direction of log-fold changes to be considered for each cluster.}
 \item{lfc}{A positive numeric scalar specifying the log-fold change threshold to be tested against.}
 \item{log.p}{A logical scalar indicating if log-transformed p-values/FDRs should be returned.}
@@ -43,7 +44,7 @@ Blocking levels are ignored if no p-value was reported, e.g., if there were insu
 If \code{design} is specified, a linear model is instead fitted to the expression profile for each gene.
 This linear model will include the \code{clusters} as well as any blocking factors in \code{design}.
 A t-test is then performed to identify DEGs between pairs of clusters, using the values of the relevant coefficients and the gene-wise residual variance.
-Note that \code{design} must be full rank when combined with the \code{clusters} terms, i.e., no confounding variables.
+Note that \code{design} must be full rank when combined with the \code{clusters} terms, i.e., there should not be any confounding variables.
 Similarly, any intercept column should be removed beforehand.
 
 Note that \code{block} will override any \code{design} if both are specified.
