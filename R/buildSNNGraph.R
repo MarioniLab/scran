@@ -1,8 +1,8 @@
-#' @importFrom igraph make_graph E simplify "E<-"
+#' @importFrom igraph make_graph simplify "E<-"
 #' @importFrom BiocParallel SerialParam
-.buildSNNGraph <- function(x, k=10, d=50, transposed=FALSE, pc.approx=FALSE,
-                           rand.seed=NA, irlba.args=list(), 
-                           subset.row=NULL, BPPARAM=SerialParam()) 
+.buildSNNGraph <- function(x, k=10, d=50, type=c("rank", "number"),
+    transposed=FALSE, pc.approx=FALSE, rand.seed=NA, irlba.args=list(),
+    subset.row=NULL, BPPARAM=SerialParam()) 
 # Builds a shared nearest-neighbor graph, where edges are present between each 
 # cell and any other cell with which it shares at least one neighbour. Each edges 
 # is weighted based on the ranks of the shared nearest neighbours of the two cells, 
@@ -10,14 +10,18 @@
 #
 # written by Aaron Lun
 # created 3 April 2017
-# last modified 16 November 2017    
 { 
     nn.out <- .setup_knn_data(x=x, subset.row=subset.row, d=d, transposed=transposed,
         pc.approx=pc.approx, rand.seed=rand.seed, irlba.args=irlba.args, 
         k=k, BPPARAM=BPPARAM) 
 
     # Building the SNN graph.
-    g.out <- .Call(cxx_build_snn, nn.out$index)
+    type <- match.arg(type)
+    if (type=="rank") {
+        g.out <- .Call(cxx_build_snn_rank, nn.out$index)
+    } else {
+        g.out <- .Call(cxx_build_snn_number, nn.out$index)
+    }
     edges <- g.out[[1]] 
     weights <- g.out[[2]]
 

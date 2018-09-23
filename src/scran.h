@@ -59,7 +59,9 @@ SEXP overlap_exprs(SEXP, SEXP, SEXP, SEXP);
 
 SEXP get_scaled_ranks(SEXP, SEXP, SEXP, SEXP);
 
-SEXP build_snn(SEXP);
+SEXP build_snn_rank(SEXP);
+
+SEXP build_snn_number(SEXP);
 
 // Miscellaneous functions.
 
