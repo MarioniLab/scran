@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.9.25}{\itemize{
+\section{Version 1.9.29}{\itemize{
 \item Removed selectorPlot(), exploreData() functions in favour of iSEE.
     
 \item Fixed underflow problem in mnnCorrect() when dealing with the Gaussian kernel.
@@ -28,7 +28,10 @@ Support direct use of a factor in design= for efficiency.
 
 \item Added doubletCells() to detect cells that are doublets of other cells via simulations.
 
-\item Deprecated rand.seed= in buildSNNGraph() and buildKNNGraph(), in favour of explicit set.seed() call.
+\item Deprecated rand.seed= in buildSNNGraph() in favour of explicit set.seed() call.
+Added type= argument for weighting edges based on the number of shared neighbors.
+
+\item Deprecated rand.seed= in buildKNNGraph().
 
 \item Added multiBlockNorm() function for spike-abundance-preserving normalization prior to multi-block variance modelling.
 
