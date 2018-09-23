@@ -71,10 +71,10 @@ Taking all rows with \code{Top} values less than or equal to X will yield a mark
 The marker set for each cluster allows it to be distinguished from every other cluster based on the expression of at least one gene.
 
 To demonstrate, let us define a marker set with an X of 1 for a given cluster.
-The set of genes with \code{Top <= 1} will contain the top gene from each pairwise comparison to another cluster.
-If X is, say, 5, the set will consist of the \emph{union} of the top 5 genes from each pairwise comparison.
+The set of genes with \code{Top <= 1} will contain the top gene from each pairwise comparison to every other cluster.
+If X is instead, say, 5, the set will consist of the \emph{union} of the top 5 genes from each pairwise comparison.
 Obviously, multiple genes can have the same \code{Top} as different genes may have the same rank across different pairwise comparisons.
-Conversely, the marker set may be smaller than \code{Top} and the product of the number of other clusters, as the same gene may be shared across different comparisons.
+Conversely, the marker set may be smaller than the product of \code{Top} and the number of other clusters, as the same gene may be shared across different comparisons.
 
 This approach does not explicitly favour genes that are uniquely expressed in a cluster.
 Such a strategy is often too stringent, especially in cases involving overclustering or cell types defined by combinatorial gene expression.
