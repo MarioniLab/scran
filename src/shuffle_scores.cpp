@@ -14,7 +14,7 @@ double get_proportion (const V& expr, const int& minpairs, const Rcpp::IntegerVe
     if (was_total < minpairs) { return NA_REAL; }
     
     const bool short_cut = !ISNA(threshold);
-    const double output=static_cast<double>(was_first)/was_total;
+    const double output=double(was_first)/was_total;
     if (short_cut) {
         return (output < threshold ? -1 : 1);
     }
