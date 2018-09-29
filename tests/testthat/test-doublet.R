@@ -262,6 +262,9 @@ test_that("other settings for doubletCells work correctly", {
     ref <- doubletCells(counts, approximate=TRUE, irlba.args=list(tol=1e-12, work=50, maxit=20000), d=5)
     expect_true(median( abs(sim-ref)/(sim+ref+1e-6) ) < 0.01)
 
+    # Annoy works correctly and does not pass precomputations to findNeighbors.
+    expect_error(sim <- doubletCells(counts, BNPARAM=BiocNeighbors::AnnoyParam(100)), NA)
+
     # Responds correctly to blocking.
     set.seed(3000)
     ref <- doubletCells(counts)

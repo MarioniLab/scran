@@ -1,12 +1,12 @@
 # Checks the construction of the SNN graph.
 # require(scran); require(testthat); source("test-snn.R")
 
-# Constructing a reference value.
-
 library(igraph)
-check <- function(vals, k=10, type="rank") {
+check <- function(vals, k=10, type="rank")
+# Checking against a slow reference calculator.
+{
     g <- buildSNNGraph(vals, k=k, d=NA, type=type) # turning off PCA.
-    nn.out <- kmknn::findKNN(t(vals), k=k)
+    nn.out <- BiocNeighbors::findKNN(t(vals), k=k)
     IDX <- cbind(seq_len(ncol(vals)), nn.out$index)
 
     ncells <- ncol(vals)
