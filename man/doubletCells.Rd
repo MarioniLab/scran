@@ -10,7 +10,7 @@
 \S4method{doubletCells}{ANY}(x, size.factors.norm=NULL, size.factors.content=NULL,
     k=50, subset.row=NULL, niters=max(10000, ncol(x)), block=10000, 
     d=50, approximate=FALSE, irlba.args=list(), force.match=FALSE, 
-    force.k=20, force.ndist=3, BPPARAM=SerialParam())
+    force.k=20, force.ndist=3, BNPARAM=NULL, BPPARAM=SerialParam())
 
 \S4method{doubletCells}{SingleCellExperiment}(x, size.factors.norm=NA, ..., subset.row=NULL, 
     assay.type="counts", get.spikes=FALSE)
@@ -36,7 +36,9 @@ For the SingleCellExperiment method, this may be \code{NA}, in which case \code{
 \item{force.match}{A logical scalar indicating whether remapping of simulated doublets to original cells should be performed.}
 \item{force.k}{An integer scalar specifying the number of neighbours to use for remapping if \code{force.match=TRUE}.}
 \item{force.ndist}{A numeric scalar specifying the bandwidth for remapping if \code{force.match=TRUE}.}
-\item{BPPARAM}{A BiocParallelParam object specifying whether the nearest-neighbour searches should be parallelized.}
+\item{BNPARAM}{A \linkS4class{BiocNeighborParam} object specifying the nearest neighbor algorithm.
+Defaults to an exact algorithm if \code{NULL}, see \code{?\link{findKNN}} for more details.}
+\item{BPPARAM}{A \linkS4class{BiocParallelParam} object specifying whether the neighbour searches should be parallelized.}
 \item{...}{Additional arguments to pass to the ANY method.}
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
 \item{get.spikes}{A logical scalar specifying whether decomposition should be performed for spike-ins.}

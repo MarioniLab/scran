@@ -11,7 +11,7 @@ Maintainer: Aaron Lun <alun@wehi.edu.au>
 Depends: R (>= 3.5), BiocParallel, SingleCellExperiment
 Imports: SummarizedExperiment, S4Vectors, BiocGenerics, 
         Rcpp (>= 0.12.14), stats, methods, utils, Matrix, scater, 
-        edgeR, limma, dynamicTreeCut, kmknn, igraph, statmod, 
+        edgeR, limma, dynamicTreeCut, BiocNeighbors, igraph, statmod, 
         DelayedArray, DelayedMatrixStats
 Suggests: testthat, BiocStyle, knitr, beachmat, HDF5Array, irlba, 
         org.Mm.eg.db, DESeq2, monocle, pracma, Biobase, aroma.light

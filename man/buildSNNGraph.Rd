@@ -14,14 +14,14 @@
 \usage{
 \S4method{buildSNNGraph}{ANY}(x, k=10, d=50, type=c("rank", "number"), transposed=FALSE,
     pc.approx=FALSE, rand.seed=NA, irlba.args=list(), subset.row=NULL,
-    BPPARAM=SerialParam())
+    BNPARAM=NULL, BPPARAM=SerialParam())
 
 \S4method{buildSNNGraph}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", 
     get.spikes=FALSE, use.dimred=NULL)
 
 \S4method{buildKNNGraph}{ANY}(x, k=10, d=50, directed=FALSE, transposed=FALSE, 
     pc.approx=FALSE, rand.seed=NA, irlba.args=list(), 
-    subset.row=NULL, BPPARAM=SerialParam())
+    subset.row=NULL, BNPARAM=NULL, BPPARAM=SerialParam())
 
 \S4method{buildKNNGraph}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", 
     get.spikes=FALSE, use.dimred=NULL)
@@ -40,7 +40,9 @@ If it is matrix, it can also be transposed.}
 \item{irlba.args}{A named list of additional arguments to pass to \code{\link[irlba]{prcomp_irlba}} when \code{pc.approx=TRUE}.}
 \item{rand.seed}{Deprecated; a numeric scalar specifying the seed for approximate PCA when \code{pc.approx=TRUE}.
 This is set to \code{NA} to use the existing session seed.}
-\item{BPPARAM}{A BiocParallelParam object to use in \code{bplapply} for parallel processing.}
+\item{BNPARAM}{A \linkS4class{BiocNeighborParam} object to specify the nearest neighbor algorithm.
+Defaults to an exact algorithm if \code{NULL}, see \code{?\link{findKNN}} for more details.}
+\item{BPPARAM}{A \linkS4class{BiocParallelParam} object to use for parallel processing.}
 \item{...}{Additional arguments to pass to \code{buildSNNGraph,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use.}
 \item{get.spikes}{A logical scalar specifying whether spike-in transcripts should be used.}

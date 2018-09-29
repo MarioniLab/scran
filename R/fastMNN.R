@@ -3,7 +3,8 @@
 #' @importFrom S4Vectors DataFrame Rle
 fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE, 
     irlba.args=list(), subset.row=NULL, auto.order=FALSE, pc.input=FALSE,
-    compute.variances=FALSE, assay.type="logcounts", use.spikes=FALSE, BPPARAM=SerialParam()) 
+    compute.variances=FALSE, assay.type="logcounts", use.spikes=FALSE, 
+    BNPARAM=NULL, BPPARAM=SerialParam()) 
 # A faster version of the MNN batch correction approach.
 # 
 # written by Aaron Lun
@@ -52,14 +53,14 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
         if (auto.order) {
             # Automatically choosing to merge batches with the largest number of MNNs.
             if (bdx==2L) {
-                d.out <- .define_first_merge(pc.mat, k=k, BPPARAM=BPPARAM)
+                d.out <- .define_first_merge(pc.mat, k=k, BNPARAM=BNPARAM, BPPARAM=BPPARAM)
                 refdata <- pc.mat[[d.out$first]]
                 curdata <- pc.mat[[d.out$second]]
                 mnn.sets <- d.out$pairs
                 precomp <- d.out$precomputed
                 processed <- c(d.out$first, d.out$second)
             } else {
-                d.out <- .define_next_merge(refdata, pc.mat, processed, precomp, k=k, BPPARAM=BPPARAM)
+                d.out <- .define_next_merge(refdata, pc.mat, processed, precomp, k=k, BNPARAM=BNPARAM, BPPARAM=BPPARAM)
                 curdata <- pc.mat[[d.out$other]]
                 mnn.sets <- d.out$pairs
                 processed <- c(processed, d.out$other)
@@ -73,7 +74,7 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
             }
             cur.idx <- if (use.order) re.order[bdx] else bdx
             curdata <- pc.mat[[cur.idx]]
-            mnn.sets <- find.mutual.nn(refdata, curdata, k1=k, k2=k, BPPARAM=BPPARAM)
+            mnn.sets <- find.mutual.nn(refdata, curdata, k1=k, k2=k, BNPARAM=BNPARAM, BPPARAM=BPPARAM)
             processed <- c(processed, cur.idx)
         }
 
@@ -100,7 +101,7 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
 
         # Recompute correction vectors and apply them.
         re.ave.out <- .average_correction(refdata, mnn.sets$first, curdata, mnn.sets$second)
-        curdata <- .tricube_weighted_correction(curdata, re.ave.out$averaged, re.ave.out$second, k=k, ndist=ndist, BPPARAM=BPPARAM)
+        curdata <- .tricube_weighted_correction(curdata, re.ave.out$averaged, re.ave.out$second, k=k, ndist=ndist, BNPARAM=BNPARAM, BPPARAM=BPPARAM)
 
         mnn.pairings[[bdx-1L]] <- DataFrame(first=mnn.sets$first, second=mnn.sets$second + nrow(refdata))
         refdata <- rbind(refdata, curdata)
@@ -176,15 +177,15 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
     return(mat)
 }
 
-#' @importFrom kmknn queryKNN
+#' @importFrom BiocNeighbors queryKNN
 #' @importFrom BiocParallel SerialParam
-.tricube_weighted_correction <- function(curdata, correction, in.mnn, k=20, ndist=3, BPPARAM=SerialParam())
+.tricube_weighted_correction <- function(curdata, correction, in.mnn, k=20, ndist=3, BNPARAM=NULL, BPPARAM=SerialParam())
 # Computing tricube-weighted correction vectors for individual cells,
 # using the nearest neighbouring cells _involved in MNN pairs_.
 {
     cur.uniq <- curdata[in.mnn,,drop=FALSE]
     safe.k <- min(k, nrow(cur.uniq))
-    closest <- queryKNN(query=curdata, X=cur.uniq, k=safe.k, BPPARAM=BPPARAM)
+    closest <- queryKNN(query=curdata, X=cur.uniq, k=safe.k, BNPARAM=BNPARAM, BPPARAM=BPPARAM)
     weighted.correction <- .compute_tricube_average(correction, closest$index, closest$distance, ndist=ndist)
     curdata + weighted.correction
 }
@@ -213,12 +214,12 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
 ############################################
 # Auto-ordering functions.
 
-#' @importFrom kmknn queryKNN precluster
+#' @importFrom BiocNeighbors queryKNN buildNNIndex 
 #' @importFrom BiocParallel SerialParam
-.define_first_merge <- function(pc.mat, k=20, BPPARAM=SerialParam())
+.define_first_merge <- function(pc.mat, k=20, BNPARAM=NULL, BPPARAM=SerialParam())
 # Find the pair of matrices in 'options' which has the greatest number of MNNs.
 {
-    precomputed <- lapply(pc.mat, precluster)
+    precomputed <- lapply(pc.mat, buildNNIndex, BNPARAM=BNPARAM)
     max.pairs <- list()
 
     for (First in seq_along(precomputed)) {
@@ -226,8 +227,8 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
         for (Second in seq_len(First-1L)) {
             sdata <- pc.mat[[Second]]
 
-            W21 <- queryKNN(precomputed=precomputed[[Second]], query=fdata, k=k, BPPARAM=BPPARAM, get.distance=FALSE)
-            W12 <- queryKNN(precomputed=precomputed[[First]], query=sdata, k=k, BPPARAM=BPPARAM, get.distance=FALSE)
+            W21 <- queryKNN(BNINDEX=precomputed[[Second]], query=fdata, k=k, BPPARAM=BPPARAM, get.distance=FALSE)
+            W12 <- queryKNN(BNINDEX=precomputed[[First]], query=sdata, k=k, BPPARAM=BPPARAM, get.distance=FALSE)
             out <- .Call(cxx_find_mutual_nns, W21$index, W12$index)
             names(out) <- c("first", "second")
 
@@ -242,17 +243,17 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
     return(list(first=max.first, second=max.second, pairs=max.pairs, precomputed=precomputed))
 }
 
-#' @importFrom kmknn queryKNN precluster
+#' @importFrom BiocNeighbors queryKNN buildNNIndex 
 #' @importFrom BiocParallel SerialParam
-.define_next_merge <- function(refdata, pc.mat, processed, precomputed, k=20, BPPARAM=SerialParam()) 
+.define_next_merge <- function(refdata, pc.mat, processed, precomputed, k=20, BNPARAM=NULL, BPPARAM=SerialParam()) 
 # Find the matrix in pc.mat[-processed] that has the greater number of MNNs to 'refdata'.
 {
     max.pairs <- list()
-    precomp.ref <- precluster(refdata)
+    precomp.ref <- buildNNIndex(refdata, BNPARAM=BNPARAM)
 
     for (other in seq_along(pc.mat)[-processed]) {
-        W21 <- queryKNN(precomputed=precomputed[[other]], query=refdata, k=k, BPPARAM=BPPARAM, get.distance=FALSE)
-        W12 <- queryKNN(precomputed=precomp.ref, query=pc.mat[[other]], k=k, BPPARAM=BPPARAM, get.distance=FALSE)
+        W21 <- queryKNN(BNINDEX=precomputed[[other]], query=refdata, k=k, BPPARAM=BPPARAM, get.distance=FALSE)
+        W12 <- queryKNN(BNINDEX=precomp.ref, query=pc.mat[[other]], k=k, BPPARAM=BPPARAM, get.distance=FALSE)
         out <- .Call(cxx_find_mutual_nns, W21$index, W12$index)
         names(out) <- c("first", "second")
 
