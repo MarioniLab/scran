@@ -203,9 +203,12 @@ prepare.input.data <- function(batches, cos.norm.in, cos.norm.out, subset.row) {
 }
 
 #' @importFrom BiocNeighbors queryKNN
-find.mutual.nn <- function(data1, data2, k1, k2, BNPARAM, BPPARAM) 
+#' @importFrom BiocParallel SerialParam
+find.mutual.nn <- function(data1, data2, k1, k2, BNPARAM=NULL, BPPARAM=SerialParam()) 
 # Finds mutal neighbors between data1 and data2.
 {
+    data1 <- as.matrix(data1)
+    data2 <- as.matrix(data2)
     W21 <- queryKNN(data2, query=data1, k=k1, BNPARAM=BNPARAM, BPPARAM=BPPARAM, get.distance=FALSE)
     W12 <- queryKNN(data1, query=data2, k=k2, BNPARAM=BNPARAM, BPPARAM=BPPARAM, get.distance=FALSE)
     out <- .Call(cxx_find_mutual_nns, W21$index, W12$index)

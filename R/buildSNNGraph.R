@@ -89,7 +89,7 @@
     }
    
     # Finding the KNNs. 
-    findKNN(x, k=k, BNPARAM, BPPARAM=BPPARAM, get.distance=FALSE)
+    findKNN(x, k=k, BNPARAM=BNPARAM, BPPARAM=BPPARAM, get.distance=FALSE)
 }
 
 #########################
