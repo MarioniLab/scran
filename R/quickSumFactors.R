@@ -1,21 +1,25 @@
-#' @importFrom kmknn findKNN
+#' @importFrom BiocNeighbors findKNN
 #' @importFrom methods is
 #' @importClassesFrom Matrix dgCMatrix
-.quick_sum_factors_per_block <- function(x, k=20, d=50, approximate=FALSE, irlba.args=list(), min.mean=1, subset.row=NULL)
+.quick_sum_factors_per_block <- function(x, indices=NULL, k=20, d=50, approximate=FALSE, irlba.args=list(), min.mean=1, subset.row=NULL, BNPARAM=NULL)
 # Implements a much faster method based on local averages to compute size factors.
 # Avoids the need for explicit clustering outside of the algorithm.
 # 
 # written by Aaron Lun
 # created 31 August 2018
 {
+    if (!is.null(indices)) {
+        x <- x[,indices,drop=FALSE]
+    }
     if (!is.null(subset.row)) {
         x <- x[subset.row,,drop=FALSE]
     }
     if (!is(x, "dgCMatrix")) { # Avoid costly re-reading from file for file-backed matrices.
         x <- as.matrix(x) 
     }
-    pcs <- .libnorm_PCA(x, max.rank=d, approximate=approximate, extra.args=irlba.args)
-    nn.out <- findKNN(pcs, k=k)
+
+    pcs <- .get_search_coordinates(x, max.rank=d, approximate=approximate, extra.args=irlba.args)
+    nn.out <- findKNN(pcs, k=k, BNPARAM=BNPARAM)
     
     # Choosing the densest cell to be the reference.
     last <- ncol(nn.out$distance)
@@ -28,15 +32,21 @@
 }
 
 #' @importFrom scater librarySizeFactors normalizeCounts
-.libnorm_PCA <- function(x, max.rank=50, approximate=FALSE, extra.args=list())
+#' @importFrom BiocGenerics t
+.get_search_coordinates <- function(x, max.rank=50, approximate=FALSE, extra.args=list())
 # Performs PCA on the expression profiles after library size normalization.
 {
     sf <- librarySizeFactors(x)
     y <- normalizeCounts(x, size_factors=sf, return_log=TRUE)
-    SVD <- .centered_SVD(t(y), max.rank=max.rank, approximate=approximate, extra.args=extra.args, keep.right=FALSE)
-    .svd_to_pca(SVD, ncomp=max.rank)
+    if (is.na(max.rank)) {
+        return(t(y))
+    } else {
+        SVD <- .centered_SVD(t(y), max.rank=max.rank, approximate=approximate, extra.args=extra.args, keep.right=FALSE)
+        return(.svd_to_pca(SVD, ncomp=max.rank))
+    }
 }
 
+#' @importFrom BiocGenerics t
 .quick_sum_cpp_wrapper <- function(x, index, distance, ref.cell, min.mean=NULL, ndist=3) 
 # Wrapper to the C++ function for easier calling in the tests.
 {
@@ -45,18 +55,12 @@
     out
 }
 
-.quick_sum_bpl_wrapper <- function(x, chosen, ...)
-# Ensure that namespace is passed along in BiocParallel calls.
-{
-    .quick_sum_factors_per_block(x[,chosen,drop=FALSE], ...)
-}
-
 #' @importFrom BiocParallel SerialParam bpmapply
 #' @importFrom stats median
-.quickSumFactors <- function(x, k=20, d=50, approximate=FALSE, irlba.args=list(), subset.row=NULL, min.mean=1, block=NULL, BPPARAM=SerialParam()) 
+.quickSumFactors <- function(x, k=20, d=50, approximate=FALSE, irlba.args=list(), subset.row=NULL, min.mean=1, block=NULL, BNPARAM=NULL, BPPARAM=SerialParam()) 
 # Parallelizes the size factor calculation across blocks.
 {
-    all.args <- list(x=x, k=k, d=d, approximate=approximate, irlba.args=irlba.args, subset.row=subset.row, min.mean=min.mean)
+    all.args <- list(x=x, k=k, d=d, approximate=approximate, irlba.args=irlba.args, subset.row=subset.row, min.mean=min.mean, BNPARAM=BNPARAM)
     if (is.null(block)) { 
         all.norm <- do.call(.quick_sum_factors_per_block, all.args)
         sf <- all.norm[[1]]
@@ -65,12 +69,12 @@
     }
 
     indices <- split(seq_along(block), block)
-    all.norm <- bpmapply(FUN=.quick_norm_bpl_wrapper, chosen=indices, MoreArgs=all.args, SIMPLIFY=FALSE, USE.NAMES=FALSE, BPPARAM=BPPARAM)
+    all.norm <- bpmapply(FUN=.quick_sum_factors_per_block, indices=indices, MoreArgs=all.args, SIMPLIFY=FALSE, USE.NAMES=FALSE, BPPARAM=BPPARAM)
 
     # Choosing a reference block from the within-block references.
     # This is done by picking the block in the middle of the first PC.
-    all.ref <- do.call(rbind, lapply(all.norm, "[[", i="ref"))
-    ref.pcs <- .libnorm_PCA(all.ref, max.rank=1, approximate=approximate, extra.args=irlba.args)
+    all.ref <- do.call(cbind, lapply(all.norm, "[[", i="ref"))
+    ref.pcs <- .get_search_coordinates(all.ref, max.rank=1, approximate=approximate, extra.args=irlba.args)
     ref.block <- which.min(abs(ref.pcs - median(ref.pcs)))
     true.ref <- all.norm[[ref.block]]$ref
     true.lib <- sum(true.ref)
