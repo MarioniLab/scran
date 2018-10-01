@@ -145,3 +145,23 @@ test_that("quickSumFactors() works correctly with blocks", {
     ref <- c(true.sf, true.sf*2, true.sf*5)
     expect_equal(out, ref/mean(ref))
 })
+
+set.seed(120004)
+test_that("quickSumFactors() deals with alternative representations", {
+    ncells <- 200
+    ngenes <- 1000
+
+    library(Matrix)
+    y <- rsparsematrix(ngenes, ncells, density=0.1)
+    y <- abs(y)
+    expect_s4_class(y, "dgCMatrix")
+    expect_equal(quickSumFactors(y, min.mean=0), quickSumFactors(as.matrix(y), min.mean=0))
+    b <- gl(2, 100)
+    expect_equal(quickSumFactors(y, block=b, min.mean=0), quickSumFactors(as.matrix(y), block=b, min.mean=0))
+
+    library(HDF5Array)
+    x <- matrix(rgamma(ngenes*ncells, 2, 2), ngenes, ncells)
+    z <- as(x, "HDF5Array")
+    expect_equal(quickSumFactors(z, min.mean=0), quickSumFactors(x, min.mean=0))
+    expect_equal(quickSumFactors(z, block=b, min.mean=0), quickSumFactors(x, block=b, min.mean=0))
+})
