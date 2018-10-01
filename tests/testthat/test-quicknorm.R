@@ -20,6 +20,7 @@ COREFUN <- function(x, indices, distances, ref.cell, min.mean=0, ndist=3) {
     return(list(sf=sf, ref=ref.ave))
 }
 
+set.seed(120000)
 test_that("C++ code underlying quickSumFactors() works correctly", {
     ncells <- 200
     ngenes <- 1000
@@ -63,6 +64,7 @@ test_that("C++ code underlying quickSumFactors() works correctly", {
     expect_equal(ref, test)
 })
 
+set.seed(120001)
 test_that("quickSumFactors() works correctly in vanilla applications", {
     # An overall run to check that it behaves.
     ncells <- 200
@@ -94,3 +96,52 @@ test_that("quickSumFactors() works correctly in vanilla applications", {
     expect_equal(out, count.sizes/mean(count.sizes))
 })
 
+set.seed(120002)
+test_that("quickSumFactors() responds to all parameters", {
+    ncells <- 200
+    ngenes <- 1000
+    x <- matrix(rgamma(ngenes*ncells, 2, 2), nrow=ngenes, ncol=ncells) 
+
+    # First, a positive control, to check that our tolerances are ok.
+    ref <- quickSumFactors(x)
+    expect_true(isTRUE(all.equal(ref, quickSumFactors(x)))) 
+
+    # Check that parameter values are passed down properly and modify the result.
+    expect_false(isTRUE(all.equal(ref, quickSumFactors(x, k=19))))
+    expect_false(isTRUE(all.equal(ref, quickSumFactors(x, d=20))))
+    expect_false(isTRUE(all.equal(ref, quickSumFactors(x, min.mean=0.95))))
+    expect_false(isTRUE(all.equal(ref, quickSumFactors(x, BNPARAM=BiocNeighbors::AnnoyParam(ntrees=10)))))
+
+    # Checking that subsetting works as expected.
+    expect_equal(quickSumFactors(x[1:500,]), quickSumFactors(x, subset.row=1:500))
+})
+
+set.seed(120003)
+test_that("quickSumFactors() works correctly with blocks", {
+    # An overall run to check that it behaves.
+    ncells <- 200
+    ngenes <- 1000
+    x <- matrix(rgamma(ngenes*ncells, 2, 2), nrow=ngenes, ncol=ncells) 
+    out <- quickSumFactors(x, block=gl(2, 100))
+    expect_equal(length(out), ncells)
+    expect_equal(mean(out), 1)
+
+    # Checking that it behaves when block indices are unordered.
+    scramble <- sample(ncells)
+    out2 <- quickSumFactors(x[,scramble], block=gl(2, 100)[scramble])
+    expect_equal(out[scramble], out2)
+
+    # Checking that it behaves in parallel.
+    out3 <- quickSumFactors(x, block=gl(2, 100), BPPARAM=MulticoreParam(2))
+    expect_equal(out3, out)
+
+    # A silly run to check that it returns the true size factors exactly.
+    true.sf <- runif(ncells)
+    x <- outer(rpois(ngenes, lambda=20), true.sf)
+    y <- cbind(x, x*2, x*5)
+
+    block <- gl(3, ncells)
+    expect_warning(out <- quickSumFactors(y, block=block), "tied")
+    ref <- c(true.sf, true.sf*2, true.sf*5)
+    expect_equal(out, ref/mean(ref))
+})
