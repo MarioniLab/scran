@@ -8,7 +8,7 @@
 
 \usage{
 \S4method{quickSumFactors}{ANY}(x, k=20, d=50, approximate=FALSE, irlba.args=list(),
-    min.mean=1, subset.row=NULL, block=NULL, BNPARAM=NULL, 
+    subset.row=NULL, min.mean=1, block=NULL, BNPARAM=NULL, 
     BPPARAM=SerialParam())
 
 \S4method{quickSumFactors}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="counts", 
@@ -23,9 +23,9 @@
 \item{k}{Integer scalar specifying the number of nearest neighbors.}
 \item{d}{Integer scalar specifying the number of PCs to retain for nearest-neighbor searching.}
 \item{approximate}{Logical scalar indicating whether an approximate PCA should be performed.}
-\item{irlba.args}{List containing arguments to pass to \code{\link{irlba}} if \code{approximate=TRUE}.}
-\item{min.mean}{A numeric scalar specifying the minimum (library size-adjusted) average count of genes to be used for normalization.}
+\item{irlba.args}{List containing arguments to pass to \code{\link[irlba]{irlba}} if \code{approximate=TRUE}.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
+\item{min.mean}{A numeric scalar specifying the minimum (library size-adjusted) average count of genes to be used for normalization.}
 \item{block}{An optional factor specifying blocking levels for all cells.}
 \item{BNPARAM}{A \linkS4class{BiocNeighborParam} object specifying the algorithm to use for nearest neighbor detection.}
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object specifying the parallelization to use.}

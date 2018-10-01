@@ -46,11 +46,10 @@
     }
 }
 
-#' @importFrom BiocGenerics t
 .quick_sum_cpp_wrapper <- function(x, index, distance, ref.cell, min.mean=NULL, ndist=3) 
 # Wrapper to the C++ function for easier calling in the tests.
 {
-    out <- .Call(scran:::cxx_quick_sum_factors, x, t(index-1L), t(distance), ref.cell - 1L, min.mean, ndist)
+    out <- .Call(cxx_quick_sum_factors, x, t(index-1L), t(distance), ref.cell - 1L, min.mean, ndist)
     names(out) <- c("sf", "ref")
     out
 }
@@ -101,10 +100,10 @@ setMethod("quickSumFactors", "ANY", .quickSumFactors)
 #' @importFrom SummarizedExperiment assay 
 #' @importFrom BiocGenerics "sizeFactors<-"
 #' @export
-setMethod("quickSumFactors", "SingleCellExperiment", function(x, ..., min.mean=1, subset.row=NULL, assay.type="counts", get.spikes=FALSE, sf.out=FALSE) 
+setMethod("quickSumFactors", "SingleCellExperiment", function(x, ..., subset.row=NULL, assay.type="counts", get.spikes=FALSE, sf.out=FALSE) 
 { 
     subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
-    sf <- .quickSumFactors(assay(x, i=assay.type), subset.row=subset.row, min.mean=min.mean, ...) 
+    sf <- .quickSumFactors(assay(x, i=assay.type), subset.row=subset.row, ...) 
     if (sf.out) { 
         return(sf) 
     }
