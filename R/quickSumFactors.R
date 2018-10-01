@@ -73,23 +73,15 @@
 
     # Choosing a reference block from the within-block references.
     # This is done by picking the block in the middle of the first PC.
-    all.ref <- do.call(cbind, lapply(all.norm, "[[", i="ref"))
-    ref.pcs <- .get_search_coordinates(all.ref, max.rank=1, approximate=approximate, extra.args=irlba.args)
+    all.ref <- lapply(all.norm, "[[", i="ref")
+    ref.pcs <- .get_search_coordinates(do.call(cbind, all.ref), max.rank=1, approximate=approximate, extra.args=irlba.args)
     ref.block <- which.min(abs(ref.pcs - median(ref.pcs)))
-    true.ref <- all.norm[[ref.block]]$ref
-    true.lib <- sum(true.ref)
 
     # Scaling all size factors to the new reference.
-    all.output <- numeric(ncol(x))    
-    for (i in seq_along(indices)) {
-        cur.sf <- all.norm[[i]]$sf
-        cur.ref <- all.norm[[i]]$ref
-        cur.lib <- sum(cur.ref)
-
-        ab <- (cur.ref/cur.lib + true.ref/true.lib)/2 * (cur.lib + true.lib)/2
-        keep <- ab >= min.mean
-        ratios <- cur.ref / true.ref
-        all.output[indices[[i]]] <- median(ratios[keep], na.rm=TRUE) * cur.sf
+    rescaling.factors <- .rescale_clusters(all.ref, ref.clust=ref.block, min.mean=min.mean, clust.names=names(indices))
+    all.output <- numeric(ncol(x))
+    for (block in seq_along(all.ref)) {
+        all.output[indices[[block]]] <- all.norm[[block]]$sf * rescaling.factors[[block]]
     }
 
     names(all.output) <- colnames(x)
