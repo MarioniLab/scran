@@ -1,12 +1,12 @@
 # Checks the construction of the SNN graph.
 # require(scran); require(testthat); source("test-snn.R")
 
-# Constructing a reference value.
-
 library(igraph)
-check <- function(vals, k=10) {
-    g <- buildSNNGraph(vals, k=k, d=NA) # turning off PCA.
-    nn.out <- kmknn::findKNN(t(vals), k=k)
+check <- function(vals, k=10, type="rank")
+# Checking against a slow reference calculator.
+{
+    g <- buildSNNGraph(vals, k=k, d=NA, type=type) # turning off PCA.
+    nn.out <- BiocNeighbors::findKNN(t(vals), k=k)
     IDX <- cbind(seq_len(ncol(vals)), nn.out$index)
 
     ncells <- ncol(vals)
@@ -18,9 +18,15 @@ check <- function(vals, k=10) {
         for (j in seq_len(ncells)) {
             jnn <- IDX[j,]
             shared <- intersect(inn, jnn)
-            if (length(shared)==0) next
-            s <- k + 1 - 0.5*(match(shared, inn) + match(shared, jnn))
-            collected[j] <- max(s)
+            if (length(shared)==0) {
+                next
+            }
+            if (type=="rank") {
+                s <- k + 1 - 0.5*(match(shared, inn) + match(shared, jnn))
+                collected[j] <- max(s)
+            } else {
+                collected[j] <- length(shared)
+            }
         }
         collected[i] <- 0
         expect_equal(collected, g[i])
@@ -41,6 +47,16 @@ test_that("buildSNNGraph gives same results as a reference", {
     
     dummy <- matrix(rnorm(ngenes*ncells), ncol=ncells, nrow=ngenes)
     check(dummy, k=5)
+
+    # Checking 'number' mode.  
+    dummy <- matrix(rnorm(ngenes*ncells), ncol=ncells, nrow=ngenes)
+    check(dummy, k=10, type="number")
+    
+    dummy <- matrix(rnorm(ngenes*ncells), ncol=ncells, nrow=ngenes)
+    check(dummy, k=20, type="number")
+    
+    dummy <- matrix(rnorm(ngenes*ncells), ncol=ncells, nrow=ngenes)
+    check(dummy, k=5, type="number")
 })
 
 # Checking that the value is sensible with subset.row.

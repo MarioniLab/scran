@@ -24,8 +24,8 @@ test_that("Mutual NN detection is correct", {
         n2 <- nrow(d2)
         n.total <- n1 + n2
    
-        W21 <- kmknn::queryKNN(d2, query=d1, k=k1)
-        W12 <- kmknn::queryKNN(d1, query=d2, k=k2)
+        W21 <- BiocNeighbors::queryKNN(d2, query=d1, k=k1)
+        W12 <- BiocNeighbors::queryKNN(d1, query=d2, k=k2)
         W <- sparseMatrix(i=c(rep(seq_len(n1), k1), rep(n1 + seq_len(n2), k2)),
                           j=c(n1 + W21$index, W12$index),
                           x=rep(1, n1*k1 + n2*k2), dims=c(n.total, n.total))
@@ -51,15 +51,15 @@ test_that("Mutual NN detection is correct", {
     # Compare to actual run.
     A <- matrix(rnorm(10000), ncol=50)
     B <- matrix(rnorm(20000), ncol=50)
-    comparator(REF(A, B, 10, 10), scran:::find.mutual.nn(A, B, 10, 10, SerialParam()))
-    comparator(REF(A, B, 5, 20), scran:::find.mutual.nn(A, B, 5, 20, SerialParam()))
-    comparator(REF(A, B, 20, 5), scran:::find.mutual.nn(A, B, 20, 5, SerialParam()))
+    comparator(REF(A, B, 10, 10), scran:::find.mutual.nn(A, B, 10, 10))
+    comparator(REF(A, B, 5, 20), scran:::find.mutual.nn(A, B, 5, 20))
+    comparator(REF(A, B, 20, 5), scran:::find.mutual.nn(A, B, 20, 5))
 
     A <- matrix(rpois(25000, lambda=20), ncol=100)
     B <- matrix(rpois(15000, lambda=50), ncol=100)
-    comparator(REF(A, B, 10, 10), scran:::find.mutual.nn(A, B, 10, 10, SerialParam()))
-    comparator(REF(A, B, 5, 20), scran:::find.mutual.nn(A, B, 5, 20, SerialParam()))
-    comparator(REF(A, B, 20, 5), scran:::find.mutual.nn(A, B, 20, 5, SerialParam()))
+    comparator(REF(A, B, 10, 10), scran:::find.mutual.nn(A, B, 10, 10))
+    comparator(REF(A, B, 5, 20), scran:::find.mutual.nn(A, B, 5, 20))
+    comparator(REF(A, B, 20, 5), scran:::find.mutual.nn(A, B, 20, 5))
 })
 
 set.seed(10002)

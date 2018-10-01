@@ -5,9 +5,9 @@
     if (is.null(bandwidth)) {
         middle <- ceiling(ncol(indices)/2L)
         mid.dist <- distances[,middle]
-        bandwidth <- mid.dist * ndist;
+        bandwidth <- mid.dist * ndist
     }
-    bandwidth <- max(1e-8, bandwidth)
+    bandwidth <- pmax(1e-8, bandwidth)
 
     rel.dist <- distances/bandwidth
     rel.dist[rel.dist > 1] <- 1 # don't use pmin(), as this destroys dimensions.

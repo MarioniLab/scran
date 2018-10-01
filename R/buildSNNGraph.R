@@ -1,8 +1,8 @@
-#' @importFrom igraph make_graph E simplify "E<-"
+#' @importFrom igraph make_graph simplify "E<-"
 #' @importFrom BiocParallel SerialParam
-.buildSNNGraph <- function(x, k=10, d=50, transposed=FALSE, pc.approx=FALSE,
-                           rand.seed=NA, irlba.args=list(), 
-                           subset.row=NULL, BPPARAM=SerialParam()) 
+.buildSNNGraph <- function(x, k=10, d=50, type=c("rank", "number"),
+    transposed=FALSE, pc.approx=FALSE, rand.seed=NA, irlba.args=list(),
+    subset.row=NULL, BNPARAM=NULL, BPPARAM=SerialParam()) 
 # Builds a shared nearest-neighbor graph, where edges are present between each 
 # cell and any other cell with which it shares at least one neighbour. Each edges 
 # is weighted based on the ranks of the shared nearest neighbours of the two cells, 
@@ -10,14 +10,18 @@
 #
 # written by Aaron Lun
 # created 3 April 2017
-# last modified 16 November 2017    
 { 
     nn.out <- .setup_knn_data(x=x, subset.row=subset.row, d=d, transposed=transposed,
         pc.approx=pc.approx, rand.seed=rand.seed, irlba.args=irlba.args, 
-        k=k, BPPARAM=BPPARAM) 
+        k=k, BNPARAM=BNPARAM, BPPARAM=BPPARAM) 
 
     # Building the SNN graph.
-    g.out <- .Call(cxx_build_snn, nn.out$index)
+    type <- match.arg(type)
+    if (type=="rank") {
+        g.out <- .Call(cxx_build_snn_rank, nn.out$index)
+    } else {
+        g.out <- .Call(cxx_build_snn_number, nn.out$index)
+    }
     edges <- g.out[[1]] 
     weights <- g.out[[2]]
 
@@ -30,8 +34,7 @@
 #' @importFrom igraph make_graph simplify
 #' @importFrom BiocParallel SerialParam
 .buildKNNGraph <- function(x, k=10, d=50, directed=FALSE, transposed=FALSE, pc.approx=FALSE,
-                           rand.seed=NA, irlba.args=list(), 
-                           subset.row=NULL, BPPARAM=SerialParam()) 
+    rand.seed=NA, irlba.args=list(), subset.row=NULL, BNPARAM=NULL, BPPARAM=SerialParam()) 
 # Builds a k-nearest-neighbour graph, where edges are present between each
 # cell and its 'k' nearest neighbours. Undirected unless specified otherwise.
 #
@@ -40,7 +43,7 @@
 { 
     nn.out <- .setup_knn_data(x=x, subset.row=subset.row, d=d, transposed=transposed,
         pc.approx=pc.approx, rand.seed=rand.seed, irlba.args=irlba.args,
-        k=k, BPPARAM=BPPARAM) 
+        k=k, BNPARAM=BNPARAM, BPPARAM=BPPARAM) 
 
     # Building the KNN graph.
     start <- as.vector(row(nn.out$index))
@@ -61,8 +64,8 @@
 ######################
 
 #' @importFrom stats prcomp 
-#' @importFrom kmknn findKNN
-.setup_knn_data <- function(x, subset.row, d, transposed, pc.approx, rand.seed, irlba.args, k, BPPARAM) {
+#' @importFrom BiocNeighbors findKNN
+.setup_knn_data <- function(x, subset.row, d, transposed, pc.approx, rand.seed, irlba.args, k, BNPARAM, BPPARAM) {
     ncells <- ncol(x)
     if (!is.null(subset.row)) {
         x <- x[.subset_to_index(subset.row, x, byrow=TRUE),,drop=FALSE]
@@ -86,7 +89,7 @@
     }
    
     # Finding the KNNs. 
-    findKNN(x, k=k, BPPARAM=BPPARAM, get.distance=FALSE)
+    findKNN(x, k=k, BNPARAM=BNPARAM, BPPARAM=BPPARAM, get.distance=FALSE)
 }
 
 #########################

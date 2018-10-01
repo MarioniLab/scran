@@ -19,7 +19,7 @@
     Alternatively, a SingleCellExperiment object containing such a matrix.
 }
 \item{pairs}{A list of data.frames produced by \code{\link{sandbag}}, containing pairs of marker genes.}
-\item{gene.names}{A character vector of gene names.}
+\item{gene.names}{A character vector of gene names, with one value per row in \code{x}.}
 \item{iter}{An integer scalar specifying the number of iterations for random sampling to obtain a cycle score.}
 \item{min.iter}{An integer scalar specifying the minimum number of iterations for score estimation.}
 \item{min.pairs}{An integer scalar specifying the minimum number of pairs for cycle estimation.}

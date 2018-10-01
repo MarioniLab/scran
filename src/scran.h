@@ -17,7 +17,7 @@ extern "C" {
 
 SEXP forge_system (SEXP, SEXP, SEXP, SEXP);
 
-SEXP subset_and_divide(SEXP, SEXP, SEXP); 
+SEXP subset_and_divide(SEXP, SEXP, SEXP, SEXP); 
 
 SEXP quick_sum_factors(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
@@ -47,6 +47,10 @@ SEXP fit_oneway(SEXP, SEXP, SEXP);
 
 SEXP calc_log_count_stats(SEXP, SEXP, SEXP, SEXP, SEXP);
 
+SEXP calc_log_expected(SEXP, SEXP, SEXP, SEXP, SEXP);
+
+SEXP calc_log_sqdiff(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+
 // DE analysis functions.
 
 SEXP combine_simes(SEXP, SEXP);
@@ -55,9 +59,11 @@ SEXP overlap_exprs(SEXP, SEXP, SEXP, SEXP);
 
 // Clustering functions.
 
-SEXP get_scaled_ranks(SEXP, SEXP, SEXP);
+SEXP get_scaled_ranks(SEXP, SEXP, SEXP, SEXP);
 
-SEXP build_snn(SEXP);
+SEXP build_snn_rank(SEXP);
+
+SEXP build_snn_number(SEXP);
 
 // Miscellaneous functions.
 

@@ -5,12 +5,12 @@
 \description{Combine the results of multiple variance decompositions, usually generated for the same genes across separate batches of cells.}
 
 \usage{
-combineVar(..., method=c("fisher", "z", "simes", "berger"), weighted=TRUE)
+combineVar(..., method="fisher", weighted=TRUE)
 }
 
 \arguments{
 \item{...}{Two or more DataFrames produced by \code{\link{decomposeVar}}.}
-\item{method}{String specifying how p-values are to be combined.}
+\item{method}{String specifying how p-values are to be combined, see \code{\link{combinePValues}} for options.}
 \item{weighted}{Logical scalar indicating whether weights should be used for combining statistics.}
 }
 
@@ -27,27 +27,18 @@ This yields a variance equivalent to the residual variance obtained while blocki
 Weighting can be turned off with \code{weighted=FALSE}.
 This may be useful to ensure that all batches contribute equally to the calculation of the combined statistics, avoiding cases where batches with many cells dominate the output.
 Of course, this comes at the cost of precision - large batches contain more information and \emph{should} contribute more to the weighted average.
+
+For the p-value calculations, options are taken from \code{\link{combinePValues}} and are paraphrased here:
+\itemize{
+    \item The default approach is to use \code{method="fisher"}, which will identify genes that are highly variable in \emph{any} batch.
+    \item Another option is to use \code{method="z"}, which favours (but does not require) genes that are significant in multiple batches.
+    \item Setting \code{method="simes"} is a more conservative counterpart to Fisher's method that is robust to correlations.
+    \item Setting \code{method="berger"} will identify genes that are significant in \emph{all} batches.
 }
 
-\section{Combining p-values across batches}{
-The default approach is to use \code{method="fisher"}, which uses Fisher's method for combining p-values.
-This will test the global null hypothesis, i.e., that genes are not variable in any batch.
-As a result, it will identify genes that are highly variable in \emph{any} batch.
-
-Another option is to use \code{method="z"}, where Stouffer's Z-score method is used to combine p-values across batches.
-Each batch is weighted according to the residual d.f. used to perform the test.
-This is less sensitive that Fisher's method to low p-values in only a single batch, instead favouring genes that are significant in multiple batches.
-
-Both Fisher's and Stouffer's methods assume independence between batches. 
-If this is not the case, Simes' method should be used by setting \code{method="simes"}.
-This is more robust to correlations between tests (Sarkar and Chung, 1997; see also similar work on the related Benjamini-Hochberg method).
-
-To identify genes that are detected as highly variable in \emph{all} batches, Berger's IUT can be used by setting \code{method="berger"}.
-This defines the combined p-value as the maximum across batches for each gene.
-Needless to say, this is quite a conservative approach.
-
 Only \code{method="z"} will perform any weighting of batches, and only if \code{weighted=TRUE}.
-In all other cases, all batches are assigned equal weight.
+Here, each batch is weighted according to the residual d.f. used for testing in that batch.
+In all other cases, all batches are assigned equal weight for p-value calculations.
 }
 
 \value{
@@ -57,33 +48,12 @@ and \code{FDR}, which contains the adjusted p-value using the BH method.
 }
 
 \seealso{
-\code{\link{decomposeVar}}
+\code{\link{decomposeVar}},
+\code{\link{combinePValues}}
 }
 
 \author{
 Aaron Lun
-}
-
-\references{
-Fisher, R.A. (1925). 
-\emph{Statistical Methods for Research Workers.}
-Oliver and Boyd (Edinburgh).
-
-Whitlock MC (2005). 
-Combining probability from independent tests: the weighted Z-method is superior to Fisher's approach. 
-\emph{J. Evol. Biol.} 18, 5:1368-73.
-
-Simes RJ (1986). 
-An improved Bonferroni procedure for multiple tests of significance. 
-\emph{Biometrika} 73:751-754.
-
-Berger RL and Hsu JC (1996). 
-Bioequivalence trials, intersection-union tests and equivalence confidence sets.
-\emph{Statist. Sci.} 11, 283-319.
-
-Sarkar SK and Chung CK (1997).
-The Simes method for multiple hypothesis testing with positively dependent test statistics.
-\emph{J. Am. Stat. Assoc.} 92, 1601-1608.
 }
 
 \examples{

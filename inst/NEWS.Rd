@@ -2,36 +2,64 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.9.18}{\itemize{
-\item Removed selectorPlot(), exploreData() functions.
+\section{Version 1.9.29}{\itemize{
+\item Removed selectorPlot(), exploreData() functions in favour of iSEE.
     
 \item Fixed underflow problem in mnnCorrect() when dealing with the Gaussian kernel.
 Dropped the default sigma= in mnnCorrect() for better default performance.
 
 \item Supported parallelized block-wise processing in quickCluster().
 Deprecated max.size= in favour of max.cluster.size= in computeSumFactors().
+Deprecated get.ranks= in favour of scaledColRanks().
 
 \item Added max.cluster.size= argument to computeSumFactors().
 Supported parallelized cluster-wise processing.
+Increased all pool sizes to avoid rare failures if number of cells is a multiple of 5.
+Minor improvement to how mean filtering is done for rescaling across clusters in computeSumFactors().
+Throw errors upon min.mean=NULL, which used to be valid.
+Switched positive=TRUE behaviour to use cleanSizeFactors().
+
+\item Added the scaledColRanks() function for computing scaled and centred column ranks.
 
 \item Supported parallelized gene-wise processing in trendVar() and decomposeVar().
+Support direct use of a factor in design= for efficiency.
 
 \item Added doubletCluster() to detect clusters that consist of doublets of other clusters.
 
 \item Added doubletCells() to detect cells that are doublets of other cells via simulations.
 
-\item Deprecated rand.seed= in buildSNNGraph() and buildKNNGraph(), in favour of explicit set.seed() call.
+\item Deprecated rand.seed= in buildSNNGraph() in favour of explicit set.seed() call.
+Added type= argument for weighting edges based on the number of shared neighbors.
+
+\item Deprecated rand.seed= in buildKNNGraph().
 
 \item Added multiBlockNorm() function for spike-abundance-preserving normalization prior to multi-block variance modelling.
 
 \item Added multiBatchNorm() function for consistent downscaling across batches prior to batch correction.
 
-\item Minor improvement to how mean filtering is done for rescaling across clusters in computeSumFactors().
-Throw errors upon min.mean=NULL, which used to be valid.
+\item Added cleanSizeFactors() to coerce non-positive size factors to positive values based on number of detected genes.
 
 \item Added the fastMNN() function to provide a faster, more stable alternative for MNN correction.
 
 \item Added BPPARAM= option for parallelized execution in makeTechTrend().
+Added approx.npts= option for interpolation-based approximation for many cells.
+
+\item Added pairwiseTTests() for direct calculation of pairwise t-statistics between groups.
+
+\item Added pairwiseWilcox() for direct calculation of pairwise Wilcoxon rank sum tests between groups.
+
+\item Added combineMarkers() to consolidate arbitrary pairwise comparisons into a marker list.
+
+\item Bugfixes to uses of block=, lfc= and design= arguments in findMarkers().
+Refactored to use pairwiseTTests() and combineMarkers() internally.
+Added BPPARAM= option for parallelized execution.
+
+\item Refactored overlapExprs() to sort by p-value based on pairwiseWilcox() and combineMarkers().
+Removed design= argument as it is not compatible with p-value calculations.
+
+\item Bugfixes to the use of Stouffer's Z method in combineVar().
+
+\item Added combinePValues() as a centralized internal function to combine p-values.
 }}
 
 \section{Version 1.8.0}{\itemize{

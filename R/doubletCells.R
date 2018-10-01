@@ -3,12 +3,14 @@
 #' @importFrom BiocParallel SerialParam bpmapply
 #' @importFrom Matrix rowMeans
 #' @importFrom stats median
-#' @importFrom kmknn findKNN findNeighbors queryNeighbors queryKNN
+#' @importFrom BiocNeighbors findKNN findNeighbors queryNeighbors queryKNN buildNNIndex
+#' @importClassesFrom BiocNeighbors KmknnIndex
+#' @importFrom methods is
 .doublet_cells <- function(x, size.factors.norm=NULL, size.factors.content=NULL,
     k=50, subset.row=NULL, niters=max(10000, ncol(x)), block=10000, 
     d=50, approximate=FALSE, irlba.args=list(), 
     force.match=FALSE, force.k=20, force.ndist=3,
-    BPPARAM=SerialParam())
+    BNPARAM=NULL, BPPARAM=SerialParam())
 # Simulates doublets and uses a mutual nearest-neighbour approach to match them to real cells.
 #
 # written by Aaron Lun
@@ -34,21 +36,26 @@
     sim.pcs <- .spawn_doublet_pcs(x, size.factors.norm, V=svd.out$v, centers=rowMeans(y), niters=niters, block=block)
 
     # Force doublets to nearest neighbours in the original data set.
-    pre.pcs <- precluster(pcs)
+    pre.pcs <- buildNNIndex(pcs, BNPARAM=BNPARAM)
     if (force.match) {
-        closest <- queryKNN(query=sim.pcs, k=force.k, BPPARAM=BPPARAM, precomputed=pre.pcs)
+        closest <- queryKNN(query=sim.pcs, k=force.k, BNINDEX=pre.pcs, BPPARAM=BPPARAM)
         sim.pcs <- .compute_tricube_average(pcs, closest$index, closest$distance, ndist=force.ndist)
     }
 
     # Computing densities, using a distance computed from the kth nearest neighbor.
-    self.dist <- findKNN(precomputed=pre.pcs, k=k, BPPARAM=BPPARAM, get.index=FALSE)$distance
-    dist2nth <- median(self.dist[,ncol(self.dist)])
+    self.dist <- findKNN(BNINDEX=pre.pcs, k=k, BPPARAM=BPPARAM, get.index=FALSE)$distance
+    dist2nth <- pmax(1e-8, median(self.dist[,ncol(self.dist)]))
 
-    self.dist <- findNeighbors(precomputed=pre.pcs, threshold=dist2nth, BPPARAM=BPPARAM, get.index=FALSE)$distance
+    if (is(pre.pcs, "KmknnIndex")) {
+        args <- list(precomputed=pre.pcs) # skipping re-clustering if it's of the right type.
+    } else {
+        args <- list(X=pcs)
+    }
+    self.dist <- do.call(findNeighbors, c(args, list(threshold=dist2nth, BPPARAM=BPPARAM, get.index=FALSE)))$distance
     sim.dist <- queryNeighbors(sim.pcs, query=pcs, threshold=dist2nth, BPPARAM=BPPARAM, get.index=FALSE)$distance
 
     rel.dens <- bpmapply(FUN=function(self, sim, limit) {
-        sum((1 - (sim/limit)^3)^3)/sum((1 - (self/limit)^3)^3)
+        sum((1 - (sim/limit)^3)^3)/sum((1 - (self/limit)^3)^3)^2
     }, self=self.dist, sim=sim.dist, limit=dist2nth, BPPARAM=BPPARAM)
 
     rel.dens/(niters/ncol(x))

@@ -18,32 +18,6 @@ test_that("quickCluster works in the simple case", {
     expect_identical(quickCluster(dummy, subset.row=shuffled), emp.clusters)
 })
 
-test_that("quickCluster correctly computes the ranks", {
-    emp.ranks <- quickCluster(dummy, get.ranks=TRUE)
-    ref <- apply(dummy, 2, FUN=function(y) {
-        r <- rank(y)
-        r <- r - mean(r)
-        r/sqrt(sum(r^2))/2
-    })
-    expect_equal(emp.ranks, ref)
-
-    # Works correctly with shuffling.
-    shuffled <- c(50:100, 401:350, 750:850)
-    emp.ranks <- quickCluster(dummy, get.ranks=TRUE, subset.row=shuffled)
-    ref <- apply(dummy, 2, FUN=function(y) {
-        r <- rank(y[shuffled])
-        r <- r - mean(r)
-        r/sqrt(sum(r^2))/2
-    })
-    expect_equal(emp.ranks, ref)
-
-    # Works correctly on sparse matrices.
-    sparse <- Matrix::rsparsematrix(ngenes, ncells, density=0.1)
-    out <- quickCluster(sparse, get.ranks=TRUE, min.mean=0)
-    ref <- quickCluster(as.matrix(sparse), get.ranks=TRUE, min.mean=0)
-    expect_identical(out, ref)
-})
-
 set.seed(300001)
 test_that("quickCluster is consistent with clustering on correlations", {
     mat <- matrix(rpois(10000, lambda=5), nrow=20)
@@ -51,7 +25,7 @@ test_that("quickCluster is consistent with clustering on correlations", {
     
     refM <- sqrt(0.5*(1 - cor(mat, method="spearman")))
     distM <- as.dist(refM)
-    obsM <- dist(t(quickCluster(mat, get.ranks=TRUE)))
+    obsM <- dist(scaledColRanks(mat, transposed=TRUE))
     expect_equal(as.matrix(obsM), as.matrix(distM))
 
     htree <- hclust(distM, method='ward.D2')
@@ -81,8 +55,6 @@ test_that("quickCluster functions correctly with subsetting", {
     # Handles the mean.
     obs <- quickCluster(mat, min.size=50, min.mean=5)
     expect_identical(obs, quickCluster(mat, min.size=50, subset.row=scater::calcAverage(mat) >= 5))
-    rnks <- quickCluster(mat, get.ranks=TRUE, min.mean=5)
-    expect_identical(rnks, quickCluster(mat, get.ranks=TRUE, subset.row=scater::calcAverage(mat) >= 5))
 })
 
 test_that("quickCluster functions correctly with blocking", {
@@ -104,11 +76,6 @@ test_that("quickCluster functions correctly with blocking", {
     # Should behave properly with NULL or single-level.
     ref <- quickCluster(mat, min.size=10, block=NULL)
     obs <- quickCluster(mat, min.size=10, block=integer(ncol(mat)))
-    expect_identical(ref, obs)
-
-    # Ranks should be the same.
-    ref <- quickCluster(mat, min.size=10, block=NULL, get.ranks=TRUE)
-    obs <- quickCluster(mat, min.size=10, block=block, get.ranks=TRUE)
     expect_identical(ref, obs)
 
     # Should avoid problems with multiple BPPARAM specifications.

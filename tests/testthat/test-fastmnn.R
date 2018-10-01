@@ -42,7 +42,7 @@ test_that("tricube weighting works correctly", {
     FUN <- function(current, corvec, in.mnn, k=20, ndist=3) {
         cur.uniq <- current[in.mnn,,drop=FALSE]
         safe.k <- min(k, nrow(cur.uniq))
-        closest <- kmknn::queryKNN(query=current, X=cur.uniq, k=safe.k)
+        closest <- BiocNeighbors::queryKNN(query=current, X=cur.uniq, k=safe.k)
         middle.k <- ceiling(safe.k/2L)
 
         for (x in seq_len(nrow(current))) {
@@ -168,7 +168,7 @@ test_that("variance loss calculations work as expected", {
 })
 
 set.seed(1200005)
-test_that("fastMNN works as expected for three batches, with re- and auto-ordering", {
+test_that("fastMNN works as expected for three batches with re-ordering", {
     B1 <- matrix(rnorm(10000), nrow=100) # Batch 1 
     B2 <- matrix(rnorm(20000), nrow=100) # Batch 2
     B3 <- matrix(rnorm(5000), nrow=100) # Batch 2
@@ -193,30 +193,42 @@ test_that("fastMNN works as expected for three batches, with re- and auto-orderi
     }
 
     expect_equal(out$rotation, out.re$rotation)
+})
+
+set.seed(1200006)
+test_that("fastMNN works as expected for three batches with re-ordering", {
+    B1 <- matrix(rnorm(10000), nrow=100) # Batch 1 
+    B2 <- matrix(rnorm(20000), nrow=100) # Batch 2
+    B3 <- matrix(rnorm(5000), nrow=100) # Batch 2
+    ref <- fastMNN(B1, B2, B3, d=50) 
 
     # Testing the auto-ordering algorithms. 
     out.auto <- fastMNN(B1, B2, B3, d=50, auto.order=TRUE) 
-    expect_identical(dim(out$corrected), dim(out.auto$corrected))
-    expect_identical(out.auto$batch, out$batch)
+    expect_identical(dim(ref$corrected), dim(out.auto$corrected))
+    expect_identical(out.auto$batch, ref$batch)
     expect_identical(out.auto$order, c(2L, 1L, 3L)) # 3 should be last, with the fewest cells => fewest MNNs.
     CHECK_PAIRINGS(out.auto)
 
     out.re.auto <- fastMNN(B1, B2, B3, auto.order=out.auto$order)
     expect_equal(out.auto, out.re.auto)
 
+    # Auto-ordering consistently handles the BiocNeighborIndex class.
+    expect_error(out.approx <- fastMNN(B1, B2, B3, auto.order=TRUE, BNPARAM=BiocNeighbors::AnnoyParam()), NA)
+    expect_identical(out.approx$order, out.auto$order)
+
     # Testing the internal auto-ordering functions.
     fmerge <- scran:::.define_first_merge(list(t(B1), t(B2), t(B3)), k=20)   
     expect_identical(fmerge$first, 2L) # 2 is arbitrarily 'first', and 1 is arbitrarily 'second'; but 3 should never show up.
     expect_identical(fmerge$second, 1L)
-    expect_identical(fmerge$pairs, scran:::find.mutual.nn(t(B2), t(B1), k1=20, k2=20, BPPARAM=SerialParam()))
+    expect_identical(fmerge$pairs, scran:::find.mutual.nn(t(B2), t(B1), k1=20, k2=20))
 
-    expect_identical(kmknn::findKNN(precomputed=fmerge$precomputed[[1]], k=5), kmknn::findKNN(t(B1), k=5)) # checking that the precomputations are correct.
-    expect_identical(kmknn::findKNN(precomputed=fmerge$precomputed[[2]], k=10), kmknn::findKNN(t(B2), k=10))
-    expect_identical(kmknn::findKNN(precomputed=fmerge$precomputed[[3]], k=15), kmknn::findKNN(t(B3), k=15))
+    expect_identical(BiocNeighbors::findKNN(precomputed=fmerge$precomputed[[1]], k=5), BiocNeighbors::findKNN(t(B1), k=5)) # checking that the precomputations are correct.
+    expect_identical(BiocNeighbors::findKNN(precomputed=fmerge$precomputed[[2]], k=10), BiocNeighbors::findKNN(t(B2), k=10))
+    expect_identical(BiocNeighbors::findKNN(precomputed=fmerge$precomputed[[3]], k=15), BiocNeighbors::findKNN(t(B3), k=15))
 
     nmerge <- scran:::.define_next_merge(t(B1), list(t(B1), t(B2), t(B3)), processed=1L, precomputed=fmerge$precomputed, k=20)   
     expect_identical(nmerge$other, 2L) # 1 should have more MNNs with 2 than with 3.
-    expect_identical(nmerge$pairs, scran:::find.mutual.nn(t(B1), t(B2), k1=20, k2=20, BPPARAM=SerialParam()))
+    expect_identical(nmerge$pairs, scran:::find.mutual.nn(t(B1), t(B2), k1=20, k2=20))
 })
 
 set.seed(12000051)

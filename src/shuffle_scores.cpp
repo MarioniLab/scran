@@ -1,7 +1,7 @@
 #include "scran.h"
 
 template <class V>
-double get_proportion (const V& expr, const int& minpairs, const Rcpp::IntegerVector& marker1, const Rcpp::IntegerVector& marker2) {
+double get_proportion (const V& expr, const int& minpairs, const Rcpp::IntegerVector& marker1, const Rcpp::IntegerVector& marker2, const double& threshold=NA_REAL) {
     int was_first=0, was_total=0;
     auto m2It=marker2.begin();
     auto eIt=expr.begin();
@@ -12,7 +12,13 @@ double get_proportion (const V& expr, const int& minpairs, const Rcpp::IntegerVe
         if (first != second) { ++was_total; }      
     }
     if (was_total < minpairs) { return NA_REAL; }
-    return double(was_first)/was_total;
+    
+    const bool short_cut = !ISNA(threshold);
+    const double output=double(was_first)/was_total;
+    if (short_cut) {
+        return (output < threshold ? -1 : 1);
+    }
+    return output;
 }
 
 template <class V, class M>
@@ -70,9 +76,9 @@ SEXP shuffle_scores_internal (M mat_ptr,
         int below=0, total=0;
         for (int it=0; it < nit; ++it) {
             Rx_shuffle(current_exprs.begin(), current_exprs.end());
-            const double newscore=get_proportion(current_exprs, minp, marker1, marker2);
+            const double newscore=get_proportion(current_exprs, minp, marker1, marker2, curscore);
             if (!ISNA(newscore)) { 
-                if (newscore < curscore) { ++below; }
+                if (newscore < 0) { ++below; }
                 ++total;
             }
         }

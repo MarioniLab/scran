@@ -1,4 +1,4 @@
-# This tests the doublet-discovery machinery.
+# This tests the doublet discovery machinery in scran.
 # library(scran); library(testthat); source("test-doublet.R")
 
 set.seed(9900001)
@@ -12,6 +12,21 @@ counts.m <- matrix(rpois(ngenes*20, mu1+mu2), nrow=ngenes)
 
 counts <- cbind(counts.1, counts.2, counts.m)
 clusters <- rep(1:3, c(ncol(counts.1), ncol(counts.2), ncol(counts.m)))
+
+RENAMER <- function(val, fields, mapping) 
+# A convenience function for remapping internal fields upon subsetting or renaming.
+# This is necessary for some equality checks below.
+{
+    new.pairs <- val$all.pairs
+    for (f in fields) {
+        val[[f]] <- mapping[as.integer(val[[f]])]
+        for (i in seq_along(new.pairs)) {
+            new.pairs[[i]][[f]] <- mapping[as.integer(new.pairs[[i]][[f]])]
+        }
+    }
+    val$all.pairs <- new.pairs
+    val
+}
 
 ###################################################
 
@@ -38,10 +53,10 @@ test_that("doubletCluster works correctly with vanilla tests", {
     # Checking that we get equivalent results with character cluster input.
     re.clusters <- LETTERS[clusters]
     re.dbl <- doubletCluster(counts, re.clusters)
-    dbl2 <- dbl
+
+    dbl2  <- RENAMER(dbl, c("source1", "source2"), LETTERS)
     rownames(dbl2) <- LETTERS[as.integer(rownames(dbl2))]
-    dbl2$source1 <- LETTERS[as.integer(dbl2$source1)]
-    dbl2$source2 <- LETTERS[as.integer(dbl2$source2)]
+    names(dbl2$all.pairs) <- LETTERS[as.integer(names(dbl2$all.pairs))]
     expect_identical(dbl2, re.dbl)
 })
 
@@ -64,16 +79,26 @@ test_that("doubletCluster agrees with a reference implementation", {
             fields <- paste0("stats.", chosen)
             stats1 <- stats[[fields[1]]]
             stats2 <- stats[[fields[2]]]
-            p <- pmax(stats1$p.value, stats2$p.value)
+            p <- pmax(exp(stats1$log.p.value), exp(stats2$log.p.value))
             p[sign(stats1$logFC)!=sign(stats2$logFC)] <- 1
             adj.p <- p.adjust(p, method="BH")
-            list(best=rownames(stats)[which.min(p)], p.val=min(adj.p), N=sum(adj.p <= 0.05))
+            data.frame(best=rownames(stats)[which.min(p)], p.val=min(adj.p), N=sum(adj.p <= 0.05), stringsAsFactors=FALSE)
         })
 
-        to.use <- which.min(unlist(lapply(collected, function(o) o$N)))
-        expect_identical(dbl[x,"N"], collected[[to.use]]$N)
-        expect_identical(dbl[x,"p.value"], collected[[to.use]]$p.val)
-        expect_identical(dbl[x,"best"], collected[[to.use]]$best)
+        collected <- do.call(rbind, collected)
+        o <- order(collected$N)
+
+        obs <- dbl[x,"all.pairs"][[1]]
+        expect_identical(obs$source1, pmax(combos[2,], combos[1,])[o])
+        expect_identical(obs$source2, pmin(combos[1,], combos[2,])[o])
+        expect_identical(obs$N, collected$N[o])
+        expect_identical(obs$best, collected$best[o])
+        expect_equal(obs$p.value, collected$p.val[o])
+
+        to.use <- o[1]
+        expect_identical(dbl[x,"N"], collected[to.use, "N"])
+        expect_equal(dbl[x,"p.value"], collected[to.use, "p.val"])
+        expect_identical(dbl[x,"best"], collected[to.use, "best"])
         expect_identical(sort(c(dbl[x,"source1"],dbl[x,"source2"])), sort(combos[,to.use]))
     }
 })
@@ -82,7 +107,7 @@ test_that("doubletCluster works correctly with row subsets", {
     chosen <- sample(ngenes, 20)
     dbl0 <- doubletCluster(counts, clusters, subset.row=chosen)
     ref <- doubletCluster(counts[chosen,], clusters)
-    ref$best <- as.character(chosen)[as.integer(ref$best)]
+    ref <- RENAMER(ref, "best", as.character(chosen))
     expect_identical(dbl0, ref)
 
     # Trying out empty rows.
@@ -159,33 +184,6 @@ test_that("doubletCells PC spawning works correctly", {
     expect_identical(dim(sim.pcs), c(25000L, ncol(SVD$v)))
 })
 
-set.seed(99000021)
-test_that("tricube weighted remapping works correctly", {
-    X <- matrix(rnorm(10000), ncol=10)
-    Y <- matrix(rnorm(10000, sd=1.5), ncol=10)
-
-    # Passing via ... works.
-    sim <- scran:::.tricube_weighted_remapping(X, Y, k=20)
-    expect_equal(sim, scran:::.tricube_weighted_remapping(X, Y, precomputed=kmknn::precluster(Y), k=20))
-
-    # Check to reference calculation works.
-    closest <- kmknn::queryKNN(query=X, X=Y, k=20)
-    rel.dist <- closest$distance / closest$distance[,20]
-    
-    tricube <- (1 - rel.dist^3)^3
-    weight <- tricube/rowSums(tricube)
-    output <- matrix(0, nrow(X), ncol(X))
-    for (kdx in seq_len(nrow(closest$index))) {
-        output[kdx,] <- colSums(Y[closest$index[kdx,],,drop=FALSE] * weight[kdx,])
-    }
-
-    expect_equal(output, sim)
-    
-    # Still happy if the number of neighbors is larger than that available.
-    expect_warning(sim <- scran:::.tricube_weighted_remapping(X, Y[1:10,], k=20), "capped")
-    expect_equal(sim, scran:::.tricube_weighted_remapping(X, Y[1:10,], k=10))
-})
-
 set.seed(9900003)
 test_that("size factor variations in doubletCells work correctly", {
     sf1 <- runif(ncol(counts))
@@ -223,7 +221,7 @@ test_that("high-level tests for doubletCells work correctly", {
     counts.C <- matrix(mu1+mu2, ncol=ncC, nrow=ngenes)
     clusters <- rep(1:3, c(ncA, ncB, ncC))
 
-    out <- doubletCells(jitter(cbind(counts.A, counts.B, counts.C)))
+    out <- doubletCells(cbind(counts.A, counts.B, counts.C))
     expect_true(min(out[clusters==3]) > max(out[clusters!=3]))
 
     # Now with differences in RNA content.
@@ -231,15 +229,18 @@ test_that("high-level tests for doubletCells work correctly", {
     counts.B <- matrix(mu2, ncol=ncB, nrow=ngenes)
     counts.C <- matrix(mu1+2*mu2, ncol=ncC, nrow=ngenes)
     sf.spike <- 1/rep(1:3, c(ncA, ncB, ncC))
-
-    out <- doubletCells(jitter(cbind(counts.A, counts.B, counts.C)), size.factors.content=sf.spike)
+    
+    X <- cbind(counts.A, counts.B, counts.C) 
+    out <- doubletCells(X, size.factors.content=sf.spike)
     expect_true(min(out[clusters==3]) > max(out[clusters!=3]))
+    expect_true(min(out[clusters==3]) > 2 * max(out[clusters!=3]))
 
-    out <- doubletCells(jitter(cbind(counts.A, counts.B, counts.C))) # fails without size factor info.
-    expect_true(max(out[clusters==3]) < min(out[clusters!=3]))
+    out <- doubletCells(X) # fails without size factor info; differences are basically negligible.
+    expect_true(max(out[clusters==3]) < 2 * min(out[clusters!=3]))
 
-    out <- doubletCells(jitter(cbind(counts.A, counts.B, counts.C)), force.match=TRUE) # recovers with forced matching.
+    out <- scran:::.doublet_cells(X, force.match=TRUE, k=20) # recovers with forced matching.
     expect_true(min(out[clusters==3]) > max(out[clusters!=3]))
+    expect_true(min(out[clusters==3]) > 2*max(out[clusters!=3]))
 })
 
 set.seed(9900005)
@@ -260,6 +261,9 @@ test_that("other settings for doubletCells work correctly", {
     set.seed(2000)
     ref <- doubletCells(counts, approximate=TRUE, irlba.args=list(tol=1e-12, work=50, maxit=20000), d=5)
     expect_true(median( abs(sim-ref)/(sim+ref+1e-6) ) < 0.01)
+
+    # Annoy works correctly and does not pass precomputations to findNeighbors.
+    expect_error(sim <- doubletCells(counts, BNPARAM=BiocNeighbors::AnnoyParam(100)), NA)
 
     # Responds correctly to blocking.
     set.seed(3000)

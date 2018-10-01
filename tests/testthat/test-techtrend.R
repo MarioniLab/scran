@@ -64,13 +64,18 @@ test_that("makeTechTrend compares correctly to a reference", {
     expect_equal(ref[[2]], out[[2]])
 })
 
-test_that("makeTechTrend values are close to simulated means/variances", {    
-	out <- makeTechTrend(c(1, 5), pseudo.count=2, size.factors=c(0.5, 1.5))
-    log.values <- c(log2(rpois(1e6, lambda=0.5)/0.5 + 2), log2(rpois(1e6, lambda=1.5)/1.5 + 2)) # at 1
+test_that("makeTechTrend values are close to simulated means/variances", {
+    logrpois <- function(m, s, p) {
+        log2(rpois(1e6, lambda=m*s)/s + p)
+    }
+
+    out <- makeTechTrend(c(1, 5), pseudo.count=2, size.factors=c(0.5, 1.5))
+    log.values <- c(logrpois(1, 0.5, 2), logrpois(1, 1.5, 2)) # at 1
     expect_true(abs(out(mean(log.values)) - var(log.values)) < 5e-3)
-    log.values <- c(log2(rpois(1e6, lambda=0.5*5)/0.5 + 2), log2(rpois(1e6, lambda=1.5*5)/1.5 + 2)) # at 5
+    log.values <- c(logrpois(5, 0.5, 2), logrpois(5, 1.5, 2)) # at 5
     expect_true(abs(out(mean(log.values)) - var(log.values)) < 5e-3)
 
+    # With a NB distribution.
     out <- makeTechTrend(c(1, 5), dispersion=0.1)
     log.values <- log2(rnbinom(1e6, mu=1, size=10) + 1)
     expect_true(abs(out(mean(log.values)) - var(log.values)) < 5e-3)
@@ -78,18 +83,35 @@ test_that("makeTechTrend values are close to simulated means/variances", {
     expect_true(abs(out(mean(log.values)) - var(log.values)) < 5e-3)
 })
 
+test_that("makeTechTrend performs approximations correctly", {
+    sf <- runif(200)
+    sf <- sf/mean(sf)
+
+    # Checking that the calculations are exactly correct with perfect interpolation.
+    out <- makeTechTrend(1:100/10, pseudo.count=1, size.factors=sf)
+    out2 <- makeTechTrend(1:100/10, pseudo.count=1, size.factors=sf, approx.npts=200)
+    expect_equal(environment(out)$z$x, environment(out2)$z$x)
+    expect_equal(environment(out)$z$y, environment(out2)$z$y)
+
+    # Checking that the calculations are close enough with non-trivial interpolation.
+    out <- makeTechTrend(1:100/10, pseudo.count=1, size.factors=sf)
+    out2 <- makeTechTrend(1:100/10, pseudo.count=1, size.factors=sf, approx.npts=100)
+    expect_equal(environment(out)$z$x, environment(out2)$z$x, 1e-6)
+    expect_equal(environment(out)$z$y, environment(out2)$z$y, 1e-6)
+
+    # Throws errors.
+    expect_error(makeTechTrend(1:100, pseudo.count=1, size.factors=sf, approx.npts=1), "at least 2")
+})
+
 test_that("makeTechTrend handles other options properly", {
     # Handles parallelization properly.
     sf <- c(0.1, 0.5, 1, 1.5, 1.9)
     means <- 0:20/5
-	out1 <- makeTechTrend(means, pseudo.count=1, size.factors=sf)
-	out2 <- makeTechTrend(means, pseudo.count=1, size.factors=sf, BPPARAM=MulticoreParam(2))
-	out3 <- makeTechTrend(means, pseudo.count=1, size.factors=sf, BPPARAM=SnowParam(3))
-
+    out1 <- makeTechTrend(means, pseudo.count=1, size.factors=sf)
+    out2 <- makeTechTrend(means, pseudo.count=1, size.factors=sf, BPPARAM=MulticoreParam(2))
     expect_equal(out1(means), out2(means))
-    expect_equal(out1(means), out3(means))
 
-    # Handles zeroes properly.
+    # Returns a zero when a zero is provided.
     expect_equal(out1(0), 0)
 
     # Chucks an error when size factors are not centred.

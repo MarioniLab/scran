@@ -1,6 +1,6 @@
 #' @importFrom BiocParallel bplapply SerialParam
-.computeSumFactors <- function(x, sizes=seq(20, 100, 5), clusters=NULL, ref.clust=NULL, max.cluster.size=3000, 
-                               positive=FALSE, errors=FALSE, min.mean=1, subset.row=NULL, BPPARAM=SerialParam())
+.computeSumFactors <- function(x, sizes=seq(21, 101, 5), clusters=NULL, ref.clust=NULL, max.cluster.size=3000, 
+    positive=TRUE, scaling=NULL, min.mean=1, subset.row=NULL, BPPARAM=SerialParam())
 # This contains the function that performs normalization on the summed counts.
 # It also provides support for normalization within clusters, and then between
 # clusters to make things comparable. It can also switch to linear inverse models
@@ -44,16 +44,13 @@
 
     # Computing normalization factors within each cluster.
     all.norm <- bplapply(indices, FUN=.per_cluster_normalize, x=x, sizes=sizes, subset.row=subset.row, 
-        min.mean=min.mean, positive=positive, errors=errors, BPPARAM=BPPARAM)
+        min.mean=min.mean, positive=positive, scaling=scaling, BPPARAM=BPPARAM)
 
     clust.nf <- lapply(all.norm, "[[", i="final.nf")
     clust.profile <- lapply(all.norm, "[[", i="ave.cell")
-    clust.libsizes <- lapply(all.norm, "[[", i="cur.libs")
-    clust.meanlib <- vapply(all.norm, FUN="[[", i="mean.lib", FUN.VALUE=0)
 
     # Adjusting size factors between clusters.
-    rescaling.factors <- .rescale_clusters(clust.profile, clust.meanlib, ref.clust=ref.clust, 
-                                           min.mean=min.mean, clust.names=names(indices))
+    rescaling.factors <- .rescale_clusters(clust.profile, ref.clust=ref.clust, min.mean=min.mean, clust.names=names(indices))
     clust.nf.scaled <- vector("list", nclusters)
     for (clust in seq_len(nclusters)) { 
         clust.nf.scaled[[clust]] <- clust.nf[[clust]] * rescaling.factors[[clust]]
@@ -61,10 +58,9 @@
     clust.nf.scaled <- unlist(clust.nf.scaled)
 
     # Returning centered size factors, rather than normalization factors.
-    clust.sf <- clust.nf.scaled * unlist(clust.libsizes) 
     final.sf <- rep(NA_integer_, ncells)
     indices <- unlist(indices)
-    final.sf[indices] <- clust.sf
+    final.sf[indices] <- clust.nf.scaled
     
     is.pos <- final.sf > 0 & !is.na(final.sf)
     final.sf <- final.sf/mean(final.sf[is.pos])
@@ -75,8 +71,9 @@
 # Internal functions.
 #############################################################
 
-#' @importFrom Matrix qr qr.coef
-.per_cluster_normalize <- function(x, curdex, sizes, subset.row, min.mean=1, positive=FALSE, errors=FALSE) 
+#' @importFrom Matrix qr qr.coef colSums
+#' @importFrom scater nexprs
+.per_cluster_normalize <- function(x, curdex, sizes, subset.row, min.mean=1, positive=FALSE, scaling=NULL) 
 # Computes the normalization factors _within_ each cluster,
 # along with the reference pseudo-cell used for normalization. 
 # Written as a separate function so that bplapply operates in the scran namespace.
@@ -92,44 +89,39 @@
         }
     } 
 
-    cur.out <- .Call(cxx_subset_and_divide, x, subset.row-1L, curdex-1L) 
-    cur.libs <- cur.out[[1]]
-    exprs <- cur.out[[2]]
-    ave.cell <- cur.out[[3]]
+    vals <- .Call(cxx_subset_and_divide, x, subset.row-1L, curdex-1L, scaling)
+    scaling <- vals[[1]]
+    exprs <- vals[[2]]
+    ave.cell <- vals[[3]] # equivalent to calcAverage().
 
-    # Filtering by mean (easier to do it here in R, rather than C++).
-    mean.lib <- mean(cur.libs)
-    high.ave <- min.mean/mean.lib <= ave.cell # mimics calcAverage
+    # Filtering by mean:
+    high.ave <- min.mean <= ave.cell 
+    use.ave.cell <- ave.cell
     if (!all(high.ave)) { 
         exprs <- exprs[high.ave,,drop=FALSE]
-        use.ave.cell <- ave.cell[high.ave]
-    } else {
-        use.ave.cell <- ave.cell
+        use.ave.cell <- use.ave.cell[high.ave]
     }
 
     # Using our summation approach.
-    sphere <- .generateSphere(cur.libs)
+    sphere <- .generateSphere(scaling)
     new.sys <- .create_linear_system(exprs, use.ave.cell, sphere, cur.sizes) 
     design <- new.sys$design
     output <- new.sys$output
 
-    # Weighted least-squares (inverse model for positivity).
-    if (positive) { 
-        design <- as.matrix(design)
-        fitted <- limSolve::lsei(A=design, B=output, G=diag(cur.cells), H=numeric(cur.cells), type=2)
-        final.nf <- fitted$X
-    } else {
-        QR <- qr(design)
-        final.nf <- qr.coef(QR, output)
-        if (any(final.nf < 0)) { 
-            warning("encountered negative size factor estimates")
-        }
-        if (errors) {
-            warning("errors=TRUE is no longer supported")
+    # Weighted least-squares.
+    QR <- qr(design)
+    final.nf <- qr.coef(QR, output)
+    final.nf <- final.nf * scaling
+
+    if (any(final.nf < 0)) {
+        warning("encountered negative size factor estimates")
+        if (positive) {
+            num.detected <- nexprs(exprs, byrow=FALSE)
+            final.nf <- cleanSizeFactors(final.nf, num.detected) 
         }
     }
 
-    return(list(final.nf=final.nf, ave.cell=ave.cell, cur.libs=cur.libs, mean.lib=mean.lib))
+    list(final.nf=final.nf, ave.cell=ave.cell)
 }
 
 .generateSphere <- function(lib.sizes) 
@@ -182,13 +174,14 @@ LOWWEIGHT <- 0.000001
 }
 
 #' @importFrom stats median
-.rescale_clusters <- function(mean.prof, mean.lib, ref.clust, min.mean, clust.names) 
+.rescale_clusters <- function(mean.prof, ref.clust, min.mean, clust.names) 
 # Chooses a cluster as a reference and rescales all other clusters to the reference,
 # based on the 'normalization factors' computed between pseudo-cells.
 {
-    # Picking the cluster with the median library size as the reference.
     if (is.null(ref.clust)) {
-        ref.col <- which(rank(mean.lib, ties.method="first")==as.integer(length(mean.lib)/2)+1L)
+        # Picking the cluster with the middle library size as the reference.
+        lib.sizes <- vapply(mean.prof, FUN=sum, FUN.VALUE=0) 
+        ref.col <- which(rank(lib.sizes, ties.method="first")==as.integer(length(lib.sizes)/2)+1L)
     } else {
         ref.col <- which(clust.names==ref.clust)
         if (length(ref.col)==0L) { 
@@ -205,9 +198,9 @@ LOWWEIGHT <- 0.000001
         # Filtering based on the mean of the per-cluster means (requires scaling for the library size).
         # Effectively equivalent to 'calcAverage(cbind(ref.ave.count, cur.ave.count))' where the averages
         # are themselves equivalent to 'calcAverage()' across all cells in each cluster.
-        ref.libsize <- mean.lib[[ref.col]]
-        cur.libsize <- mean.lib[[clust]]
-        to.use <- (cur.prof + ref.prof)/2 * (cur.libsize + ref.libsize)/2 >= min.mean
+        cur.libsize <- sum(cur.prof)
+        ref.libsize <- sum(ref.prof)
+        to.use <- (cur.prof/cur.libsize + ref.prof/ref.libsize)/2 * (cur.libsize + ref.libsize)/2 >= min.mean
         if (!all(to.use)) { 
             cur.prof <- cur.prof[to.use]
             ref.prof <- ref.prof[to.use]
@@ -264,17 +257,10 @@ setMethod("computeSumFactors", "ANY", .computeSumFactors)
 #' @importFrom SummarizedExperiment assay 
 #' @importFrom BiocGenerics "sizeFactors<-"
 #' @export
-setMethod("computeSumFactors", "SingleCellExperiment", 
-          function(x, ..., min.mean=1, subset.row=NULL, 
-                   assay.type="counts", get.spikes=FALSE, sf.out=FALSE) { 
- 
-    if (is.null(subset.row) && !is.null(min.mean)) {
-        no.warn <- TRUE # avoid triggering the message of the subsetting was not originally specified
-    }
-
+setMethod("computeSumFactors", "SingleCellExperiment", function(x, ..., subset.row=NULL, assay.type="counts", get.spikes=FALSE, sf.out=FALSE) 
+{ 
     subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
-    sf <- .computeSumFactors(assay(x, i=assay.type), subset.row=subset.row, 
-                             min.mean=min.mean, ...) 
+    sf <- .computeSumFactors(assay(x, i=assay.type), subset.row=subset.row, ...) 
 
     if (sf.out) { 
         return(sf) 

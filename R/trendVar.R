@@ -138,24 +138,48 @@
         dimnames(means) <- dimnames(vars) <- list(rownames(x)[subset.row], names(by.block))
 
     } else if (!is.null(design)) {
-        if (nrow(design)!=ncol(x)) {
-            stop("number of rows in 'design' should be equal to 'ncol(x)'")
-        }
-        recorder$design <- design
+        # Choose between a one-way layout as a factor, or a fully fledged design matrix.
+        if (is.null(dim(design))) {
+            if (ncol(x)!=length(design)) {
+                stop("length of one-way 'design' should be the same as 'ncol(x)'")
+            }
 
-        # Checking residual d.f.
-        resid.df <- nrow(design) - ncol(design)
-        if (resid.df <= 0L) {
-            stop("no residual d.f. in 'design' for variance estimation") 
+            # Checking residual d.f.
+            by.design <- split(seq_len(ncol(x))-1L, design, drop=TRUE)
+            N <- lengths(by.design)
+            resid.df <- N - 1L
+            if (sum(resid.df) <= 0L){
+                stop("no residual d.f. in 'design' for variance estimation")
+            }
+
+            # Calculating the statistics for each level of design, and then summing them.
+            raw.stats <- bplapply(by.core, FUN=.fit_oneway, by.block=by.design, x=x, BPPARAM=BPPARAM)
+            means <- unlist(lapply(raw.stats, FUN=function(stat) { stat[[1]] %*% N }))/sum(N)
+            to.use <- resid.df > 0
+            vars <- unlist(lapply(raw.stats, FUN=function(stat) { stat[[2]][,to.use,drop=FALSE] %*% resid.df[to.use] })) / sum(resid.df)
+            resid.df <- sum(resid.df)
+
+        } else if (!is.null(design)) {
+            if (nrow(design)!=ncol(x)) {
+                stop("number of rows in 'design' should be equal to 'ncol(x)'")
+            }
+
+            # Checking residual d.f.
+            resid.df <- nrow(design) - ncol(design)
+            if (resid.df <= 0L) {
+                stop("no residual d.f. in 'design' for variance estimation")
+            }
+
+            # Calculating the residual variance of the fitted linear model.
+            QR <- .ranksafe_qr(design)
+
+            raw.stats <- bplapply(by.core, FUN=.fit_linear_model, qr=QR$qr, qraux=QR$qraux, x=x, BPPARAM=BPPARAM)
+            means <- unlist(lapply(raw.stats, FUN="[[", i=1))
+            vars <- unlist(lapply(raw.stats, FUN="[[", i=2))
+
         }
-       
-        # Calculating the residual variance of the fitted linear model. 
-        QR <- .ranksafe_qr(design)
-       
-        raw.stats <- bplapply(by.core, FUN=.fit_linear_model, qr=QR$qr, qraux=QR$qraux, x=x, BPPARAM=BPPARAM)
-        means <- unlist(lapply(raw.stats, FUN="[[", i=1))
-        vars <- unlist(lapply(raw.stats, FUN="[[", i=2))
         names(means) <- names(vars) <- rownames(x)[subset.row]
+        recorder$design <- design
 
     } else {
         resid.df <- ncol(x) - 1L
@@ -179,8 +203,8 @@
     .Call(cxx_fit_oneway, by.block, x, chosen - 1L)
 }
 
-.fit_linear_model <- function(qr, qraux, x, chosen) {
-    .Call(cxx_fit_linear_model, qr, qraux, x, chosen - 1L, FALSE)
+.fit_linear_model <- function(qr, qraux, x, chosen, get.coef=FALSE) {
+    .Call(cxx_fit_linear_model, qr, qraux, x, chosen - 1L, get.coef)
 }
 
 #########################################################

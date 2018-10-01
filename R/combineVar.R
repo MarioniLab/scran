@@ -1,7 +1,7 @@
 #' @importFrom stats pnorm pchisq qnorm p.adjust
 #' @importFrom S4Vectors DataFrame metadata
 #' @export
-combineVar <- function(..., method=c("fisher", "z", "simes", "berger"), weighted=TRUE) 
+combineVar <- function(..., method="fisher", weighted=TRUE) 
 # Combines decomposeVar() results, typically from multiple batches.
 #
 # written by Aaron Lun
@@ -34,25 +34,11 @@ combineVar <- function(..., method=c("fisher", "z", "simes", "berger"), weighted
 
     # Combining the one-sided p-values.
     p.combine <- lapply(all.results, FUN="[[", i="p.value")
-
-    method <- match.arg(method)
-    if (method=="z") {
-        all.z <- lapply(p.combine, FUN=qnorm)
-        Z <- .weighted_average_vals(all.z, resid.df, weighted)
-
-        # Combining p-values of 0 and 1 will yield zscores of -Inf + Inf => NaN.
-        # Here, we set them to 0 to get p-values of 0.5, as the Z-method doesn't
-        # give coherent answers when you have p-values at contradicting extremes.
-        Z[is.nan(Z)] <- 0
-
-        p.final <- pnorm(Z)
-    } else if (method=="fisher") {
-        all.logp <- lapply(p.combine, FUN=log)
-        p.final <- pchisq(-2*Reduce("+", all.logp), df=2*length(all.logp), lower.tail=FALSE)
-    } else {
-        p.final <- .combine_pvalues(do.call(cbind, p.combine), 
-                                    pval.type=ifelse(method=="simes", "any", "all"))
+    comb.args <- list(method=method)
+    if (weighted) {
+        comb.args$weights <- resid.df
     }
+    p.final <- do.call(combinePValues, c(p.combine, comb.args))
 
     output <- do.call(DataFrame, output)
     p.final <- unname(p.final)

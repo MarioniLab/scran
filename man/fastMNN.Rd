@@ -8,7 +8,7 @@
 fastMNN(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE, 
     irlba.args=list(), subset.row=NULL, auto.order=FALSE, pc.input=FALSE,
     compute.variances=FALSE, assay.type="logcounts", use.spikes=FALSE, 
-    BPPARAM=SerialParam()) 
+    BNPARAM=NULL, BPPARAM=SerialParam()) 
 }
 
 \arguments{
@@ -35,7 +35,9 @@ Alternatively, an integer vector containing a permutation of \code{1:N} where \c
 \item{pc.input}{Logical scalar indicating whether the values in \code{...} are already low-dimensional, e.g., the output of \code{\link{multiBatchPCA}}.}
 \item{assay.type}{A string or integer scalar specifying the assay containing the expression values, if SingleCellExperiment objects are present in \code{...}.}
 \item{use.spikes}{A logical scalar specifying whether spike-in transcripts should be used, if SingleCellExperiment objects are present in \code{...}.}
-\item{BPPARAM}{A BiocParallelParam object specifying whether the PCA and nearest-neighbor searches should be parallelized.}
+\item{BNPARAM}{A \linkS4class{BiocNeighborParam} object specifying the nearest neighbor algorithm.
+Defaults to an exact algorithm if \code{NULL}, see \code{?\link{findKNN}} for more details.}
+\item{BPPARAM}{A \linkS4class{BiocParallelParam} object specifying whether the PCA and nearest-neighbor searches should be parallelized.}
 }
 
 \value{

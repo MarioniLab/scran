@@ -1,35 +1,47 @@
 #include "scran.h"
 #include "utils.h"
 
-SEXP combine_simes(SEXP _pvals, SEXP dolog) {
+SEXP combine_simes(SEXP pvals, SEXP dolog) {
     BEGIN_RCPP 
-    Rcpp::NumericMatrix pvals(_pvals);
-    const size_t ncon=pvals.ncol();
-    const size_t ngenes=pvals.nrow();
+    Rcpp::List Pvals(pvals);
+    const size_t ncon=Pvals.size();
 
-    // Should we process these values as if they were log-transformed?
+    std::vector<Rcpp::NumericVector> individual(ncon);
+    size_t ngenes=0;
+    for (size_t c=0; c<ncon; ++c) {
+        auto& current=(individual[c]=Pvals[c]);
+        if (c==0) {
+            ngenes=current.size();
+        } else if (ngenes!=current.size()) {
+            throw std::runtime_error("p-value vectors must be of the same length");           
+        }
+    }
+    
     const bool logp=check_logical_scalar(dolog, "log-transformed specifier");
 
+    // Should we process these values as if they were log-transformed?
     Rcpp::NumericVector output(ngenes, (logp ? 0 : 1));
     std::vector<double> collected(ncon);
 
     for (size_t g=0; g<ngenes; ++g) {
-        const auto currow=pvals.row(g);
-        std::copy(currow.begin(), currow.end(), collected.begin());
-        std::sort(collected.begin(), collected.end());
-
-        int counter=0;
-        double& minval=output[g];
-        for (auto P : collected) {
-            if (isNA(P)) {
-                continue;
+        size_t nonna=0;
+        for (size_t c=0; c<ncon; ++c) {
+            const auto& current=individual[c][g];
+            if (!ISNA(current)) { 
+                collected[nonna]=current;
+                ++nonna;
             }
-            ++counter;
+        }
+        std::sort(collected.begin(), collected.begin()+nonna);
+
+        double& minval=output[g];
+        for (size_t i=0; i<nonna; ++i) {
+            auto P=collected[i];
 
             if (logp) {
-                P-=std::log(counter);
+                P-=std::log(i+1);
             } else {
-                P/=counter;
+                P/=i+1;
             }
             
             if (P<minval) { 
@@ -37,13 +49,13 @@ SEXP combine_simes(SEXP _pvals, SEXP dolog) {
             }
         }
 
-        if (counter==0) { // nothing but NA's.
+        if (nonna==0) { // nothing but NA's.
             minval=R_NaReal;
         } else { // Multiply by number of non-NA tests.
             if (logp) { 
-                minval+=std::log(counter);
+                minval+=std::log(nonna);
             } else {
-                minval*=counter;
+                minval*=nonna;
             }
         }
     }

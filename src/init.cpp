@@ -10,7 +10,7 @@ extern "C" {
 static const R_CallMethodDef all_call_entries[] = {
     // Normalization.
     REGISTER(forge_system, 4),
-    REGISTER(subset_and_divide, 3),
+    REGISTER(subset_and_divide, 4),
     REGISTER(quick_sum_factors, 6),
 
     // Cell cycle calling.
@@ -27,15 +27,19 @@ static const R_CallMethodDef all_call_entries[] = {
     // Variance calculations.
     REGISTER(fit_linear_model, 5),
     REGISTER(fit_oneway, 3),
+
     REGISTER(calc_log_count_stats, 5),
+    REGISTER(calc_log_expected, 5),
+    REGISTER(calc_log_sqdiff, 6),
 
     // DE analysis functions.
     REGISTER(combine_simes, 2),
     REGISTER(overlap_exprs, 4),
 
     // Clustering functions.
-    REGISTER(build_snn, 1),
-    REGISTER(get_scaled_ranks, 3),
+    REGISTER(build_snn_rank, 1),
+    REGISTER(build_snn_number, 1),
+    REGISTER(get_scaled_ranks, 4),
 
     // Miscellaneous functions.
     REGISTER(get_residuals, 5),

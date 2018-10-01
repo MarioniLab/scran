@@ -1,5 +1,6 @@
+#' @export
 #' @importFrom scater calcAverage
-.scaled_col_ranks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, withDimnames=TRUE)
+scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, as.sparse=FALSE, withDimnames=TRUE)
 # Obtaining scaled/centred ranks to compute cosine distances.
 # Using this instead of colRanks to support dgCMatrix, HDF5Array objects.
 # 
@@ -12,22 +13,14 @@
         subset.row <- subset.row[further.subset]
     }
 
-    rkout <- .Call(cxx_get_scaled_ranks, x, subset.row-1L, transposed)
-    if (withDimnames) {
-        dimnames(rkout) <- dimnames(x)
+    rkout <- .Call(cxx_get_scaled_ranks, x, subset.row-1L, transposed, as.sparse)
+
+    if (withDimnames && !is.null(dimnames(x))) {
+        dn <- list(rownames(x)[subset.row], colnames(x))
+        if (transposed) { 
+            dn <- rev(dn)
+        }
+        dimnames(rkout) <- dn
     }
     return(rkout)
 }
-
-#' @export
-setGeneric("scaledColRanks", function(x, ...) standardGeneric("scaledColRanks"))
-
-#' @export
-setMethod("scaledColRanks", "ANY", .scaled_col_ranks)
-
-#' @export
-#' @importFrom SummarizedExperiment assay
-setMethod("scaledColRanks", "SingleCellExperiment", function(x, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE) { 
-    subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)          
-    .scaled_col_ranks(assay(x, i=assay.type), subset.row=subset.row, ...)
-})
