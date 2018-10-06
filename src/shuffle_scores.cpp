@@ -15,9 +15,9 @@ double get_proportion (const V& expr, const int& minpairs, const Rcpp::IntegerVe
     
     const bool short_cut = !ISNA(threshold);
     const double output=double(was_first)/was_total;
-    if (short_cut) {
-        return (output < threshold ? -1 : 1);
-    }
+//    if (short_cut) {
+//        return (output < threshold ? -1 : 1);
+//    }
     return output;
 }
 
@@ -78,7 +78,7 @@ SEXP shuffle_scores_internal (M mat_ptr,
             Rx_shuffle(current_exprs.begin(), current_exprs.end());
             const double newscore=get_proportion(current_exprs, minp, marker1, marker2, curscore);
             if (!ISNA(newscore)) { 
-                if (newscore < 0) { ++below; }
+                if (newscore < curscore) { ++below; }
                 ++total;
             }
         }
