@@ -1,13 +1,13 @@
 Package: scran
-Version: 1.9.30
-Date: 2018-09-28
+Version: 1.9.33
+Date: 2018-10-09
 Title: Methods for Single-Cell RNA-Seq Data Analysis
-Authors@R: c(person("Aaron", "Lun", role = c("aut", "cre"), email =
-        "alun@wehi.edu.au"), person("Karsten", "Bach", role = "aut"),
-        person("Jong Kyoung", "Kim", role = "ctb"), person("Antonio", 
-        "Scialdone", role="ctb"), person("Laleh", "Haghverdi", 
-        role="ctb"))
-Maintainer: Aaron Lun <alun@wehi.edu.au>
+Authors@R: c(person("Aaron", "Lun", role = c("aut", "cre"), 
+        email = "infinite.monkeys.with.keyboards@gmail.com"), 
+        person("Karsten", "Bach", role = "aut"),
+        person("Jong Kyoung", "Kim", role = "ctb"), 
+        person("Antonio", "Scialdone", role="ctb"), 
+        person("Laleh", "Haghverdi", role="ctb"))
 Depends: R (>= 3.5), BiocParallel, SingleCellExperiment
 Imports: SummarizedExperiment, S4Vectors, BiocGenerics, 
         Rcpp (>= 0.12.14), stats, methods, utils, Matrix, scater, 
@@ -29,6 +29,4 @@ NeedsCompilation: yes
 VignetteBuilder: knitr
 SystemRequirements: C++11
 LinkingTo: beachmat, Rcpp, Rhdf5lib
-Author: Aaron Lun [aut, cre], Karsten Bach [aut], Jong Kyoung Kim [ctb],
-        Antonio Scialdone [ctb], Laleh Haghverdi [ctb]
 RoxygenNote: 6.1.0
