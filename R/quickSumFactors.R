@@ -1,6 +1,8 @@
 #' @importFrom BiocNeighbors findKNN
 #' @importFrom methods is
 #' @importClassesFrom Matrix dgCMatrix
+#' @importFrom scater librarySizeFactors normalizeCounts
+#' @importFrom BiocGenerics t
 .quick_sum_factors_per_block <- function(x, indices=NULL, k=20, d=50, approximate=FALSE, irlba.args=list(), min.mean=1, subset.row=NULL, BNPARAM=NULL)
 # Implements a much faster method based on local averages to compute size factors.
 # Avoids the need for explicit clustering outside of the algorithm.
@@ -17,33 +19,22 @@
     if (!is(x, "dgCMatrix")) { # Avoid costly re-reading from file for file-backed matrices.
         x <- as.matrix(x) 
     }
+    if (ncol(x)==0L) {
+        stop("no neighbors available for size factor estimation")
+    }
 
-    pcs <- .get_search_coordinates(x, max.rank=d, approximate=approximate, extra.args=irlba.args)
+    # A mini-analysis based on library size normalization.
+    sf <- librarySizeFactors(x)
+    y <- normalizeCounts(x, size_factors=sf, return_log=TRUE)
+    fit <- trendVar(y)
+    pcs <- denoisePCA(y, technical=fit$trend, approximate=approximate, irlba.args=irlba.args)
     nn.out <- findKNN(pcs, k=k, BNPARAM=BNPARAM)
     
     # Choosing the densest cell to be the reference.
     last <- ncol(nn.out$distance)
-    if (last==0L) {
-        stop("no neighbors available for size factor estimation")
-    }
     ref.cell <- which.min(nn.out$distance[,last])
 
     .quick_sum_cpp_wrapper(x, nn.out$index, nn.out$distance, ref.cell, min.mean=min.mean, ndist=3)
-}
-
-#' @importFrom scater librarySizeFactors normalizeCounts
-#' @importFrom BiocGenerics t
-.get_search_coordinates <- function(x, max.rank=50, approximate=FALSE, extra.args=list())
-# Performs PCA on the expression profiles after library size normalization.
-{
-    sf <- librarySizeFactors(x)
-    y <- normalizeCounts(x, size_factors=sf, return_log=TRUE)
-    if (is.na(max.rank)) {
-        return(t(y))
-    } else {
-        SVD <- .centered_SVD(t(y), max.rank=max.rank, approximate=approximate, extra.args=extra.args, keep.right=FALSE)
-        return(.svd_to_pca(SVD, ncomp=max.rank))
-    }
 }
 
 .quick_sum_cpp_wrapper <- function(x, index, distance, ref.cell, min.mean=NULL, ndist=3) 
