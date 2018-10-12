@@ -3,7 +3,7 @@
 #' @importClassesFrom Matrix dgCMatrix
 #' @importFrom scater librarySizeFactors normalizeCounts
 #' @importFrom BiocGenerics t
-.quick_sum_factors_per_block <- function(x, indices=NULL, k=20, d=50, approximate=FALSE, irlba.args=list(), min.mean=1, subset.row=NULL, BNPARAM=NULL)
+.quick_sum_factors_per_block <- function(x, indices=NULL, k=20, trend.args=list(), approximate=FALSE, irlba.args=list(), min.mean=1, subset.row=NULL, BNPARAM=NULL)
 # Implements a much faster method based on local averages to compute size factors.
 # Avoids the need for explicit clustering outside of the algorithm.
 # 
@@ -26,7 +26,7 @@
     # A mini-analysis based on library size normalization.
     sf <- librarySizeFactors(x)
     y <- normalizeCounts(x, size_factors=sf, return_log=TRUE)
-    fit <- trendVar(y)
+    fit <- do.call(trendVar, c(list(x=y), trend.args))
     pcs <- denoisePCA(y, technical=fit$trend, approximate=approximate, irlba.args=irlba.args)
     nn.out <- findKNN(pcs, k=k, BNPARAM=BNPARAM)
     
@@ -47,10 +47,12 @@
 
 #' @importFrom BiocParallel SerialParam bpmapply
 #' @importFrom stats median
-.quickSumFactors <- function(x, k=20, d=50, approximate=FALSE, irlba.args=list(), subset.row=NULL, min.mean=1, block=NULL, BNPARAM=NULL, BPPARAM=SerialParam()) 
+#' @importFrom scater librarySizeFactors normalizeCounts
+#' @importFrom BiocGenerics t
+.quickSumFactors <- function(x, k=20, trend.args=list(), approximate=FALSE, irlba.args=list(), subset.row=NULL, min.mean=1, block=NULL, BNPARAM=NULL, BPPARAM=SerialParam()) 
 # Parallelizes the size factor calculation across blocks.
 {
-    all.args <- list(x=x, k=k, d=d, approximate=approximate, irlba.args=irlba.args, subset.row=subset.row, min.mean=min.mean, BNPARAM=BNPARAM)
+    all.args <- list(x=x, k=k, trend.args=trend.args, approximate=approximate, irlba.args=irlba.args, subset.row=subset.row, min.mean=min.mean, BNPARAM=BNPARAM)
     if (is.null(block)) { 
         all.norm <- do.call(.quick_sum_factors_per_block, all.args)
         sf <- all.norm[[1]]
@@ -64,7 +66,9 @@
     # Choosing a reference block from the within-block references.
     # This is done by picking the block in the middle of the first PC.
     all.ref <- lapply(all.norm, "[[", i="ref")
-    ref.pcs <- .get_search_coordinates(do.call(cbind, all.ref), max.rank=1, approximate=approximate, extra.args=irlba.args)
+    R <- do.call(cbind, all.ref)
+    R <- normalizeCounts(R, size_factors=librarySizeFactors(R), return_log=TRUE)
+    ref.pcs <- .centered_SVD(t(R), max.rank=1, approximate=approximate, extra.args=irlba.args)$u
     ref.block <- which.min(abs(ref.pcs - median(ref.pcs)))
 
     # Scaling all size factors to the new reference.

@@ -7,9 +7,9 @@
 \description{Perform a quick calculation of cell-specific size factors based on summation and normalization against nearest neighbors.}
 
 \usage{
-\S4method{quickSumFactors}{ANY}(x, k=20, d=50, approximate=FALSE, irlba.args=list(),
-    subset.row=NULL, min.mean=1, block=NULL, BNPARAM=NULL, 
-    BPPARAM=SerialParam())
+\S4method{quickSumFactors}{ANY}(x, k=20, trend.args=list(), approximate=FALSE, 
+    irlba.args=list(), subset.row=NULL, min.mean=1, block=NULL, 
+    BNPARAM=NULL, BPPARAM=SerialParam())
 
 \S4method{quickSumFactors}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="counts", 
     get.spikes=FALSE, sf.out=FALSE) 
@@ -21,7 +21,7 @@
     Alternatively, a SingleCellExperiment object containing such a matrix.
 }
 \item{k}{Integer scalar specifying the number of nearest neighbors.}
-\item{d}{Integer scalar specifying the number of PCs to retain for nearest-neighbor searching.}
+\item{trend.args}{A list containing named arguments to pass to \code{\link{trendVar}}.}
 \item{approximate}{Logical scalar indicating whether an approximate PCA should be performed.}
 \item{irlba.args}{List containing arguments to pass to \code{\link[irlba]{irlba}} if \code{approximate=TRUE}.}
 \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
@@ -39,8 +39,8 @@
 This function implements a greatly simplified counterpart to the \code{\link{quickCluster}} and \code{\link{computeSumFactors}} workflow for computing cell-specific size factors.
 Briefly, it:
 \enumerate{
-\item Identifies the \code{k} nearest neighbors for each cell, based on the first \code{d} PCs from the log-transformed library size-normalized expression matrix.
-If \code{d} is \code{NA}, the log-expression matrix is used directly without any PCA.
+\item Identifies the \code{k} nearest neighbors for each cell, based on the first few PCs from the log-transformed library size-normalized expression matrix.
+The number of PCs is identified by running \code{\link{trendVar}} and \code{\link{denoisePCA}}.
 \item Computes a library size factor for each cell, normalized against the average pseudo-cell constructed from the neighbor set.
 This avoids problems with composition biases, under the assumption that negligible DE is present between neighbors.
 \item Rescales the size factor across cells, using a median-based normalization method on the neighbor-derived pseudo-cell for each cell.
@@ -48,17 +48,17 @@ The use of a summed profile avoids problems with zeros upon median-based normali
 }
 
 All cells are rescaled towards a reference pseudo-cell, defined as the cell with the lowest distance to the \code{d}th neighbor.
-This is a rough proxy for the highest density cell, which should also have the most stable neighbor-derived pseudo-cell.
+This is a rough proxy for the neighbourhood with the highest density of cells, which should also have the most stable neighbor-derived pseudo-cell.
 
 If \code{block} is specified, the above process is performed for all cells within each level of block.
 To calibrate the size factors across blocks, median-based normalization is applied to the block-specific reference pseudo-cells.
 The global reference pseudo-cell is defined as that which is closest to the \dQuote{middle} of the data set.
 This is defined as the median position on the first PC after performing a PCA on all of the block-specific reference pseudo-cells.
 
-If \code{min.mean} is specified, all genes with library size-normalized averages below \code{min.mean} will be ignored during median-based normalization.
+If \code{min.mean} is positive, genes with library size-normalized averages below \code{min.mean} will be ignored during median-based normalization.
+(Specifically, the threshold is applied to the grand average of the pooled profile for each cell and that of the reference cell.)
 This favours moderate- and high-abundance genes for which median-based normalization is more accurate.
 Note that this filtering will only affect the calculation of scaling factors, and will not be used for nearest-neighbor detection.
-A filter on the global average may discriminate against marker genes for rare populations, which would interfere with correct neighbor detection.
 }
 
 \value{
