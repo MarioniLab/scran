@@ -66,34 +66,13 @@ test_that("C++ code underlying quickSumFactors() works correctly", {
 
 set.seed(120001)
 test_that("quickSumFactors() works correctly in vanilla applications", {
-    # An overall run to check that it behaves.
     ncells <- 200
     ngenes <- 1000
     x <- matrix(rgamma(ngenes*ncells, 2, 2), nrow=ngenes, ncol=ncells) 
     out <- quickSumFactors(x)
     expect_equal(length(out), ncells)
     expect_equal(mean(out), 1)
-
-    # A silly run to check that it returns the true size factors exactly.
-    true.sf <- runif(ncells)
-    x <- outer(rpois(ngenes, lambda=20), true.sf)
-    expect_warning(out <- quickSumFactors(x), "tied")
-    expect_equal(out, true.sf/mean(true.sf))
-
-    # Another run to check that subpopulations are properly identified.
-    ncells <- 600
-    ngenes <- 200
-    count.sizes <- rnbinom(ncells, mu=100, size=5)
-    multiplier <- seq_len(ngenes)/100
-    dummy <- outer(multiplier, count.sizes)
-
-    known.clusters <- sample(3, ncells, replace=TRUE) # Most genes (120 out of 200) are DE in at least one cluster.
-    dummy[1:40,known.clusters==1L] <- 0
-    dummy[41:80,known.clusters==2L] <- 0
-    dummy[81:120,known.clusters==3L] <- 0
-
-    expect_warning(out <- quickSumFactors(dummy), "tied")
-    expect_equal(out, count.sizes/mean(count.sizes))
+    expect_true(cor(out, colSums(x)) > 0.9) # basically library size normalization.
 })
 
 set.seed(120002)
@@ -108,7 +87,6 @@ test_that("quickSumFactors() responds to all parameters", {
 
     # Check that parameter values are passed down properly and modify the result.
     expect_false(isTRUE(all.equal(ref, quickSumFactors(x, k=19))))
-    expect_false(isTRUE(all.equal(ref, quickSumFactors(x, d=20))))
     expect_false(isTRUE(all.equal(ref, quickSumFactors(x, min.mean=0.95))))
     expect_false(isTRUE(all.equal(ref, quickSumFactors(x, BNPARAM=BiocNeighbors::AnnoyParam(ntrees=10)))))
 
@@ -118,13 +96,19 @@ test_that("quickSumFactors() responds to all parameters", {
 
 set.seed(120003)
 test_that("quickSumFactors() works correctly with blocks", {
-    # An overall run to check that it behaves.
     ncells <- 200
     ngenes <- 1000
     x <- matrix(rgamma(ngenes*ncells, 2, 2), nrow=ngenes, ncol=ncells) 
     out <- quickSumFactors(x, block=gl(2, 100))
     expect_equal(length(out), ncells)
     expect_equal(mean(out), 1)
+
+    out1 <- quickSumFactors(x[,1:100])
+    out2 <- quickSumFactors(x[,1:100+100])
+    sub1 <- out[1:100]
+    expect_equal(out1, sub1/mean(sub1))
+    sub2 <- out[1:100+100]
+    expect_equal(out2, sub2/mean(sub2))
 
     # Checking that it behaves when block indices are unordered.
     scramble <- sample(ncells)
@@ -135,15 +119,14 @@ test_that("quickSumFactors() works correctly with blocks", {
     out3 <- quickSumFactors(x, block=gl(2, 100), BPPARAM=MulticoreParam(2))
     expect_equal(out3, out)
 
-    # A silly run to check that it returns the true size factors exactly.
-    true.sf <- runif(ncells)
-    x <- outer(rpois(ngenes, lambda=20), true.sf)
-    y <- cbind(x, x*2, x*5)
+    # Checking that rescaling is done correctly.
+    x2 <- matrix(rgamma(ngenes*ncells, 2, 2), nrow=ngenes, ncol=ncells) 
+    x3 <- matrix(rgamma(ngenes*ncells, 2, 2), nrow=ngenes, ncol=ncells) 
 
     block <- gl(3, ncells)
-    expect_warning(out <- quickSumFactors(y, block=block), "tied")
-    ref <- c(true.sf, true.sf*2, true.sf*5)
-    expect_equal(out, ref/mean(ref))
+    out <- quickSumFactors(cbind(x, x2*2, x3*3), block=block)
+    expect_equal(mean(out[block==2])/mean(out[block==1]), 2, tol=0.1)
+    expect_equal(mean(out[block==3])/mean(out[block==1]), 3, tol=0.1)
 })
 
 set.seed(120004)
