@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.9.29}{\itemize{
+\section{Version 1.9.35}{\itemize{
 \item Removed selectorPlot(), exploreData() functions in favour of iSEE.
     
 \item Fixed underflow problem in mnnCorrect() when dealing with the Gaussian kernel.
@@ -18,6 +18,8 @@ Increased all pool sizes to avoid rare failures if number of cells is a multiple
 Minor improvement to how mean filtering is done for rescaling across clusters in computeSumFactors().
 Throw errors upon min.mean=NULL, which used to be valid.
 Switched positive=TRUE behaviour to use cleanSizeFactors().
+
+\item Added simpleSumFactors() as a simplified alternative to quickCluster() and computeSumFactors().
 
 \item Added the scaledColRanks() function for computing scaled and centred column ranks.
 
