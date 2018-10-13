@@ -42,7 +42,7 @@ void get_tricube_average(size_t i, M mat,
 }
 
 template<class V, class M>
-SEXP quick_sum_factors_internal(M mat, Rcpp::IntegerMatrix indices, Rcpp::NumericMatrix distances, Rcpp::IntegerVector ref_cell, SEXP min_mean, SEXP ndist) 
+SEXP simple_sum_factors_internal(M mat, Rcpp::IntegerMatrix indices, Rcpp::NumericMatrix distances, Rcpp::IntegerVector ref_cell, SEXP min_mean, SEXP ndist) 
 {
     const size_t ngenes=mat->get_nrow();
     const size_t ncells=mat->get_ncol();
@@ -114,15 +114,15 @@ SEXP quick_sum_factors_internal(M mat, Rcpp::IntegerMatrix indices, Rcpp::Numeri
     return Rcpp::List::create(outfactors, reference);
 }
 
-SEXP quick_sum_factors(SEXP matrix, SEXP indices, SEXP distances, SEXP ref_cell, SEXP min_mean, SEXP ndist) {
+SEXP simple_sum_factors(SEXP matrix, SEXP indices, SEXP distances, SEXP ref_cell, SEXP min_mean, SEXP ndist) {
     BEGIN_RCPP
     int rtype=beachmat::find_sexp_type(matrix);
     if (rtype==INTSXP) {
         auto input=beachmat::create_integer_matrix(matrix);
-        return quick_sum_factors_internal<Rcpp::IntegerVector>(input.get(), indices, distances, ref_cell, min_mean, ndist);
+        return simple_sum_factors_internal<Rcpp::IntegerVector>(input.get(), indices, distances, ref_cell, min_mean, ndist);
     } else {
         auto input=beachmat::create_numeric_matrix(matrix);
-        return quick_sum_factors_internal<Rcpp::NumericVector>(input.get(),  indices, distances, ref_cell, min_mean, ndist);
+        return simple_sum_factors_internal<Rcpp::NumericVector>(input.get(),  indices, distances, ref_cell, min_mean, ndist);
     }
     END_RCPP
 }

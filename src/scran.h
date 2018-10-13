@@ -19,7 +19,7 @@ SEXP forge_system (SEXP, SEXP, SEXP, SEXP);
 
 SEXP subset_and_divide(SEXP, SEXP, SEXP, SEXP); 
 
-SEXP quick_sum_factors(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP simple_sum_factors(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
 // Cell cycle calling.
 

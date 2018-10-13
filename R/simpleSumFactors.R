@@ -3,7 +3,7 @@
 #' @importClassesFrom Matrix dgCMatrix
 #' @importFrom scater librarySizeFactors normalizeCounts
 #' @importFrom BiocGenerics t
-.quick_sum_factors_per_block <- function(x, indices=NULL, k=20, trend.args=list(), approximate=FALSE, irlba.args=list(), min.mean=1, subset.row=NULL, BNPARAM=NULL)
+.simple_sum_factors_per_block <- function(x, indices=NULL, k=20, trend.args=list(), approximate=FALSE, irlba.args=list(), min.mean=1, subset.row=NULL, BNPARAM=NULL)
 # Implements a much faster method based on local averages to compute size factors.
 # Avoids the need for explicit clustering outside of the algorithm.
 # 
@@ -34,13 +34,13 @@
     last <- ncol(nn.out$distance)
     ref.cell <- which.min(nn.out$distance[,last])
 
-    .quick_sum_cpp_wrapper(x, nn.out$index, nn.out$distance, ref.cell, min.mean=min.mean, ndist=3)
+    .simple_sum_cpp_wrapper(x, nn.out$index, nn.out$distance, ref.cell, min.mean=min.mean, ndist=3)
 }
 
-.quick_sum_cpp_wrapper <- function(x, index, distance, ref.cell, min.mean=NULL, ndist=3) 
+.simple_sum_cpp_wrapper <- function(x, index, distance, ref.cell, min.mean=NULL, ndist=3) 
 # Wrapper to the C++ function for easier calling in the tests.
 {
-    out <- .Call(cxx_quick_sum_factors, x, t(index-1L), t(distance), ref.cell - 1L, min.mean, ndist)
+    out <- .Call(cxx_simple_sum_factors, x, t(index-1L), t(distance), ref.cell - 1L, min.mean, ndist)
     names(out) <- c("sf", "ref")
     out
 }
@@ -49,19 +49,19 @@
 #' @importFrom stats median
 #' @importFrom scater librarySizeFactors normalizeCounts
 #' @importFrom BiocGenerics t
-.quickSumFactors <- function(x, k=20, trend.args=list(), approximate=FALSE, irlba.args=list(), subset.row=NULL, min.mean=1, block=NULL, BNPARAM=NULL, BPPARAM=SerialParam()) 
+.simpleSumFactors <- function(x, k=20, trend.args=list(), approximate=FALSE, irlba.args=list(), subset.row=NULL, min.mean=1, block=NULL, BNPARAM=NULL, BPPARAM=SerialParam()) 
 # Parallelizes the size factor calculation across blocks.
 {
     all.args <- list(x=x, k=k, trend.args=trend.args, approximate=approximate, irlba.args=irlba.args, subset.row=subset.row, min.mean=min.mean, BNPARAM=BNPARAM)
     if (is.null(block)) { 
-        all.norm <- do.call(.quick_sum_factors_per_block, all.args)
+        all.norm <- do.call(.simple_sum_factors_per_block, all.args)
         sf <- all.norm[[1]]
         names(sf) <- colnames(x)
         return(sf/mean(sf))
     }
 
     indices <- split(seq_along(block), block)
-    all.norm <- bpmapply(FUN=.quick_sum_factors_per_block, indices=indices, MoreArgs=all.args, SIMPLIFY=FALSE, USE.NAMES=FALSE, BPPARAM=BPPARAM)
+    all.norm <- bpmapply(FUN=.simple_sum_factors_per_block, indices=indices, MoreArgs=all.args, SIMPLIFY=FALSE, USE.NAMES=FALSE, BPPARAM=BPPARAM)
 
     # Choosing a reference block from the within-block references.
     # This is done by picking the block in the middle of the first PC.
@@ -87,18 +87,18 @@
 #############################################################
 
 #' @export
-setGeneric("quickSumFactors", function(x, ...) standardGeneric("quickSumFactors"))
+setGeneric("simpleSumFactors", function(x, ...) standardGeneric("simpleSumFactors"))
 
 #' @export
-setMethod("quickSumFactors", "ANY", .quickSumFactors)
+setMethod("simpleSumFactors", "ANY", .simpleSumFactors)
 
 #' @importFrom SummarizedExperiment assay 
 #' @importFrom BiocGenerics "sizeFactors<-"
 #' @export
-setMethod("quickSumFactors", "SingleCellExperiment", function(x, ..., subset.row=NULL, assay.type="counts", get.spikes=FALSE, sf.out=FALSE) 
+setMethod("simpleSumFactors", "SingleCellExperiment", function(x, ..., subset.row=NULL, assay.type="counts", get.spikes=FALSE, sf.out=FALSE) 
 { 
     subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
-    sf <- .quickSumFactors(assay(x, i=assay.type), subset.row=subset.row, ...) 
+    sf <- .simpleSumFactors(assay(x, i=assay.type), subset.row=subset.row, ...) 
     if (sf.out) { 
         return(sf) 
     }
