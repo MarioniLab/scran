@@ -11,6 +11,7 @@ static const R_CallMethodDef all_call_entries[] = {
     // Normalization.
     REGISTER(forge_system, 4),
     REGISTER(subset_and_divide, 4),
+    REGISTER(simple_sum_factors, 6),
 
     // Cell cycle calling.
     REGISTER(shuffle_scores, 8),
