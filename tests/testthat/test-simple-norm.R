@@ -148,3 +148,11 @@ test_that("simpleSumFactors() deals with alternative representations", {
     expect_equal(simpleSumFactors(z, min.mean=0), simpleSumFactors(x, min.mean=0))
     expect_equal(simpleSumFactors(z, block=b, min.mean=0), simpleSumFactors(x, block=b, min.mean=0))
 })
+
+set.seed(120005)
+test_that("simpleSumFactors() throws upon observing nonsensical size factors", {
+    ncells <- 200
+    ngenes <- 1000
+    x <- matrix(rgamma(ngenes*ncells, 2, 2), nrow=ngenes, ncol=ncells) # using rgamma() to avoid ties.
+    expect_error(simpleSumFactors(x, min.mean=10), "zero or undefined")
+})
