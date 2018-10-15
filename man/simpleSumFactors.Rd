@@ -50,10 +50,15 @@ The use of a summed profile avoids problems with zeros upon median-based normali
 All cells are rescaled towards a reference pseudo-cell, defined as the cell with the lowest distance to the \code{d}th neighbor.
 This is a rough proxy for the neighbourhood with the highest density of cells, which should also have the most stable neighbor-derived pseudo-cell.
 
+The number of neighbors \code{k} represents the minimum number of cells of any cell type or state.
+Reducing \code{k} will increase the robustness of the algorithm to population heterogeneity.
+However, it will reduce the precision of the median-based estimator, and will increase the risk of obtaining zero or undefined size factors after rescaling.
+If such size factors are encountered, \code{k} should be set to the largest value that the user is willing to tolerate.
+
 If \code{block} is specified, the above process is performed for all cells within each level of block.
 To calibrate the size factors across blocks, median-based normalization is applied to the block-specific reference pseudo-cells.
 The global reference pseudo-cell is defined as that which is closest to the \dQuote{middle} of the data set.
-This is defined as the median position on the first PC after performing a PCA on all of the block-specific reference pseudo-cells.
+This is defined as the median position on the first PC after performing a PCA on the log-transformed expression profiles of the block-specific reference pseudo-cells.
 
 If \code{min.mean} is positive, genes with library size-normalized averages below \code{min.mean} will be ignored during median-based normalization.
 (Specifically, the threshold is applied to the grand average of the pooled profile for each cell and that of the reference cell.)
@@ -93,6 +98,10 @@ plot(colSums(counts), out.facs, log="xy")
 \keyword{normalization}
 
 \references{
+Lun ATL (2018).
+Further scaling normalization.
+\url{https://github.com/MarioniLab/FurtherNorm2018}
+
 Lun ATL, Bach K and Marioni JC (2016).
 Pooling across cells to normalize single-cell RNA sequencing data with many zero counts.
 \emph{Genome Biol.} 17:75
