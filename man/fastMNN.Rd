@@ -148,3 +148,13 @@ all.equal(out[1:3], out.2) # should be TRUE (no rotation)
 cor.exp <- tcrossprod(out$rotation[c(1,10),], out$corrected)
 dim(cor.exp)
 }
+
+\references{
+Haghverdi L, Lun ATL, Morgan MD, Marioni JC (2018).
+Batch effects in single-cell RNA-sequencing data are corrected by matching mutual nearest neighbors.
+\emph{Nat. Biotechnol.} 36(5):421
+
+Lun ATL (2018).
+Further MNN algorithm development.
+\url{https://github.com/MarioniLab/FurtherMNN2018}
+}

@@ -123,3 +123,9 @@ B1 <- matrix(rnorm(10000), ncol=50) # Batch 1
 B2 <- matrix(rnorm(10000), ncol=50) # Batch 2
 out <- mnnCorrect(B1, B2) # corrected values
 }
+
+\references{
+Haghverdi L, Lun ATL, Morgan MD, Marioni JC (2018).
+Batch effects in single-cell RNA-sequencing data are corrected by matching mutual nearest neighbors.
+\emph{Nat. Biotechnol.} 36(5):421
+}
