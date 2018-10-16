@@ -24,14 +24,14 @@
 \item{trend.args}{A list containing named arguments to pass to \code{\link{trendVar}}.}
 \item{approximate}{Logical scalar indicating whether an approximate PCA should be performed.}
 \item{irlba.args}{List containing arguments to pass to \code{\link[irlba]{irlba}} if \code{approximate=TRUE}.}
-\item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 \item{min.mean}{A numeric scalar specifying the minimum (library size-adjusted) average count of genes to be used for normalization.}
 \item{block}{An optional factor specifying blocking levels for all cells.}
 \item{BNPARAM}{A \linkS4class{BiocNeighborParam} object specifying the algorithm to use for nearest neighbor detection.}
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object specifying the parallelization to use.}
 \item{...}{Additional arguments to pass to \code{simpleSumFactors,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
-\item{get.spikes}{A logical scalar specifying whether spike-in transcripts should be used.}
+\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
 \item{sf.out}{A logical scalar indicating whether only size factors should be returned.}
 }
 

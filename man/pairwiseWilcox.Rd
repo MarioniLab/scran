@@ -17,7 +17,7 @@ pairwiseWilcox(x, clusters, block=NULL, direction=c("any", "up", "down"),
 \item{direction}{A string specifying the direction of effects to be considered for each cluster.}
 \item{log.p}{A logical scalar indicating if log-transformed p-values/FDRs should be returned.}
 \item{gene.names}{A character vector of gene names with one value for each row of \code{x}.}
-\item{subset.row}{A logical, integer or character scalar specifying the rows of \code{x} to use.}
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 \item{tol}{Numeric scalar specifying the tolerance for tied values when \code{x} is numeric.}
 \item{BPPARAM}{A BiocParallelParam object indicating whether and how parallelization should be performed across genes.}
 }
@@ -26,7 +26,6 @@ pairwiseWilcox(x, clusters, block=NULL, direction=c("any", "up", "down"),
 This function performs Wilcoxon rank sum tests to identify differentially expressed genes (DEGs) between pairs of clusters.
 A list of tables is returned where each table contains the statistics for all genes for a comparison between each pair of clusters.
 This can be examined directly or used as input to \code{\link{combineMarkers}} for marker gene detection.
-Users can specify the genes to check for differential expression by setting the \code{subset.row} argument.
 
 Effect sizes are computed as overlap proportions.
 Consider the distribution of expression values for gene X within each of two groups of cells A and B.

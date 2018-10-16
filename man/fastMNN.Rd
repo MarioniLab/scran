@@ -26,8 +26,7 @@ Here, rows are cells and columns are dimensions (the latter should be common acr
 Each threshold is defined in terms of the number of median distances.}
 \item{d, approximate, irlba.args}{Further arguments to pass to \code{\link{multiBatchPCA}}.
 Setting \code{approximate=TRUE} is recommended for large data sets with many cells.}
-\item{subset.row}{A vector specifying the genes to use, providing equivalent behaviour to subsetting each object in \code{...}.
-All genes are used by default.}
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 \item{auto.order}{Logical scalar indicating whether re-ordering of batches should be performed to maximize the number of MNN pairs at each step.
 
 Alternatively, an integer vector containing a permutation of \code{1:N} where \code{N} is the number of batches.}
@@ -107,14 +106,12 @@ See the Examples below for how the \code{pc.input} argument should be used.
 }
 
 \section{Choice of genes}{
-The initial PCA is performed using all genes if \code{subset.row=NULL}.
-Users can also set \code{subset.row} to conveniently subset the inputs, e.g., to highly variable genes or marker genes.
-This may provide more meaningful identification of MNN pairs by reducing the noise from irrelevant genes.
+Users should set \code{subset.row} to subset the inputs to highly variable genes or marker genes.
+This provides more meaningful identification of MNN pairs by reducing the noise from irrelevant genes.
 Note that users should not be too restrictive with subsetting, as high dimensionality is required to satisfy the orthogonality assumption in MNN detection.
 
 For SingleCellExperiment inputs, spike-in transcripts should be the same across all objects.
-They are automatically removed unless \code{use.spikes=TRUE}.
-If \code{use.spikes=FALSE} and \code{subset.row} is specified, the intersection of non-spike-in transcripts and specified genes in \code{subset.row} will be used.
+They are automatically removed unless \code{get.spikes=TRUE}, see \code{?"\link{scran-gene-selection}"} for more details.
 
 The reported coordinates for cells refer to a low-dimensional space, but it may be desirable to obtain corrected gene expression values, e.g., for visualization.
 This can be done by computing the cross-product of the coordinates with the rotation matrix - see the Examples below.

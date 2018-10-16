@@ -22,8 +22,7 @@ Each matrix should contain the same number of rows, corresponding to the same ge
 \item{svd.dim}{An integer scalar specifying the number of dimensions to use for summarizing biological substructure within each batch.}
 \item{var.adj}{A logical scalar indicating whether variance adjustment should be performed on the correction vectors.}
 \item{compute.angle}{A logical scalar specifying whether to calculate the angle between each cell's correction vector and the biological subspace of the reference batch.}
-\item{subset.row}{A vector specifying the genes with which distances between cells are calculated, e.g., for identifying mutual nearest neighbours.
-All genes are used by default.}
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 \item{order}{An integer vector specifying the order in which batches are to be corrected.}
 \item{pc.approx}{A logical scalar indicating whether \code{\link[irlba]{irlba}} should be used to identify the biological subspace.}
 \item{irlba.args}{A list of arguments to pass to \code{\link[irlba]{irlba}} when \code{pc.approx=TRUE}.}

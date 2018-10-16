@@ -20,7 +20,7 @@ Note that these should not be confounded with \code{clusters} or contain an inte
 \item{lfc}{A positive numeric scalar specifying the log-fold change threshold to be tested against.}
 \item{log.p}{A logical scalar indicating if log-transformed p-values/FDRs should be returned.}
 \item{gene.names}{A character vector of gene names with one value for each row of \code{x}.}
-\item{subset.row}{A logical, integer or character scalar specifying the rows of \code{x} to use.}
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 \item{BPPARAM}{A BiocParallelParam object indicating whether and how parallelization should be performed across genes.}
 }
 
@@ -28,10 +28,7 @@ Note that these should not be confounded with \code{clusters} or contain an inte
 This function performs t-tests to identify differentially expressed genes (DEGs) between pairs of clusters.
 A list of tables is returned where each table contains the statistics for all genes for a comparison between each pair of clusters.
 This can be examined directly or used as input to \code{\link{combineMarkers}} for marker gene detection.
-Users can specify the genes to check for differential expression by setting the \code{subset.row} argument.
-}
 
-\section{Explanation of the hypothesis tests}{
 By default, this function will perform a Welch t-test to identify DEGs between each pair of clusters.
 This is simple, fast and performs quite well for single-cell count data (Soneson and Robinson, 2018).
 However, if one of the clusters contains fewer than two cells, no p-value will be reported for this comparison.

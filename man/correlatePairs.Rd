@@ -35,7 +35,7 @@ correlateNull(ncells, iters=1e6, block=NULL, design=NULL)
     A logical scalar specifying whether the row names of \code{x} should be used in the output.
     Alternatively, a character vector containing the names to use.
 }
-\item{subset.row}{A logical, integer or character vector indicating the rows of \code{x} to use to compute correlations.}
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 \item{pairings}{A \code{NULL} value indicating that all pairwise correlations should be computed;
 or a list of 2 vectors of genes between which correlations are to be computed;
 or a integer/character matrix with 2 columns of specific gene pairs - see below for details.}
@@ -45,7 +45,7 @@ or a integer/character matrix with 2 columns of specific gene pairs - see below 
 Smaller values can be used in machines with less memory, at the cost of processing speed.}
 \item{...}{Additional arguments to pass to \code{correlatePairs,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use.}
-\item{get.spikes}{A logical specifying whether spike-in transcripts should be used.}
+\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
 }
 
 \details{
@@ -147,9 +147,9 @@ Correlations will then be computed for only those gene pairs, and the returned d
 Genes in the first column of the matrix are always reported as \code{gene1}.
 }
 
-If \code{subset.row} is not \code{NULL}, only the genes in the selected subset are used to compute correlations.
-This will iteract properly with \code{pairings}, such that genes in \code{pairings} and not in \code{subset.row} will be ignored.
-With \code{correlatePairs,SingleCellExperiment-method}, rows corresponding to spike-in transcripts are also removed by default with \code{get.spikes=FALSE}.
+If \code{subset.row} is not \code{NULL}, only the genes in the selected subset are used to compute correlations - see \code{?"\link{scran-gene-selection}"}.
+This will interact properly with \code{pairings}, such that genes in \code{pairings} and not in \code{subset.row} will be ignored.
+Rows corresponding to spike-in transcripts are also removed by default with \code{get.spikes=FALSE}.
 This avoids picking up strong technical correlations between pairs of spike-in transcripts.
 
 We recommend setting  \code{subset.row} to contain only the subset of genes of interest.

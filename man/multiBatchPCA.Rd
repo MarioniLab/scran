@@ -17,8 +17,7 @@ Alternatively, two or more SingleCellExperiment objects containing these matrice
 \item{d}{An integer scalar specifying the number of dimensions to keep from the initial multi-sample PCA.}
 \item{approximate}{A logical scalar indicating whether \code{\link[irlba]{irlba}} should be used to perform the initial PCA.}
 \item{irlba.args}{A list of arguments to pass to \code{\link[irlba]{irlba}} when \code{approximate=TRUE}.}
-\item{subset.row}{A logical, integer or character vector indicating the rows of \code{x} to use when rescaling the size factors.
-All (non-spike-in) genes are used by default.}
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 \item{assay.type}{A string or integer scalar specifying the assay containing the expression values, if SingleCellExperiment objects are present in \code{...}.}
 \item{use.spikes}{A logical scalar specifying whether spike-in transcripts should be used, if SingleCellExperiment objects are present in \code{...}.}
 \item{BPPARAM}{A BiocParallelParam object specifying whether the SVD should be parallelized.}

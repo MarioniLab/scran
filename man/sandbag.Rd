@@ -23,10 +23,10 @@
 This should typically be of length 3, with elements named as \code{"G1"}, \code{"S"} and \code{"G2M"}.}
 \item{gene.names}{A character vector of gene names.}
 \item{fraction}{A numeric scalar specifying the minimum fraction to define a marker gene pair.}
-\item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 \item{...}{Additional arguments to pass to \code{sandbag,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
-\item{get.spikes}{A logical specifying whether spike-in transcripts should be used.}
+\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
 }
 
 \details{
@@ -43,11 +43,9 @@ Classification from test data can be performed using the \code{\link{cyclone}} f
 For each cell, this involves comparing expression values between genes in each marker pair. 
 The cell is then assigned to the phase that is consistent with the direction of the difference in expression in the majority of pairs.
 
-For \code{sandbag,SingleCellExperiment-method}, the matrix of counts is used but can be replaced with expression values by setting \code{assays}.
 By default, \code{get.spikes=FALSE} which means that any rows corresponding to spike-in transcripts will not be considered when picking markers.
 This is because the amount of spike-in RNA added will vary between experiments and will not be a robust predictor.
 Nonetheless, if all rows are required, users can set \code{get.spikes=TRUE}.
-Users can also manually select which rows to use via \code{subset.row}, which will override any setting of \code{get.spikes}.
 
 While \code{sandbag} and its partner function \code{\link{cyclone}} were originally designed for cell cyclone phase classification,
 the same computational strategy can be used to classify cells into any mutually exclusive groupings.

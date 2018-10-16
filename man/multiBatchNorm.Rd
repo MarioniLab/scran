@@ -15,8 +15,7 @@ Each object is assumed to represent one batch.}
 \item{assay.type}{A string specifying which assay values contains the counts.}
 \item{norm.args}{A named list of further arguments to pass to \code{\link[scater]{normalize}}.}
 \item{min.mean}{A numeric scalar specifying the minimum (library size-adjusted) average count of genes to be used for normalization.}
-\item{subset.row}{A logical, integer or character vector indicating the rows of \code{x} to use when rescaling the size factors.
-All genes are used by default.}
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 }
 
 \details{

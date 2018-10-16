@@ -21,13 +21,13 @@ Alternatively, a SingleCellExperiment object containing such a matrix.
 \item{clusters}{
     A vector of cluster identities for all cells.
 }
-\item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 \item{threshold}{A numeric scalar specifying the FDR threshold with which to identify significant genes.}
 \item{...}{For the ANY method, additional arguments to pass to \code{\link{findMarkers}}. 
 
 For the SingleCellExperiment method, additional arguments to pass to the ANY method.}
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
-\item{get.spikes}{A logical scalar specifying whether decomposition should be performed for spike-ins.}
+\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
 }
 
 \value{

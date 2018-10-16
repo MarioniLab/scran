@@ -21,8 +21,8 @@ Convert a SingleCellExperiment object into other classes for entry into other an
 \item{...}{Other arguments to be passed to pipeline-specific constructors.}
 \item{assay.type}{A string specifying which assay of \code{x} should be put in the returned object.}
 \item{use.all.sf}{A logical scalar indicating whether multiple size factors should be used to generate the returned object.}
-\item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to return.}
-\item{get.spikes}{A logical scalar specifying whether rows corresponding to spike-in transcripts should be returned.}
+\item{subset.row, get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
+
 }
 
 \value{
@@ -49,8 +49,7 @@ Information about normalization is instead transmitted via size or normalization
 In all cases, rows corresponding to spike-in transcripts are removed from the output object by default.
 As such, rows in the returned object may not correspond directly to rows in \code{x}.
 Users should consider this when retrieving analysis results from these pipelines, e.g., match on row names in \code{x} before comparing to other results.
-This behaviour can be turned off by setting \code{get.spikes=TRUE}, such that all rows are retrieved in the output object.
-Users can also set \code{subset.row} to extract specific rows, in which case \code{get.spikes} is ignored.
+This behaviour can be turned off by setting \code{get.spikes=TRUE}.
 
 For \pkg{edgeR} and \pkg{DESeq2}, different size factors for different rows (e.g., for spike-in sets) will be respected.
 For \pkg{edgeR}, an offset matrix will be constructed containing mean-centred log-size factors for each row.

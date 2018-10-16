@@ -25,7 +25,7 @@
 Use \code{\link{scaledColRanks}} directly instead.}
 \item{method}{A string specifying the clustering method to use.}
 \item{pc.approx}{Argument passed to \code{\link{buildSNNGraph}} when \code{method="igraph"}, otherwise ignored.}
-\item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 \item{min.mean}{A numeric scalar specifying the filter to be applied on the average count for each filter prior to computing ranks.
 Disabled by setting to \code{NULL}.}
 \item{block}{A factor of length equal to \code{ncol(x)} specifying whether clustering should be performed within pre-specified blocks.
@@ -38,7 +38,7 @@ if \code{block} is non-\code{NULL} and has more than one level.}
     For \code{quickCluster,SingleCellExperiment-method}, additional arguments to pass to \code{quickCluster,ANY-method}.
 }
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
-\item{get.spikes}{A logical specifying whether spike-in transcripts should be used.}
+\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
 }
 
 \details{
@@ -73,17 +73,16 @@ This process is repeated until all (merged) clusters are larger than \code{min.s
 }
 
 \section{Gene selection}{
-In \code{quickCluster,SingleCellExperiment-method}, spike-in transcripts are not used by default as they provide little information on the biological similarities between cells.
+Spike-in transcripts are not used by default as they provide little information on the biological similarities between cells.
 This may not be the case if subpopulations differ by total RNA content, in which case setting \code{get.spikes=TRUE} may provide more discriminative power.
-
-Users can also set \code{subset.row} to specify which rows of \code{x} are to be used to calculate correlations.
-This is equivalent to but more efficient than subsetting \code{x} directly, as it avoids constructing a (potentially large) temporary matrix.
-Note that if \code{subset.row} is specified, it will intersect with any setting of \code{get.spikes}.
 
 By default, the function will also filter out genes with average counts (as defined by \code{\link{calcAverage}}) below \code{min.mean}.
 This removes low-abundance genes with many tied ranks, especially due to zeros, which may reduce the precision of the clustering.
 We suggest setting \code{min.mean} to 1 for read count data and 0.1 for UMI data.
 This can be disabled completely by setting it to \code{NULL}.
+
+Any filtering on \code{min.mean} is intersected with \code{get.spikes=FALSE} and/or a specified \code{subset.row}.
+For example, only non-spike-in genes that pass the filter are retained if \code{get.spikes=TRUE}.
 }
 
 \section{Obtaining the scaled and centred ranks}{

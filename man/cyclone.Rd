@@ -25,10 +25,10 @@
 \item{min.pairs}{An integer scalar specifying the minimum number of pairs for cycle estimation.}
 \item{BPPARAM}{A BiocParallelParam object to use in \code{bplapply} for parallel processing.}
 \item{verbose}{A logical scalar specifying whether diagnostics should be printed to screen.}
-\item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 \item{...}{Additional arguments to pass to \code{cyclone,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
-\item{get.spikes}{A logical specifying whether spike-in transcripts should be used.}
+\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
 }
 
 \details{
@@ -49,10 +49,6 @@ Cells can be assigned to S phase based on the S score, but a more reliable appro
 For \code{cyclone,SingleCellExperiment-method}, the matrix of counts is used but can be replaced with expression values by setting \code{assay.type}.
 By default, \code{get.spikes=FALSE} which means that any rows corresponding to spike-in transcripts will not be considered for score calculation.
 This is for the same reasons as described in \code{?\link{sandbag}}.
-
-Users can also manually set \code{subset.row} to specify which rows of \code{x} are to be used.
-This is better than subsetting \code{x} directly, as it reduces memory usage and also subsets \code{gene.names} at the same time.
-If this is specified, it will overwrite any setting of \code{get.spikes}.
 
 While this method is described for cell cycle phase classification, any biological groupings can be used here -- see \code{?\link{sandbag}} for details.
 However, for non-cell cycle phase groupings, the output \code{phases} will be an empty character vector.

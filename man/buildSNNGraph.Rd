@@ -36,7 +36,7 @@ If it is matrix, it can also be transposed.}
 \item{directed}{A logical scalar indicating whether the output of \code{buildKNNGraph} should be a directed graph.}
 \item{transposed}{A logical scalar indicating whether \code{x} is transposed (i.e., rows are cells).}
 \item{pc.approx}{A logical scalar indicating whether approximate PCA should be performed.}
-\item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 \item{irlba.args}{A named list of additional arguments to pass to \code{\link[irlba]{prcomp_irlba}} when \code{pc.approx=TRUE}.}
 \item{rand.seed}{Deprecated; a numeric scalar specifying the seed for approximate PCA when \code{pc.approx=TRUE}.
 This is set to \code{NA} to use the existing session seed.}
@@ -45,7 +45,7 @@ Defaults to an exact algorithm if \code{NULL}, see \code{?\link{findKNN}} for mo
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object to use for parallel processing.}
 \item{...}{Additional arguments to pass to \code{buildSNNGraph,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use.}
-\item{get.spikes}{A logical scalar specifying whether spike-in transcripts should be used.}
+\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
 \item{use.dimred}{A string specifying whether existing values in \code{reducedDims(x)} should be used.}
 }
 
@@ -102,8 +102,6 @@ If the input matrix \code{x} is already transposed for the ANY method, \code{tra
 A typical use case is when \code{x} contains some reduced dimension coordinates with cells in the rows.
 In such cases, setting \code{transposed=TRUE} and \code{d=NA} will use the input coordinates directly for graph-building.
 
-By default, spike-in transcripts are removed from the expression matrix in \code{buildSNNGraph,SCESet-method}.
-However, any non-\code{NULL} setting of \code{subset.row} will override \code{get.spikes}.
 If \code{use.dimred} is not \code{NULL}, existing PCs are used from the specified entry of \code{reducedDims(x)}, 
 and any setting of \code{d}, \code{subset.row} and \code{get.spikes} are ignored.
 }

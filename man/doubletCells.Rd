@@ -27,7 +27,7 @@ If \code{NULL}, defaults to the column sums of \code{x}.
 For the SingleCellExperiment method, this may be \code{NA}, in which case \code{sizeFactors(x)} is used instead.}
 \item{size.factors.content}{A numeric vector of size factors for RNA content normalization of \code{x} prior to simulating doublets.}
 \item{k}{An integer scalar specifying the number of nearest neighbours to use to determine the bandwidth for density calculations.}
-\item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 \item{niters}{An integer scalar specifying how many simulated doublets should be generated.}
 \item{block}{An integer scalar controlling the rate of doublet generation, to keep memory usage low.}
 \item{d}{An integer scalar specifying the number of components to retain after the PCA.}
@@ -41,7 +41,7 @@ Defaults to an exact algorithm if \code{NULL}, see \code{?\link{findKNN}} for mo
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object specifying whether the neighbour searches should be parallelized.}
 \item{...}{Additional arguments to pass to the ANY method.}
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
-\item{get.spikes}{A logical scalar specifying whether decomposition should be performed for spike-ins.}
+\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
 }
 
 \value{

@@ -19,8 +19,7 @@
 \arguments{
 \item{x}{A numeric matrix of log-expression values for \code{parallelPCA,ANY-method}, 
 or a SingleCellExperiment object containing such values for \code{parallelPCA,SingleCellExperiment-method}.}
-\item{subset.row}{A logical, integer or character vector indicating the rows of \code{x} to use for PCA.
-All genes are used by default.}
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 \item{value}{A string specifying the type of value to return; the PCs, the number of retained components, or a low-rank approximation.}
 \item{min.rank, max.rank}{Integer scalars specifying the minimum and maximum number of PCs to retain.}
 \item{niters}{Integer scalar specifying the number of iterations to use for the parallel analysis.}
@@ -30,8 +29,7 @@ All genes are used by default.}
 \item{BPPARAM}{A BiocParallelParam object.}
 \item{...}{Further arguments to pass to \code{denoisePCA,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use.}
-\item{get.spikes}{A logical scalar specifying whether spike-in transcripts should be used.
-This will be intersected with \code{subset.row} if the latter is specified.}
+\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
 \item{sce.out}{A logical scalar specifying whether a modified SingleCellExperiment object should be returned.}
 }
 

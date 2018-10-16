@@ -27,11 +27,11 @@
 \item{positive}{A logical scalar indicating whether linear inverse models should be used to enforce positive estimates.}
 \item{scaling}{A numeric scalar containing scaling factors to adjust the counts prior to computing size factors.}
 \item{min.mean}{A numeric scalar specifying the minimum (library size-adjusted) average count of genes to be used for normalization.}
-\item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 \item{BPPARAM}{A BiocParallelParam object specifying whether and how clusters should be processed in parallel.}
 \item{...}{Additional arguments to pass to \code{computeSumFactors,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
-\item{get.spikes}{A logical scalar specifying whether spike-in transcripts should be used.}
+\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
 \item{sf.out}{A logical scalar indicating whether only size factors should be returned.}
 }
 
@@ -132,10 +132,6 @@ Users can skip this step by setting \code{positive=FALSE} to perform their own d
 }
 
 \section{Gene selection}{
-Spike-in transcripts are not included in the set of genes used for deconvolution with the default \code{get.spikes=FALSE}.
-This is because they can behave differently from the endogenous genes. 
-Users wanting to perform spike-in normalization should see \code{\link{computeSpikeFactors}} instead.
-
 Note that pooling does not eliminate the need to filter out low-abundance genes.
 As mentioned above, if too many genes have consistently low counts across all cells, even the pool-based size factors will be zero.
 This results in zero or negative size factor estimates for many cells.
@@ -146,10 +142,11 @@ Such genes will automatically be filtered out by applying a minimum threshold \c
 If \code{clusters} is specified, filtering by \code{min.mean} is performed on the per-cluster average during within-cluster normalization,
 and then on the (library size-adjusted) average of the per-cluster averages during between-cluster normalization.
 
-Users can also set \code{subset.row} to specify which rows of \code{x} are to be used to calculate the normalization factors. 
-This is equivalent to but more efficient than subsetting \code{x} directly, as it avoids constructing a (potentially large) temporary matrix.
-If \code{subset.row} is specified and \code{get.spikes=FALSE}, only the non-spike-in entries of \code{subset.row} will be used in deconvolution. 
-Similarly, only the genes selected by \code{subset.row} and with average counts above \code{min.mean} will be used.
+Any filtering on \code{min.mean} is intersected with \code{get.spikes=FALSE} and/or a specified \code{subset.row}.
+For example, only non-spike-in genes that pass the filter are retained if \code{get.spikes=TRUE}.
+
+Spike-in transcripts are not included with the default \code{get.spikes=FALSE} as they can behave differently from the endogenous genes. 
+Users wanting to perform spike-in normalization should see \code{\link{computeSpikeFactors}} instead.
 }
 
 \section{Obtaining standard errors}{

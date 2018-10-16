@@ -25,7 +25,7 @@
 \item{block}{A factor containing the level of a blocking factor for each cell.}
 \item{design}{A numeric matrix describing the uninteresting factors contributing to expression in each cell.
 Alternatively, a single factor for one-way layouts.}
-\item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 \item{BPPARAM}{A BiocParallelParam object indicating whether and how parallelization should be performed across genes.}
 \item{...}{
 For \code{decomposeVar,matrix,list-method}, additional arguments to pass to \code{\link{testVar}}.
@@ -73,13 +73,10 @@ If such differences are present, we suggest using \code{\link{multiBlockVar}} in
 }
 
 \section{Feature selection}{
-If \code{get.spikes=NA} in \code{decomposeVar,SingleCellExperiment-method}, the p-value and FDR will not be returned for spike-in transcripts.
+The behaviour of \code{get.spikes} and \code{subset.row} is the same as described in \code{?"\link{scran-gene-selection}"}.
+The only additional feature is that users can specify \code{get.spikes=NA}, which sets the p-value and FDR to \code{NA} for spike-in transcripts.
 This is the default as it returns the other variance statistics for diagnostic purposes, but ensures that the spike-ins are not treated as candidate HVGs.
-If \code{get.spikes=FALSE}, spike-in transcripts are filtered out from \code{x} and no statistics are returned.
-If \code{get.spikes=TRUE}, all statistics are computed for all rows, regardless of spike-in status.
-
-Users can also directly specify which rows to use with \code{subset.row}.
-This is equivalent to running \code{decomposeVar} on \code{x[subset.row,]}, but is more efficient as it avoids the construction of large temporary matrices.
+(Note that this setting is the same as \code{get.spikes=TRUE} when considering the interaction between \code{get.spikes} and \code{subset.row}.)
 
 If \code{x} is not supplied, all genes used to fit the trend in \code{fit} will be used instead for the variance decomposition.
 This may be useful when a trend is fitted to all genes in \code{\link{trendVar}}, such that the statistics for all genes will already be available in \code{fit}.

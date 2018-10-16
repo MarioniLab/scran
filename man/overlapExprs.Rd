@@ -30,11 +30,11 @@ A vector of group assignments for all cells.
 \item{tol}{A numeric scalar specifying the tolerance with which ties are considered.}
 \item{log.p}{A logical scalar indicating if log-transformed p-values/FDRs should be returned.}
 \item{full.stats}{A logical scalar indicating whether all statistics (i.e., raw and BH-adjusted p-values) should be returned for each pairwise comparison.}
-\item{subset.row}{A logical, integer or character scalar specifying the rows of \code{x} to use.}
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 \item{BPPARAM}{A BiocParallelParam object to use in \code{bplapply} for parallel processing.}
 \item{...}{Additional arguments to pass to the matrix method.}
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
-\item{get.spikes}{A logical scalar specifying whether decomposition should be performed for spike-ins.}
+\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
 }
 
 \details{
