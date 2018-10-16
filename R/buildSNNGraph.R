@@ -105,13 +105,11 @@ setMethod("buildSNNGraph", "ANY", .buildSNNGraph)
 #' @importFrom SummarizedExperiment assay
 #' @importFrom SingleCellExperiment reducedDim 
 #' @export
-setMethod("buildSNNGraph", "SingleCellExperiment", 
-          function(x, ..., subset.row=NULL, assay.type="logcounts", get.spikes=FALSE, use.dimred=NULL) {
-              
-    subset.row <- .SCE_subset_genes(subset.row, x=x, get.spikes=get.spikes)
+setMethod("buildSNNGraph", "SingleCellExperiment", function(x, ..., subset.row=NULL, assay.type="logcounts", get.spikes=FALSE, use.dimred=NULL) {
     if (!is.null(use.dimred)) {
         out <- .buildSNNGraph(reducedDim(x, use.dimred), d=NA, transposed=TRUE, ..., subset.row=NULL)
     } else {
+        subset.row <- .SCE_subset_genes(subset.row, x=x, get.spikes=get.spikes)
         out <- .buildSNNGraph(assay(x, i=assay.type), transposed=FALSE, ..., subset.row=subset.row)
     }
     return(out)
@@ -126,13 +124,11 @@ setMethod("buildKNNGraph", "ANY", .buildKNNGraph)
 #' @importFrom SummarizedExperiment assay
 #' @importFrom SingleCellExperiment reducedDim 
 #' @export
-setMethod("buildKNNGraph", "SingleCellExperiment", 
-          function(x, ..., subset.row=NULL, assay.type="logcounts", get.spikes=FALSE, use.dimred=NULL) {
-              
-    subset.row <- .SCE_subset_genes(subset.row, x=x, get.spikes=get.spikes)
+setMethod("buildKNNGraph", "SingleCellExperiment", function(x, ..., subset.row=NULL, assay.type="logcounts", get.spikes=FALSE, use.dimred=NULL) {
     if (!is.null(use.dimred)) {
         out <- .buildKNNGraph(reducedDim(x, use.dimred), d=NA, transposed=TRUE, ..., subset.row=NULL)
     } else {
+        subset.row <- .SCE_subset_genes(subset.row, x=x, get.spikes=get.spikes)
         out <- .buildKNNGraph(assay(x, i=assay.type), transposed=FALSE, ..., subset.row=subset.row)
     }
     return(out)
