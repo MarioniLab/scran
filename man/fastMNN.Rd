@@ -7,7 +7,7 @@
 \usage{
 fastMNN(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE, 
     irlba.args=list(), subset.row=NULL, auto.order=FALSE, pc.input=FALSE,
-    compute.variances=FALSE, assay.type="logcounts", use.spikes=FALSE, 
+    compute.variances=FALSE, assay.type="logcounts", get.spikes=FALSE, 
     BNPARAM=NULL, BPPARAM=SerialParam()) 
 }
 
@@ -16,7 +16,7 @@ fastMNN(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
 One matrix should contain cells from the same batch; multiple matrices represent separate batches of cells.
 Each matrix should contain the same number of rows, corresponding to the same genes (in the same order).
 
-Alternatively, two or more SingleCellExperiment objects can be supplied, where each object contains a log-expression matrix in the \code{assay.type} assay.
+Alternatively, two or more \linkS4class{SingleCellExperiment} objects can be supplied, where each object contains a log-expression matrix in the \code{assay.type} assay.
 
 Alternatively, two or more matrices of low-dimensional representations can be supplied if \code{pc.input=TRUE}.
 Here, rows are cells and columns are dimensions (the latter should be common across all batches).}
@@ -33,7 +33,7 @@ Alternatively, an integer vector containing a permutation of \code{1:N} where \c
 \item{compute.variances}{Logical scalar indicating whether the percentage of variance lost due to non-orthogonality should be computed.}
 \item{pc.input}{Logical scalar indicating whether the values in \code{...} are already low-dimensional, e.g., the output of \code{\link{multiBatchPCA}}.}
 \item{assay.type}{A string or integer scalar specifying the assay containing the expression values, if SingleCellExperiment objects are present in \code{...}.}
-\item{use.spikes}{A logical scalar specifying whether spike-in transcripts should be used, if SingleCellExperiment objects are present in \code{...}.}
+\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}. Only relevant if \code{...} contains SingleCellExperiment objects.}
 \item{BNPARAM}{A \linkS4class{BiocNeighborParam} object specifying the nearest neighbor algorithm.
 Defaults to an exact algorithm if \code{NULL}, see \code{?\link{findKNN}} for more details.}
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object specifying whether the PCA and nearest-neighbor searches should be parallelized.}

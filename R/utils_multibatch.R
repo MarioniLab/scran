@@ -67,7 +67,7 @@
 
 #' @importFrom methods is
 #' @importClassesFrom SingleCellExperiment SingleCellExperiment
-.SCEs_to_matrices <- function(batches, assay.type, subset.row, use.spikes)
+.SCEs_to_matrices <- function(batches, assay.type, subset.row, get.spikes)
 # Convenience function to convert multiple SCEs to a list of expression matrices.
 # Also redefines subset.row based on intersection with spike-ins, if necessary.    
 {
@@ -83,7 +83,7 @@
 
     if (all(all.sce)) { 
         .check_spike_consistency(batches)
-        subset.row <- .SCE_subset_genes(subset.row, batches[[1]], use.spikes)
+        subset.row <- .SCE_subset_genes(subset.row, batches[[1]], get.spikes)
         batches <- lapply(batches, assay, i=assay.type, withDimnames=FALSE)
     } else if (!is.null(subset.row)) {
         subset.row <- .subset_to_index(subset.row, batches[[1]], byrow=TRUE)

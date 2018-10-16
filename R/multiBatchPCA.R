@@ -1,7 +1,7 @@
 #' @export
 #' @importFrom BiocParallel SerialParam
 #' @importFrom SummarizedExperiment assay
-multiBatchPCA <- function(..., d=50, approximate=FALSE, irlba.args=list(), subset.row=NULL, assay.type="logcounts", use.spikes=FALSE, BPPARAM=SerialParam()) 
+multiBatchPCA <- function(..., d=50, approximate=FALSE, irlba.args=list(), subset.row=NULL, assay.type="logcounts", get.spikes=FALSE, BPPARAM=SerialParam()) 
 # Performs a multi-sample PCA (i.e., batches).
 # Each batch is weighted inversely by the number of cells when computing the gene-gene covariance matrix.
 # This avoids domination by samples with a large number of cells.
@@ -10,7 +10,7 @@ multiBatchPCA <- function(..., d=50, approximate=FALSE, irlba.args=list(), subse
 # created 4 July 2018
 {
     mat.list <- list(...)
-    out <- .SCEs_to_matrices(mat.list, assay.type=assay.type, subset.row=subset.row, use.spikes=use.spikes)
+    out <- .SCEs_to_matrices(mat.list, assay.type=assay.type, subset.row=subset.row, get.spikes=get.spikes)
     mat.list <- out$batches
     subset.row <- out$subset.row
     .multi_pca(mat.list, subset.row=subset.row, d=d, approximate=approximate, irlba.args=irlba.args, use.crossprod=TRUE, BPPARAM=BPPARAM) 

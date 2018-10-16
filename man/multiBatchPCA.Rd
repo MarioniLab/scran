@@ -6,7 +6,7 @@
 
 \usage{
 multiBatchPCA(..., d=50, approximate=FALSE, irlba.args=list(), 
-    subset.row=NULL, assay.type="logcounts", use.spikes=FALSE, 
+    subset.row=NULL, assay.type="logcounts", get.spikes=FALSE, 
     BPPARAM=SerialParam()) 
 }
 
@@ -19,7 +19,7 @@ Alternatively, two or more SingleCellExperiment objects containing these matrice
 \item{irlba.args}{A list of arguments to pass to \code{\link[irlba]{irlba}} when \code{approximate=TRUE}.}
 \item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 \item{assay.type}{A string or integer scalar specifying the assay containing the expression values, if SingleCellExperiment objects are present in \code{...}.}
-\item{use.spikes}{A logical scalar specifying whether spike-in transcripts should be used, if SingleCellExperiment objects are present in \code{...}.}
+\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
 \item{BPPARAM}{A BiocParallelParam object specifying whether the SVD should be parallelized.}
 }
 
@@ -34,8 +34,7 @@ This avoids ensures that the variance due to unique subpopulations in smaller ba
 Otherwise, batches with a large number of cells would dominate the PCA; the mean vector and covariance matrix would be almost fully defined by those batches.
 
 If \code{...} contains SingleCellExperiment objects, any spike-in transcripts should be the same across all batches.
-These will be removed prior to PCA unless \code{use.spikes=TRUE}.
-Users can also force the algorithm to only use a subset of genes with \code{subset.row}, which will intersect with the non-spike-in genes unless \code{use.spikes=TRUE}.
+These will be removed prior to PCA unless \code{get.spikes=TRUE}, see \code{?"\link{scran-gene-selection}"} for details.
 }
 
 \value{

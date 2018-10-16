@@ -3,7 +3,7 @@
 #' @importFrom S4Vectors DataFrame Rle
 fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE, 
     irlba.args=list(), subset.row=NULL, auto.order=FALSE, pc.input=FALSE,
-    compute.variances=FALSE, assay.type="logcounts", use.spikes=FALSE, 
+    compute.variances=FALSE, assay.type="logcounts", get.spikes=FALSE, 
     BNPARAM=NULL, BPPARAM=SerialParam()) 
 # A faster version of the MNN batch correction approach.
 # 
@@ -18,7 +18,7 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
 
     # Creating the PCA input, if it is not already low-dimensional.
     if (!pc.input) {
-        out <- .SCEs_to_matrices(batches, assay.type=assay.type, subset.row=subset.row, use.spikes=use.spikes)
+        out <- .SCEs_to_matrices(batches, assay.type=assay.type, subset.row=subset.row, get.spikes=get.spikes)
         batches <- out$batches
         subset.row <- out$subset.row
 
