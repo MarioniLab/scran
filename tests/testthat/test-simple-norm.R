@@ -150,7 +150,7 @@ test_that("simpleSumFactors() deals with alternative representations", {
 })
 
 set.seed(120005)
-test_that("simpleSumFactors() behaves gracefully when encountered nonsensical size factors", {
+test_that("simpleSumFactors() behaves gracefully when encountering nonsensical size factors", {
     ncells <- 200
     ngenes <- 1000
     x <- matrix(rpois(ngenes*ncells, lambda=runif(100)), nrow=ngenes, ncol=ncells, byrow=TRUE)

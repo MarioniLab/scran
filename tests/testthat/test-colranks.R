@@ -27,7 +27,7 @@ test_that("scaledColRanks correctly computes the ranks", {
     expect_equal(emp.ranks, ref)
 
     # Works correctly on sparse matrices.
-    sparse <- Matrix::rsparsematrix(ngenes, ncells, density=0.1)
+    sparse <- abs(Matrix::rsparsematrix(ngenes, ncells, density=0.1))
     out <- scaledColRanks(sparse, min.mean=0)
     ref <- scaledColRanks(as.matrix(sparse), min.mean=0)
     expect_identical(out, ref)

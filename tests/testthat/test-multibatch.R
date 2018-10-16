@@ -154,8 +154,10 @@ test_that("multiBatchNorm spits the dummy correctly", {
     isSpike(X2tmp, "SIRV") <- isSpike(Xtmp, "ERCC") 
     expect_error(multiBatchNorm(Xtmp, X2tmp), "ERCC spike-in identities differ across batches")
 
-    # Input resulting in NA scaling values.
+    # Input resulting in NA scaling values (add 1 to avoid NA size factors).
+    X2 <- X
     counts(X2)[] <- 0
+    counts(X2)[1,] <- 1
     expect_error(out <- multiBatchNorm(X, X2), "not finite")
 
     # Empty inputs.

@@ -193,7 +193,7 @@ test_that("quickCluster works on SingleCellExperiment objects", {
 
 set.seed(20003)
 test_that("quickCluster works on sparse matrices", {
-    sparse <- Matrix::rsparsematrix(ngenes, ncells, density=0.1)
+    sparse <- abs(Matrix::rsparsematrix(ngenes, ncells, density=0.1))
     out <- quickCluster(sparse, min.mean=0)
     ref <- quickCluster(as.matrix(sparse), min.mean=0)
     expect_identical(out, ref)
