@@ -82,10 +82,6 @@
 
         # Scaling all size factors to the new reference.
         rescaling.factors <- .rescale_clusters(all.ref, ref.clust=ref.block, min.mean=min.mean, clust.names=names(indices))
-        if (any(!is.finite(rescaling.factors) | rescaling.factors == 0)) {
-            stop("between-block rescaling factors are not strictly positive for current 'k'")
-        }
-
         all.output <- numeric(ncol(x))
         for (block in seq_along(all.ref)) {
             all.output[indices[[block]]] <- all.norm[[block]]$sf * rescaling.factors[[block]]

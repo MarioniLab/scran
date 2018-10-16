@@ -166,7 +166,7 @@ test_that("simpleSumFactors() behaves gracefully when encountered nonsensical si
     x2 <- x
     x2[,1:30] <- 0
     x2[1:100,1:30] <- rpois(3000, lambda=20)
-    expect_error(out <- simpleSumFactors(x2, min.mean=0, block=rep(1:2, c(30, ncells-30))), "between-block")
+    expect_error(out <- simpleSumFactors(x2, min.mean=0, block=rep(1:2, c(30, ncells-30))), "not strictly positive")
 
     # Filter threshold too strong.
     expect_error(simpleSumFactors(x, min.mean=10), "no genes")

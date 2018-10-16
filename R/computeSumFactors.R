@@ -210,6 +210,9 @@ LOWWEIGHT <- 0.000001
         rescaling[[clust]] <- median(cur.prof/ref.prof, na.rm=TRUE)
     }
 
+    if (any(!is.finite(rescaling) | rescaling==0)) {
+        stop("inter-cluster rescaling factors are not strictly positive")
+    }
     names(rescaling) <- clust.names
     return(rescaling)
 }
