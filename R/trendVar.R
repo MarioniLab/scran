@@ -30,7 +30,7 @@
     # to exp(*) to avoid needing to set lower bounds.
     if (parametric) { 
         if (length(kept.vars) <= 3L) {
-            stop("need at least 4 values for non-linear curve fitting")
+            stop("need at least 4 points for non-linear curve fitting")
         } 
 
         nls.args <- .setup_nls_args(nls.args, start.args=list(vars=kept.vars, means=kept.means))
@@ -44,7 +44,7 @@
         SUBSUBFUN <- function(x) { predict(init.fit, data.frame(kept.means=x)) }
     } else {
         if (length(kept.vars) < 2L) {
-            stop("need at least 2 values for non-parametric curve fitting")
+            stop("need at least 2 points for non-parametric curve fitting")
         } 
         to.fit <- log(kept.vars)
         left.edge <- min(kept.means)

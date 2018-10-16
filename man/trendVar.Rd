@@ -126,6 +126,14 @@ Users can also directly specify which rows to use with \code{subset.row}.
 All of these parameters - including \code{min.mean} and \code{use.spikes} - interact with each other sensibly, by taking the intersection of rows that fulfill all criteria.
 For example, if \code{subset.row} is specified and \code{use.spikes=TRUE}, rows are only used if they are both spike-in transcripts \emph{and} in \code{subset.row}.
 Otherwise, if \code{use.spikes=FALSE}, only rows in \code{subset.row} that are \emph{not} spike-in transcripts are used.
+
+Note that features are not used under any circumstance if they have a variance of zero.
+These are not compatible with trend fitting on the log-scale.
+In practice, it should be effectively impossible to obtain variances of zero for any expressed gene, though some care may be required with simulated data sets.
+Any \code{NA} variances are similarly ignored.
+
+Note that, depending on the output of the various row selection parameters, the number of used rows may be much less than the number of rows of \code{x}.
+In pathological cases, this may result in an error stating that insufficient points are available for the trend points.
 }
 
 \section{Warning on size factor centring}{ 

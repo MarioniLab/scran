@@ -294,8 +294,8 @@ test_that("trendVar works with blocking factors", {
 })
 
 test_that("trendVar throws the correct errors", {
-    expect_error(trendVar(d[0,,drop=FALSE], parametric=FALSE), "need at least 2 values for non-parametric curve fitting") # loess fails with empty input vectors.
-    expect_error(trendVar(d[0,,drop=FALSE], parametric=TRUE), "need at least 4 values for non-linear curve fitting")
+    expect_error(trendVar(d[0,,drop=FALSE], parametric=FALSE), "need at least 2 points for non-parametric curve fitting") # loess fails with empty input vectors.
+    expect_error(trendVar(d[0,,drop=FALSE], parametric=TRUE), "need at least 4 points for non-linear curve fitting")
 
     expect_error(trendVar(d[,0,drop=FALSE]), "no residual d.f. in 'x' for variance estimation")
     expect_error(trendVar(d[,0,drop=FALSE], block=integer(0)), "no residual d.f. in any level of 'block' for variance estimation")
