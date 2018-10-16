@@ -1,7 +1,7 @@
 #' @importFrom BiocNeighbors findKNN
 #' @importFrom methods is
 #' @importClassesFrom Matrix dgCMatrix
-#' @importFrom scater librarySizeFactors normalizeCounts
+#' @importFrom scater librarySizeFactors normalizeCounts nexprs
 #' @importFrom BiocGenerics t
 .simple_sum_factors_per_block <- function(x, indices=NULL, k=20, trend.args=list(), approximate=FALSE, irlba.args=list(), min.mean=1, subset.row=NULL, BNPARAM=NULL)
 # Implements a much faster method based on local averages to compute size factors.
@@ -34,7 +34,18 @@
     last <- ncol(nn.out$distance)
     ref.cell <- which.min(nn.out$distance[,last])
 
-    .simple_sum_cpp_wrapper(x, nn.out$index, nn.out$distance, ref.cell, min.mean=min.mean, ndist=3)
+    out <- .simple_sum_cpp_wrapper(x, nn.out$index, nn.out$distance, ref.cell, min.mean=min.mean, ndist=3)
+
+    if (any(is.na(out$sf))) {
+        stop("no genes remaining after filtering with 'min.mean'")
+    }
+    if (any(out$sf <= 0)) {
+        warning("cleaning zero size factor estimates")
+        num.detected <- nexprs(x, byrow=FALSE)
+        out$sf <- cleanSizeFactors(out$sf, num.detected)
+    }
+
+    out
 }
 
 .simple_sum_cpp_wrapper <- function(x, index, distance, ref.cell, min.mean=NULL, ndist=3)
@@ -71,6 +82,10 @@
 
         # Scaling all size factors to the new reference.
         rescaling.factors <- .rescale_clusters(all.ref, ref.clust=ref.block, min.mean=min.mean, clust.names=names(indices))
+        if (any(!is.finite(rescaling.factors) | rescaling.factors == 0)) {
+            stop("between-block rescaling factors are not strictly positive for current 'k'")
+        }
+
         all.output <- numeric(ncol(x))
         for (block in seq_along(all.ref)) {
             all.output[indices[[block]]] <- all.norm[[block]]$sf * rescaling.factors[[block]]
@@ -78,9 +93,6 @@
     }
 
     names(all.output) <- colnames(x)
-    if (any(!is.finite(all.output) | all.output==0)) {
-        stop("zero or undefined estimates obtained, increase 'k'")
-    }
     return(all.output/mean(all.output))
 }
 

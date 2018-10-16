@@ -190,7 +190,7 @@ LOWWEIGHT <- 0.000001
     }
 
     nclusters <- length(mean.prof)
-    rescaling <- vector("list", nclusters)
+    rescaling <- numeric(nclusters)
     for (clust in seq_len(nclusters)) { 
         ref.prof <- mean.prof[[ref.col]]
         cur.prof <- mean.prof[[clust]] 
@@ -209,6 +209,8 @@ LOWWEIGHT <- 0.000001
         # Adjusting for systematic differences between clusters.
         rescaling[[clust]] <- median(cur.prof/ref.prof, na.rm=TRUE)
     }
+
+    names(rescaling) <- clust.names
     return(rescaling)
 }
 
