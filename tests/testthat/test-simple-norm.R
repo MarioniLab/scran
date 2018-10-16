@@ -1,5 +1,5 @@
 # This tests the simpleSumFactors function.
-# library(testthat); library(scran); source("test-simplenorm.R")
+# library(testthat); library(scran); source("test-simple-norm.R")
 
 COREFUN <- function(x, indices, distances, ref.cell, min.mean=0, ndist=3) {
     lib.sizes <- colSums(x)
@@ -150,9 +150,27 @@ test_that("simpleSumFactors() deals with alternative representations", {
 })
 
 set.seed(120005)
-test_that("simpleSumFactors() throws upon observing nonsensical size factors", {
+test_that("simpleSumFactors() behaves gracefully when encountered nonsensical size factors", {
     ncells <- 200
     ngenes <- 1000
-    x <- matrix(rgamma(ngenes*ncells, 2, 2), nrow=ngenes, ncol=ncells) # using rgamma() to avoid ties.
-    expect_error(simpleSumFactors(x, min.mean=10), "zero or undefined")
+    x <- matrix(rpois(ngenes*ncells, lambda=runif(100)), nrow=ngenes, ncol=ncells, byrow=TRUE)
+
+    # Cleaning of size factors is properly triggered.
+    x2 <- x
+    x2[,1:20] <- 0
+    x2[1,1:20] <- 100
+    expect_warning(out <- simpleSumFactors(x2, min.mean=0), "zero")
+    expect_true(all(out > 0))
+
+    # Zero rescaling across-block handling.
+    x2 <- x
+    x2[,1:30] <- 0
+    x2[1:100,1:30] <- rpois(3000, lambda=20)
+    expect_error(out <- simpleSumFactors(x2, min.mean=0, block=rep(1:2, c(30, ncells-30))), "between-block")
+
+    # Filter threshold too strong.
+    expect_error(simpleSumFactors(x, min.mean=10), "no genes")
+
+    # No cells.
+    expect_error(simpleSumFactors(x[,0]), "no neighbors")
 })
