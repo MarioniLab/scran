@@ -30,7 +30,7 @@ set.seed(100)
 Single-cell RNA sequencing (scRNA-seq) is a widely used technique for profiling gene expression in individual cells.
 This allows molecular biology to be studied at a resolution that cannot be matched by bulk sequencing of cell populations.
 The `r Biocpkg("scran")` package implements methods to perform low-level processing of scRNA-seq data,
-including cell cycle phase assignment, scaling normalization, variance modelling and testing for corrrelated genes.
+including cell cycle phase assignment, scaling normalization, batch correction, variance modelling and testing for corrrelated genes.
 This vignette provides brief descriptions of these methods and some toy examples to demonstrate their use.
 
 # Setting up the data
@@ -269,6 +269,43 @@ cor.genes <- correlatePairs(sce, subset.row=top.hvgs[1:200],
 Significant correlations are defined at a false discovery rate (FDR) threshold of, e.g., 5%.
 Note that the p-values are calculated by permutation and will have a lower bound.
 If there were insufficient permutation iterations, a warning will be issued suggesting that more iterations be performed.
+
+# Batch correction
+
+Batch correction is performed by detecting mutual nearest neighbors (MNNs) [@haghverdi2018batch].
+We assume that two batches contain at least one common cell type, and that the batch effect is orthogonal to the biological differences in each batch.
+We then apply the `fastMNN` function to compute corrected values in a low-dimensional subspace defined by the first 50 PCs.
+
+```{r}
+b1 <- sce
+b2 <- sce
+
+# Adding a very simple batch effect.
+logcounts(b2) <- logcounts(b2) + runif(nrow(b2), -1, 1) 
+
+out <- fastMNN(b1, b2)
+dim(out$corrected)
+out$batch
+```
+
+We see that out simple batch effect is removed in the corrected values:
+
+```{r, fig.width=10, fig.asp=0.5}
+combined <- cbind(b1, b2)
+reducedDim(combined, "corrected") <- out$correct
+combined$batch <- gl(2, ncol(b1))
+
+library(scater)
+multiplot(
+    plotPCA(combined, colour_by="batch") + ggtitle("Without correction"),
+    plotReducedDim(combined, "corrected", colour_by="batch") + ggtitle("With correction"),
+    cols=2
+)
+```
+
+The advantage of the MNN approach (that is not immediately obvious from the example above) is that it can handle differences in population composition between batches.
+This provides correct batch correction in situations where the cell type proportions change between samples, unlike standard methods like `removeBatchEffect()`.
+We suggest reading `r Biocpkg("simpleSingleCell", vignette="work-5-mnn.html", label="this workflow")` for more details.
 
 # Converting to other formats
 
