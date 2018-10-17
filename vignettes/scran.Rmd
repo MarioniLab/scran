@@ -29,9 +29,8 @@ set.seed(100)
 
 Single-cell RNA sequencing (scRNA-seq) is a widely used technique for profiling gene expression in individual cells.
 This allows molecular biology to be studied at a resolution that cannot be matched by bulk sequencing of cell populations.
-Common analyses include detection of highly variable and correlated genes across cells, or assignment of cells to cell cycle phases.
-Cell-specific biases also need to be normalized in a manner that is robust to low counts and technical noise.
-The `r Biocpkg("scran")` package implements methods to perform these analyses.
+The `r Biocpkg("scran")` package implements methods to perform low-level processing of scRNA-seq data,
+including cell cycle phase assignment, scaling normalization, variance modelling and testing for corrrelated genes.
 This vignette provides brief descriptions of these methods and some toy examples to demonstrate their use.
 
 # Setting up the data
@@ -178,11 +177,12 @@ Each expression value can be interpreted as a log-transformed "normalized count"
 sce <- normalize(sce)
 ```
 
-# Detecting highly variable genes
+# Variance modelling 
 
-Highly variable genes (HVGs) are detected by decomposing the total variance of each gene into its biological and technical components [@lun2016step].
-This avoids prioritizing low-abundance genes that have large variances due to technical noise.
-First, we fit a mean-variance trend to the normalized log-expression values with `trendVar`.
+We identify genes that drive biological heterogeneity in the data set by modelling the per-gene variance.
+The aim is use a subset of highly variable genes in downstream analyses like clustering, to improve resolution by removing genes driven by technical noise.
+We first decompose the total variance of each gene into its biological and technical components [@lun2016step].
+We fit a mean-variance trend to the normalized log-expression values with `trendVar`.
 By default, this done using only the spike-in transcripts, as these should only exhibit technical noise.
 
 ```{r}
@@ -191,7 +191,7 @@ fit <- trendVar(sce, parametric=TRUE)
 
 The fitted value of the trend is used as an estimate of the technical component.
 We subtract the fitted value from the total variance to obtain the biological component for each gene.
-HVGs are defined as the top set of genes with the largest biological components.
+We can then extract some certain number of top genes for use in downstream procedures; or more generally, take all potentially interesting genes with positive biological components.
 
 ```{r}
 decomp <- decomposeVar(sce, fit)
@@ -199,7 +199,7 @@ top.hvgs <- order(decomp$bio, decreasing=TRUE)
 head(decomp[top.hvgs,])
 ```
 
-We examined this in more detail by constructing a mean-variance plot.
+We examine this in more detail by constructing a mean-variance plot.
 Here, the black points represent the endogenous genes; the red points represent spike-in transcripts; and the red line represents the mean-variance trend fitted to the spike-ins.
 
 ```{r, fig.cap=""}
