@@ -3,11 +3,12 @@ title: Using scran to analyze single-cell RNA-seq data
 author: 
 - name: Aaron Lun
   affiliation: Cancer Research UK Cambridge Institute, Cambridge, United Kingdom
-date: "Revised: 31 May 2018"
+date: "Revised: 17 October 2018"
 output:
   BiocStyle::html_document:
     toc_float: true
 package: scran
+bibliography: ref.bib
 vignette: >
   %\VignetteIndexEntry{Using scran to analyze scRNA-seq data}
   %\VignetteEngine{knitr::rmarkdown}
@@ -85,11 +86,11 @@ isSpike(sce, "MySpike") <- grep("^ERCC", rownames(sce))
 
 This is simulated data, so we assume that quality control has already been applied to remove low-quality cells or low-abundance genes.
 Check out the `r Biocpkg("scater")` and `r Biocpkg("cellity")` packages for more details.
-Also see http://bioconductor.org/packages/release/workflows/html/simpleSingleCell.html for a workflow where all these steps are used in real data analyses.
+Also see the `r Biocpkg("simpleSingleCell")` workflow where all these steps are used in real data analyses.
 
 # Cell cycle phase assignment
 
-We use a pre-defined classifier to assign cells into their cell cycle phases.
+We use a pre-defined classifier to assign cells into their cell cycle phases [@scialdone2015computational].
 This classifier was constructed from a training data set by identifying pairs of genes where the difference in expression within each pair changed sign across phases.
 Thus, by examining the sign of the difference in test data, the phase to which the cell belongs can be identified.
 Classifiers for human and mouse data are provided with the package -- for other systems, classifiers can be constructed from a training set using the `sandbag` function.
@@ -116,12 +117,13 @@ table(assigned$phases)
 ```
 
 Note that it is generally best practice to perform cell cycle phase assignment _before_ filtering out low-abundance genes.
+This is because the lack of expression of particular genes can provide some information about the cell cycle.
 
 # Normalizing cell-specific biases
 
 ## Based on the gene counts
 
-Cell-specific biases are normalized using the `computeSumFactors` method, which implements the deconvolution strategy for scRNA-seq normalization.
+Cell-specific biases are normalized using the `computeSumFactors` method, which implements the deconvolution strategy for scaling normalization [@lun2016pooling].
 This computes size factors that are used to scale the counts in each cell.
 The assumption is that most genes are not differentially expressed (DE) between cells, such that any differences in expression across the majority of genes represents some technical bias that should be removed.
 
@@ -145,7 +147,7 @@ We also assume that quality control on the cells has already been performed, as 
 
 ## Based on the spike-in counts
 
-An alternative approach is to normalize based on the spike-in counts.
+An alternative approach is to normalize based on the spike-in counts [@lun2017assessing].
 The idea is that the same quantity of spike-in RNA was added to each cell prior to library preparation.
 Size factors are computed to scale the counts such that the total coverage of the spike-in transcripts is equal across cells.
 The main practical difference is that spike-in normalization preserves differences in total RNA content between cells, whereas `computeSumFactors` and other non-DE methods do not.
@@ -168,7 +170,7 @@ sce <- computeSpikeFactors(sce, general.use=FALSE)
 
 ## Computing normalized expression values
 
-Normalized expression values are calculated using the `normalize` method from `r Biocpkg("scater")`.
+Normalized expression values are calculated using the `normalize` method from `r Biocpkg("scater")` [@mccarthy2017scater].
 This will use the deconvolution size factors for the endogenous genes, and the spike-in-based size factors for the spike-in transcripts.
 Each expression value can be interpreted as a log-transformed "normalized count", and can be used in downstream applications like clustering or dimensionality reduction.
 
@@ -178,7 +180,7 @@ sce <- normalize(sce)
 
 # Detecting highly variable genes
 
-Highly variable genes (HVGs) are detected by decomposing the total variance of each gene into its biological and technical components.
+Highly variable genes (HVGs) are detected by decomposing the total variance of each gene into its biological and technical components [@lun2016step].
 This avoids prioritizing low-abundance genes that have large variances due to technical noise.
 First, we fit a mean-variance trend to the normalized log-expression values with `trendVar`.
 By default, this done using only the spike-in transcripts, as these should only exhibit technical noise.
@@ -291,8 +293,7 @@ Cells can be ordered on pseudotime with `r Biocpkg("monocle")` by converting the
 This vignette describes the main functions in the `r Biocpkg("scran")` package for basic analysis of single-cell RNA-seq data.
 We cover normalization, cell cycle phase assignment, HVG detection and correlation testing.
 Conversion to other formats can also be performed in preparation for analyses with other packages in the Bioconductor project.
-Further information can be obtained by examining the documentation for each function (e.g., `?convertTo`);
-    reading the [simpleSingleCell workflow](http://bioconductor.org/packages/release/workflows/html/simpleSingleCell.html);
+Further information can be obtained by examining the documentation for each function (e.g., `?convertTo`); reading the `r Biocpkg("simpleSingleCell")` workflow;
     or asking for help on the Bioconductor [support site](http://support.bioconductor.org) (please read the [posting guide](http://www.bioconductor.org/help/support/posting-guide) beforehand).
 
 # Session information
@@ -300,3 +301,5 @@ Further information can be obtained by examining the documentation for each func
 ```{r}
 sessionInfo()
 ```
+
+# References
