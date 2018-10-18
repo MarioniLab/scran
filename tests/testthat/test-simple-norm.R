@@ -49,10 +49,6 @@ test_that("C++ code underlying simpleSumFactors() works correctly", {
     test <- scran:::.simple_sum_cpp_wrapper(x, closest$index, closest$distance, 1L, min.mean=1)
     expect_equal(ref, test)
 
-    ref <- COREFUN(x, closest$index, closest$distance, 1, min.mean=2)
-    test <- scran:::.simple_sum_cpp_wrapper(x, closest$index, closest$distance, 1L, min.mean=2)
-    expect_equal(ref, test)
-
     # Different reference cell.
     ref <- COREFUN(x, closest$index, closest$distance, 10L, min.mean=0)
     test <- scran:::.simple_sum_cpp_wrapper(x, closest$index, closest$distance, 10L, min.mean=NULL)
@@ -157,10 +153,15 @@ test_that("simpleSumFactors() behaves gracefully when encountering nonsensical s
 
     # Cleaning of size factors is properly triggered.
     x2 <- x
-    x2[,1:20] <- 0
+    x2[,1:20] <- 0 # large distance to 20th neighbor from any of these cells, so this will not be the reference.
     x2[1,1:20] <- 100
     expect_warning(out <- simpleSumFactors(x2, min.mean=0), "zero")
     expect_true(all(out > 0))
+
+    x2 <- x
+    x2[,1:21] <- 0 # one of these cells gets chosen as the reference.
+    x2[1,1:21] <- 100
+    expect_error(suppressWarnings(simpleSumFactors(x2, min.mean=0)), "infinite size factors")
 
     # Zero rescaling across-block handling.
     x2 <- x

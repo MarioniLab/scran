@@ -367,7 +367,7 @@ test_that("computeSumFactors is correct with clustering in majority-DE cases", {
     out3 <- computeSumFactors(dummy, cluster=known.clusters, ref=3)
     expect_equal(out, out3)
 
-    expect_error(computeSumFactors(dummy, cluster=known.clusters, ref=0), "'ref.clust' value not in 'clusters'")
+    expect_error(computeSumFactors(dummy, cluster=known.clusters, ref="0"), "'ref.clust' not in 'clusters'")
 })
 
 ####################################################################################################

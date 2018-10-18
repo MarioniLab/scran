@@ -89,10 +89,9 @@
         }
 
         # Scaling all size factors to the new reference.
-        rescaling.factors <- .rescale_clusters(all.ref, ref.col=ref.block, min.mean=min.mean)
-        if (any(!is.finite(rescaling.factors) | rescaling.factors<=0)) {
-            stop("calibration factors are not strictly positive")
-        }
+        rescaling.factors <- .rescale_clusters(all.ref, ref.col=ref.block, min.mean=min.mean, 
+            char.err.msg="'ref.block' not in 'block'",
+            rescale.err.msg="calibration factors are not strictly positive")
 
         all.output <- numeric(ncol(x))
         for (block in seq_along(all.ref)) {
