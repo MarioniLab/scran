@@ -3,7 +3,7 @@
 #' @importClassesFrom Matrix dgCMatrix
 #' @importFrom scater librarySizeFactors normalizeCounts nexprs
 #' @importFrom BiocGenerics t
-.simple_sum_factors_per_block <- function(x, indices=NULL, k=20, trend.args=list(), approximate=FALSE, irlba.args=list(), min.mean=1, subset.row=NULL, BNPARAM=NULL)
+.simple_sum_factors_per_block <- function(x, indices=NULL, k=20, ref.k=k, trend.args=list(), approximate=FALSE, irlba.args=list(), min.mean=1, subset.row=NULL, BNPARAM=NULL)
 # Implements a much faster method based on local averages to compute size factors.
 # Avoids the need for explicit clustering outside of the algorithm.
 #
@@ -28,14 +28,22 @@
     y <- normalizeCounts(x, size_factors=sf, return_log=TRUE)
     fit <- do.call(trendVar, c(list(x=y), trend.args))
     pcs <- denoisePCA(y, technical=fit$trend, approximate=approximate, irlba.args=irlba.args)
-    nn.out <- findKNN(pcs, k=k, BNPARAM=BNPARAM)
+    nn.out <- findKNN(pcs, k=max(ref.k, k), BNPARAM=BNPARAM)
 
     # Choosing the densest cell to be the reference.
     last <- ncol(nn.out$distance)
     ref.cell <- which.min(nn.out$distance[,last])
+    if (ref.k > k) {
+        use.k <- min(last, k)
+        nn.out$index <- nn.out$index[,use.k,drop=FALSE]
+        nn.out$distance <- nn.out$distance[,use.k,drop=FALSE]
+    }
 
     out <- .simple_sum_cpp_wrapper(x, nn.out$index, nn.out$distance, ref.cell, min.mean=min.mean, ndist=3)
 
+    if (any(is.infinite(out$sf))) {
+        stop("infinite size factors")
+    }
     if (any(out$sf <= 0)) {
         warning("cleaning zero size factor estimates")
         num.detected <- nexprs(x, byrow=FALSE)
@@ -57,28 +65,35 @@
 #' @importFrom stats median
 #' @importFrom scater librarySizeFactors normalizeCounts
 #' @importFrom BiocGenerics t
-.simpleSumFactors <- function(x, k=20, trend.args=list(), approximate=FALSE, irlba.args=list(), subset.row=NULL, min.mean=1, block=NULL, BNPARAM=NULL, BPPARAM=SerialParam())
+.simpleSumFactors <- function(x, k=20, ref.k=k, trend.args=list(), approximate=FALSE, irlba.args=list(), subset.row=NULL, min.mean=1, 
+    block=NULL, ref.block=NULL, BNPARAM=NULL, BPPARAM=SerialParam())
 # Parallelizes the size factor calculation across blocks.
 {
-    all.args <- list(x=x, k=k, trend.args=trend.args, approximate=approximate, irlba.args=irlba.args, subset.row=subset.row, min.mean=min.mean, BNPARAM=BNPARAM)
+    all.args <- list(x=x, k=k, ref.k=ref.k, trend.args=trend.args, approximate=approximate, irlba.args=irlba.args, subset.row=subset.row, min.mean=min.mean, BNPARAM=BNPARAM)
     if (is.null(block)) {
         all.norm <- do.call(.simple_sum_factors_per_block, all.args)
         all.output <- all.norm[[1]]
 
     } else {
         indices <- split(seq_along(block), block)
-        all.norm <- bpmapply(FUN=.simple_sum_factors_per_block, indices=indices, MoreArgs=all.args, SIMPLIFY=FALSE, USE.NAMES=FALSE, BPPARAM=BPPARAM)
+        all.norm <- bpmapply(FUN=.simple_sum_factors_per_block, indices=indices, MoreArgs=all.args, SIMPLIFY=FALSE, BPPARAM=BPPARAM)
 
         # Choosing a reference block from the within-block references.
         # This is done by picking the block in the middle of the first PC.
-        all.ref <- lapply(all.norm, "[[", i="ref")
-        R <- do.call(cbind, all.ref)
-        R <- normalizeCounts(R, size_factors=librarySizeFactors(R), return_log=TRUE)
-        ref.pcs <- .centered_SVD(t(R), max.rank=1, approximate=approximate, extra.args=irlba.args)$u
-        ref.block <- which.min(abs(ref.pcs - median(ref.pcs)))
+        if (is.null(ref.block)) {
+            all.ref <- lapply(all.norm, "[[", i="ref")
+            R <- do.call(cbind, all.ref)
+            R <- normalizeCounts(R, size_factors=librarySizeFactors(R), return_log=TRUE)
+            ref.pcs <- .centered_SVD(t(R), max.rank=1, approximate=approximate, extra.args=irlba.args)$u
+            ref.block <- which.min(abs(ref.pcs - median(ref.pcs)))
+        }
 
         # Scaling all size factors to the new reference.
-        rescaling.factors <- .rescale_clusters(all.ref, ref.clust=ref.block, min.mean=min.mean, clust.names=names(indices))
+        rescaling.factors <- .rescale_clusters(all.ref, ref.col=ref.block, min.mean=min.mean)
+        if (any(!is.finite(rescaling.factors) | rescaling.factors<=0)) {
+            stop("calibration factors are not strictly positive")
+        }
+
         all.output <- numeric(ncol(x))
         for (block in seq_along(all.ref)) {
             all.output[indices[[block]]] <- all.norm[[block]]$sf * rescaling.factors[[block]]

@@ -50,7 +50,15 @@
     clust.profile <- lapply(all.norm, "[[", i="ave.cell")
 
     # Adjusting size factors between clusters.
-    rescaling.factors <- .rescale_clusters(clust.profile, ref.clust=ref.clust, min.mean=min.mean, clust.names=names(indices))
+    if (is.null(ref.clust)) {
+        lib.sizes <- vapply(clust.profile, FUN=sum, FUN.VALUE=0) 
+        ref.clust <- which(rank(lib.sizes, ties.method="first")==as.integer(length(lib.sizes)/2)+1L)
+    }
+    rescaling.factors <- .rescale_clusters(clust.profile, ref.col=ref.clust, min.mean=min.mean)
+    if (any(!is.finite(rescaling.factors) | rescaling.factors<=0)) {
+        stop("inter-cluster rescaling factors are not strictly positive")
+    }
+
     clust.nf.scaled <- vector("list", nclusters)
     for (clust in seq_len(nclusters)) { 
         clust.nf.scaled[[clust]] <- clust.nf[[clust]] * rescaling.factors[[clust]]
@@ -174,16 +182,12 @@ LOWWEIGHT <- 0.000001
 }
 
 #' @importFrom stats median
-.rescale_clusters <- function(mean.prof, ref.clust, min.mean, clust.names) 
+.rescale_clusters <- function(mean.prof, ref.col, min.mean) 
 # Chooses a cluster as a reference and rescales all other clusters to the reference,
 # based on the 'normalization factors' computed between pseudo-cells.
 {
-    if (is.null(ref.clust)) {
-        # Picking the cluster with the middle library size as the reference.
-        lib.sizes <- vapply(mean.prof, FUN=sum, FUN.VALUE=0) 
-        ref.col <- which(rank(lib.sizes, ties.method="first")==as.integer(length(lib.sizes)/2)+1L)
-    } else {
-        ref.col <- which(clust.names==ref.clust)
+    if (is.character(ref.col)) {
+        ref.col <- which(names(mean.prof)==ref.col)
         if (length(ref.col)==0L) { 
             stop("'ref.clust' value not in 'clusters'")
         }
@@ -210,10 +214,7 @@ LOWWEIGHT <- 0.000001
         rescaling[[clust]] <- median(cur.prof/ref.prof, na.rm=TRUE)
     }
 
-    if (any(!is.finite(rescaling) | rescaling==0)) {
-        stop("inter-cluster rescaling factors are not strictly positive")
-    }
-    names(rescaling) <- clust.names
+    names(rescaling) <- names(mean.prof)
     return(rescaling)
 }
 
