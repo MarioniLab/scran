@@ -8,7 +8,7 @@
 
 \usage{
 \S4method{simpleSumFactors}{ANY}(x, k=20, ref.k=k, trend.args=list(), approximate=FALSE, 
-    irlba.args=list(), subset.row=NULL, min.mean=1, block=NULL, 
+    irlba.args=list(), subset.row=NULL, min.mean=1, block=NULL, ref.block=NULL,
     BNPARAM=NULL, BPPARAM=SerialParam())
 
 \S4method{simpleSumFactors}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="counts", 
