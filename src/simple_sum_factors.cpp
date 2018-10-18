@@ -88,21 +88,21 @@ SEXP simple_sum_factors_internal(M mat, Rcpp::IntegerMatrix indices, Rcpp::Numer
             }
         }
 
-        if (postfilter) { 
-            // Computing the median (faster than partial sort).
-            bool is_even=(postfilter%2==0);
-            size_t halfway=postfilter/2;
-    
-    		std::nth_element(ratios.begin(), ratios.begin()+halfway, ratios.begin() + postfilter);
-    		if (is_even) {
-    			double medtmp=ratios[halfway];
-    			std::nth_element(ratios.begin(), ratios.begin()+halfway-1, ratios.begin() + postfilter);
-    			outfactors[i]=(medtmp+ratios[halfway-1])/2;
-    		} else {
-    			outfactors[i]=ratios[halfway];
-    		}
+        if (!postfilter) { 
+            throw std::runtime_error("no genes remaining after filtering");
+        }
+
+        // Computing the median (faster than partial sort).
+        bool is_even=(postfilter%2==0);
+        size_t halfway=postfilter/2;
+
+        std::nth_element(ratios.begin(), ratios.begin()+halfway, ratios.begin() + postfilter);
+        if (is_even) {
+            double medtmp=ratios[halfway];
+            std::nth_element(ratios.begin(), ratios.begin()+halfway-1, ratios.begin() + postfilter);
+            outfactors[i]=(medtmp+ratios[halfway-1])/2;
         } else {
-            outfactors[i]=R_NaReal;
+            outfactors[i]=ratios[halfway];
         }
 
         // Actually computing the current factor.

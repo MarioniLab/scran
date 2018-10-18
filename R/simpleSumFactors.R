@@ -36,9 +36,6 @@
 
     out <- .simple_sum_cpp_wrapper(x, nn.out$index, nn.out$distance, ref.cell, min.mean=min.mean, ndist=3)
 
-    if (any(is.na(out$sf))) {
-        stop("no genes remaining after filtering with 'min.mean'")
-    }
     if (any(out$sf <= 0)) {
         warning("cleaning zero size factor estimates")
         num.detected <- nexprs(x, byrow=FALSE)
