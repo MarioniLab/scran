@@ -159,7 +159,7 @@ test_that("simpleSumFactors() behaves gracefully when encountering nonsensical s
     expect_true(all(out > 0))
 
     x2 <- x
-    x2[,1:21] <- 0 # one of these cells gets chosen as the reference.
+    x2[,1:21] <- 0 # one of these cells gets chosen as the reference.
     x2[1,1:21] <- 100
     expect_error(suppressWarnings(simpleSumFactors(x2, min.mean=0)), "infinite size factors")
 
