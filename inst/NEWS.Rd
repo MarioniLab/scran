@@ -2,7 +2,7 @@
 \title{scran News}
 \encoding{UTF-8}
 
-\section{Version 1.9.35}{\itemize{
+\section{Version 1.10.0}{\itemize{
 \item Removed selectorPlot(), exploreData() functions in favour of iSEE.
     
 \item Fixed underflow problem in mnnCorrect() when dealing with the Gaussian kernel.
