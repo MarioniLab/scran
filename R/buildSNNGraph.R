@@ -1,7 +1,7 @@
 #' @importFrom igraph make_graph simplify "E<-"
 #' @importFrom BiocParallel SerialParam
 .buildSNNGraph <- function(x, k=10, d=50, type=c("rank", "number"),
-    transposed=FALSE, pc.approx=FALSE, rand.seed=NA, irlba.args=list(),
+    transposed=FALSE, pc.approx=FALSE, irlba.args=list(),
     subset.row=NULL, BNPARAM=NULL, BPPARAM=SerialParam()) 
 # Builds a shared nearest-neighbor graph, where edges are present between each 
 # cell and any other cell with which it shares at least one neighbour. Each edges 
@@ -12,7 +12,7 @@
 # created 3 April 2017
 { 
     nn.out <- .setup_knn_data(x=x, subset.row=subset.row, d=d, transposed=transposed,
-        pc.approx=pc.approx, rand.seed=rand.seed, irlba.args=irlba.args, 
+        pc.approx=pc.approx, irlba.args=irlba.args, 
         k=k, BNPARAM=BNPARAM, BPPARAM=BPPARAM) 
 
     # Building the SNN graph.
@@ -34,7 +34,7 @@
 #' @importFrom igraph make_graph simplify
 #' @importFrom BiocParallel SerialParam
 .buildKNNGraph <- function(x, k=10, d=50, directed=FALSE, transposed=FALSE, pc.approx=FALSE,
-    rand.seed=NA, irlba.args=list(), subset.row=NULL, BNPARAM=NULL, BPPARAM=SerialParam()) 
+    irlba.args=list(), subset.row=NULL, BNPARAM=NULL, BPPARAM=SerialParam()) 
 # Builds a k-nearest-neighbour graph, where edges are present between each
 # cell and its 'k' nearest neighbours. Undirected unless specified otherwise.
 #
@@ -42,7 +42,7 @@
 # created 16 November 2017
 { 
     nn.out <- .setup_knn_data(x=x, subset.row=subset.row, d=d, transposed=transposed,
-        pc.approx=pc.approx, rand.seed=rand.seed, irlba.args=irlba.args,
+        pc.approx=pc.approx, irlba.args=irlba.args,
         k=k, BNPARAM=BNPARAM, BPPARAM=BPPARAM) 
 
     # Building the KNN graph.
@@ -65,7 +65,7 @@
 
 #' @importFrom stats prcomp 
 #' @importFrom BiocNeighbors findKNN
-.setup_knn_data <- function(x, subset.row, d, transposed, pc.approx, rand.seed, irlba.args, k, BNPARAM, BPPARAM) {
+.setup_knn_data <- function(x, subset.row, d, transposed, pc.approx, irlba.args, k, BNPARAM, BPPARAM) {
     ncells <- ncol(x)
     if (!is.null(subset.row)) {
         x <- x[.subset_to_index(subset.row, x, byrow=TRUE),,drop=FALSE]
@@ -77,13 +77,6 @@
     
     # Reducing dimensions, if 'd' is less than the number of genes.
     if (!is.na(d) && d < ncol(x)) {
-        if (pc.approx) {
-            if (!is.na(rand.seed)) {
-                .Deprecated(msg="'rand.seed=' is deprecated.\nUse 'set.seed' externally instead.")
-                set.seed(rand.seed)
-            }
-        }
-
         svd.out <- .centered_SVD(x, max.rank=d, approximate=pc.approx, extra.args=irlba.args, keep.right=FALSE)
         x <- .svd_to_pca(svd.out, d, named=FALSE)
     }
