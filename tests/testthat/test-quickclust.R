@@ -103,7 +103,7 @@ test_that("quickCluster with igraph works with various settings", {
     mat <- matrix(rnorm(ncells*ndims, mean=20), nrow=ndims)
 
     # Checking that there are no ties within the 'k+1'th nearest neighbors for each cell.
-    ref <- quickCluster(mat, get.rank=TRUE)
+    ref <- scaledColRanks(mat)
     all.dist <- as.matrix(dist(t(ref)))
     diag(all.dist) <- Inf # ignore self.
     out <- apply(all.dist, 1, FUN=function(d) { min(diff(sort(d)[seq_len(k+1)])) })
