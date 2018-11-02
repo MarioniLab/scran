@@ -3,8 +3,8 @@
 #' @importFrom scater calcAverage
 #' @importFrom igraph cluster_fast_greedy
 #' @importFrom BiocParallel SerialParam bpmapply
-.quick_cluster <- function(x, min.size=200, max.size=NULL, method=c("hclust", "igraph"),
-                           pc.approx=TRUE, get.ranks=FALSE, subset.row=NULL, min.mean=1, 
+.quick_cluster <- function(x, min.size=200, method=c("hclust", "igraph"),
+                           pc.approx=TRUE, subset.row=NULL, min.mean=1, 
                            block=NULL, block.BPPARAM=SerialParam(), ...)
 # This function generates a cluster vector containing the cluster number assigned to each cell.
 # It takes the counts matrix and a minimum number of Cells per cluster as input.
@@ -19,31 +19,23 @@
         by.block <- split(seq_along(block), block)
         x.by.block <- .split_matrix_by_workers(x, by.block, byrow=FALSE)
         collected <- bpmapply(FUN=.quick_cluster, x.by.block, 
-            MoreArgs=list(min.size=min.size, max.size=max.size, method=method, 
-                pc.approx=pc.approx, get.ranks=get.ranks, subset.row=subset.row, 
+            MoreArgs=list(min.size=min.size, method=method, 
+                pc.approx=pc.approx, subset.row=subset.row, 
                 min.mean=min.mean, ...), 
             BPPARAM=block.BPPARAM)
 
         # Merging the results across different blocks.
         reordering <- order(unlist(by.block, use.names=FALSE))
-        if (get.ranks) {
-            return(do.call(cbind, collected)[,reordering,drop=FALSE])
-        } else {
-            last <- 0L
-            for (b in seq_along(collected)) {
-                to.add <- nlevels(collected[[b]])
-                collected[[b]] <- as.integer(collected[[b]]) + last
-                last <- last + to.add
-            }
-            return(factor(unlist(collected, use.names=FALSE)[reordering]))
+        last <- 0L
+        for (b in seq_along(collected)) {
+            to.add <- nlevels(collected[[b]])
+            collected[[b]] <- as.integer(collected[[b]]) + last
+            last <- last + to.add
         }
+        return(factor(unlist(collected, use.names=FALSE)[reordering]))
     }
 
-    rkout <- scaledColRanks(x, subset.row=subset.row, min.mean=min.mean, transposed=!get.ranks)
-    if (get.ranks) {
-        .Deprecated(msg="'get.ranks=TRUE' is deprecated.\nUse 'scaledColRanks' instead.")
-        return(rkout)
-    }
+    rkout <- scaledColRanks(x, subset.row=subset.row, min.mean=min.mean, transposed=TRUE)
 
     # Checking size specifications.
     if (ncol(x) < min.size){
@@ -68,10 +60,6 @@
         }
     }
 
-    if (!is.null(max.size)) {
-        .Deprecated("'max.size' is deprecated, use 'max.cluster.size=' in 'computeSumFactors' instead")
-        clusters <- .limit_cluster_size(clusters, max.size)
-    }
     factor(clusters)
 }
 

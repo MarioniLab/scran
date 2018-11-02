@@ -7,9 +7,9 @@
 \description{Cluster similar cells based on rank correlations in their gene expression profiles.}
 
 \usage{
-\S4method{quickCluster}{ANY}(x, min.size=200, max.size=NULL, method=c("hclust", "igraph"),
-    pc.approx=TRUE, get.ranks=FALSE, subset.row=NULL, min.mean=1, 
-    block=NULL, block.BPPARAM=SerialParam(), ...)
+\S4method{quickCluster}{ANY}(x, min.size=200, method=c("hclust", "igraph"),
+    pc.approx=TRUE, subset.row=NULL, min.mean=1, block=NULL, 
+    block.BPPARAM=SerialParam(), ...)
 
 \S4method{quickCluster}{SingleCellExperiment}(x, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE)
 }
@@ -20,9 +20,6 @@
     Alternatively, a SingleCellExperiment object containing such a matrix.
 }
 \item{min.size}{An integer scalar specifying the minimum size of each cluster.}
-\item{max.size}{An integer scalar specifying the maximum size of each cluster.}
-\item{get.ranks}{Deprecated, a logical scalar specifying whether a matrix of adjusted ranks should be returned.
-Use \code{\link{scaledColRanks}} directly instead.}
 \item{method}{A string specifying the clustering method to use.}
 \item{pc.approx}{Argument passed to \code{\link{buildSNNGraph}} when \code{method="igraph"}, otherwise ignored.}
 \item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
@@ -85,17 +82,8 @@ Any filtering on \code{min.mean} is intersected with \code{get.spikes=FALSE} and
 For example, only non-spike-in genes that pass the filter are retained if \code{get.spikes=TRUE}.
 }
 
-\section{Obtaining the scaled and centred ranks}{
-Users can also set \code{get.ranks=TRUE}, in which case a matrix of ranks will be returned.
-Each column contains the ranks for the expression values within a single cell after standardization and mean-centring.
-Computing Euclidean distances between the rank vectors for pairs of cells will yield the same correlation-based distance as that used above.
-This allows users to apply their own clustering algorithms on the ranks, which protects against outliers and is invariant to scaling (at the cost of sensitivity).
-}
-
 \value{
-If \code{get.ranks=FALSE}, a character vector of cluster identities for each cell in \code{counts} is returned.
-
-If \code{get.ranks=TRUE}, a numeric matrix is returned where each column contains ranks for the expression values in each cell.
+A character vector of cluster identities for each cell in \code{counts} is returned.
 }
 
 \author{
@@ -106,6 +94,8 @@ Aaron Lun and Karsten Bach
 \code{\link{cutreeDynamic}},
 \code{\link{computeSumFactors}},
 \code{\link{buildSNNGraph}}
+
+\code{\link{scaledColRanks}} to get the rank matrix directly.
 }
 
 \examples{
