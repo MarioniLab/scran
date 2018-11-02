@@ -65,7 +65,7 @@ More shared neighbors, or shared neighbors that are close to both cells, will ge
 The aim is to use the SNN graph to perform clustering of cells via community detection algorithms in the \pkg{igraph} package.
 This is faster and more memory efficient than hierarchical clustering for large numbers of cells.
 In particular, it avoids the need to construct a distance matrix for all pairs of cells.
-Only the identities of nearest neighbours are required, which can be obtained quickly with methods in the \pkg{kmknn} package.
+Only the identities of nearest neighbours are required, which can be obtained quickly with methods in the \pkg{BiocNeighbors} package.
 
 The choice of \code{k} can be roughly interpreted as the minimum cluster size.
 Smaller values of \code{k} will generally yield smaller, more resolved clusters upon running community detection algorithms.
@@ -84,7 +84,7 @@ However, by default, \code{directed=FALSE} such that an undirected graph is retu
 
 \section{Choice of input data}{
 In practice, PCA is performed on \code{x} to obtain the first \code{d} principal components.
-This is necessary in order to perform the k-NN search (done using the \code{\link[kmknn]{findKNN}} function) in reasonable time.
+This is necessary in order to perform the k-NN search (done using the \code{\link{findKNN}} function) in reasonable time.
 By default, the first 50 components are chosen, which should retain most of the substructure in the data set.
 If \code{d} is \code{NA} or greater than or equal to the number of cells, no dimensionality reduction is performed.
 
@@ -119,7 +119,7 @@ See \code{\link{make_graph}} for details on the graph output object.
 
 See \code{\link{cluster_walktrap}}, \code{\link{cluster_louvain}} and related functions in \pkg{igraph} for clustering based on the produced graph.
 
-Also see \code{\link[kmknn]{findKNN}} for specifics of the nearest-neighbor search.
+Also see \code{\link{findKNN}} for specifics of the nearest-neighbor search.
 }
 
 \references{
