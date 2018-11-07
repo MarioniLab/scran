@@ -71,6 +71,7 @@ Some experimentation with these parameters may be required to obtain satisfactor
 If \code{method="spline"}, smoothing will instead be performed using the \code{\link{smooth.spline}} function 
 Arguments are specified with \code{spline.args}, with a default degrees of freedom of \code{df=4} unless otherwise specified.
 Splines can be more effective than loess at capturing smooth curves with strong non-linear gradients.
+Spline fitting is also faster for very large numbers of points, which may occur in large data sets with many genes and/or many levels of \code{block}.
 
 The \code{trendVar} function will produce an output \code{trend} function with which fitted values can be computed.
 When extrapolating to values below the smallest observed mean, the output function will approach zero.
