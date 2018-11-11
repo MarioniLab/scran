@@ -4,7 +4,7 @@
 #' @importFrom methods is
 .denoisePCA <- function(x, technical, subset.row=NULL,
     value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100, 
-    approximate=FALSE, rand.seed=1000, irlba.args=list())
+    approximate=FALSE, irlba.args=list())
 # Performs PCA and chooses the number of PCs to keep based on the technical noise.
 # This is done on the residuals if a design matrix is supplied.
 #
