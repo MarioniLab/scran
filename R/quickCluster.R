@@ -1,14 +1,13 @@
 #' @importFrom stats hclust dist
 #' @importFrom dynamicTreeCut cutreeDynamic
-#' @importFrom scater calcAverage
+#' @importFrom scater calcAverage librarySizeFactors normalizeCounts
 #' @importFrom igraph cluster_fast_greedy
 #' @importFrom BiocParallel SerialParam bpmapply
-.quick_cluster <- function(x, min.size=200, method=c("hclust", "igraph"),
-                           pc.approx=TRUE, subset.row=NULL, min.mean=1, 
-                           block=NULL, block.BPPARAM=SerialParam(), ...)
-# This function generates a cluster vector containing the cluster number assigned to each cell.
-# It takes the counts matrix and a minimum number of Cells per cluster as input.
-# The minimum number should be at least twice as large as the largest group used for summation.
+#' @importFrom BiocGenerics t
+.quick_cluster <- function(x, min.size=100, method=c("igraph", "hclust"), use.ranks=FALSE,
+    pc.approx=TRUE, d=50, subset.row=NULL, min.mean=1, graph.fun=cluster_fast_greedy,
+    block=NULL, block.BPPARAM=SerialParam(), ...)
+# Generates a factor specifying the cluster to which each cell is assigned.
 #
 # written by Karsten Bach, with modifications by Aaron Lun
 # created 1 December 2015
@@ -35,7 +34,26 @@
         return(factor(unlist(collected, use.names=FALSE)[reordering]))
     }
 
-    rkout <- scaledColRanks(x, subset.row=subset.row, min.mean=min.mean, transposed=TRUE)
+    # Obtaining some values to use for clustering.
+    if (use.ranks) {
+        y <- scaledColRanks(x, subset.row=subset.row, min.mean=min.mean, transposed=TRUE)
+        if (!is.na(d)){ 
+            svd.out <- .centered_SVD(y, max.rank=d, approximate=pc.approx, keep.right=FALSE)
+            y <- .svd_to_pca(svd.out, d, named=FALSE)
+        }
+    } else {
+        if (!is.null(subset.row)) {
+            x <- x[subset.row,,drop=FALSE]
+        }
+        sf <- librarySizeFactors(x)
+        y <- normalizeCounts(x, size_factors=sf, return_log=TRUE)
+        if (!is.na(d)) {
+            fit <- trendVar(y)
+            y <- denoisePCA(y, technical=fit$trend, approximate=pc.approx)
+        } else {
+            y <- t(y)
+        }
+    }
 
     # Checking size specifications.
     if (ncol(x) < min.size){
@@ -44,13 +62,13 @@
 
     method <- match.arg(method)
     if (method=="igraph") { 
-        g <- buildSNNGraph(rkout, pc.approx=pc.approx, transposed=TRUE, ...)
-        out <- cluster_fast_greedy(g)
+        g <- buildSNNGraph(y, d=NA, transposed=TRUE, ...)
+        out <- graph.fun(g)
         clusters <- out$membership
         clusters <- .merge_closest_graph(g, clusters, min.size=min.size)
 
     } else {
-        distM <- dist(as.matrix(rkout)) # Coercing to matrix, if it isn't already.
+        distM <- dist(as.matrix(y)) # Coercing to matrix, if it isn't already.
         htree <- hclust(distM, method='ward.D2')
         clusters <- unname(cutreeDynamic(htree, minClusterSize=min.size, distM=as.matrix(distM), verbose=0, ...))
         
@@ -62,6 +80,10 @@
 
     factor(clusters)
 }
+
+############################
+# Internal functions.
+############################
 
 #' @importFrom igraph modularity E
 .merge_closest_graph <- function(g, clusters, min.size) {
@@ -98,6 +120,10 @@
     clusters <- as.integer(factor(clusters))
     return(clusters)
 }
+
+############################
+# S4 method definitions 
+############################
 
 #' @export
 setGeneric("quickCluster", function(x, ...) standardGeneric("quickCluster"))
