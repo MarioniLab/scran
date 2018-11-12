@@ -1,6 +1,6 @@
 Package: scran
-Version: 1.11.1
-Date: 2018-11-02
+Version: 1.11.2
+Date: 2018-11-12
 Title: Methods for Single-Cell RNA-Seq Data Analysis
 Authors@R: c(person("Aaron", "Lun", role = c("aut", "cre"), 
         email = "infinite.monkeys.with.keyboards@gmail.com"), 
@@ -29,4 +29,4 @@ NeedsCompilation: yes
 VignetteBuilder: knitr
 SystemRequirements: C++11
 LinkingTo: beachmat, Rcpp, Rhdf5lib
-RoxygenNote: 6.1.0
+RoxygenNote: 6.1.1
