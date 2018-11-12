@@ -1,11 +1,11 @@
 #' @importFrom stats hclust dist
 #' @importFrom dynamicTreeCut cutreeDynamic
 #' @importFrom scater calcAverage librarySizeFactors normalizeCounts
-#' @importFrom igraph cluster_fast_greedy
+#' @importFrom igraph cluster_walktrap
 #' @importFrom BiocParallel SerialParam bpmapply
 #' @importFrom BiocGenerics t
 .quick_cluster <- function(x, min.size=100, method=c("igraph", "hclust"), use.ranks=FALSE,
-    pc.approx=TRUE, d=50, subset.row=NULL, min.mean=1, graph.fun=cluster_fast_greedy,
+    pc.approx=FALSE, d=NULL, subset.row=NULL, min.mean=1, graph.fun=cluster_walktrap,
     block=NULL, block.BPPARAM=SerialParam(), ...)
 # Generates a factor specifying the cluster to which each cell is assigned.
 #
@@ -37,9 +37,8 @@
     # Obtaining some values to use for clustering.
     if (use.ranks) {
         y <- scaledColRanks(x, subset.row=subset.row, min.mean=min.mean, transposed=TRUE)
-        if (!is.na(d)){ 
-            svd.out <- .centered_SVD(y, max.rank=d, approximate=pc.approx, keep.right=FALSE)
-            y <- .svd_to_pca(svd.out, d, named=FALSE)
+        if (is.null(d)) {
+            d <- 50
         }
     } else {
         if (!is.null(subset.row)) {
@@ -47,12 +46,18 @@
         }
         sf <- librarySizeFactors(x)
         y <- normalizeCounts(x, size_factors=sf, return_log=TRUE)
-        if (!is.na(d)) {
+        if (is.null(d)) {
             fit <- trendVar(y)
             y <- denoisePCA(y, technical=fit$trend, approximate=pc.approx)
+            d <- NA
         } else {
             y <- t(y)
         }
+    }
+
+    if (!is.na(d)) {
+        svd.out <- .centered_SVD(y, max.rank=d, approximate=pc.approx, keep.right=FALSE)
+        y <- .svd_to_pca(svd.out, d, named=FALSE)
     }
 
     # Checking size specifications.
