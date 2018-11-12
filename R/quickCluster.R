@@ -41,11 +41,8 @@
             d <- 50
         }
     } else {
-        if (!is.null(subset.row)) {
-            x <- x[subset.row,,drop=FALSE]
-        }
-        sf <- librarySizeFactors(x)
-        y <- normalizeCounts(x, size_factors=sf, return_log=TRUE)
+        sf <- librarySizeFactors(x, subset_row=subset.row)
+        y <- normalizeCounts(x, size_factors=sf, return_log=TRUE, subset_row=subset.row)
         if (is.null(d)) {
             fit <- trendVar(y)
             y <- denoisePCA(y, technical=fit$trend, approximate=pc.approx)
