@@ -23,7 +23,7 @@
 \item{min.size}{An integer scalar specifying the minimum size of each cluster.}
 \item{method}{A string specifying the clustering method to use.}
 \item{use.ranks}{A logical scalar indicating whether clustering should be performed on the rank matrix, i.e., based on Spearman's rank correlation.}
-\item{pc.approx}{A logical scalar indicating whether approximate PCA should be performed using \code{\link{irlba}}.}
+\item{pc.approx}{A logical scalar indicating whether approximate PCA should be performed.}
 \item{d}{An integer scalar specifying the number of principal components to retain.
 
 If \code{NULL} and \code{use.ranks=TRUE}, this defaults to 50.
@@ -90,13 +90,9 @@ This process is repeated until all (merged) clusters are larger than \code{min.s
 Spike-in transcripts are not used by default as they provide little information on the biological similarities between cells.
 This may not be the case if subpopulations differ by total RNA content, in which case setting \code{get.spikes=TRUE} may provide more discriminative power.
 
-By default, the function will also filter out genes with average counts (as defined by \code{\link{calcAverage}}) below \code{min.mean}.
+When \code{use.ranks=TRUE}, the function will also filter out genes with average counts (as defined by \code{\link{calcAverage}}) below \code{min.mean}.
 This removes low-abundance genes with many tied ranks, especially due to zeros, which may reduce the precision of the clustering.
 We suggest setting \code{min.mean} to 1 for read count data and 0.1 for UMI data.
-This can be disabled completely by setting it to \code{NULL}.
-
-Any filtering on \code{min.mean} is intersected with \code{get.spikes=FALSE} and/or a specified \code{subset.row}.
-For example, only non-spike-in genes that pass the filter are retained if \code{get.spikes=TRUE}.
 }
 
 \value{

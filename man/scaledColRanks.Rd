@@ -11,8 +11,8 @@ scaledColRanks(x, subset.row=NULL, min.mean=NULL, transposed=FALSE,
 
 \arguments{
     \item{x}{A matrix or matrix-like object containing cells in columns and features in the rows.}
-    \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use.}
-    \item{min.mean}{A numeric scalar specifying the filter to be applied on the average count for each feature prior to computing ranks.
+    \item{subset.row}{A logical, integer or character scalar indicating the rows of \code{x} to use, see \code{?"\link{scran-gene-selection}"}.}
+    \item{min.mean}{A numeric scalar specifying the filter to be applied on the average normalized count for each feature prior to computing ranks.
     Disabled by setting to \code{NULL}.}
     \item{transposed}{A logical scalar specifying whether the output should be transposed.}
     \item{as.sparse}{A logical scalar indicating whether the output should be sparse.}

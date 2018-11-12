@@ -38,7 +38,9 @@ If spike-in transcripts are present, these should be the same across all batches
 Spike-in size factors are rescaled separately from those of the endogenous genes, to reflect differences in spike-in quantities across batches.
 Conversely, spike-in transcripts are not used to compute the rescaling factors for endogenous genes.
 
-Users can set \code{subset.row} to restrict the set of genes used for computing the rescaling factors.
+Only genes with library size-adjusted average counts greater than \code{min.mean} will be used for computing the rescaling factors.
+This improves precision and avoids problems with discreteness.
+Users can also set \code{subset.row} to restrict the set of genes used for computing the rescaling factors.
 However, this only affects the rescaling of the size factors - normalized values for \emph{all} genes will still be returned.
 }
 

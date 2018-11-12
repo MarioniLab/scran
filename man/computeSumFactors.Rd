@@ -142,9 +142,6 @@ Such genes will automatically be filtered out by applying a minimum threshold \c
 If \code{clusters} is specified, filtering by \code{min.mean} is performed on the per-cluster average during within-cluster normalization,
 and then on the (library size-adjusted) average of the per-cluster averages during between-cluster normalization.
 
-Any filtering on \code{min.mean} is intersected with \code{get.spikes=FALSE} and/or a specified \code{subset.row}.
-For example, only non-spike-in genes that pass the filter are retained if \code{get.spikes=TRUE}.
-
 Spike-in transcripts are not included with the default \code{get.spikes=FALSE} as they can behave differently from the endogenous genes. 
 Users wanting to perform spike-in normalization should see \code{\link{computeSpikeFactors}} instead.
 }

@@ -121,12 +121,10 @@ This assumes that most genes exhibit technical variation and little biological v
 Low-abundance genes with mean log-expression below \code{min.mean} are not used in trend fitting, to preserve the sensitivity of span-based smoothers at moderate-to-high abundances.
 It also protects against discreteness, which can interfere with estimation of the variability of the variance estimates and accurate scaling of the trend.
 The default threshold is chosen based on the point at which discreteness is observed in variance estimates from Poisson-distributed counts.
-For heterogeneous droplet data, a lower threshold of 0.001-0.01 should be used.
+For heterogeneous droplet data, a lower threshold of 0.001-0.01 may be more appropriate.
 
-Users can also directly specify which rows to use with \code{subset.row}.
-All of these parameters - including \code{min.mean} and \code{use.spikes} - interact with each other sensibly, by taking the intersection of rows that fulfill all criteria.
-For example, if \code{subset.row} is specified and \code{use.spikes=TRUE}, rows are only used if they are both spike-in transcripts \emph{and} in \code{subset.row}.
-Otherwise, if \code{use.spikes=FALSE}, only rows in \code{subset.row} that are \emph{not} spike-in transcripts are used.
+Users can directly specify which rows to use with \code{subset.row}.
+See \code{?"\link{scran-gene-selection}"} for how the different options interact with each other.
 
 Note that features are not used under any circumstance if they have a variance of zero.
 These are not compatible with trend fitting on the log-scale.

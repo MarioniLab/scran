@@ -30,6 +30,16 @@ A number of functions may require special treatment of spike-ins, e.g., \code{\l
 Refer to the corresponding documentation for more details.
 }
 
+\section{Filtering by mean}{
+Some functions will have a \code{min.mean} argument to filter out low-abundance genes prior to processing.
+Depending on the function, the filter may be applied to the average library size-adjusted count computed by \code{\link{calcAverage}}, the average log-count, 
+or some other measure of abundance - see the documentation for each function for details.
+
+Any filtering on \code{min.mean} is automatically intersected with \code{get.spikes=FALSE} and/or a specified \code{subset.row}.
+For example, only non-spike-in genes that pass the \code{min.mean} filter are retained if \code{get.spikes=TRUE}.
+Similarly, only selected genes that pass the filter are retained if \code{subset.row} is specified.
+}
+
 \author{
 Aaron Lun
 }
