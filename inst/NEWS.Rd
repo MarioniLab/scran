@@ -2,6 +2,11 @@
 \title{scran News}
 \encoding{UTF-8}
 
+\section{Version 1.12.0}{\itemize{
+\item Added option in quickCluster() to cluster on log-expression profiles.
+Modified defaults to use graph-based clustering on log-expression-derived PCs.
+}}
+
 \section{Version 1.10.0}{\itemize{
 \item Removed selectorPlot(), exploreData() functions in favour of iSEE.
     
