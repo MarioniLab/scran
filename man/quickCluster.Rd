@@ -4,12 +4,13 @@
 \alias{quickCluster,SingleCellExperiment-method}
 
 \title{Quick clustering of cells}
-\description{Cluster similar cells based on rank correlations in their gene expression profiles.}
+\description{Cluster similar cells based on their expression profiles, using either log-expression values or ranks.}
 
 \usage{
-\S4method{quickCluster}{ANY}(x, min.size=200, method=c("hclust", "igraph"),
-    pc.approx=TRUE, subset.row=NULL, min.mean=1, block=NULL, 
-    block.BPPARAM=SerialParam(), ...)
+\S4method{quickCluster}{ANY}(x, min.size=100, method=c("igraph", "hclust"), 
+    use.ranks=FALSE, pc.approx=FALSE, d=NULL, subset.row=NULL, min.mean=1, 
+    graph.fun=cluster_walktrap, block=NULL, block.BPPARAM=SerialParam(), 
+    ...)
 
 \S4method{quickCluster}{SingleCellExperiment}(x, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE)
 }
@@ -17,21 +18,32 @@
 \arguments{
 \item{x}{
     A numeric count matrix where rows are genes and columns are cells.
-    Alternatively, a SingleCellExperiment object containing such a matrix.
+    Alternatively, a \linkS4class{SingleCellExperiment} object containing such a matrix.
 }
 \item{min.size}{An integer scalar specifying the minimum size of each cluster.}
 \item{method}{A string specifying the clustering method to use.}
-\item{pc.approx}{Argument passed to \code{\link{buildSNNGraph}} when \code{method="igraph"}, otherwise ignored.}
+\item{use.ranks}{A logical scalar indicating whether clustering should be performed on the rank matrix, i.e., based on Spearman's rank correlation.}
+\item{pc.approx}{A logical scalar indicating whether approximate PCA should be performed using \code{\link{irlba}}.}
+\item{d}{An integer scalar specifying the number of principal components to retain.
+
+If \code{NULL} and \code{use.ranks=TRUE}, this defaults to 50.
+If \code{use.rank=FALSE}, the number of PCs is chosen by \code{\link{denoisePCA}}.
+
+If \code{NA}, no dimensionality reduction is performed and the gene expression values (or their rank equivalents) are directly used in clustering.
+}
 \item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 \item{min.mean}{A numeric scalar specifying the filter to be applied on the average count for each filter prior to computing ranks.
-Disabled by setting to \code{NULL}.}
+Only used when \code{use.ranks=TRUE}, see \code{?\link{scaledColRanks}} for details.}
+\item{graph.fun}{A function specifying the community detection algorithm to use on the nearest neighbor graph when \code{method="igraph"}.
+Usually obtained from the \pkg{igraph} package.}
 \item{block}{A factor of length equal to \code{ncol(x)} specifying whether clustering should be performed within pre-specified blocks.
 By default, all columns in \code{x} are treated as a single block.}
-\item{block.BPPARAM}{A BiocParallelParam object specifying whether and how parallelization should be performed across blocks, 
+\item{block.BPPARAM}{A \linkS4class{BiocParallelParam} object specifying whether and how parallelization should be performed across blocks, 
 if \code{block} is non-\code{NULL} and has more than one level.}
 \item{...}{
     For \code{quickCluster,ANY-method}, additional arguments to be passed to \code{\link{cutreeDynamic}} for \code{method="hclust"}, 
         or \code{\link{buildSNNGraph}} for \code{method="igraph"}.
+
     For \code{quickCluster,SingleCellExperiment-method}, additional arguments to pass to \code{quickCluster,ANY-method}.
 }
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
@@ -39,19 +51,24 @@ if \code{block} is non-\code{NULL} and has more than one level.}
 }
 
 \details{
-This function provides a correlation-based approach to quickly define clusters of a minimum size \code{min.size}.
+This function provides a convenient wrapper to quickly define clusters of a minimum size \code{min.size}.
 Two clustering strategies are available:
 \itemize{
-\item If \code{method="hclust"}, a distance matrix is constructed using Spearman's rho on the counts between cells.
-(Some manipulation is performed to convert Spearman's rho into a proper distance metric.)
-Hierarchical clustering is performed and a dynamic tree cut is used to define clusters of cells.
+\item If \code{method="hclust"}, a distance matrix is constructed;
+hierarchical clustering is performed using Ward's criterion;
+and \code{\link{cutreeDynamic}} is used to define clusters of cells.
 \item If \code{method="igraph"}, a shared nearest neighbor graph is constructed using the \code{\link{buildSNNGraph}} function.
-This is used to define clusters based on highly connected communities in the graph, using the \code{\link[igraph]{cluster_fast_greedy}} function.
-Again, neighbors are identified using distances based on Spearman's rho.
-This should be used in situations where there are too many cells to build a distance matrix.
+This is used to define clusters based on highly connected communities in the graph, using the \code{graph.fun} function.
 }
-A correlation-based approach is preferred here as it is invariant to scaling normalization.
-This avoids circularity between normalization and clustering, e.g., in \code{\link{computeSumFactors}}.
+
+By default, \code{quickCluster} will apply these clustering algorithms on the principal component (PC) scores generated from the log-expression values.
+These are obtained by \code{\link{denoisePCA}} based on the trend fitted to endogenous genes with \code{\link{trendVar}}.
+
+If \code{use.ranks=TRUE}, clustering is instead performed on PC scores obtained from scaled and centred ranks generated by \code{\link{scaledColRanks}}.
+This effectively means that clustering uses distances based on the Spearman's rank correlation between two cells.
+
+Setting \code{use.ranks=TRUE} is invariant to scaling normalization and avoids circularity between normalization and clustering, e.g., in \code{\link{computeSumFactors}}.
+However, the default is to use the log-expression values as this yields finer and more precise clusters.
 }
 
 \section{Enforcing cluster sizes}{
@@ -62,7 +79,7 @@ The function will not be able to call this as a cluster as the minimum threshold
 Users are advised to check that the unassigned cells do indeed form their own cluster.
 Otherwise, it may be necessary to use a different clustering algorithm.
 
-When using \code{method="igraph"}, clusters are first identified using \code{\link[igraph]{cluster_fast_greedy}}.
+When using \code{method="igraph"}, clusters are first identified using the specified \code{graph.fun}.
 If the smallest cluster contains fewer cells than \code{min.size}, it is merged with the closest neighbouring cluster.
 In particular, the function will attempt to merge the smallest cluster with each other cluster.
 The merge that maximizes the modularity score is selected, and a new merged cluster is formed.
