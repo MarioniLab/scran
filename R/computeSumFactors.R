@@ -51,12 +51,10 @@
 
     # Adjusting size factors between clusters.
     if (is.null(ref.clust)) {
-        lib.sizes <- vapply(clust.profile, FUN=sum, FUN.VALUE=0) 
-        ref.clust <- which(rank(lib.sizes, ties.method="first")==as.integer(length(lib.sizes)/2)+1L)
+        non.zeroes <- vapply(clust.profile, FUN=function(x) sum(x>0), FUN.VALUE=0L) 
+        ref.clust <- which.max(non.zeroes)
     }
-    rescaling.factors <- .rescale_clusters(clust.profile, ref.col=ref.clust, min.mean=min.mean, 
-        char.err.msg="'ref.clust' not in 'clusters'", 
-        rescale.err.msg="inter-cluster rescaling factors are not strictly positive")
+    rescaling.factors <- .rescale_clusters(clust.profile, ref.col=ref.clust, min.mean=min.mean) 
 
     clust.nf.scaled <- vector("list", nclusters)
     for (clust in seq_len(nclusters)) { 
@@ -181,14 +179,14 @@ LOWWEIGHT <- 0.000001
 }
 
 #' @importFrom stats median
-.rescale_clusters <- function(mean.prof, ref.col, min.mean, char.err.msg, rescale.err.msg) 
+.rescale_clusters <- function(mean.prof, ref.col, min.mean) 
 # Chooses a cluster as a reference and rescales all other clusters to the reference,
 # based on the 'normalization factors' computed between pseudo-cells.
 {
     if (is.character(ref.col)) {
         ref.col <- which(names(mean.prof)==ref.col)
         if (length(ref.col)==0L) { 
-            stop(char.err.msg)
+            stop("'ref.clust' not in 'clusters'")
         }
     }
 
@@ -214,7 +212,7 @@ LOWWEIGHT <- 0.000001
     }
 
     if (any(!is.finite(rescaling) | rescaling<=0)) {
-        stop(rescale.err.msg)
+        stop("inter-cluster rescaling factors are not strictly positive")
     }
     names(rescaling) <- names(mean.prof)
     return(rescaling)

@@ -101,13 +101,16 @@ In general, it is more appropriate to pool more similar cells to avoid violating
 This can be done by specifying the \code{clusters} argument where cells in each cluster have similar expression profiles.
 Deconvolution is subsequently applied on the cells within each cluster.
 Each cluster should contain a sufficient number of cells for pooling -- a warning is raised if the number of cells is less than the maximum value of \code{sizes}.
-A convenince function \code{\link{quickCluster}} is provided for rapid clustering based on Spearman's rank correlation.
+A convenince function \code{\link{quickCluster}} is provided for this purpose.
 
 Size factors computed within each cluster must be rescaled for comparison between clusters.
 This is done by normalizing between clusters to identify the rescaling factor.
-One cluster is chosen as a ``reference'' (by default, that with the median of the mean per-cell library sizes is used) to which all others are normalized.
-Ideally, a cluster that is not extremely different from all other clusters should be used as the reference.
-This can be specified using \code{ref.clust} if there is prior knowledge about which cluster is most suitable, e.g., from PCA or t-SNE plots.
+One cluster is chosen as a ``reference'' to which all others are normalized.
+Ideally, the reference cluster should have a stable expression profile and not be extremely different from all other clusters.
+
+By default, the cluster with the most non-zero counts is used as the reference.
+This improves precision (and also accuracy) of the median-based estimate of the rescaling factor.
+Alternatively, the reference can be manually specified using \code{ref.clust} if there is prior knowledge about which cluster is most suitable, e.g., from PCA or t-SNE plots.
 }
 
 \section{Dealing with negative size factors}{ 
