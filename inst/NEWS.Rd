@@ -5,6 +5,8 @@
 \section{Version 1.12.0}{\itemize{
 \item Added option in quickCluster() to cluster on log-expression profiles.
 Modified defaults to use graph-based clustering on log-expression-derived PCs.
+
+\item Modified default choice of ref.clust= in computeSumFactors().
 }}
 
 \section{Version 1.10.0}{\itemize{
