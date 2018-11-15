@@ -18,7 +18,7 @@ test_that("quickCluster works in the simple case", {
     expect_true(length(unique(paste0(known.clusters, emp.clusters)))==3L)
 
     # Behaves after rows are shuffled.
-    shuffled <- c(1:50, 301:350, 601:650)
+    shuffled <- sample(nrow(dummy))
     shuf.clusters <- quickCluster(dummy, subset.row=shuffled)
     expect_true(length(unique(paste0(shuf.clusters, emp.clusters)))==3L)
 
@@ -38,7 +38,7 @@ test_that("quickCluster works in the simple case", {
 set.seed(300001)
 test_that("quickCluster with use.ranks=TRUE is consistent with clustering on correlations", {
     mat <- matrix(rpois(10000, lambda=5), nrow=20)
-    obs <- quickCluster(mat, use.ranks=TRUE, method="hclust", d=NA)
+    obs <- quickCluster(mat, use.ranks=TRUE, method="hclust", d=NA, min.size=20)
 
     refM <- sqrt(0.5*(1 - cor(mat, method="spearman")))
     distM <- as.dist(refM)
@@ -46,7 +46,7 @@ test_that("quickCluster with use.ranks=TRUE is consistent with clustering on cor
     expect_equal(as.matrix(obsM), as.matrix(distM))
 
     htree <- hclust(distM, method='ward.D2')
-    clusters <- unname(dynamicTreeCut::cutreeDynamic(htree, minClusterSize=100, distM=refM, verbose=0))
+    clusters <- unname(dynamicTreeCut::cutreeDynamic(htree, minClusterSize=20, distM=refM, verbose=0))
     expect_identical(clusters, as.integer(obs)) # this can complain if unassigned, as 0 becomes 1 in as.integer().
 })
 
@@ -125,7 +125,7 @@ test_that("quickCluster's calls to min.size in dynamic tree cut are respected", 
 
     leftovers <- min(80, sum(known.clusters==3))
     keep <- c(which(known.clusters==1), which(known.clusters==2), which(known.clusters==3)[seq_len(leftovers)]) # force cluster 3 to be unassigned.
-    expect_warning(forced <- quickCluster(dummy[,keep], method="hclust"), sprintf("%i cells were not assigned to any cluster", leftovers))
+    expect_warning(forced <- quickCluster(dummy[,keep], method="hclust", min.size=100), sprintf("%i cells were not assigned to any cluster", leftovers))
     expect_identical(as.character(tail(forced, leftovers)), rep("0", leftovers))
 })
 
