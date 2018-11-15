@@ -109,16 +109,11 @@ coreCheck <- function(x, sphere, pool.sizes)
 
     # Adding the low weight additional equations.
     extra.mat <- diag(ncells)*sqrt(scran:::LOWWEIGHT)
-    extra.val <- apply(x/ave.cell, 2, median)*sqrt(scran:::LOWWEIGHT)
+    extra.val <- rep(sqrt(scran:::LOWWEIGHT) / sum(ave.cell), ncells)
     final.mat <- rbind(do.call(rbind, all.mat), extra.mat)
     final.val <- c(unlist(all.vals), extra.val)
 
-    # Checking equality with the core output.
     core <- scran:::.create_linear_system(x, ave.cell=ave.cell, sphere=sphere, pool.sizes=pool.sizes)
-    last.set <- seq_len(ncells) + nrow(core$design) - ncells # need some reordering for the last set
-    core$design[last.set,][sphere[seq_len(ncells)],] <- core$design[last.set,]
-    core$output[last.set][sphere[seq_len(ncells)]] <- core$output[last.set]
-
     final.mat <- as(final.mat, "dgCMatrix")
     expect_equal(final.mat, core$design)
     expect_equal(final.val, core$output)
@@ -303,12 +298,13 @@ test_that("computeSumFactors correctly subsets 'sizes' for small clusters", {
     clusters <- rep(1:2, c(80, 120))
     sizes <- seq(20, 100, 5)
 
-    expect_warning(obs <- computeSumFactors(dummy[,clusters==1], sizes=sizes, min.mean=0), "not enough cells in at least one cluster")
+    obs <- computeSumFactors(dummy[,clusters==1], sizes=sizes, min.mean=0)
     ref1 <- sumInR(dummy[,clusters==1], sizes[sizes<=sum(clusters==1)], center=FALSE)
     expect_equal(ref1/mean(ref1), obs)
 
-    expect_warning(obs <- computeSumFactors(dummy, sizes=sizes, cluster=clusters, min.mean=0), "not enough cells in at least one cluster")
-    ref2 <- sumInR(dummy[,clusters==2], sizes, center=FALSE) # Ensure that second cluster isn't affected by subsetting of sizes.
+    # Ensure that second cluster isn't affected by subsetting of sizes.
+    obs <- computeSumFactors(dummy, sizes=sizes, cluster=clusters, min.mean=0)
+    ref2 <- sumInR(dummy[,clusters==2], sizes, center=FALSE) 
     adj <- t(t(dummy)/colSums(dummy))
     pseudo1 <- rowMeans(adj[,clusters==1])
     pseudo2 <- rowMeans(adj[,clusters==2])
@@ -319,6 +315,13 @@ test_that("computeSumFactors correctly subsets 'sizes' for small clusters", {
     ref[clusters==2] <- ref2
     ref <- ref/mean(ref)
     expect_equal(ref, obs)
+
+    # Degrades to library size normalization.
+    subdummy <- dummy[,1:20]
+    expect_equal(
+            computeSumFactors(subdummy, sizes=100L, min.mean=0),
+            scater::librarySizeFactors(subdummy)
+    )
 })
 
 set.seed(20008)
@@ -434,7 +437,7 @@ set.seed(20012)
 test_that("computeSumFactors throws errors correctly", {
     dummy <- matrix(rpois(ncells*ngenes, lambda=10), nrow=ngenes, ncol=ncells)
     expect_error(computeSumFactors(dummy, min.mean=NULL), "turn off abundance filtering")
-    expect_error(computeSumFactors(dummy[,0,drop=FALSE]), "not enough cells in at least one cluster")
+    expect_error(computeSumFactors(dummy[,0,drop=FALSE]), "zero cells in one of the clusters")
     expect_error(computeSumFactors(dummy[0,,drop=FALSE]), "cells should have non-zero library sizes")
     expect_error(computeSumFactors(dummy, sizes=c(10, 10, 20)), "'sizes' are not unique")
     expect_error(computeSumFactors(dummy, clusters=integer(0)), "'ncol(x)' is not equal to 'length(clusters)'", fixed=TRUE)
