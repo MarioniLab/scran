@@ -84,15 +84,7 @@
 # Written as a separate function so that bplapply operates in the scran namespace.
 {
     cur.cells <- length(curdex)
-    cur.sizes <- sizes
-    if (any(cur.sizes > cur.cells)) { 
-        cur.sizes <- cur.sizes[cur.sizes <= cur.cells]
-        if (length(cur.sizes)) { 
-            warning("not enough cells in at least one cluster for some 'sizes'")
-        } else {
-            stop("not enough cells in at least one cluster for any 'sizes'")
-        }
-    } 
+    sizes <- sizes[sizes <= cur.cells]
 
     vals <- .Call(cxx_subset_and_divide, x, subset.row-1L, curdex-1L, scaling)
     scaling <- vals[[1]]
@@ -109,7 +101,7 @@
 
     # Using our summation approach.
     sphere <- .generateSphere(scaling)
-    new.sys <- .create_linear_system(exprs, use.ave.cell, sphere, cur.sizes) 
+    new.sys <- .create_linear_system(exprs, use.ave.cell, sphere, sizes) 
     design <- new.sys$design
     output <- new.sys$output
 
@@ -148,23 +140,20 @@ LOWWEIGHT <- 0.000001
 # Does the heavy lifting of computing pool-based size factors 
 # and creating the linear system out of the equations for each pool.
 {
-    sphere <- sphere - 1L # zero-indexing in C++.
-
     nsizes <- length(pool.sizes)
     row.dex <- col.dex <- output <- vector("list", 2L)
     cur.cells <- ncol(cur.exprs)
 
     # Creating the linear system with the requested pool sizes.
-    out <- .Call(cxx_forge_system, cur.exprs, ave.cell, sphere, pool.sizes)
+    out <- .Call(cxx_forge_system, cur.exprs, ave.cell, sphere - 1L, pool.sizes)
     row.dex[[1]] <- out[[1]] 
     col.dex[[1]] <- out[[2]]
     output[[1]]<- out[[3]]
     
-    # Adding extra equations to guarantee solvability (downweighted).
-    out <- .Call(cxx_forge_system, cur.exprs, ave.cell, sphere, 1L)
-    row.dex[[2]] <- out[[1]] + cur.cells * nsizes
-    col.dex[[2]] <- out[[2]]
-    output[[2]] <- out[[3]] * sqrt(LOWWEIGHT)
+    # Adding extra equations to guarantee solvability.
+    row.dex[[2]] <- seq_len(cur.cells) + cur.cells * nsizes
+    col.dex[[2]] <- seq_len(cur.cells)
+    output[[2]] <- rep(sqrt(LOWWEIGHT), cur.cells) # factors of 1, downweighted.
 
     # Setting up the entries of the LHS matrix.
     eqn.values <- rep(c(1, sqrt(LOWWEIGHT)), lengths(row.dex))
