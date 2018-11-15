@@ -65,6 +65,9 @@ The default choice also avoids rare cases of linear dependencies and unstable es
 
 The smallest window should be large enough so that the pool-based size factors are, on average, non-zero.
 We recommend window sizes no lower than 20 for UMI data, though smaller windows may be possible for read count data.
+
+If there are fewer cells than the smallest window size, the function will naturally degrade to performing library size normalization.
+This yields results that are the same as \code{\link{librarySizeFactors}}.
 }
 
 \section{Prescaling to improve accuracy}{ 
@@ -100,7 +103,6 @@ The default \code{max.cluster.size} will arbitrarily break up the cell populatio
 In general, it is more appropriate to pool more similar cells to avoid violating the assumption of a non-DE majority of genes across the data set.
 This can be done by specifying the \code{clusters} argument where cells in each cluster have similar expression profiles.
 Deconvolution is subsequently applied on the cells within each cluster.
-Each cluster should contain a sufficient number of cells for pooling -- a warning is raised if the number of cells is less than the maximum value of \code{sizes}.
 A convenince function \code{\link{quickCluster}} is provided for this purpose.
 
 Size factors computed within each cluster must be rescaled for comparison between clusters.
@@ -109,8 +111,11 @@ One cluster is chosen as a ``reference'' to which all others are normalized.
 Ideally, the reference cluster should have a stable expression profile and not be extremely different from all other clusters.
 
 By default, the cluster with the most non-zero counts is used as the reference.
-This improves precision (and also accuracy) of the median-based estimate of the rescaling factor.
+This reduces the risk of obtaining undefined rescaling factors for the other clusters, while improving the precision (and also accuracy) of the median-based estimate of each factor.
 Alternatively, the reference can be manually specified using \code{ref.clust} if there is prior knowledge about which cluster is most suitable, e.g., from PCA or t-SNE plots.
+
+Each cluster should ideally be large enough to contain a sufficient number of cells for pooling.
+Otherwise, \code{computeSumFactors} will degrade to library size normalization.
 }
 
 \section{Dealing with negative size factors}{ 
