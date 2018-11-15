@@ -20,9 +20,8 @@
     }
     indices <- split(seq_along(clusters), clusters)
 
-    if (length(indices)==0L) {
-        # To ensure that the empty cluster error triggers.
-        indices <- list(integer(0))
+    if (length(indices)==0L || any(lengths(indices)==0L)) {
+        stop("zero cells in one of the clusters")
     }
 
     # Checking sizes and subsetting.
@@ -140,20 +139,19 @@ LOWWEIGHT <- 0.000001
 # Does the heavy lifting of computing pool-based size factors 
 # and creating the linear system out of the equations for each pool.
 {
-    nsizes <- length(pool.sizes)
     row.dex <- col.dex <- output <- vector("list", 2L)
-    cur.cells <- ncol(cur.exprs)
 
     # Creating the linear system with the requested pool sizes.
     out <- .Call(cxx_forge_system, cur.exprs, ave.cell, sphere - 1L, pool.sizes)
-    row.dex[[1]] <- out[[1]] 
-    col.dex[[1]] <- out[[2]]
+    row.dex[[1]] <- out[[1]] + 1L
+    col.dex[[1]] <- out[[2]] + 1L
     output[[1]]<- out[[3]]
-    
+
     # Adding extra equations to guarantee solvability.
-    row.dex[[2]] <- seq_len(cur.cells) + cur.cells * nsizes
+    cur.cells <- ncol(cur.exprs)
+    row.dex[[2]] <- seq_len(cur.cells) + cur.cells * length(pool.sizes)
     col.dex[[2]] <- seq_len(cur.cells)
-    output[[2]] <- rep(sqrt(LOWWEIGHT), cur.cells) # factors of 1, downweighted.
+    output[[2]] <- rep(sqrt(LOWWEIGHT) / sum(ave.cell), cur.cells) # equivalent to library size factors for each cell, but downweighted.
 
     # Setting up the entries of the LHS matrix.
     eqn.values <- rep(c(1, sqrt(LOWWEIGHT)), lengths(row.dex))
@@ -162,7 +160,7 @@ LOWWEIGHT <- 0.000001
     row.dex <- unlist(row.dex)
     col.dex <- unlist(col.dex)
     output <- unlist(output)
-    design <- sparseMatrix(i=row.dex + 1L, j=col.dex + 1L, x=eqn.values, dims=c(length(output), cur.cells))
+    design <- sparseMatrix(i=row.dex, j=col.dex, x=eqn.values, dims=c(length(output), cur.cells))
 
     return(list(design=design, output=output))
 }
