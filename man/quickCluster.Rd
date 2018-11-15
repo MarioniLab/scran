@@ -7,7 +7,7 @@
 \description{Cluster similar cells based on their expression profiles, using either log-expression values or ranks.}
 
 \usage{
-\S4method{quickCluster}{ANY}(x, min.size=100, method=c("igraph", "hclust"), 
+\S4method{quickCluster}{ANY}(x, min.size=20, method=c("igraph", "hclust"), 
     use.ranks=FALSE, pc.approx=FALSE, d=NULL, subset.row=NULL, min.mean=1, 
     graph.fun=cluster_walktrap, block=NULL, block.BPPARAM=SerialParam(), 
     ...)
