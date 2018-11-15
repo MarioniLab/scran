@@ -7,20 +7,23 @@ SEXP forge_system (SEXP exprs, SEXP ref, SEXP ordering, SEXP poolsizes) {
     auto emat=beachmat::create_numeric_matrix(exprs);
     const size_t ngenes=emat->get_nrow();
     const size_t ncells=emat->get_ncol();
-    if (ncells==0) { throw std::runtime_error("at least one cell required for normalization"); }
+    if (ncells==0) { 
+        throw std::runtime_error("at least one cell required for normalization"); 
+    }
    
     // Checking the input sizes.
     Rcpp::IntegerVector pool_sizes(poolsizes);
     const size_t nsizes=pool_sizes.size();
     if (nsizes==0) {
-        throw std::runtime_error("sizes should be a non-empty integer vector"); 
+        return Rcpp::List::create(Rcpp::IntegerVector(0), Rcpp::IntegerVector(0), Rcpp::NumericVector(0));
     }
-    int last_size=-1, total_SIZE=0;
-    for (const auto& SIZE : pool_sizes) { 
-        if (SIZE < 1 || SIZE > ncells) { throw std::runtime_error("each element of sizes should be within [1, number of cells]"); }
-        if (SIZE < last_size) { throw std::runtime_error("sizes should be sorted"); }
-        total_SIZE+=SIZE;
-        last_size=SIZE;
+
+    int last_size=-1, total_size=0;
+    for (auto s : pool_sizes) { 
+        if (s < 1 || s > ncells) { throw std::runtime_error("each element of sizes should be within [1, number of cells]"); }
+        if (s < last_size) { throw std::runtime_error("sizes should be sorted"); }
+        total_size+=s;
+        last_size=s;
     }
 
     // Checking pseudo cell.
@@ -30,13 +33,13 @@ SEXP forge_system (SEXP exprs, SEXP ref, SEXP ordering, SEXP poolsizes) {
     // Checking ordering.
     Rcpp::IntegerVector order(ordering);
     if (order.size() < ncells*2-1)  { throw std::runtime_error("ordering vector is too short for number of cells"); }
-    for (const auto& o : order) { 
+    for (auto o : order) { 
         if (o < 0 || o > ncells) { 
             throw std::runtime_error("elements of ordering vector are out of range");
         }
     }
 
-    // Filling up the cell vector.
+    // Setting up the storage space and the vector of iterators for each cell's profile.
     Rcpp::NumericVector all_collected(last_size*ngenes);
     std::deque<Rcpp::NumericVector::const_iterator> collected;
     auto acIt=all_collected.begin();
@@ -50,11 +53,10 @@ SEXP forge_system (SEXP exprs, SEXP ref, SEXP ordering, SEXP poolsizes) {
         collected.push_back(colIt); 
     }
 
-    // Setting up the output vectors.
-    Rcpp::IntegerVector row_num(total_SIZE*ncells), col_num(total_SIZE*ncells);
+    // Setting up the output vectors and other bits and pieces.
+    Rcpp::IntegerVector row_num(total_size*ncells), col_num(total_size*ncells);
     Rcpp::NumericVector pool_factor(nsizes*ncells);
 
-    // Various other bits and pieces.
     std::vector<double> combined(ngenes), ratios(ngenes);
     auto rowIt=row_num.begin(), colIt=col_num.begin();
     auto orIt=order.begin();
