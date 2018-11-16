@@ -234,9 +234,15 @@ test_that("quickCluster works on SingleCellExperiment objects", {
 })
 
 set.seed(20003)
-test_that("quickCluster works on sparse matrices", {
+test_that("quickCluster works on alternative matrices", {
     sparse <- abs(Matrix::rsparsematrix(ngenes, ncells, density=0.1))
-    out <- quickCluster(sparse, min.mean=0)
-    ref <- quickCluster(as.matrix(sparse), min.mean=0)
+    out <- quickCluster(sparse, min.mean=0, use.ranks=TRUE)
+    ref <- quickCluster(as.matrix(sparse), min.mean=0, use.ranks=TRUE)
+    expect_identical(out, ref)
+
+    library(HDF5Array)
+    dummy <- as(matrix(rpois(50000, lambda=5), nrow=50), "HDF5Array")
+    out <- quickCluster(dummy, min.mean=0)
+    ref <- quickCluster(as.matrix(dummy), min.mean=0)
     expect_identical(out, ref)
 })
