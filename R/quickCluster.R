@@ -4,7 +4,7 @@
 #' @importFrom igraph cluster_walktrap
 #' @importFrom BiocParallel SerialParam bpmapply
 #' @importFrom BiocGenerics t
-.quick_cluster <- function(x, min.size=20, method=c("igraph", "hclust"), use.ranks=FALSE,
+.quick_cluster <- function(x, min.size=100, method=c("igraph", "hclust"), use.ranks=FALSE,
     pc.approx=FALSE, d=NULL, subset.row=NULL, min.mean=1, graph.fun=cluster_walktrap,
     block=NULL, block.BPPARAM=SerialParam(), ...)
 # Generates a factor specifying the cluster to which each cell is assigned.
