@@ -7,6 +7,7 @@
 Modified defaults to use graph-based clustering on log-expression-derived PCs.
 
 \item Modified default choice of ref.clust= in computeSumFactors().
+Degrade quietly to library size factors when cluster is to small for all pool sizes.
 }}
 
 \section{Version 1.10.0}{\itemize{
