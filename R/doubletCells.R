@@ -3,7 +3,7 @@
 #' @importFrom BiocParallel SerialParam bpmapply
 #' @importFrom Matrix rowMeans
 #' @importFrom stats median
-#' @importFrom BiocNeighbors findKNN findNeighbors queryNeighbors queryKNN buildNNIndex
+#' @importFrom BiocNeighbors findKNN findNeighbors queryNeighbors queryKNN buildIndex
 #' @importClassesFrom BiocNeighbors KmknnIndex
 #' @importFrom methods is
 .doublet_cells <- function(x, size.factors.norm=NULL, size.factors.content=NULL,
@@ -36,7 +36,7 @@
     sim.pcs <- .spawn_doublet_pcs(x, size.factors.norm, V=svd.out$v, centers=rowMeans(y), niters=niters, block=block)
 
     # Force doublets to nearest neighbours in the original data set.
-    pre.pcs <- buildNNIndex(pcs, BNPARAM=BNPARAM)
+    pre.pcs <- buildIndex(pcs, BNPARAM=BNPARAM)
     if (force.match) {
         closest <- queryKNN(query=sim.pcs, k=force.k, BNINDEX=pre.pcs, BPPARAM=BPPARAM)
         sim.pcs <- .compute_tricube_average(pcs, closest$index, closest$distance, ndist=force.ndist)

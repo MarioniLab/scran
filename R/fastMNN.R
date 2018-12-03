@@ -214,12 +214,12 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
 ############################################
 # Auto-ordering functions.
 
-#' @importFrom BiocNeighbors queryKNN buildNNIndex 
+#' @importFrom BiocNeighbors queryKNN buildIndex 
 #' @importFrom BiocParallel SerialParam
 .define_first_merge <- function(pc.mat, k=20, BNPARAM=NULL, BPPARAM=SerialParam())
 # Find the pair of matrices in 'options' which has the greatest number of MNNs.
 {
-    precomputed <- lapply(pc.mat, buildNNIndex, BNPARAM=BNPARAM)
+    precomputed <- lapply(pc.mat, buildIndex, BNPARAM=BNPARAM)
     max.pairs <- list()
 
     for (First in seq_along(precomputed)) {
@@ -243,13 +243,13 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
     return(list(first=max.first, second=max.second, pairs=max.pairs, precomputed=precomputed))
 }
 
-#' @importFrom BiocNeighbors queryKNN buildNNIndex 
+#' @importFrom BiocNeighbors queryKNN buildIndex 
 #' @importFrom BiocParallel SerialParam
 .define_next_merge <- function(refdata, pc.mat, processed, precomputed, k=20, BNPARAM=NULL, BPPARAM=SerialParam()) 
 # Find the matrix in pc.mat[-processed] that has the greater number of MNNs to 'refdata'.
 {
     max.pairs <- list()
-    precomp.ref <- buildNNIndex(refdata, BNPARAM=BNPARAM)
+    precomp.ref <- buildIndex(refdata, BNPARAM=BNPARAM)
 
     for (other in seq_along(pc.mat)[-processed]) {
         W21 <- queryKNN(BNINDEX=precomputed[[other]], query=refdata, k=k, BPPARAM=BPPARAM, get.distance=FALSE)
