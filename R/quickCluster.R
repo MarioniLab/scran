@@ -4,7 +4,7 @@
 #' @importFrom igraph cluster_walktrap
 #' @importFrom BiocParallel SerialParam bpmapply
 #' @importFrom BiocGenerics t
-.quick_cluster <- function(x, min.size=100, method=c("igraph", "hclust"), use.ranks=FALSE,
+.quick_cluster <- function(x, min.size=100, method=c("igraph", "hclust"), use.ranks=NULL,
     pc.approx=FALSE, d=NULL, subset.row=NULL, min.mean=1, graph.fun=cluster_walktrap,
     block=NULL, block.BPPARAM=SerialParam(), ...)
 # Generates a factor specifying the cluster to which each cell is assigned.
@@ -35,6 +35,11 @@
     }
 
     # Obtaining some values to use for clustering.
+    if (is.null(use.ranks)) {
+        .Deprecated(msg="Setting 'use.ranks=TRUE' for the old defaults.\nSet 'use.ranks=FALSE' for the new defaults.") 
+        use.ranks <- TRUE
+    }
+
     if (use.ranks) {
         y <- scaledColRanks(x, subset.row=subset.row, min.mean=min.mean, transposed=TRUE)
         if (is.null(d)) {

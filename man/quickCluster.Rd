@@ -8,7 +8,7 @@
 
 \usage{
 \S4method{quickCluster}{ANY}(x, min.size=100, method=c("igraph", "hclust"), 
-    use.ranks=FALSE, pc.approx=FALSE, d=NULL, subset.row=NULL, min.mean=1, 
+    use.ranks=NULL, pc.approx=FALSE, d=NULL, subset.row=NULL, min.mean=1, 
     graph.fun=cluster_walktrap, block=NULL, block.BPPARAM=SerialParam(), 
     ...)
 
@@ -22,7 +22,8 @@
 }
 \item{min.size}{An integer scalar specifying the minimum size of each cluster.}
 \item{method}{A string specifying the clustering method to use.}
-\item{use.ranks}{A logical scalar indicating whether clustering should be performed on the rank matrix, i.e., based on Spearman's rank correlation.}
+\item{use.ranks}{A logical scalar indicating whether clustering should be performed on the rank matrix, i.e., based on Spearman's rank correlation.
+Defaults to \code{TRUE} for consistency with old defaults, but this will be changed to \code{FALSE} in subsequent releases.}
 \item{pc.approx}{A logical scalar indicating whether approximate PCA should be performed.}
 \item{d}{An integer scalar specifying the number of principal components to retain.
 
@@ -118,8 +119,8 @@ ngenes <- 1000
 all.facs <- 2^rnorm(popsize, sd=0.5)
 counts <- matrix(rnbinom(ngenes*popsize, mu=all.facs, size=1), ncol=popsize, byrow=TRUE)
 
-clusters <- quickCluster(counts, min.size=20)
-clusters <- quickCluster(counts, method="igraph")
+clusters <- quickCluster(counts, use.ranks=FALSE, min.size=20)
+clusters <- quickCluster(counts, use.ranks=TRUE)
 }
 
 \keyword{normalization}
