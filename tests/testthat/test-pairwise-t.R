@@ -139,16 +139,16 @@ BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
         for (b in unique(block)) { 
             B <- as.character(b)
             chosen <- block==b & grouping %in% curpair
-            subgroup <- grouping[chosen]
+            subgroup <- as.character(grouping[chosen])
 
             N1 <- sum(subgroup==curpair[1])
             N2 <- sum(subgroup==curpair[2])
             if (N1==0 || N2==0) {
                 next
-            } 
+            }
 
             block.weights[[B]] <- 1/(1/N1 + 1/N2)
-            block.res <- pairwiseTTests(y[,chosen], grouping[chosen], direction=direction, ...)
+            block.res <- pairwiseTTests(y[,chosen], subgroup, direction=direction, ...)
             to.use <- which(block.res$pairs$first==curpair[1] & block.res$pairs$second==curpair[2])
 
             block.lfc[[B]] <- block.res$statistics[[to.use]]$logFC
@@ -208,20 +208,20 @@ test_that("pairwiseTTests works as expected with blocking", {
     re.clust <- clust$cluster
     re.clust[block!=1 & re.clust==1] <- 2
     re.clust <- factor(re.clust)
-    BLOCKFUN(X, re.clust, block)
+    expect_warning(BLOCKFUN(X, re.clust, block), NA)
 
     # Checking what happens to a group-specific block.
     re.clust <- clust$cluster
     re.clust[block==1] <- 1
     re.clust <- factor(re.clust)
-    BLOCKFUN(X, re.clust, block)
+    expect_warning(BLOCKFUN(X, re.clust, block), NA)
 
     # Checking what happens to a doubly-specific group and block.
     re.clust <- clust$cluster
     re.clust[block==1] <- 1
     re.block <- block
     re.block[re.clust==1] <- 1
-    BLOCKFUN(X, re.clust, re.block)
+    expect_warning(BLOCKFUN(X, re.clust, re.block), "no d.f. for blocked comparison")
 })
 
 set.seed(70000021)
