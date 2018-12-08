@@ -131,6 +131,7 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
                 com.right <- do.call(combinePValues, c(all.right[valid.test], comb.args))
             } else {
                 com.left <- com.right <- rep(NA_real_, length(all.left[[1]]))
+                warning(paste("no d.f. for blocked comparison between", host, "and", target))
             }
 
             # Flipping left/right to get the p-value from the reversed comparison.
