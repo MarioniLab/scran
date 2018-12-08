@@ -30,13 +30,15 @@ A list of tables is returned where each table contains the statistics for all ge
 This can be examined directly or used as input to \code{\link{combineMarkers}} for marker gene detection.
 
 By default, this function will perform a Welch t-test to identify DEGs between each pair of clusters.
-This is simple, fast and performs quite well for single-cell count data (Soneson and Robinson, 2018).
-However, if one of the clusters contains fewer than two cells, no p-value will be reported for this comparison.
+This is simple, fast and performs reasonably well for single-cell count data (Soneson and Robinson, 2018).
+However, if one of the clusters contains fewer than two cells, no p-value will be reported for comparisons involving that cluster.
+A warning will also be raised about insufficient degrees of freedom (d.f.) in such cases.
 
 If \code{block} is specified, the same t-tests are performed between clusters within each level of \code{block}.
 For each pair of clusters, the p-values for each gene across all levels of \code{block} are combined using Stouffer's Z-score method.
 The p-value for each level is assigned a weight inversely proportional to the expected variance of the log-fold change estimate for that level.
 Blocking levels are ignored if no p-value was reported, e.g., if there were insufficient cells for a cluster in a particular level. 
+Comparisons may also yield \code{NA} p-values (along with a warning about the lack of d.f.) if the two clusters do not co-occur in the same block.
 
 If \code{design} is specified, a linear model is instead fitted to the expression profile for each gene.
 This linear model will include the \code{clusters} as well as any blocking factors in \code{design}.
