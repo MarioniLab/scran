@@ -214,7 +214,7 @@ test_that("pairwiseWilcox with blocking works across multiple cores", {
     clusters <- as.factor(clust$cluster)
     block <- sample(3, ncol(X), replace=TRUE)
     ref <- pairwiseWilcox(X, clusters, block=block)
-    expect_equal(ref, pairwiseWilcox(X, clusters, block=block, BPPARAM=MulticoreParam(2)))
+    expect_equal(ref, pairwiseWilcox(X, clusters, block=block, BPPARAM=BiocParallel::MulticoreParam(2)))
 })
 
 set.seed(80000022)

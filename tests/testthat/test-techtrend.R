@@ -108,7 +108,7 @@ test_that("makeTechTrend handles other options properly", {
     sf <- c(0.1, 0.5, 1, 1.5, 1.9)
     means <- 0:20/5
     out1 <- makeTechTrend(means, pseudo.count=1, size.factors=sf)
-    out2 <- makeTechTrend(means, pseudo.count=1, size.factors=sf, BPPARAM=MulticoreParam(2))
+    out2 <- makeTechTrend(means, pseudo.count=1, size.factors=sf, BPPARAM=BiocParallel::MulticoreParam(2))
     expect_equal(out1(means), out2(means))
 
     # Returns a zero when a zero is provided.
