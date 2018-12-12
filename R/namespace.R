@@ -1,5 +1,4 @@
 #' @import methods
-#' @import BiocParallel
 #' @import SingleCellExperiment
 #' @importFrom Matrix t which colSums rowMeans
 #' @importFrom Rcpp sourceCpp
