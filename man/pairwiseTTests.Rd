@@ -112,6 +112,10 @@ Combining probability from independent tests: the weighted Z-method is superior 
 Soneson C and Robinson MD (2018). 
 Bias, robustness and scalability in single-cell differential expression analysis. 
 \emph{Nat. Methods}
+
+Lun ATL (2018).
+Comments on marker detection in \emph{scran}.
+\url{https://ltla.github.io/SingleCellThoughts/software/marker_detection/comments.html}
 }
 
 \examples{

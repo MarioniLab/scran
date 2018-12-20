@@ -139,6 +139,10 @@ head(results.g)
 Lun ATL, McCarthy DJ and Marioni JC (2016). 
 A step-by-step workflow for low-level analysis of single-cell RNA-seq data with Bioconductor.
 \emph{F1000Res.} 5:2122
+
+Lun ATL (2018).
+Description of the HVG machinery in \emph{scran}.
+\url{https://github.com/LTLA/HVGDetection2018}
 }
 
 \keyword{variance}

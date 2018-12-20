@@ -128,3 +128,8 @@ pcs <- denoisePCA(lcounts, technical=fit$trend, subset.row=-is.spike)
 dim(pcs)
 }
 
+\references{
+Lun ATL (2018).
+Discussion of PC selection methods for scRNA-seq data.
+\url{https://github.com/LTLA/PCSelection2018}
+}

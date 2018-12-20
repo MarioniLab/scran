@@ -96,3 +96,9 @@ clusters <- rep(1:3, c(ncol(counts.1), ncol(counts.2), ncol(counts.m)))
 scores <- doubletCells(counts)
 boxplot(split(scores, clusters))
 }
+
+\references{
+Lun ATL (2018).
+Detecting doublet cells with \emph{scran}.
+\url{https://ltla.github.io/SingleCellThoughts/software/doublet_detection/bycell.html}
+}

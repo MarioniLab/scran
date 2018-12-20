@@ -137,4 +137,8 @@ head(out)
 
 \keyword{variance}
 
-
+\references{
+Lun ATL (2018).
+Description of the HVG machinery in \emph{scran}.
+\url{https://github.com/LTLA/HVGDetection2018}
+}

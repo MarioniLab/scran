@@ -89,6 +89,10 @@ Aaron Lun
 Bach K, Pensa S, Grzelak M, Hadfield J, Adams DJ, Marioni JC and Khaled WT (2017). 
 Differentiation dynamics of mammary epithelial cells revealed by single-cell RNA sequencing. 
 \emph{Nat Commun.} 8, 1:2128.
+
+Lun ATL (2018).
+Detecting clusters of doublet cells in \emph{scran}.
+\url{https://ltla.github.io/SingleCellThoughts/software/doublet_detection/bycluster.html}
 }
 
 \examples{
