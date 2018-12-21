@@ -107,7 +107,7 @@ test_that("fastMNN works as expected for two batches", {
     B1 <- matrix(rnorm(10000), nrow=100) # Batch 1 
     B2 <- matrix(rnorm(20000), nrow=100) # Batch 2
 
-    out <- fastMNN(B1, B2, d=50) # corrected values
+    set.seed(0); out <- fastMNN(B1, B2, d=50) # set.seed to avoid weird precision issues on Win32. 
     expect_identical(dim(out$corrected), c(ncol(B1) + ncol(B2), 50L))
     expect_identical(as.integer(out$batch), rep(1:2, c(ncol(B1), ncol(B2))))
     expect_identical(out$order, 1:2)
@@ -119,7 +119,7 @@ test_that("fastMNN works as expected for two batches", {
     CHECK_PAIRINGS(out.10)
 
     # Handles names correctly.
-    out.n <- fastMNN(X=B1, Y=B2, d=50) 
+    set.seed(0); out.n <- fastMNN(X=B1, Y=B2, d=50) 
     expect_identical(out$corrected, out.n$corrected)
     expect_identical(as.character(out.n$batch), rep(c("X", "Y"), c(ncol(B1), ncol(B2))))
     CHECK_PAIRINGS(out.n)
@@ -132,8 +132,8 @@ test_that("fastMNN works as expected for two batches", {
 
     # Subset.row behaves correctly.
     i <- sample(nrow(B1), 50)
-    ref <- fastMNN(X=B1[i,], Y=B2[i,], d=50)
-    out.s <- fastMNN(X=B1, Y=B2, d=50, subset.row=i)
+    set.seed(0); ref <- fastMNN(X=B1[i,], Y=B2[i,], d=50)
+    set.seed(0); out.s <- fastMNN(X=B1, Y=B2, d=50, subset.row=i)
     expect_identical(out.s, ref)
 
     # Behaves if we only use PCs.
