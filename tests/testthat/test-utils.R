@@ -45,7 +45,7 @@ test_that("worker assignment works correctly", {
     expect_true(all(lengths(wout) >= floor(101/2)))
     expect_identical(unlist(wout), seq_len(101))
 
-    wout <- scran:::.worker_assign(101, SnowParam(workers=3))
+    wout <- scran:::.worker_assign(101, MulticoreParam(workers=3))
     expect_identical(length(wout), 3L) 
     expect_true(all(lengths(wout) >= floor(101/3)))
     expect_identical(unlist(wout), seq_len(101))
