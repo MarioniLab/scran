@@ -229,8 +229,10 @@ test_that("quickCluster works on SingleCellExperiment objects", {
     expect_identical(quickCluster(X, use.ranks=FALSE), quickCluster(counts(X)[-(1:20),], use.ranks=FALSE))
 
     subset.row <- 1:25*2
-    expect_identical(quickCluster(X, use.ranks=FALSE, subset.row=subset.row),
-                     quickCluster(counts(X)[setdiff(subset.row, 1:20),], use.ranks=FALSE))
+    set.seed(0); clust1 <- quickCluster(X, use.ranks=FALSE, subset.row=subset.row) # set.seed() for consistent tie handling by BiocNeighbors.
+    set.seed(0); clust2 <- quickCluster(counts(X)[setdiff(subset.row, 1:20),], use.ranks=FALSE)
+    expect_identical(clust1, clust2)
+
     expect_identical(quickCluster(X, subset.row=subset.row, get.spikes=TRUE, use.ranks=FALSE),
                      quickCluster(counts(X)[subset.row,], use.ranks=FALSE))
 })
