@@ -1,6 +1,10 @@
 # This tests the functions related to fastMNN.
 # library(scran); library(testthat); source("test-fastmnn.R")
 
+library(BiocParallel)
+register(SerialParam()) # avoid parallelized %*% for Win32.
+
+
 set.seed(1200001)
 test_that("averaging correction vectors works as expected", {
     test1 <- matrix(rnorm(1000), ncol=10)
