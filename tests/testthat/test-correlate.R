@@ -1,13 +1,10 @@
 # This checks the correlateNull function.
-# require(scran); require(testthat); source("test-correlate.R")
+# require(scran); require(testthat); source("setup.R"); source("test-correlate.R")
 
 refnull <- function(niters, ncells, resort=TRUE) {
     rankings <- as.double(seq_len(ncells))
     seeds <- scran:::.create_seeds(niters)
-    shuffled <- matrix(0, ncells, niters) 
-    for (i in seq_len(niters)) {
-        shuffled[,i] <- .Call(scran:::cxx_auto_shuffle, rankings, 1L, seeds[i])
-    }
+    shuffled <- scramble_matrix(matrix(rankings, nrow=ncells, ncol=niters), seed=seeds)
     out <- cor(shuffled, rankings, method="spearman")
     if (resort) { out <- sort(out) }
     out
@@ -28,16 +25,20 @@ test_that("null distribution of correlations is correctly calculated", {
     expect_equal(ref, as.double(out))
 })
 
-set.seed(20001)
-test_that("correlateNull works with a design matrix", {
-    # Checking the rnorm() generator works correctly.
+set.seed(200010) 
+test_that("C++ rnorm works correctly", {
     vals <- .Call(scran:::cxx_test_rnorm, 20000, 1)
+    expect_identical(length(vals), 20000L)
     expect_equal(mean(vals), 0, tol=0.01)
     expect_equal(var(vals), 1, tol=0.01)
+    expect_identical(anyDuplicated(vals), 0L)
 
     vals2 <- .Call(scran:::cxx_test_rnorm, 20000, 2)
     expect_false(identical(vals, vals2))
+})
 
+set.seed(20001)
+test_that("correlateNull works with a design matrix", {
     # Constructing a reference function.
     REFFUN <- function(design, iters=1e3) {
         QR <- qr(design, LAPACK=TRUE)
