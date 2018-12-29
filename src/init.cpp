@@ -14,7 +14,7 @@ static const R_CallMethodDef all_call_entries[] = {
 
     // Cell cycle calling.
     REGISTER(shuffle_scores, 9),
-    REGISTER(auto_shuffle, 3),
+    REGISTER(auto_shuffle, 4),
 
     // Correlation calclulations.
     REGISTER(get_null_rho, 3),

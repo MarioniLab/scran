@@ -138,26 +138,3 @@ SEXP shuffle_scores(SEXP mycells, SEXP exprs, SEXP marker1, SEXP marker2, SEXP i
  * we'd provide protection by controlling the type I error rate, but we're not
  * generating p-values here so it's harder to do.
  */
-
-SEXP auto_shuffle(SEXP incoming, SEXP nits, SEXP seed) {
-    BEGIN_RCPP
-
-    const int niters=Rcpp::IntegerVector(nits)[0];
-    const Rcpp::NumericVector invec(incoming);
-    const size_t N=invec.size();
-    Rcpp::NumericMatrix outmat(N, niters);
-
-    Rcpp::NumericVector::const_iterator source=invec.begin();
-    Rcpp::NumericVector::iterator oIt=outmat.begin();
-    
-    std::mt19937 generator(check_integer_scalar(seed, "seed"));
-    for (int i=0; i<niters; ++i) {
-        std::copy(source, source+N, oIt);
-        std::shuffle(oIt, oIt+N, generator);
-        source=oIt;
-        oIt+=N;
-    }
-
-    return outmat;
-    END_RCPP
-}
