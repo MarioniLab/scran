@@ -21,9 +21,9 @@ SEXP subset_and_divide(SEXP, SEXP, SEXP, SEXP);
 
 // Cell cycle calling.
 
-SEXP shuffle_scores (SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP shuffle_scores (SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
-SEXP auto_shuffle(SEXP, SEXP);
+SEXP auto_shuffle(SEXP, SEXP, SEXP);
 
 // Correlation calclulations.
 

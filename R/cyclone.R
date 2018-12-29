@@ -50,8 +50,9 @@ setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
     all.scores <- vector('list', length(pairs))
     names(all.scores) <- names(pairs)
     for (cl in names(pairs)) { 
+        rand.seeds <- .create_seeds(ncol(x))
         cur.scores <- bplapply(wout, FUN=.get_phase_score, exprs=x, iter=iter, min.iter=min.iter, 
-                               min.pairs=min.pairs, pairings=pairs[[cl]], BPPARAM=BPPARAM)
+            min.pairs=min.pairs, pairings=pairs[[cl]], seeds=rand.seeds, BPPARAM=BPPARAM)
         all.scores[[cl]] <- unlist(cur.scores)
     }
 
@@ -63,14 +64,14 @@ setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
     phases <- ifelse(scores$G1 >= scores$G2M, "G1", "G2M")
     phases[scores$G1 < 0.5 & scores$G2M < 0.5] <- "S"
 
-    return(list(phases=phases, scores=scores, normalized.scores=scores.normalised))  
+    list(phases=phases, scores=scores, normalized.scores=scores.normalised)
 }
 
-.get_phase_score <- function(to.use, exprs, pairings, iter, min.iter, min.pairs) 
+.get_phase_score <- function(to.use, exprs, pairings, iter, min.iter, min.pairs, seeds) 
 # Pass all arguments explicitly rather than via function environment
 # (avoid duplication of memory in bplapply).
 {
-    .Call(cxx_shuffle_scores, to.use, exprs, pairings$first, pairings$second, pairings$index, iter, min.iter, min.pairs) 
+    .Call(cxx_shuffle_scores, to.use, exprs, pairings$first, pairings$second, pairings$index, iter, min.iter, min.pairs, seeds) 
 }
 
 #' @export

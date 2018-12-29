@@ -40,3 +40,8 @@
     names(by.core) <- names(assignments)
     return(by.core)
 }
+
+#' @importFrom stats runif
+.create_seeds <- function(N) {
+    floor(runif(N, 0, .Machine$integer.max))
+}

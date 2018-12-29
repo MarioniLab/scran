@@ -1,4 +1,5 @@
 #include "scran.h"
+#include <random>
 
 template <class V>
 double get_proportion (const V& expr, const int minpairs, const Rcpp::IntegerVector& marker1, const Rcpp::IntegerVector& marker2, const double threshold=NA_REAL) {
@@ -48,7 +49,8 @@ template <class V, class M>
 SEXP shuffle_scores_internal (M mat_ptr, 
         Rcpp::IntegerVector mycells,
         Rcpp::IntegerVector marker1, Rcpp::IntegerVector marker2, Rcpp::IntegerVector used, 
-        Rcpp::IntegerVector iter, Rcpp::IntegerVector miniter, Rcpp::IntegerVector minpair) {
+        Rcpp::IntegerVector iter, Rcpp::IntegerVector miniter, Rcpp::IntegerVector minpair,
+        Rcpp::IntegerVector seeds) {
    
     const size_t ncells=mycells.size();
     const size_t ngenes=mat_ptr->get_nrow();
@@ -78,18 +80,18 @@ SEXP shuffle_scores_internal (M mat_ptr,
 
     Rcpp::NumericVector output(ncells, NA_REAL);
     V all_exprs(ngenes), current_exprs(nused);
-    Rcpp::RNGScope rng; // Initializing random engine (after initialization of all Rcpp objects).
 
     auto oIt=output.begin();
     for (auto cIt=mycells.begin(); cIt!=mycells.end(); ++cIt, ++oIt) { 
+        const size_t curcell=*cIt - 1;
 
         // Extracting only the expression values that are used in at least one pair.
-        auto inIt=mat_ptr->get_const_col(*cIt - 1, all_exprs.begin());
+        auto inIt=mat_ptr->get_const_col(curcell, all_exprs.begin());
         auto curIt=current_exprs.begin();
         for (auto uIt=used.begin(); uIt!=used.end(); ++uIt, ++curIt) {
             (*curIt)=*(inIt + *uIt);
         }
-        
+
         const double curscore=get_proportion(current_exprs, minp, marker1, marker2);
         if (ISNA(curscore)) { 
             continue;
@@ -97,8 +99,9 @@ SEXP shuffle_scores_internal (M mat_ptr,
 
         // Iterations of shuffling to obtain a null distribution for the score.
         int below=0, total=0;
+        std::mt19937 generator(seeds[curcell]);
         for (int it=0; it < nit; ++it) {
-            Rx_shuffle(current_exprs.begin(), current_exprs.end());
+            std::shuffle(current_exprs.begin(), current_exprs.end(), generator);
             const double newscore=get_proportion(current_exprs, minp, marker1, marker2, curscore);
             if (!ISNA(newscore)) { 
                 if (newscore < 0) { ++below; }
@@ -114,15 +117,15 @@ SEXP shuffle_scores_internal (M mat_ptr,
     return output;
 }
 
-SEXP shuffle_scores(SEXP mycells, SEXP exprs, SEXP marker1, SEXP marker2, SEXP indices, SEXP iter, SEXP miniter, SEXP minpair) {
+SEXP shuffle_scores(SEXP mycells, SEXP exprs, SEXP marker1, SEXP marker2, SEXP indices, SEXP iter, SEXP miniter, SEXP minpair, SEXP seeds) {
     BEGIN_RCPP
     int rtype=beachmat::find_sexp_type(exprs);
     if (rtype==INTSXP) {
         auto mat=beachmat::create_integer_matrix(exprs);
-        return shuffle_scores_internal<Rcpp::IntegerVector>(mat.get(), mycells, marker1, marker2, indices, iter, miniter, minpair);
+        return shuffle_scores_internal<Rcpp::IntegerVector>(mat.get(), mycells, marker1, marker2, indices, iter, miniter, minpair, seeds);
     } else {
         auto mat=beachmat::create_numeric_matrix(exprs);
-        return shuffle_scores_internal<Rcpp::NumericVector>(mat.get(), mycells, marker1, marker2, indices, iter, miniter, minpair);
+        return shuffle_scores_internal<Rcpp::NumericVector>(mat.get(), mycells, marker1, marker2, indices, iter, miniter, minpair, seeds);
     }
     END_RCPP
 }
@@ -136,21 +139,21 @@ SEXP shuffle_scores(SEXP mycells, SEXP exprs, SEXP marker1, SEXP marker2, SEXP i
  * generating p-values here so it's harder to do.
  */
 
-SEXP auto_shuffle(SEXP incoming, SEXP nits) {
+SEXP auto_shuffle(SEXP incoming, SEXP nits, SEXP seed) {
     BEGIN_RCPP
 
     const int niters=Rcpp::IntegerVector(nits)[0];
     const Rcpp::NumericVector invec(incoming);
     const size_t N=invec.size();
     Rcpp::NumericMatrix outmat(N, niters);
-    Rcpp::RNGScope rng; // Place after initialization of all Rcpp objects.
 
     Rcpp::NumericVector::const_iterator source=invec.begin();
     Rcpp::NumericVector::iterator oIt=outmat.begin();
     
+    std::mt19937 generator(check_integer_scalar(seed, "seed"));
     for (int i=0; i<niters; ++i) {
         std::copy(source, source+N, oIt);
-        Rx_shuffle(oIt, oIt+N);
+        std::shuffle(oIt, oIt+N, generator);
         source=oIt;
         oIt+=N;
     }
