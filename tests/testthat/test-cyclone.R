@@ -8,14 +8,15 @@ classif.single <- function(cell, markers,Nmin.couples) {
     sum(test>0)/tot
 }
 
-random.success <- function(cell, markers, N, Nmin, Nmin.couples) {  
-    cell.random <- .Call(scran:::cxx_auto_shuffle, cell, N)
+random.success <- function(cell, markers, N, Nmin, Nmin.couples, seed) {  
+    test <- classif.single(cell,markers,Nmin.couples) 
+    if (is.na(test)) { return(NA) } 
+
+    cell.random <- .Call(scran:::cxx_auto_shuffle, cell, N, seed)
     success <- apply(cell.random, 2, classif.single, markers=markers, Nmin.couples=Nmin.couples)
     success <- success[!is.na(success)]
     if (length(success) < Nmin) { return(NA) }
-    
-    test <- classif.single(cell,markers,Nmin.couples) 
-    if (is.na(test)) { return(NA) } 
+
     mean(success<test)
 }
 
@@ -42,18 +43,28 @@ refFUN <- function(x, pairs) {
     N <- 1000L
     Nmin <- 100L
     Nmin.couples <- 50L
-    score.G1<-apply(chosen.x$G1, 2, function(x) random.success(cell=x,markers=pairs$G1,N=N,Nmin=Nmin,Nmin.couples=Nmin.couples))#, genes.list=genes.list))
-    score.S<-apply(chosen.x$S, 2, function(x) random.success(cell=x,markers=pairs$S,N=N, Nmin=Nmin, Nmin.couples=Nmin.couples))#,genes.list=genes.list))
-    score.G2M<-apply(chosen.x$G2M, 2, function(x) random.success(cell=x,markers=pairs$G2M,N=N, Nmin=Nmin,Nmin.couples=Nmin.couples))#,genes.list=genes.list))
 
-    scores <- data.frame(G1=score.G1, S=score.S, G2M=score.G2M) 
-    scores.normalised<-data.frame(t(apply(scores, 1, function(x) (x)/sum(x))))
+    scores <- list()
+    for (phase in c("G1", "S", "G2M")) {
+        cur.x <- chosen.x[[phase]]
+        cur.pairs <- pairs[[phase]]
+        cur.scores <- numeric(ncol(x))
+        rand.seeds <- scran:::.create_seeds(ncol(x))
+
+        for (i in seq_along(cur.scores)) {
+            cur.scores[i] <- random.success(cell=cur.x[,i], markers=cur.pairs, N=N, Nmin=Nmin, Nmin.couples=Nmin.couples, seed=rand.seeds[i])
+        }
+        scores[[phase]] <- cur.scores
+    }
+
+    scores <- do.call(data.frame, scores)
+    scores.normalised <- scores/rowSums(scores)
 
     phases <- rep("S", ncol(x))
-    phases[score.G1 >= 0.5] <- "G1"
-    phases[score.G2M >= 0.5 & score.G2M > score.G1] <- "G2M"
+    phases[scores$G1 >= 0.5] <- "G1"
+    phases[scores$G2M >= 0.5 & scores$G2M > scores$G1] <- "G2M"
 
-    return(list(phases=phases, scores=scores, normalized.scores=scores.normalised))
+    list(phases=phases, scores=scores, normalized.scores=scores.normalised)
 }
 
 ####################################################################################################
@@ -127,13 +138,25 @@ test_that("cyclone works correctly on various datatypes", {
     expect_equal(unname(re.out$scores), unname(observed$scores))
 })
 
-# Checking that it also works with SCESet objects.
+set.seed(1003)
+test_that("Cyclone gives the same results regardless of the number of cores", {
+    X <- matrix(rpois(Ngenes*Ncells, lambda=100), ncol=Ncells)
+    rownames(X) <- all.names
+
+    set.seed(200)
+    ref <- cyclone(X, markers)
+
+    BPPARAM <- MulticoreParam(3) # Before set.seed, as MulticoreParam changes the seed.
+    set.seed(200)
+    alt <- cyclone(X, markers, BPPARAM=BPPARAM)
+    expect_identical(ref, alt)
+})
 
 set.seed(1004)
-X <- matrix(rpois(Ngenes*Ncells, lambda=100), ncol=Ncells)
-rownames(X) <- all.names
-
 test_that("Cyclone also works on SingleCellExperiment objects", {
+    X <- matrix(rpois(Ngenes*Ncells, lambda=100), ncol=Ncells)
+    rownames(X) <- all.names
+
     X2 <- SingleCellExperiment(list(counts=X))
     suppressWarnings(X2 <- normalize(X2))
 
@@ -150,7 +173,11 @@ test_that("Cyclone also works on SingleCellExperiment objects", {
     expect_equal(reference, observed2)
 })
 
+set.seed(1005)
 test_that("cyclone behaves correctly without cells or markers", {
+    X <- matrix(rpois(Ngenes*Ncells, lambda=100), ncol=Ncells)
+    rownames(X) <- all.names
+
     # Sensible behaviour with no cells.
     out <- cyclone(X[,0], markers)
     expect_identical(out$phases, character(0))
