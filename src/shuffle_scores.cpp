@@ -9,24 +9,28 @@ double get_proportion (const V& expr, const int minpairs, const Rcpp::IntegerVec
     const size_t npairs=marker1.size();
     auto m1It=marker1.begin(), m2It=marker2.begin();
 
-    for (size_t m=0; m<npairs; ++m, ++m1It, ++m2It) {
-        const auto& first=*(eIt+*m1It);
-        const auto& second=*(eIt+*m2It);
-        if (first != second) {
-            if (first > second) { ++was_first; }
-            ++was_total;
+    size_t m=0;
+    while (m < npairs) {
+        const size_t limit=std::min(npairs, (short_cut ? m+100 : npairs)); // Checking every hundred pairs to avoid redundant calculations.
+        for (; m<limit; ++m, ++m1It, ++m2It) {
+            const auto& first=*(eIt+*m1It);
+            const auto& second=*(eIt+*m2It);
+            if (first != second) {
+                if (first > second) { ++was_first; }
+                ++was_total;
+            }
         }
 
         // Returning if all we need to know is whether the score is greater than or less than 'threshold'.
-        // We only check every hundred pairs to avoid redundant calculations.
-        if (short_cut && was_total >= minpairs && was_total % 100 == 0) {
+        if (short_cut && was_total >= minpairs) {
             const size_t leftovers=npairs - m - 1;
             const double max_total=was_total + leftovers;
+            const double n_thresh=max_total * threshold;
 
             // +1 to avoid incorrect early termination due to numerical imprecision upon equality.
-            if (static_cast<double>(was_first + leftovers + 1)/max_total < threshold) { 
+            if (static_cast<double>(was_first + leftovers + 1) < n_thresh) {
                 return -1;
-            } else if (was_first && static_cast<double>(was_first - 1)/max_total > threshold) { // -1 for the same reason (need 'was_first' check to avoid underflow).
+            } else if (was_first && static_cast<double>(was_first - 1) > n_thresh) { // -1 for the same reason (need 'was_first' check to avoid underflow).
                 return 1;
             }
         }
