@@ -8,6 +8,13 @@ Modified defaults to use graph-based clustering on log-expression-derived PCs.
 
 \item Modified default choice of ref.clust= in computeSumFactors().
 Degrade quietly to library size factors when cluster is to small for all pool sizes.
+
+\item Minor change to cyclone() random number generation for consistency upon parallelization.
+
+\item Added BPPARAM= to correlateNull() for parallelization.
+Minor change in random number generation for consistency upon parallelization.
+
+\item Minor change to parallelPCA() random number generation for consistency upon parallelization.
 }}
 
 \section{Version 1.10.0}{\itemize{
