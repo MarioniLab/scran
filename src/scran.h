@@ -25,17 +25,17 @@ SEXP shuffle_scores (SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
 // Correlation calclulations.
 
-SEXP get_null_rho (SEXP, SEXP, SEXP);
+SEXP get_null_rho(SEXP, SEXP, SEXP);
 
-SEXP get_null_rho_design (SEXP, SEXP, SEXP, SEXP);
+SEXP get_null_rho_design(SEXP, SEXP, SEXP, SEXP);
 
 SEXP test_rnorm(SEXP, SEXP);
 
-SEXP rank_subset(SEXP, SEXP, SEXP, SEXP);
+SEXP get_untied_ranks(SEXP, SEXP, SEXP, SEXP);
 
-SEXP compute_rho(SEXP, SEXP, SEXP, SEXP);
+SEXP compute_rho_pairs(SEXP, SEXP, SEXP, SEXP);
 
-SEXP combine_corP(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP combine_rho(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
 // Test shuffling functions.
 
