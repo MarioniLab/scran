@@ -18,7 +18,9 @@ static const R_CallMethodDef all_call_entries[] = {
 
     // Correlation calclulations.
     REGISTER(get_null_rho, 3),
-    REGISTER(get_null_rho_design, 3),
+    REGISTER(get_null_rho_design, 4),
+    REGISTER(test_rnorm, 2),
+
     REGISTER(rank_subset, 4),
     REGISTER(compute_rho, 4),
     REGISTER(combine_corP, 7),

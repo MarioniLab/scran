@@ -29,7 +29,10 @@ correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=Se
 
         # Using residual effects to compute the correlations.
         QR <- .ranksafe_qr(design)
-        out <- .Call(cxx_get_null_rho_design, QR$qr, QR$qraux, as.integer(iters))
+        iters.per.core <- .niters_by_nworkers(as.integer(iters), BPPARAM)
+        seeds.per.core <- lapply(iters.per.core, .create_seeds)
+        out <- bpmapply(iters=iters.per.core, seeds=seeds.per.core, MoreArgs=list(QR=QR), FUN=.with_design_null, SIMPLIFY=FALSE, USE.NAMES=FALSE)
+        out <- unlist(out)
         attrib <- list(design=design)
 
     } else {
@@ -49,7 +52,8 @@ correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=Se
 .within_block_null <- function(iters, ncells, BPPARAM) {
     iters.per.core <- .niters_by_nworkers(as.integer(iters), BPPARAM)
     seeds.per.core <- lapply(iters.per.core, .create_seeds)
-    out <- bpmapply(iters=iters.per.core, seeds=seeds.per.core, ncells=as.integer(ncells), FUN=.no_design_null, SIMPLIFY=FALSE, USE.NAMES=FALSE)
+    out <- bpmapply(iters=iters.per.core, seeds=seeds.per.core, MoreArgs=list(ncells=as.integer(ncells)), 
+        FUN=.no_design_null, SIMPLIFY=FALSE, USE.NAMES=FALSE)
     unlist(out)
 }
 
@@ -57,6 +61,9 @@ correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=Se
     .Call(cxx_get_null_rho, ncells, iters, seeds)
 }
 
+.with_design_null <- function(iters, QR, seeds) {
+    .Call(cxx_get_null_rho_design, QR$qr, QR$qraux, iters, seeds)
+}
 
 #' @importFrom BiocParallel bpnworkers
 .niters_by_nworkers <- function(iters, BPPARAM) {

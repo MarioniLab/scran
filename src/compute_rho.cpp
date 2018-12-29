@@ -49,10 +49,15 @@ SEXP get_null_rho (SEXP cells, SEXP iters, SEXP seeds) {
 
 /*** Null distribution estimation with a design matrix. ***/
 
-SEXP get_null_rho_design(SEXP qr, SEXP qraux, SEXP iters) {
+SEXP get_null_rho_design(SEXP qr, SEXP qraux, SEXP iters, SEXP seeds) {
     BEGIN_RCPP
     const int Niters=check_integer_scalar(iters, "number of iterations");
     if (Niters <= 0) { throw std::runtime_error("number of iterations should be positive"); }
+
+    Rcpp::IntegerVector Seeds(seeds);
+    if (Seeds.size()!=Niters) {
+        throw std::runtime_error("number of iterations and seeds should be the same"); 
+    }
 
     // Setting up to multiply by the Q matrix.
     run_dormqr multQ(qr, qraux, 'N');
@@ -60,8 +65,6 @@ SEXP get_null_rho_design(SEXP qr, SEXP qraux, SEXP iters) {
     const int Ncoef=multQ.get_ncoefs();
 
     Rcpp::NumericVector output(Niters);
-    Rcpp::RNGScope rng;
-
     std::deque<std::pair<double, int> > collected1(Nobs), collected2(Nobs);
     std::deque<int> rank1(Nobs), rank2(Nobs);
     const double mult=rho_mult(Nobs);
@@ -72,10 +75,13 @@ SEXP get_null_rho_design(SEXP qr, SEXP qraux, SEXP iters) {
      * correlations between the two reconstructions.
      */
     for (int it=0; it<Niters; ++it) {
+        std::mt19937 generator(Seeds[it]);
+        std::normal_distribution<double> cpp_rnorm;
+
         for (int mode=0; mode<2; ++mode) {
             std::fill(multQ.rhs.begin(), multQ.rhs.begin()+Ncoef, 0);
             for (int col=Ncoef; col<Nobs; ++col) {
-                multQ.rhs[col]=norm_rand();
+                multQ.rhs[col]=cpp_rnorm(generator);
             }
 
             // Computing the residuals.
@@ -106,6 +112,14 @@ SEXP get_null_rho_design(SEXP qr, SEXP qraux, SEXP iters) {
 
     return output;    
     END_RCPP
+}
+
+SEXP test_rnorm (SEXP N, SEXP seed) {
+    std::mt19937 generator(check_integer_scalar(seed, "seed"));
+    std::normal_distribution<double> cpp_rnorm;
+    Rcpp::NumericVector output(check_integer_scalar(N, "number"));
+    for (auto& val : output) { val = cpp_rnorm(generator); }
+    return output;
 }
 
 /*** This function computes error-tolerant ranks for a subset of genes in a subset of cells. ***/

@@ -29,7 +29,9 @@ SEXP auto_shuffle(SEXP, SEXP, SEXP);
 
 SEXP get_null_rho (SEXP, SEXP, SEXP);
 
-SEXP get_null_rho_design (SEXP, SEXP, SEXP);
+SEXP get_null_rho_design (SEXP, SEXP, SEXP, SEXP);
+
+SEXP test_rnorm(SEXP, SEXP);
 
 SEXP rank_subset(SEXP, SEXP, SEXP, SEXP);
 
