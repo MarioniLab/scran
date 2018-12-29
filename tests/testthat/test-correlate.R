@@ -3,7 +3,11 @@
 
 refnull <- function(niters, ncells, resort=TRUE) {
     rankings <- as.double(seq_len(ncells))
-    shuffled <- .Call(scran:::cxx_auto_shuffle, rankings, as.integer(niters))
+    seeds <- scran:::.create_seeds(niters)
+    shuffled <- matrix(0, ncells, niters) 
+    for (i in seq_len(niters)) {
+        shuffled[,i] <- .Call(scran:::cxx_auto_shuffle, rankings, 1L, seeds[i])
+    }
     out <- cor(shuffled, rankings, method="spearman")
     if (resort) { out <- sort(out) }
     out
@@ -21,6 +25,19 @@ test_that("null distribution of correlations is correctly calculated", {
     set.seed(100)
     out <- correlateNull(12, iters=1e3)
     expect_equal(ref, as.double(out))
+})
+
+test_that("correlateNull is unaffected by the number of cores", {
+    set.seed(200)
+    ref <- correlateNull(12, iters=1e3)
+
+    BPPARAM <- MulticoreParam(3) # Before set.seed, as MulticoreParam resets the seed.
+    set.seed(200)
+    out <- correlateNull(12, iters=1e3, BPPARAM=BPPARAM)
+    expect_identical(ref, out)
+
+    # Does not fail with low numbers of iterations.
+    expect_error(correlateNull(12, iters=2, BPPARAM=BPPARAM), NA)
 })
 
 test_that("correlateNull works with a design matrix", {
@@ -82,7 +99,7 @@ test_that("correlateNull works with a blocking factor", {
 })
 
 test_that("correlateNull works correctly on silly inputs", {
-    expect_error(correlateNull(ncells=100, iters=0), "number of iterations should be positive")
+    expect_identical(correlateNull(ncells=100, iters=0), numeric(0))
     expect_error(correlateNull(ncells=0), "number of cells should be greater than 2")
     expect_error(correlateNull(ncells=100, design=design), "cannot specify both 'ncells' and 'design'")
     expect_error(correlateNull(200, block=rep(1, 20)), "cannot specify")

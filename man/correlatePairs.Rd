@@ -8,7 +8,7 @@
 \description{Identify pairs of genes that are significantly correlated based on a modified Spearman's rho.}
 
 \usage{
-correlateNull(ncells, iters=1e6, block=NULL, design=NULL) 
+correlateNull(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=SerialParam()) 
 
 \S4method{correlatePairs}{ANY}(x, null.dist=NULL, tol=1e-8, iters=1e6, 
     block=NULL, design=NULL, lower.bound=NULL, use.names=TRUE, 
@@ -24,12 +24,12 @@ correlateNull(ncells, iters=1e6, block=NULL, design=NULL)
 \item{iters}{An integer scalar specifying the number of values in the null distribution.}
 \item{block}{A factor specifying the blocking level for each cell.}
 \item{design}{A numeric design matrix containing uninteresting factors to be ignored.}
+\item{BPPARAM}{A \linkS4class{BiocParallelParam} object that specifies the manner of parallel processing to use.}
 \item{x}{
     A numeric matrix-like object of log-normalized expression values, where rows are genes and columns are cells.
     Alternatively, a SingleCellExperiment object containing such a matrix.
 }
 \item{null.dist}{A numeric vector of rho values under the null hypothesis.}
-\item{BPPARAM}{A BiocParallelParam object to use in \code{bplapply} for parallel processing.}
 \item{tol}{A numeric scalar indicating the maximum difference under which two expression values are tied.}
 \item{use.names}{
     A logical scalar specifying whether the row names of \code{x} should be used in the output.
