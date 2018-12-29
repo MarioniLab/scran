@@ -53,7 +53,7 @@ correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=Se
     iters.per.core <- .niters_by_nworkers(as.integer(iters), BPPARAM)
     seeds.per.core <- lapply(iters.per.core, .create_seeds)
     out <- bpmapply(iters=iters.per.core, seeds=seeds.per.core, MoreArgs=list(ncells=as.integer(ncells)), 
-        FUN=.no_design_null, SIMPLIFY=FALSE, USE.NAMES=FALSE)
+        FUN=.no_design_null, SIMPLIFY=FALSE, USE.NAMES=FALSE, BPPARAM=BPPARAM)
     unlist(out)
 }
 
