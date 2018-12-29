@@ -20,7 +20,7 @@ test_that("error tolerant ranking is working correctly", {
     set.seed(100)
     r2 <- rank(integer(100), ties.method="random")
     set.seed(100)
-    r3 <- .Call(scran:::cxx_rank_subset, rbind(whee), 0L, seq_along(whee)-1L, 1e-6)
+    r3 <- .Call(scran:::cxx_get_untied_ranks, rbind(whee), 0L, seq_along(whee)-1L, 1e-6)
     
     expect_identical(r, r2)
     expect_identical(r, r3[,1])
@@ -32,9 +32,9 @@ test_that("error tolerant ranking is working correctly", {
     set.seed(100)
     r2 <- rank(extra, ties.method="random")
     set.seed(100)
-    r3 <- .Call(scran:::cxx_rank_subset, rbind(whee + extra), 0L, seq_along(extra)-1L, 1e-6)
+    r3 <- .Call(scran:::cxx_get_untied_ranks, rbind(whee + extra), 0L, seq_along(extra)-1L, 1e-6)
     set.seed(100)
-    r4 <- .Call(scran:::cxx_rank_subset, rbind(extra), 0L, seq_along(extra)-1L, 1e-6)
+    r4 <- .Call(scran:::cxx_get_untied_ranks, rbind(extra), 0L, seq_along(extra)-1L, 1e-6)
     
     expect_identical(r, r2)
     expect_identical(r, r3[,1])

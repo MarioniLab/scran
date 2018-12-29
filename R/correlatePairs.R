@@ -39,7 +39,7 @@
     # Computing correlations between gene pairs, and adding a weighted value to the final average.
     all.rho <- numeric(length(gene1))
     for (subset.col in by.block) { 
-        ranked.exprs <- .Call(cxx_rank_subset, use.x, use.subset.row, subset.col - 1L, as.double(tol))
+        ranked.exprs <- .Call(cxx_get_untied_ranks, use.x, use.subset.row, subset.col - 1L, as.double(tol))
         out <- bpmapply(FUN=.get_correlation, gene1=sgene1, gene2=sgene2, 
                         MoreArgs=list(ranked.exprs=ranked.exprs, cache.size=cache.size), 
                         BPPARAM=BPPARAM, SIMPLIFY=FALSE)
@@ -57,7 +57,7 @@
     # Returning output on a per-gene basis, testing if each gene is correlated to any other gene.
     final.names <- .choose_gene_names(subset.row=subset.row, x=x, use.names=use.names)
     if (per.gene) {
-        by.gene <- .Call(cxx_combine_corP, length(subset.row), gene1 - 1L, gene2 - 1L, 
+        by.gene <- .Call(cxx_combine_rho, length(subset.row), gene1 - 1L, gene2 - 1L, 
                          all.rho, all.pval, limited, order(all.pval) - 1L) 
 
         out <- data.frame(gene=final.names, rho=by.gene[[2]], p.value=by.gene[[1]],
@@ -190,7 +190,7 @@
 # Pass all arguments explicitly rather than through the function environments
 # (avoid duplicating memory in bplapply).
 {
-    .Call(cxx_compute_rho, gene1, gene2, ranked.exprs, cache.size)
+    .Call(cxx_compute_rho_pairs, gene1, gene2, ranked.exprs, cache.size)
 }
 
 .choose_gene_names <- function(subset.row, x, use.names) {
