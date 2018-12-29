@@ -1,5 +1,11 @@
-scrambler <- function(x, N, reset=TRUE, seed=runif(1) * .Machine$integer.max) 
-# A shuffling function using C++'s PRNG.
+scramble_vector <- function(x, N, seed=runif(1) * .Machine$integer.max) 
+# Iteratively shuffle the vector 'x', using C++'s PRNG.
 {
-    .Call(scran:::cxx_auto_shuffle, x, N, seed, reset)
+    .Call(scran:::cxx_test_shuffle_vector, x, N, seed)
+}
+
+scramble_matrix <- function(x, seed=runif(ncol(x)) * .Machine$integer.max) 
+# Shuffle each column of 'x', after setting the seed.
+{
+    .Call(scran:::cxx_test_shuffle_matrix, x, seed)
 }
