@@ -14,7 +14,6 @@ static const R_CallMethodDef all_call_entries[] = {
 
     // Cell cycle calling.
     REGISTER(shuffle_scores, 9),
-    REGISTER(auto_shuffle, 4),
 
     // Correlation calclulations.
     REGISTER(get_null_rho, 3),
@@ -24,6 +23,10 @@ static const R_CallMethodDef all_call_entries[] = {
     REGISTER(rank_subset, 4),
     REGISTER(compute_rho, 4),
     REGISTER(combine_corP, 7),
+    
+    // Shuffling test functions.
+    REGISTER(test_shuffle_vector, 3),
+    REGISTER(test_shuffle_matrix, 2),
 
     // Variance calculations.
     REGISTER(fit_linear_model, 5),

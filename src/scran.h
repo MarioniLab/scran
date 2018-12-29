@@ -23,8 +23,6 @@ SEXP subset_and_divide(SEXP, SEXP, SEXP, SEXP);
 
 SEXP shuffle_scores (SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
-SEXP auto_shuffle(SEXP, SEXP, SEXP, SEXP);
-
 // Correlation calclulations.
 
 SEXP get_null_rho (SEXP, SEXP, SEXP);
@@ -38,6 +36,12 @@ SEXP rank_subset(SEXP, SEXP, SEXP, SEXP);
 SEXP compute_rho(SEXP, SEXP, SEXP, SEXP);
 
 SEXP combine_corP(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+
+// Test shuffling functions.
+
+SEXP test_shuffle_vector(SEXP, SEXP, SEXP);
+
+SEXP test_shuffle_matrix(SEXP, SEXP);
 
 // Variance calculations.
 
