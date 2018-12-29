@@ -50,7 +50,7 @@ static const R_CallMethodDef all_call_entries[] = {
 
     REGISTER(compute_CV2, 4),
 
-    REGISTER(shuffle_matrix, 1),
+    REGISTER(shuffle_matrix, 2),
 
     // MNN calculations.
     REGISTER(find_mutual_nns, 2),

@@ -75,7 +75,7 @@ SEXP get_residuals(SEXP, SEXP, SEXP, SEXP, SEXP);
 
 SEXP compute_CV2(SEXP, SEXP, SEXP, SEXP);
 
-SEXP shuffle_matrix(SEXP);
+SEXP shuffle_matrix(SEXP, SEXP);
 
 // MNN calculations.
 

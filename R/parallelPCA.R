@@ -1,4 +1,4 @@
-#' @importFrom BiocParallel bplapply SerialParam
+#' @importFrom BiocParallel bpmapply, SerialParam
 #' @importFrom DelayedArray DelayedArray
 #' @importFrom DelayedMatrixStats rowVars
 .parallelPCA <- function(x, subset.row=NULL, value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100,
@@ -22,11 +22,14 @@
     value <- match.arg(value)
     svd.out <- .centered_SVD(y, max.rank, approximate=approximate, extra.args=irlba.args, 
         keep.left=(value!="n"), keep.right=(value=="lowrank"))
+    original.d2 <- svd.out$d^2
 
     # Running it once, and then multiple times after permutation.
-    original.d2 <- svd.out$d^2
-    permuted <- bplapply(rep(max.rank, niters), FUN=.parallel_PA, y=y,
-        approximate=approximate, extra.args=irlba.args, BPPARAM=BPPARAM)
+    init.seeds <- .create_seeds(niters)
+    permuted <- bpmapply(FUN=.parallel_PA, 
+        max.rank=rep(max.rank, niters), seed=init.seeds, 
+        MoreArgs=list(y=y, approximate=approximate, extra.args=irlba.args), 
+        BPPARAM=BPPARAM, SIMPLIFY=FALSE, USE.NAMES=FALSE)
     permutations <- do.call(cbind, permuted)
 
     # Figuring out where the original drops to "within range" of permuted.
@@ -54,11 +57,11 @@
     return(out.val)
 }
 
-.parallel_PA <- function(y, ...) 
+.parallel_PA <- function(y, ..., seed)
 # Function for use in bplapply, defined here to automatically take advantage of the scran namespace when using snowParam. 
 # We set keep.left=keep.right=FALSE to avoid computing the left/right eigenvectors, which are unnecessary here.
 {
-    re.y <- .Call(cxx_shuffle_matrix, y)
+    re.y <- .Call(cxx_shuffle_matrix, y, seed)
     out <- .centered_SVD(re.y, ..., keep.left=FALSE, keep.right=FALSE)
     out$d^2
 }
