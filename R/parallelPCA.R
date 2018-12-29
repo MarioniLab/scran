@@ -1,4 +1,4 @@
-#' @importFrom BiocParallel bpmapply, SerialParam
+#' @importFrom BiocParallel bpmapply SerialParam
 #' @importFrom DelayedArray DelayedArray
 #' @importFrom DelayedMatrixStats rowVars
 .parallelPCA <- function(x, subset.row=NULL, value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100,
