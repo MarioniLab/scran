@@ -1,5 +1,6 @@
 #' @export
-correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL) 
+#' @importFrom BiocParallel SerialParam bpmapply
+correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=SerialParam()) 
 # This builds a null distribution for the modified Spearman's rho.
 #
 # written by Aaron Lun
@@ -15,7 +16,7 @@ correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL)
         # This avoids the need for the normality assumption in the residual effect simulation.
         out <- 0
         for (ngr in groupings) {
-            out.g <- .Call(cxx_get_null_rho, ngr, as.integer(iters))
+            out.g <- .within_block_null(ncells=ngr, iters=as.integer(iters), BPPARAM=BPPARAM)
             out <- out + out.g * ngr
         }
         out <- out/length(block)
@@ -32,7 +33,7 @@ correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL)
         attrib <- list(design=design)
 
     } else {
-        out <- .Call(cxx_get_null_rho, as.integer(ncells), as.integer(iters))
+        out <- .within_block_null(iters=as.integer(iters), ncells=as.integer(ncells), BPPARAM=BPPARAM)
         attrib <- NULL
     }
 
@@ -40,4 +41,33 @@ correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL)
     out <- sort(out)
     attributes(out) <- attrib
     return(out)  
+}
+
+#### Internal functions (no design) ####
+
+#' @importFrom BiocParallel bpmapply
+.within_block_null <- function(iters, ncells, BPPARAM) {
+    iters.per.core <- .niters_by_nworkers(as.integer(iters), BPPARAM)
+    seeds.per.core <- lapply(iters.per.core, .create_seeds)
+    out <- bpmapply(iters=iters.per.core, seeds=seeds.per.core, ncells=as.integer(ncells), FUN=.no_design_null, SIMPLIFY=FALSE, USE.NAMES=FALSE)
+    unlist(out)
+}
+
+.no_design_null <- function(ncells, iters, seeds) {
+    .Call(cxx_get_null_rho, ncells, iters, seeds)
+}
+
+
+#' @importFrom BiocParallel bpnworkers
+.niters_by_nworkers <- function(iters, BPPARAM) {
+    nworkers <- bpnworkers(BPPARAM)
+    if (iters <= nworkers) {
+        jobs <- integer(nworkers)
+        jobs[seq_len(iters)] <- 1L
+    } else {
+        per.worker <- as.integer(floor(iters/nworkers))
+        jobs <- rep(per.worker, nworkers)
+        jobs[1] <- iters - sum(jobs[-1])
+    }
+    jobs
 }

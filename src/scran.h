@@ -27,7 +27,7 @@ SEXP auto_shuffle(SEXP, SEXP, SEXP);
 
 // Correlation calclulations.
 
-SEXP get_null_rho (SEXP, SEXP);
+SEXP get_null_rho (SEXP, SEXP, SEXP);
 
 SEXP get_null_rho_design (SEXP, SEXP, SEXP);
 

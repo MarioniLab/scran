@@ -1,5 +1,6 @@
 #include "scran.h"
 #include "run_dormqr.h"
+#include <random>
 
 double rho_mult (double Ncells) {
     return 6/(Ncells*(Ncells*Ncells-1));
@@ -7,7 +8,7 @@ double rho_mult (double Ncells) {
 
 /*** Null distribution estimation without a design matrix. ***/
 
-SEXP get_null_rho (SEXP cells, SEXP iters) {
+SEXP get_null_rho (SEXP cells, SEXP iters, SEXP seeds) {
     BEGIN_RCPP
 
     // Pulling out input values.
@@ -15,18 +16,24 @@ SEXP get_null_rho (SEXP cells, SEXP iters) {
     if (Ncells <= 1) { throw std::runtime_error("number of cells should be greater than 2"); }
 
     const int Niters=check_integer_scalar(iters, "number of iterations");
-    if (Niters <= 0) { throw std::runtime_error("number of iterations should be positive"); }
+    if (Niters < 0) { throw std::runtime_error("number of iterations should be non-negative"); }
+
+    Rcpp::IntegerVector Seeds(seeds);
+    if (Seeds.size()!=Niters) {
+        throw std::runtime_error("number of iterations and seeds should be the same"); 
+    }
 
     // Filling rank vector.
     std::vector<int> rankings(Ncells);
-    std::iota(rankings.begin(), rankings.end(), 0);
-
     Rcpp::NumericVector output(Niters);
-    Rcpp::RNGScope rng;
     const double mult=rho_mult(Ncells);
 
     for (int it=0; it<Niters; ++it) {
-        Rx_shuffle(rankings.begin(), rankings.end());
+        std::iota(rankings.begin(), rankings.end(), 0);
+
+        std::mt19937 generator(Seeds[it]);
+        std::shuffle(rankings.begin(), rankings.end(), generator);
+
         double tmp=0;
         for (int cell=0; cell<Ncells; ++cell) {
             const double tmpdiff=rankings[cell]-cell;
