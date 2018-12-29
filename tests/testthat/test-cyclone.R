@@ -1,5 +1,5 @@
 # This checks the cyclone implementation against a reference R-based implementation.
-# require(scran); require(testthat); source("test-cyclone.R")
+# require(scran); require(testthat); source("setup.R"); source("test-cyclone.R")
 
 classif.single <- function(cell, markers,Nmin.couples) { 
     test <- unlist(cell[markers[,1]]-cell[markers[,2]])
@@ -12,7 +12,7 @@ random.success <- function(cell, markers, N, Nmin, Nmin.couples, seed) {
     test <- classif.single(cell,markers,Nmin.couples) 
     if (is.na(test)) { return(NA) } 
 
-    cell.random <- .Call(scran:::cxx_auto_shuffle, cell, N, seed)
+    cell.random <- scramble_vector(cell, N, seed)
     success <- apply(cell.random, 2, classif.single, markers=markers, Nmin.couples=Nmin.couples)
     success <- success[!is.na(success)]
     if (length(success) < Nmin) { return(NA) }
