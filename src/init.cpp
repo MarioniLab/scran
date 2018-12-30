@@ -13,7 +13,7 @@ static const R_CallMethodDef all_call_entries[] = {
     REGISTER(subset_and_divide, 4),
 
     // Cell cycle calling.
-    REGISTER(shuffle_scores, 9),
+    REGISTER(cyclone_scores, 9),
 
     // Correlation calclulations.
     REGISTER(get_null_rho, 3),

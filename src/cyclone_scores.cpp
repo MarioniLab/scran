@@ -46,7 +46,7 @@ double get_proportion (const V& expr, const int minpairs, const Rcpp::IntegerVec
 }
 
 template <class V, class M>
-SEXP shuffle_scores_internal (M mat_ptr, 
+SEXP cyclone_scores_internal (M mat_ptr, 
         Rcpp::IntegerVector mycells,
         Rcpp::IntegerVector marker1, Rcpp::IntegerVector marker2, Rcpp::IntegerVector used, 
         Rcpp::IntegerVector iter, Rcpp::IntegerVector miniter, Rcpp::IntegerVector minpair,
@@ -117,15 +117,15 @@ SEXP shuffle_scores_internal (M mat_ptr,
     return output;
 }
 
-SEXP shuffle_scores(SEXP mycells, SEXP exprs, SEXP marker1, SEXP marker2, SEXP indices, SEXP iter, SEXP miniter, SEXP minpair, SEXP seeds) {
+SEXP cyclone_scores(SEXP mycells, SEXP exprs, SEXP marker1, SEXP marker2, SEXP indices, SEXP iter, SEXP miniter, SEXP minpair, SEXP seeds) {
     BEGIN_RCPP
     int rtype=beachmat::find_sexp_type(exprs);
     if (rtype==INTSXP) {
         auto mat=beachmat::create_integer_matrix(exprs);
-        return shuffle_scores_internal<Rcpp::IntegerVector>(mat.get(), mycells, marker1, marker2, indices, iter, miniter, minpair, seeds);
+        return cyclone_scores_internal<Rcpp::IntegerVector>(mat.get(), mycells, marker1, marker2, indices, iter, miniter, minpair, seeds);
     } else {
         auto mat=beachmat::create_numeric_matrix(exprs);
-        return shuffle_scores_internal<Rcpp::NumericVector>(mat.get(), mycells, marker1, marker2, indices, iter, miniter, minpair, seeds);
+        return cyclone_scores_internal<Rcpp::NumericVector>(mat.get(), mycells, marker1, marker2, indices, iter, miniter, minpair, seeds);
     }
     END_RCPP
 }

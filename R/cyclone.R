@@ -71,7 +71,7 @@ setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
 # Pass all arguments explicitly rather than via function environment
 # (avoid duplication of memory in bplapply).
 {
-    .Call(cxx_shuffle_scores, to.use, exprs, pairings$first, pairings$second, pairings$index, iter, min.iter, min.pairs, seeds) 
+    .Call(cxx_cyclone_scores, to.use, exprs, pairings$first, pairings$second, pairings$index, iter, min.iter, min.pairs, seeds) 
 }
 
 #' @export
