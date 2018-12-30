@@ -142,7 +142,7 @@ LOWWEIGHT <- 0.000001
     row.dex <- col.dex <- output <- vector("list", 2L)
 
     # Creating the linear system with the requested pool sizes.
-    out <- .Call(cxx_forge_system, cur.exprs, ave.cell, sphere - 1L, pool.sizes)
+    out <- .Call(cxx_pool_size_factors, cur.exprs, ave.cell, sphere - 1L, pool.sizes)
     row.dex[[1]] <- out[[1]] + 1L
     col.dex[[1]] <- out[[2]] + 1L
     output[[1]]<- out[[3]]

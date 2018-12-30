@@ -15,7 +15,7 @@ extern "C" {
 
 // Normalization.
 
-SEXP forge_system (SEXP, SEXP, SEXP, SEXP);
+SEXP pool_size_factors(SEXP, SEXP, SEXP, SEXP);
 
 SEXP subset_and_divide(SEXP, SEXP, SEXP, SEXP); 
 

@@ -2,7 +2,7 @@
 
 /*** A function to estimate the pooled size factors and construct the linear equations. ***/
 
-SEXP forge_system (SEXP exprs, SEXP ref, SEXP ordering, SEXP poolsizes) {
+SEXP pool_size_factors (SEXP exprs, SEXP ref, SEXP ordering, SEXP poolsizes) {
     BEGIN_RCPP
     auto emat=beachmat::create_numeric_matrix(exprs);
     const size_t ngenes=emat->get_nrow();
@@ -127,5 +127,3 @@ SEXP forge_system (SEXP exprs, SEXP ref, SEXP ordering, SEXP poolsizes) {
     return Rcpp::List::create(row_num, col_num, pool_factor);
     END_RCPP
 }
-
-

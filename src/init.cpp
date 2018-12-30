@@ -9,7 +9,7 @@ extern "C" {
 
 static const R_CallMethodDef all_call_entries[] = {
     // Normalization.
-    REGISTER(forge_system, 4),
+    REGISTER(pool_size_factors, 4),
     REGISTER(subset_and_divide, 4),
 
     // Cell cycle calling.
