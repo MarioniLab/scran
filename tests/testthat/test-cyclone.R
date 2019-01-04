@@ -69,9 +69,6 @@ refFUN <- function(x, pairs) {
 
 ####################################################################################################
 
-# get_proportion() does not work correctly on Windows 32 - reasons unknown.
-skip_on_os("windows") 
-
 # Spawning training data.
 
 all.names <- paste0("X", seq_len(500))
