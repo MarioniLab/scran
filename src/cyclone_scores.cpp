@@ -1,5 +1,5 @@
 #include "scran.h"
-#include <random>
+#include "shuffle_custom.h"
 
 template <class V>
 double get_proportion (const V& expr, const int minpairs, const Rcpp::IntegerVector& marker1, const Rcpp::IntegerVector& marker2, const double threshold=NA_REAL) {
@@ -99,9 +99,9 @@ SEXP cyclone_scores_internal (M mat_ptr,
 
         // Iterations of shuffling to obtain a null distribution for the score.
         int below=0, total=0;
-        std::mt19937 generator(seeds[curcell]);
+        boost::random::mt19937 generator(seeds[curcell]);
         for (int it=0; it < nit; ++it) {
-            std::shuffle(current_exprs.begin(), current_exprs.end(), generator);
+            shuffle_custom(current_exprs.begin(), current_exprs.end(), generator);
             const double newscore=get_proportion(current_exprs, minp, marker1, marker2, curscore);
             if (!ISNA(newscore)) { 
                 if (newscore < 0) { ++below; }

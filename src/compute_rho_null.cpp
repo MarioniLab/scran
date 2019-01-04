@@ -1,6 +1,6 @@
 #include "scran.h"
 #include "run_dormqr.h"
-#include <random>
+#include "shuffle_custom.h"
 
 static double rho_mult (double Ncells) {
     return 6/(Ncells*(Ncells*Ncells-1));
@@ -31,8 +31,8 @@ SEXP get_null_rho (SEXP cells, SEXP iters, SEXP seeds) {
     for (int it=0; it<Niters; ++it) {
         std::iota(rankings.begin(), rankings.end(), 0);
 
-        std::mt19937 generator(Seeds[it]);
-        std::shuffle(rankings.begin(), rankings.end(), generator);
+        boost::random::mt19937 generator(Seeds[it]);
+        shuffle_custom(rankings.begin(), rankings.end(), generator);
 
         double tmp=0;
         for (int cell=0; cell<Ncells; ++cell) {
@@ -75,8 +75,8 @@ SEXP get_null_rho_design(SEXP qr, SEXP qraux, SEXP iters, SEXP seeds) {
      * correlations between the two reconstructions.
      */
     for (int it=0; it<Niters; ++it) {
-        std::mt19937 generator(Seeds[it]);
-        std::normal_distribution<double> cpp_rnorm;
+        boost::random::mt19937 generator(Seeds[it]);
+        boost::random::normal_distribution<double> cpp_rnorm;
 
         for (int mode=0; mode<2; ++mode) {
             std::fill(multQ.rhs.begin(), multQ.rhs.begin()+Ncoef, 0);
@@ -115,8 +115,8 @@ SEXP get_null_rho_design(SEXP qr, SEXP qraux, SEXP iters, SEXP seeds) {
 }
 
 SEXP test_rnorm (SEXP N, SEXP seed) {
-    std::mt19937 generator(check_integer_scalar(seed, "seed"));
-    std::normal_distribution<double> cpp_rnorm;
+    boost::random::mt19937 generator(check_integer_scalar(seed, "seed"));
+    boost::random::normal_distribution<double> cpp_rnorm;
     Rcpp::NumericVector output(check_integer_scalar(N, "number"));
     for (auto& val : output) { val = cpp_rnorm(generator); }
     return output;

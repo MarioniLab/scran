@@ -1,6 +1,4 @@
 #include "scran.h"
-#include "run_dormqr.h"
-#include <random>
 
 static double rho_mult (double Ncells) {
     return 6/(Ncells*(Ncells*Ncells-1));

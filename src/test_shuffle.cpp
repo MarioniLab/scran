@@ -1,5 +1,5 @@
 #include "scran.h"
-#include <random>
+#include "shuffle_custom.h"
 
 SEXP test_shuffle_vector(SEXP incoming, SEXP nits, SEXP seed) {
     BEGIN_RCPP
@@ -11,10 +11,10 @@ SEXP test_shuffle_vector(SEXP incoming, SEXP nits, SEXP seed) {
     Rcpp::NumericVector::const_iterator source=invec.begin();
     Rcpp::NumericVector::iterator oIt=outmat.begin();
 
-    std::mt19937 generator(check_integer_scalar(seed, "seed"));
+    boost::random::mt19937 generator(check_integer_scalar(seed, "seed"));
     for (int i=0; i<niters; ++i) {
         std::copy(source, source+N, oIt);
-        std::shuffle(oIt, oIt+N, generator);
+        shuffle_custom(oIt, oIt+N, generator);
         source=oIt;
         oIt+=N;
     }
@@ -38,8 +38,8 @@ SEXP test_shuffle_matrix(SEXP incoming, SEXP seeds) {
         auto outcol=output.column(i);
         std::copy(incol.begin(), incol.end(), outcol.begin());
 
-        std::mt19937 generator(Seeds[i]);
-        std::shuffle(outcol.begin(), outcol.end(), generator);
+        boost::random::mt19937 generator(Seeds[i]);
+        shuffle_custom(outcol.begin(), outcol.end(), generator);
     }
 
     return output;

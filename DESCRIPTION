@@ -28,5 +28,5 @@ License: GPL-3
 NeedsCompilation: yes
 VignetteBuilder: knitr
 SystemRequirements: C++11
-LinkingTo: beachmat, Rcpp, Rhdf5lib
+LinkingTo: beachmat, Rcpp, Rhdf5lib, BH
 RoxygenNote: 6.1.1

@@ -1,15 +1,15 @@
 #include "scran.h"
-#include <random>
+#include "shuffle_custom.h"
 
 template<class V, class I, class O>
 void shuffle_matrix_internal(I in, O out, SEXP seed) {
     const size_t NR=in->get_nrow(), NC=in->get_ncol();
     V tmp(NR);
 
-    std::mt19937 gen(check_integer_scalar(seed, "seed"));
+    boost::random::mt19937 gen(check_integer_scalar(seed, "seed"));
     for (size_t c=0; c<NC; ++c) {
         in->get_col(c, tmp.begin());
-        std::shuffle(tmp.begin(), tmp.end(), gen);
+        shuffle_custom(tmp.begin(), tmp.end(), gen);
         out->set_col(c, tmp.begin());
     }
 
