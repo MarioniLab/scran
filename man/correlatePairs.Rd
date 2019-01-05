@@ -183,6 +183,10 @@ Use \code{\link{correlateGenes}} to get per-gene correlation statistics.
 }
 
 \references{
+Lun ATL (2019).
+Some thoughts on testing for correlations.
+\url{https://ltla.github.io/SingleCellThoughts/software/correlations/corsim.html}
+
 Phipson B and Smyth GK (2010).
 Permutation P-values should never be zero: calculating exact P-values when permutations are randomly drawn.
 \emph{Stat. Appl. Genet. Mol. Biol.} 9:Article 39.
