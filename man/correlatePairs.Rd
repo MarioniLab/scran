@@ -144,8 +144,8 @@ This will interact properly with \code{pairings}, such that genes in \code{pairi
 Rows corresponding to spike-in transcripts are also removed by default with \code{get.spikes=FALSE}.
 This avoids picking up strong technical correlations between pairs of spike-in transcripts.
 
-We recommend setting  \code{subset.row} to contain only the subset of genes of interest.
-This reduces computational time by only testing correlations of interest.
+We recommend setting  \code{subset.row} and/or \code{pairings} to contain only the subset of genes of interest.
+This reduces computational time and memory usage by only computing statistics for the gene pairs of interest.
 For example, we could select only HVGs to focus on genes contributing to cell-to-cell heterogeneity (and thus more likely to be involved in driving substructure).
 There is no need to account for HVG pre-selection in multiple testing, because rank correlations are unaffected by the variance.
 
