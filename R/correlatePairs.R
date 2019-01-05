@@ -1,5 +1,6 @@
 #' @importFrom BiocParallel SerialParam
 #' @importFrom S4Vectors DataFrame
+#' @importFrom stats p.adjust
 .correlate_pairs <- function(x, null.dist=NULL, tol=1e-8, tie.iters=20, null.iters=1e6, 
     iters=NULL, block=NULL, design=NULL, lower.bound=NULL, use.names=TRUE, subset.row=NULL, 
     pairings=NULL, per.gene=FALSE, cache.size=100L, BPPARAM=SerialParam())
@@ -45,8 +46,7 @@
     all.lim <- logical(length(gene1))
 
     for (it in seq_len(tie.iters)) {
-        cur.rho <- .calc_blocked_rho(sgene1, sgene2, x=use.x, subset.row=use.subset.row, 
-            by.block=by.block, tol=tol, BPPARAM=BPPARAM)
+        cur.rho <- .calc_blocked_rho(sgene1, sgene2, x=use.x, subset.row=use.subset.row, by.block=by.block, tol=tol, BPPARAM=BPPARAM)
         all.rho <- all.rho + cur.rho
 
         stats <- .rho_to_pval(cur.rho, null.dist)
@@ -54,36 +54,28 @@
 
         # Any individual p-value approaching zero would imply a combined p-value approaching zero.
         # Thus, a limit on any individual p-value implies a limit on the combined p-value.
-        all.lim <- all.lim | stats$limited 
+        all.lim <- all.lim | stats$limited
     }
 
     all.pval <- do.call(combinePValues, c(all.p, list(method="simes"))) # combining p-values across tie permutations.
     all.rho <- all.rho/tie.iters
 
-    # Returning output on a per-gene basis, testing if each gene is correlated to any other gene.
+    # Formatting the output.
     final.names <- .choose_gene_names(subset.row=subset.row, x=x, use.names=use.names)
-    if (per.gene) {
-        by.gene <- .Call(cxx_combine_rho, length(subset.row), gene1 - 1L, gene2 - 1L, 
-                         all.rho, all.pval, all.lim, order(all.pval) - 1L) 
-
-        out <- data.frame(gene=final.names, rho=by.gene[[2]], p.value=by.gene[[1]],
-                          FDR=p.adjust(by.gene[[1]], method="BH"), 
-                          limited=by.gene[[3]], stringsAsFactors=FALSE)
-        rownames(out) <- NULL
-        .is_sig_limited(out)
-        return(out)
-    }
-
-    # Otherwise, returning the pairs themselves.
     gene1 <- final.names[gene1]
     gene2 <- final.names[gene2]
-    out <- DataFrame(gene1=gene1, gene2=gene2, rho=all.rho, p.value=all.pval, 
-                     FDR=p.adjust(all.pval, method="BH"), limited=all.lim)
+
+    out <- DataFrame(gene1=gene1, gene2=gene2, rho=all.rho, p.value=all.pval, FDR=p.adjust(all.pval, method="BH"), limited=all.lim)
     if (reorder) {
         out <- out[order(out$p.value, -abs(out$rho)),]
         rownames(out) <- NULL
     }
     .is_sig_limited(out)
+
+    if (per.gene) {
+        .Deprecated(msg="'per.gene=' is deprecated.\nUse 'correlateGenes' instead.")
+        out <- correlateGenes(out)
+    }
     return(out)
 }
 
@@ -270,10 +262,14 @@
     invisible(NULL)
 }
 
+#############################
+### INTERNAL (S4 methods) ###
+#############################
+
 #' @export
 setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
 
-#' @export
+##' @export
 setMethod("correlatePairs", "ANY", .correlate_pairs)
 
 #' @importFrom SummarizedExperiment assay
