@@ -10,9 +10,9 @@
 \usage{
 correlateNull(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=SerialParam()) 
 
-\S4method{correlatePairs}{ANY}(x, null.dist=NULL, tol=1e-8, iters=1e6, 
-    block=NULL, design=NULL, lower.bound=NULL, use.names=TRUE, 
-    subset.row=NULL, pairings=NULL, per.gene=FALSE,  cache.size=100L,
+\S4method{correlatePairs}{ANY}(x, null.dist=NULL, tol=1e-8, tie.iters=20, null.iters=1e6,
+    iters=NULL, block=NULL, design=NULL, lower.bound=NULL, use.names=TRUE, 
+    subset.row=NULL, pairings=NULL, per.gene=FALSE, cache.size=100L,
     BPPARAM=SerialParam())
 
 \S4method{correlatePairs}{SingleCellExperiment}(x, ..., use.names=TRUE, subset.row=NULL, per.gene=FALSE,
@@ -27,10 +27,12 @@ correlateNull(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=SerialParam())
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object that specifies the manner of parallel processing to use.}
 \item{x}{
     A numeric matrix-like object of log-normalized expression values, where rows are genes and columns are cells.
-    Alternatively, a SingleCellExperiment object containing such a matrix.
+    Alternatively, a \linkS4class{SingleCellExperiment} object containing such a matrix.
 }
 \item{null.dist}{A numeric vector of rho values under the null hypothesis.}
 \item{tol}{A numeric scalar indicating the maximum difference under which two expression values are tied.}
+\item{tie.iters}{An integer scalar specifying the number of iterations to randomize tied ranks.}
+\item{null.iters}{An integer scalar to pass to \code{iters=} in \code{correlateNull} if \code{null.dist=NULL}.}
 \item{use.names}{
     A logical scalar specifying whether the row names of \code{x} should be used in the output.
     Alternatively, a character vector containing the names to use.
@@ -39,10 +41,9 @@ correlateNull(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=SerialParam())
 \item{pairings}{A \code{NULL} value indicating that all pairwise correlations should be computed;
 or a list of 2 vectors of genes between which correlations are to be computed;
 or a integer/character matrix with 2 columns of specific gene pairs - see below for details.}
-\item{per.gene}{A logical scalar specifying whether statistics should be summarized per gene.}
+\item{per.gene}{Deprecated argument, use \code{\link{correlateGenes}} instead.}
 \item{lower.bound}{A numeric scalar specifying the theoretical lower bound of values in \code{x}, only used when \code{residuals=TRUE}.}
-\item{cache.size}{An integer scalar specifying the number of cells for which ranked expression values are stored in memory.
-Smaller values can be used in machines with less memory, at the cost of processing speed.}
+\item{cache.size}{Deprecated argument, ignored.}
 \item{...}{Additional arguments to pass to \code{correlatePairs,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use.}
 \item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
@@ -74,11 +75,6 @@ The lower bound of the p-values is determined by the value of \code{iters}.
 If the \code{limited} field is \code{TRUE} in the returned dataframe, it may be possible to obtain lower p-values by increasing \code{iters}.
 This should be examined for non-significant pairs, in case some correlations are overlooked due to computational limitations.
 The function will automatically raise a warning if any genes are limited in their significance at a FDR of 5\%.
-
-If \code{per.gene=TRUE}, results are summarized on a per-gene basis.
-For each gene, all of its pairs are identified, and the corresponding p-values are combined using Simes' method.
-This tests whether the gene is involved in significant correlations to \emph{any} other gene.
-Setting \code{per.gene=TRUE} is useful for identifying correlated genes without regard to what they are correlated with (e.g., during feature selection).
 }
 
 \value{
@@ -97,10 +93,6 @@ For \code{correlatePairs} with \code{per.gene=FALSE}, a DataFrame is returned wi
 } 
 Rows are sorted by increasing \code{p.value} and, if tied, decreasing absolute size of \code{rho}.
 The exception is if \code{subset.row} is a matrix, in which case each row in the dataframe correspond to a row of \code{subset.row}.
-
-For \code{correlatePairs} with \code{per.gene=TRUE}, a dataframe is returned with one row per gene.
-For each row, the \code{rho} field contains the correlation with the largest magnitude across all gene pairs involving the corresponding gene.
-The \code{p.value} field contains the Simes p-value, and the \code{FDR} field contains the corresponding adjusted p-value.
 }
 
 \section{Accounting for uninteresting variation}{
@@ -164,11 +156,20 @@ Focusing on HVGs should mitigate the detection of these uninteresting correlatio
 }
 
 \section{Approximating Spearman's rho with tied values}{
-As previously mentioned, an approximate version of Spearman's rho is used.
-Specifically, untied ranks are randomly assigned to any tied values.
-This means that a common empirical distribution can be used for all gene pairs, rather than having to do new permutations for every pair to account for the different pattern of ties.
-Generally, this modification has little effect on the results for expressed genes (and in any case, differences in library size break ties for normalized expression values).
-Some correlations may end up being spuriously large, but this should be handled by the error control machinery after multiplicity correction.
+As previously mentioned, an approximate version of Spearman's rho is used where untied ranks are randomly assigned to any tied values.
+This has several benefits:
+\itemize{
+\item It allows us to use a common empirical distribution for all gene pairs, constructed once with \code{correlateNull}.
+This avoids the need to perform new permutations for every pair to account for the different pattern of ties.
+\item It avoids spuriously large correlations in the presence of many tied ranks. 
+Imagine a case where two genes are only expressed in one cell, and silent in all others.
+The standard rho calculation would yield a value of 1, while the randomized ties yields rho values closer to zero.
+}
+
+The cost is that the results may not be stable when ties are randomly broken.
+This is especially noticeable for low-abundance genes with many zeroes (and thus many tied values across cells).
+To improve stability, we repeat the rho calculation \code{tie.iters} times for each gene pair with new tie breaking.
+The reported rho is the average across these iterations, and the reported p-value is computed by applying Simes' method to the individual p-values from all iterations.
 }
 
 \author{
@@ -176,8 +177,9 @@ Aaron Lun
 }
 
 \seealso{
-\code{\link{bpparam}},
-\code{\link{cor}}
+Compare to \code{\link{cor}} for the standard Spearman's calculation.
+
+Use \code{\link{correlateGenes}} to get per-gene correlation statistics.
 }
 
 \references{
