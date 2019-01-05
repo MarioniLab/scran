@@ -1,13 +1,19 @@
-#' @importFrom BiocParallel bplapply SerialParam
-.correlate_pairs <- function(x, null.dist=NULL, tol=1e-8, iters=1e6, 
-    block=NULL, design=NULL, lower.bound=NULL, 
-    use.names=TRUE, subset.row=NULL, pairings=NULL, per.gene=FALSE, 
-    cache.size=100L, BPPARAM=SerialParam())
+#' @importFrom BiocParallel SerialParam
+#' @importFrom S4Vectors DataFrame
+.correlate_pairs <- function(x, null.dist=NULL, tol=1e-8, tie.iters=20, null.iters=1e6, 
+    iters=NULL, block=NULL, design=NULL, lower.bound=NULL, use.names=TRUE, subset.row=NULL, 
+    pairings=NULL, per.gene=FALSE, cache.size=100L, BPPARAM=SerialParam())
 # This calculates a (modified) Spearman's rho for each pair of genes.
 #
 # written by Aaron Lun
 # created 10 February 2016
 {
+    if (!is.null(iters)) {
+        .Deprecated(msg="'iters' is deprecated.\nUse 'null.iters' instead.")
+    } else {
+        iters <- null.iters
+    }
+
     null.out <- .check_null_dist(x, block=block, design=design, iters=iters, null.dist=null.dist, BPPARAM=BPPARAM)
     null.dist <- null.out$null
     by.block <- null.out$blocks
@@ -35,30 +41,31 @@
     sgene1 <- .split_vector_by_workers(gene1 - 1L, wout)
     sgene2 <- .split_vector_by_workers(gene2 - 1L, wout)
 
-    # Iterating through all blocking levels (for one-way layouts; otherwise, this is a loop of length 1).
-    # Computing correlations between gene pairs, and adding a weighted value to the final average.
-    all.rho <- numeric(length(gene1))
-    for (subset.col in by.block) { 
-        ranked.exprs <- .Call(cxx_get_untied_ranks, use.x, use.subset.row, subset.col - 1L, as.double(tol))
-        out <- bpmapply(FUN=.get_correlation, gene1=sgene1, gene2=sgene2, 
-                        MoreArgs=list(ranked.exprs=ranked.exprs, cache.size=cache.size), 
-                        BPPARAM=BPPARAM, SIMPLIFY=FALSE)
-        current.rho <- unlist(out)
-        all.rho <- all.rho + current.rho * length(subset.col)/ncol(x)
+    all.p <- vector("list", tie.iters)
+    all.rho <- numeric(length(gene1)) 
+    all.lim <- logical(length(gene1))
+
+    for (it in seq_len(tie.iters)) {
+        cur.rho <- .calc_blocked_rho(sgene1, sgene2, x=use.x, subset.row=use.subset.row, 
+            by.block=by.block, cache.size=cache.size, tol=tol, BPPARAM=BPPARAM)
+        all.rho <- all.rho + cur.rho
+
+        stats <- .rho_to_pval(cur.rho, null.dist)
+        all.p[[it]] <- stats$p
+
+        # Any individual p-value approaching zero would imply a combined p-value approaching zero.
+        # Thus, a limit on any individual p-value implies a limit on the combined p-value.
+        all.lim <- all.lim | stats$limited 
     }
 
-    # Estimating the p-values (need to shift values to break ties conservatively by increasing the p-value).
-    left <- findInterval(all.rho + 1e-8, null.dist)
-    right <- length(null.dist) - findInterval(all.rho - 1e-8, null.dist)
-    limited <- left==0L | right==0L
-    all.pval <- (pmin(left, right)+1)*2/(length(null.dist)+1)
-    all.pval <- pmin(all.pval, 1)
+    all.pval <- do.call(combinePValues, c(all.p, list(method="simes"))) # combining p-values across tie permutations.
+    all.rho <- all.rho/tie.iters
 
     # Returning output on a per-gene basis, testing if each gene is correlated to any other gene.
     final.names <- .choose_gene_names(subset.row=subset.row, x=x, use.names=use.names)
     if (per.gene) {
         by.gene <- .Call(cxx_combine_rho, length(subset.row), gene1 - 1L, gene2 - 1L, 
-                         all.rho, all.pval, limited, order(all.pval) - 1L) 
+                         all.rho, all.pval, all.lim, order(all.pval) - 1L) 
 
         out <- data.frame(gene=final.names, rho=by.gene[[2]], p.value=by.gene[[1]],
                           FDR=p.adjust(by.gene[[1]], method="BH"), 
@@ -72,7 +79,7 @@
     gene1 <- final.names[gene1]
     gene2 <- final.names[gene2]
     out <- DataFrame(gene1=gene1, gene2=gene2, rho=all.rho, p.value=all.pval, 
-                     FDR=p.adjust(all.pval, method="BH"), limited=limited)
+                     FDR=p.adjust(all.pval, method="BH"), limited=all.lim)
     if (reorder) {
         out <- out[order(out$p.value, -abs(out$rho)),]
         rownames(out) <- NULL
@@ -80,6 +87,10 @@
     .is_sig_limited(out)
     return(out)
 }
+
+##########################################
+### INTERNAL (correlation calculation) ###
+##########################################
 
 .check_null_dist <- function(x, block, design, iters, null.dist, BPPARAM) 
 # This makes sure that the null distribution is in order.
@@ -117,6 +128,51 @@
     
     return(list(null=null.dist, blocks=blocks))
 }
+
+.get_correlation <- function(gene1, gene2, ranked.exprs, cache.size) 
+# Pass all arguments explicitly rather than through the function environments
+# (avoid duplicating memory in bplapply).
+{
+    .Call(cxx_compute_rho_pairs, gene1, gene2, ranked.exprs, cache.size)
+}
+
+#' @importFrom BiocParallel bpmapply 
+.calc_blocked_rho <- function(sgene1, sgene2, x, subset.row, by.block, tol, cache.size, BPPARAM)
+# Iterating through all blocking levels (for one-way layouts; otherwise, this is a loop of length 1).
+# Computing correlations between gene pairs, and adding a weighted value to the final average.
+{
+    all.rho <- numeric(sum(lengths(sgene1)))
+
+    for (subset.col in by.block) { 
+        # Transposed for efficient access to ranks; rows are now cells, columns are genes.
+        ranked.exprs <- .Call(cxx_get_untied_ranks, x, subset.row, subset.col - 1L, as.double(tol))
+
+        out <- bpmapply(FUN=.get_correlation, gene1=sgene1, gene2=sgene2, 
+            MoreArgs=list(ranked.exprs=ranked.exprs, cache.size=cache.size), 
+            BPPARAM=BPPARAM, SIMPLIFY=FALSE)
+        current.rho <- unlist(out)
+
+        # Weighted by the number of cells in this block.
+        all.rho <- all.rho + current.rho * length(subset.col)
+    }
+
+    all.rho / ncol(x)
+}
+
+.rho_to_pval <- function(all.rho, null.dist) 
+# Estimating the p-values (need to shift values to break ties conservatively by increasing the p-value).
+{
+    left <- findInterval(all.rho + 1e-8, null.dist)
+    right <- length(null.dist) - findInterval(all.rho - 1e-8, null.dist)
+    limited <- left==0L | right==0L
+    all.pval <- (pmin(left, right)+1)*2/(length(null.dist)+1)
+    all.pval <- pmin(all.pval, 1)
+    list(p=all.pval, limited=limited)
+}
+
+##################################
+### INTERNAL (pair definition) ###
+##################################
 
 #' @importFrom utils combn
 .construct_pair_indices <- function(subset.row, x, pairings) 
@@ -186,12 +242,9 @@
     return(list(subset.row=subset.row, gene1=gene1, gene2=gene2, reorder=reorder))
 }
 
-.get_correlation <- function(gene1, gene2, ranked.exprs, cache.size) 
-# Pass all arguments explicitly rather than through the function environments
-# (avoid duplicating memory in bplapply).
-{
-    .Call(cxx_compute_rho_pairs, gene1, gene2, ranked.exprs, cache.size)
-}
+####################################
+### INTERNAL (output formatting) ###
+####################################
 
 .choose_gene_names <- function(subset.row, x, use.names) {
     newnames <- NULL
