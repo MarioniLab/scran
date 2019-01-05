@@ -66,7 +66,7 @@ test_that("correlatePairs works with or without a pre-specified null distributio
     nulls <- sort(runif(1e5, -1, 1))
 
     set.seed(100)
-    out <- correlatePairs(X, null.dist=nulls)
+    out <- correlatePairs(X, null.dist=nulls, tie.iters=1)
     set.seed(100)
     ref <- checkCorrelations(out, X, null.dist=nulls)
     
@@ -75,7 +75,7 @@ test_that("correlatePairs works with or without a pre-specified null distributio
     expect_equal(out$FDR, ref$FDR)
  
     set.seed(100)
-    out <- correlatePairs(X, iter=1e5)
+    out <- correlatePairs(X, null.iters=1e5, tie.iters=1)
     set.seed(100)
     nulls <- correlateNull(Ncells, iter=1e5)
     ref <- checkCorrelations(out, X, null.dist=nulls)
@@ -85,17 +85,54 @@ test_that("correlatePairs works with or without a pre-specified null distributio
     expect_equal(out$FDR, ref$FDR)
 })
 
-# Setting up a design matrix.
-grouping <- factor(rep(c(1,2), each=50))
+set.seed(100001)
+test_that("correlatePairs identifies limited pairs correctly", {
+    X <- rbind(1:Ncells, 1:Ncells, as.numeric(rbind(1:(Ncells/2), Ncells - 1:(Ncells/2) + 1L)))
+    out <- correlatePairs(X, null.dist=runif(1000))
+    expect_identical(out$gene1, c(1L, 1L, 2L))
+    expect_identical(out$gene2, c(2L, 3L, 3L))
+    expect_identical(out$limited, c(TRUE, FALSE, FALSE))
+})
+
+set.seed(100002)
+test_that("tie cracking works correctly", {
+    nulls <- sort(runif(1e5, -1, 1))
+
+    set.seed(100)
+    out1 <- correlatePairs(X, null.dist=nulls, tie.iters=1)
+    out2 <- correlatePairs(X, null.dist=nulls, tie.iters=1)
+    out3 <- correlatePairs(X, null.dist=nulls, tie.iters=1)
+
+    out1 <- out1[order(out1$gene1, out1$gene2),]
+    out2 <- out2[order(out2$gene1, out2$gene2),]
+    out3 <- out3[order(out3$gene1, out3$gene2),]
+
+    # Checking that the random seed does change.
+    expect_false(isTRUE(all.equal(out1$rho, out2$rho)))
+    expect_false(isTRUE(all.equal(out1$rho, out3$rho)))
+
+    # Checking that combined stats are calculated correctly.
+    set.seed(100)
+    out <- correlatePairs(X, null.dist=nulls, tie.iters=3)
+    out <- out[order(out$gene1, out$gene2),]
+
+    expect_equal(out$rho, (out1$rho + out2$rho + out3$rho)/3)
+    expect_equal(out$p.value, combinePValues(out1$p.value, out2$p.value, out3$p.value, method="simes"))
+    expect_identical(out$limited, out1$limited | out2$limited | out3$limited)
+})
+
+####################################################################################################
+
+grouping <- gl(2, 50)
 design <- model.matrix(~grouping)
 
 test_that("correlatePairs works with a design matrix", {
     set.seed(200)
     nulls <- correlateNull(design=design, iter=1e4)
-    expect_warning(correlatePairs(X[1:5,], design=NULL, null=nulls), "'design' is not the same as that used to generate")
+    expect_warning(correlatePairs(X[1:5,], design=NULL, null.dist=nulls), "'design' is not the same as that used to generate")
     
     set.seed(100) # Need because of random ranking.
-    out <- correlatePairs(X, design=design, null=nulls, lower.bound=NA)
+    out <- correlatePairs(X, design=design, null.dist=nulls, lower.bound=NA, tie.iters=1)
     fit <- lm.fit(x=design, y=t(X))
     exprs <- t(fit$residual)
     set.seed(100)
@@ -137,7 +174,7 @@ test_that("correlatePairs works with lower bounds on the residuals", {
     nulls <- correlateNull(design=design, iter=1e4)
  
     set.seed(100) 
-    out <- correlatePairs(X, design=design, null=nulls, lower.bound=0) # Checking what happens with bounds.
+    out <- correlatePairs(X, design=design, null.dist=nulls, lower.bound=0, tie.iters=1)
     set.seed(100) 
     ref <- checkCorrelations(out, alt.resid, null.dist=nulls)
     
@@ -151,9 +188,9 @@ test_that("correlatePairs works without simulated residuals for one-way layouts"
     # bplapply mucks up the seed for tie breaking, even with a single core).
     set.seed(200)
     X[] <- rnorm(length(X))
-    nulls <- correlateNull(block=grouping, iter=1e3)
-    out <- correlatePairs(X, block=grouping, null=nulls)
-    expect_warning(correlatePairs(X, block=NULL, null=nulls), "'block' is not the same")
+    nulls <- correlateNull(block=grouping, iter=1e4)
+    out <- correlatePairs(X, block=grouping, null.dist=nulls, tie.iters=1)
+    expect_warning(correlatePairs(X, block=NULL, null.dist=nulls), "'block' is not the same")
  
     # Calculating the weighted average of correlations. 
     collected.rho <- 0L
@@ -173,49 +210,20 @@ test_that("correlatePairs works without simulated residuals for one-way layouts"
     expect_equal(out$p.value, collected.p)
 })
 
-test_that("correlatePairs works with a variety of cache sizes", {
-    # With a different set of cache sizes, to check proper caching.
-    # (previous examples all have cache.size=100, but with too few genes to trigger caching bugs).
-    set.seed(100041)
-    nulls <- sort(runif(1e6, -1, 1))
-    X[] <- rnorm(length(X))
-    
-    set.seed(100)
-    out <- correlatePairs(X, null.dist=nulls)
-    
-    set.seed(100)
-    out1 <- correlatePairs(X, null.dist=nulls, cache.size=5)
-    expect_equal(out$rho, out1$rho)
-    expect_equal(out$p.value, out1$p.value)
-    expect_equal(out$FDR, out1$FDR)
-    
-    set.seed(100)
-    out2 <- correlatePairs(X, null.dist=nulls, cache.size=2)
-    expect_equal(out$rho, out2$rho)
-    expect_equal(out$p.value, out2$p.value)
-    expect_equal(out$FDR, out2$FDR)
-
-    set.seed(100)
-    out2 <- correlatePairs(X, null.dist=nulls, cache.size=1)
-    expect_equal(out$rho, out2$rho)
-    expect_equal(out$p.value, out2$p.value)
-    expect_equal(out$FDR, out2$FDR)
-})
-
 ####################################################################################################
-# Checking that it works with different 'subset.row' values.
+# Checking that it works with different 'pairing' values.
 # (again, using a normal matrix to avoid ties, for simplicity).
 
-set.seed(100021)
+set.seed(10002)
 Ngenes <- 20
 Ncells <- 100
 X <- matrix(rnorm(Ngenes*Ncells), nrow=Ngenes)
 rownames(X) <- paste0("X", seq_len(Ngenes))
 
-set.seed(200)
-nulls <- correlateNull(ncells=ncol(X), iter=1e3)
-ref <- correlatePairs(X, nulls)
+nulls <- correlateNull(ncells=ncol(X), iter=1e4)
+ref <- correlatePairs(X, null.dist=nulls)
 
+set.seed(100021)
 test_that("correlatePairs works with subset.row values", {
     # Vanilla subsetting of genes; taking the correlations between all pairs of subsetted genes. 
     subgenes <- 1:10 
@@ -231,6 +239,7 @@ test_that("correlatePairs works with subset.row values", {
     expect_equal(subref, subbed)
 })
 
+set.seed(100022)
 test_that("correlatePairs works with list-based pairing", {
     ref2 <- ref
     ref2$gene1 <- ref$gene2
@@ -273,8 +282,7 @@ test_that("correlatePairs works with list-based pairing", {
     expect_error(correlatePairs(X, nulls, pairings=list(1,2,3)), "'pairings' as a list should have length 2")
 })
 
-# Subsetting to specify matrix of specific pairs.
-
+set.seed(100023)
 test_that("correlatePairs with pairs matrix works as expected", {
     ref2 <- ref
     ref2$gene1 <- ref$gene2
@@ -308,9 +316,9 @@ test_that("correlatePairs with pairs matrix works as expected", {
         expect_equal(msubbed, msubbed2)
     
         # Checking for proper interaction with subset.row
-        keep <- 1:5
+        keep <- 1:10
         lsub2 <- correlatePairs(X, nulls, pairings=pairs, subset.row=keep)
-        repairs <- pairs[pairs[,1] %in% keep & pairs[,2] %in% keep,]
+        repairs <- pairs[pairs[,1] %in% keep & pairs[,2] %in% keep,,drop=FALSE]
         lexpected <- correlatePairs(X, nulls, pairings=repairs)
         expect_equal(lexpected, lsub2)
     }
@@ -321,44 +329,6 @@ test_that("correlatePairs with pairs matrix works as expected", {
 })
 
 ####################################################################################################
-
-set.seed(100022)
-Ngenes <- 20
-Ncells <- 100
-X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes) + 1)
-rownames(X) <- paste0("X", seq_len(Ngenes))
-nulls <- correlateNull(ncells=ncol(X), iter=1e3)
-
-test_that("correlatePairs works with per.gene=TRUE", {
-    set.seed(200)
-    ref <- correlatePairs(X, nulls)
-    set.seed(200)
-    gref <- correlatePairs(X, nulls, per.gene=TRUE)
-    expect_identical(gref$gene, rownames(X))
-    
-    for (x in rownames(X)) {
-        collected <- ref$gene1 == x | ref$gene2==x
-        simes.p <- min(p.adjust(ref$p.value[collected], method="BH"))
-        expect_equal(simes.p, gref$p.value[gref$gene==x])
-        max.i <- which.max(abs(ref$rho[collected]))
-        expect_equal(ref$rho[collected][max.i], gref$rho[gref$gene==x])
-    }
-})
-
-test_that("correlatePairs returns correct values for the limits", {
-    # Checking the limits were computed properly.
-    X <- rbind(1:Ncells, 1:Ncells, as.numeric(rbind(1:(Ncells/2), Ncells - 1:(Ncells/2) + 1L)))
-    out <- correlatePairs(X, null.dist=nulls)
-    expect_identical(out$gene1, c(1L, 1L, 2L))
-    expect_identical(out$gene2, c(2L, 3L, 3L))
-    expect_identical(out$limited, c(TRUE, FALSE, FALSE))
-    
-    out <- correlatePairs(X, null.dist=nulls, per.gene=TRUE)
-    expect_identical(out$gene, c(1L, 2L, 3L))
-    expect_identical(out$limited, c(TRUE, TRUE, FALSE))
-})
-
-# Checking that it works with a SingleCellExperiment object.
 
 set.seed(10003)
 Ngenes <- 20
@@ -390,20 +360,13 @@ test_that("correlatePairs works correctly with SingleCellExperiment objects", {
     set.seed(100)
     out <- correlatePairs(X2, null.dist=nulls)
     expect_equal(out, ref)
-    
-    # With spikes and per.gene=TRUE.
-    set.seed(100)
-    out <- correlatePairs(X2, null.dist=nulls, per.gene=TRUE)
-    set.seed(100)
-    ref <- correlatePairs(exprs(X2)[!isSpike(X2),,drop=FALSE], null.dist=nulls, per.gene=TRUE)
-    expect_equal(out, ref)   
 })
 
 # Checking nonsense inputs.
 
 test_that("correlatePairs fails properly upon silly inputs", {
     expect_error(correlatePairs(X[0,], nulls), "need at least two genes to compute correlations")
-    expect_error(correlatePairs(X[,0], nulls), "number of cells should be greater than 2")
+    expect_error(correlatePairs(X[,0], nulls), "number of cells should be greater than or equal to 2")
     expect_warning(correlatePairs(X, iters=1), "lower bound on p-values at a FDR of 0.05, increase 'iter'")
     expect_warning(out <- correlatePairs(X, numeric(0)), "lower bound on p-values at a FDR of 0.05, increase 'iter'")
     expect_equal(out$p.value, rep(1, nrow(out)))
