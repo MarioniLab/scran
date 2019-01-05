@@ -1,7 +1,7 @@
 #' @importFrom BiocParallel SerialParam
 #' @importFrom S4Vectors DataFrame
 #' @importFrom stats p.adjust
-.correlate_pairs <- function(x, null.dist=NULL, tol=1e-8, tie.iters=20, null.iters=1e6, 
+.correlate_pairs <- function(x, null.dist=NULL, tol=1e-8, tie.iters=100, null.iters=1e6, 
     iters=NULL, block=NULL, design=NULL, lower.bound=NULL, use.names=TRUE, subset.row=NULL, 
     pairings=NULL, per.gene=FALSE, cache.size=100L, BPPARAM=SerialParam())
 # This calculates a (modified) Spearman's rho for each pair of genes.

@@ -10,7 +10,7 @@
 \usage{
 correlateNull(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=SerialParam()) 
 
-\S4method{correlatePairs}{ANY}(x, null.dist=NULL, tol=1e-8, tie.iters=20, null.iters=1e6,
+\S4method{correlatePairs}{ANY}(x, null.dist=NULL, tol=1e-8, tie.iters=100, null.iters=1e6,
     iters=NULL, block=NULL, design=NULL, lower.bound=NULL, use.names=TRUE, 
     subset.row=NULL, pairings=NULL, per.gene=FALSE, cache.size=100L,
     BPPARAM=SerialParam())
