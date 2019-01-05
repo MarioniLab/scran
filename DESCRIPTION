@@ -15,7 +15,7 @@ Imports: SummarizedExperiment, S4Vectors, BiocGenerics, BiocParallel,
         DelayedArray, DelayedMatrixStats
 Suggests: testthat, BiocStyle, knitr, beachmat, HDF5Array, irlba, 
         org.Mm.eg.db, DESeq2, monocle, pracma, Biobase, aroma.light
-biocViews: Normalization, Sequencing, RNASeq, Software, GeneExpression,
+biocViews: ImmunoOncology, Normalization, Sequencing, RNASeq, Software, GeneExpression,
         Transcriptomics, SingleCell, Visualization, BatchEffect,
         Clustering
 Description: Implements functions for low-level analyses of single-cell 
