@@ -49,29 +49,15 @@ test_that("correlatePairs runs properly", {
     null <- correlateNull(ncol(X), iters=1e6)
 
     set.seed(100) 
-    ref <- correlatePairs(X_[1:10,], null=null)
+    ref <- correlatePairs(X_[1:10,], null.dist=null)
     set.seed(100) 
-    alt <- correlatePairs(X[1:10,], null=null)
-    expect_equal(ref, alt)
-    
-    set.seed(100) 
-    alt <- correlatePairs(X[1:10,], null=null, cache.size=3)
-    expect_equal(ref, alt)
-    set.seed(100) 
-    alt <- correlatePairs(X[1:10,], null=null, cache.size=8)
+    alt <- correlatePairs(X[1:10,], null.dist=null)
     expect_equal(ref, alt)
 
     set.seed(200) 
-    ref <- correlatePairs(Y_[20:50,], null=null)
+    ref <- correlatePairs(Y_[20:50,], null.dist=null)
     set.seed(200) 
-    alt <- correlatePairs(Y[20:50,], null=null)
-    expect_equal(ref, alt)
-
-    set.seed(200) 
-    alt <- correlatePairs(Y[20:50,], null=null, cache.size=3)
-    expect_equal(ref, alt)
-    set.seed(200) 
-    alt <- correlatePairs(Y[20:50,], null=null, cache.size=13)
+    alt <- correlatePairs(Y[20:50,], null.dist=null)
     expect_equal(ref, alt)
 })
 
