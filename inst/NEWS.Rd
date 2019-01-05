@@ -15,6 +15,14 @@ Degrade quietly to library size factors when cluster is to small for all pool si
 Minor change in random number generation for consistency upon parallelization.
 
 \item Minor change to parallelPCA() random number generation for consistency upon parallelization.
+
+\item Created correlateGenes() function to compute per-gene correlation statistics.
+
+\item Modified correlatePairs() to perform iterations of tie breaking via new tie.iters= argument.
+Statistics are consolidated across tie-breaking iterations to improve stability of results.
+Renamed iters= to null.iters= and deprecated the former.
+Deprecated cache.size= as all ties are now returned as in-memory representations.
+Deprecated per.gene= in favour of an external call to correlateGenes().
 }}
 
 \section{Version 1.10.0}{\itemize{

@@ -1,6 +1,6 @@
 Package: scran
-Version: 1.11.13
-Date: 2018-01-04
+Version: 1.11.14
+Date: 2018-01-05
 Title: Methods for Single-Cell RNA-Seq Data Analysis
 Authors@R: c(person("Aaron", "Lun", role = c("aut", "cre"), 
         email = "infinite.monkeys.with.keyboards@gmail.com"), 
