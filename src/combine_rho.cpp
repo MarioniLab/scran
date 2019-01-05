@@ -60,10 +60,19 @@ SEXP combine_rho (SEXP ng, SEXP g1, SEXP g2, SEXP rho, SEXP pval, SEXP limited, 
             ++already_there;
             const double temp_combined=curpval/already_there;
             double& combined_pval=pout[gx];
+
             if (already_there==1 || temp_combined < combined_pval) {
                 combined_pval=temp_combined;
-                lout[gx]=curlimit; // is the combined p-value computed from a limited p-value?
             }
+
+            // If any individual p-value is limited, the combined p-value is potentially limited;
+            // one could imagine obtaining an arbitrarily low individual p-value that drives the
+            // combined p-value to zero.
+            int& islim=lout[gx];
+            if (curlimit && !islim) {
+                islim=1;
+            }
+
             double& max_rho=rout[gx];
             if (already_there==1 || std::abs(max_rho) < std::abs(currho)) {
                 max_rho=currho;
