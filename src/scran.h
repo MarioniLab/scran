@@ -33,7 +33,7 @@ SEXP test_rnorm(SEXP, SEXP);
 
 SEXP get_untied_ranks(SEXP, SEXP, SEXP, SEXP);
 
-SEXP compute_rho_pairs(SEXP, SEXP, SEXP, SEXP);
+SEXP compute_rho_pairs(SEXP, SEXP, SEXP);
 
 SEXP combine_rho(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 

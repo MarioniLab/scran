@@ -14,19 +14,13 @@ SEXP get_untied_ranks_internal(const M mat, SEXP intype, SEXP subset_row, SEXP s
     auto csubout=check_subset_vector(subset_col, mat->get_ncol());
     const size_t cslen=csubout.size();
     
-    // Setting up the output matrix.
+    // Setting up the output matrix (always dense in memory, for simplicity later).
     const size_t ncells=mat->get_ncol();
-    beachmat::output_param oparam(intype, true, false);
-    oparam.set_chunk_dim(cslen, 1); // Column chunks (tranposed, so each column is a gene now).
-    auto omat=beachmat::create_integer_output(cslen, rslen, oparam);
-    if (!cslen) { 
-        return omat->yield();
-    }
+    Rcpp::IntegerMatrix output(cslen, rslen);
 
     std::vector<int> indices(cslen);
     V incoming(ncells), subsetted(cslen);
     Rcpp::NumericVector breaker(cslen);
-    Rcpp::IntegerVector ranks(cslen);
 
     { // Avoid garbage collection with unprotected return upon destruction of 'RNGScope'.
         Rcpp::RNGScope rng; 
@@ -61,14 +55,14 @@ SEXP get_untied_ranks_internal(const M mat, SEXP intype, SEXP subset_row, SEXP s
     
             // Filling the output matrix.
             auto iIt=indices.begin();
+            auto ranks=output.column(rs);
             for (int cs=0; cs<cslen; ++cs, ++iIt){ 
                 ranks[*iIt]=cs+1;
             }
-            omat->set_col(rs, ranks.begin());
         }
     }
 
-    return omat->yield();
+    return output;
 }
 
 SEXP get_untied_ranks(SEXP exprs, SEXP subset_row, SEXP subset_col, SEXP tol) {

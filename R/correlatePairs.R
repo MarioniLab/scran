@@ -19,7 +19,6 @@
     by.block <- null.out$blocks
 
     # Checking which pairwise correlations should be computed.
-    cache.size <- as.integer(cache.size)
     pair.out <- .construct_pair_indices(subset.row=subset.row, x=x, pairings=pairings)
     subset.row <- pair.out$subset.row
     gene1 <- pair.out$gene1
@@ -47,7 +46,7 @@
 
     for (it in seq_len(tie.iters)) {
         cur.rho <- .calc_blocked_rho(sgene1, sgene2, x=use.x, subset.row=use.subset.row, 
-            by.block=by.block, cache.size=cache.size, tol=tol, BPPARAM=BPPARAM)
+            by.block=by.block, tol=tol, BPPARAM=BPPARAM)
         all.rho <- all.rho + cur.rho
 
         stats <- .rho_to_pval(cur.rho, null.dist)
@@ -129,15 +128,15 @@
     return(list(null=null.dist, blocks=blocks))
 }
 
-.get_correlation <- function(gene1, gene2, ranked.exprs, cache.size) 
+.get_correlation <- function(gene1, gene2, ranked.exprs) 
 # Pass all arguments explicitly rather than through the function environments
 # (avoid duplicating memory in bplapply).
 {
-    .Call(cxx_compute_rho_pairs, gene1, gene2, ranked.exprs, cache.size)
+    .Call(cxx_compute_rho_pairs, gene1, gene2, ranked.exprs)
 }
 
 #' @importFrom BiocParallel bpmapply 
-.calc_blocked_rho <- function(sgene1, sgene2, x, subset.row, by.block, tol, cache.size, BPPARAM)
+.calc_blocked_rho <- function(sgene1, sgene2, x, subset.row, by.block, tol, BPPARAM)
 # Iterating through all blocking levels (for one-way layouts; otherwise, this is a loop of length 1).
 # Computing correlations between gene pairs, and adding a weighted value to the final average.
 {
@@ -148,7 +147,7 @@
         ranked.exprs <- .Call(cxx_get_untied_ranks, x, subset.row, subset.col - 1L, as.double(tol))
 
         out <- bpmapply(FUN=.get_correlation, gene1=sgene1, gene2=sgene2, 
-            MoreArgs=list(ranked.exprs=ranked.exprs, cache.size=cache.size), 
+            MoreArgs=list(ranked.exprs=ranked.exprs), 
             BPPARAM=BPPARAM, SIMPLIFY=FALSE)
         current.rho <- unlist(out)
 
