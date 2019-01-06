@@ -131,7 +131,7 @@
         }
 
         N <- length(subset.col)
-        rank.scale <- rank.scale * N/(N-1) # var -> sum of squares from mean
+        rank.scale <- rank.scale * (N-1)/N # var -> sum of squares from mean
         ranks <- ranks/sqrt(rank.scale)
 
         # Transposing for easier C++ per-gene access.
