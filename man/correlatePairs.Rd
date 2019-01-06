@@ -10,7 +10,7 @@
 \usage{
 correlateNull(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=SerialParam()) 
 
-\S4method{correlatePairs}{ANY}(x, null.dist=NULL, tol=1e-8, ties.method=c("expected", "average"),
+\S4method{correlatePairs}{ANY}(x, null.dist=NULL, ties.method=c("expected", "average"), tol=1e-8, 
     iters=1e6, block=NULL, design=NULL, lower.bound=NULL, use.names=TRUE, 
     subset.row=NULL, pairings=NULL, per.gene=FALSE, cache.size=100L,
     BPPARAM=SerialParam())
@@ -30,8 +30,8 @@ correlateNull(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=SerialParam())
     Alternatively, a \linkS4class{SingleCellExperiment} object containing such a matrix.
 }
 \item{null.dist}{A numeric vector of rho values under the null hypothesis.}
-\item{tol}{A numeric scalar indicating the maximum difference under which two expression values are tied.}
 \item{ties.method}{String specifying how tied ranks should be handled.}
+\item{tol}{Deprecated argument, ignored.}
 \item{use.names}{
     A logical scalar specifying whether the row names of \code{x} should be used in the output.
     Alternatively, a character vector containing the names to use.

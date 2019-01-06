@@ -112,6 +112,7 @@
 #' @importFrom DelayedMatrixStats rowRanks rowVars rowMeans2
 #' @importFrom DelayedArray DelayedArray
 #' @importFrom BiocGenerics t
+#' @importFrom stats var
 .calc_blocked_rho <- function(sgene1, sgene2, x, subset.row, by.block, tol, ties.method, BPPARAM)
 # Iterating through all blocking levels (for one-way layouts; otherwise, this is a loop of length 1).
 # Computing correlations between gene pairs, and adding a weighted value to the final average.
