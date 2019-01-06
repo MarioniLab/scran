@@ -1,20 +1,14 @@
 #' @importFrom BiocParallel SerialParam
 #' @importFrom S4Vectors DataFrame
 #' @importFrom stats p.adjust
-.correlate_pairs <- function(x, null.dist=NULL, tol=1e-8, tie.iters=100, null.iters=1e6, 
-    iters=NULL, block=NULL, design=NULL, lower.bound=NULL, use.names=TRUE, subset.row=NULL, 
+.correlate_pairs <- function(x, null.dist=NULL, ties.method=c("expected", "average"), tol=1e-8, 
+    iters=1e6, block=NULL, design=NULL, lower.bound=NULL, use.names=TRUE, subset.row=NULL, 
     pairings=NULL, per.gene=FALSE, cache.size=100L, BPPARAM=SerialParam())
 # This calculates a (modified) Spearman's rho for each pair of genes.
 #
 # written by Aaron Lun
 # created 10 February 2016
 {
-    if (!is.null(iters)) {
-        .Deprecated(msg="'iters' is deprecated.\nUse 'null.iters' instead.")
-    } else {
-        iters <- null.iters
-    }
-
     null.out <- .check_null_dist(x, block=block, design=design, iters=iters, null.dist=null.dist, BPPARAM=BPPARAM)
     null.dist <- null.out$null
     by.block <- null.out$blocks
@@ -30,10 +24,10 @@
     # Also replacing the subset vector, as it'll already be subsetted.
     if (!is.null(design) && is.null(block)) {
         use.x <- .calc_residuals_wt_zeroes(x, design, subset.row=subset.row, lower.bound=lower.bound) 
-        use.subset.row <- seq_len(nrow(use.x)) - 1L
+        use.subset.row <- seq_len(nrow(use.x))
     } else {
         use.x <- x
-        use.subset.row <- subset.row - 1L
+        use.subset.row <- subset.row
     }
 
     # Splitting up gene pairs into jobs for multicore execution, converting to 0-based indices.
@@ -41,24 +35,11 @@
     sgene1 <- .split_vector_by_workers(gene1 - 1L, wout)
     sgene2 <- .split_vector_by_workers(gene2 - 1L, wout)
 
-    all.p <- vector("list", tie.iters)
-    all.rho <- numeric(length(gene1)) 
-    all.lim <- logical(length(gene1))
-
-    for (it in seq_len(tie.iters)) {
-        cur.rho <- .calc_blocked_rho(sgene1, sgene2, x=use.x, subset.row=use.subset.row, by.block=by.block, tol=tol, BPPARAM=BPPARAM)
-        all.rho <- all.rho + cur.rho
-
-        stats <- .rho_to_pval(cur.rho, null.dist)
-        all.p[[it]] <- stats$p
-
-        # Any individual p-value approaching zero would imply a combined p-value approaching zero.
-        # Thus, a limit on any individual p-value implies a limit on the combined p-value.
-        all.lim <- all.lim | stats$limited
-    }
-
-    all.pval <- do.call(combinePValues, c(all.p, list(method="simes"))) # combining p-values across tie permutations.
-    all.rho <- all.rho/tie.iters
+    all.rho <- .calc_blocked_rho(sgene1, sgene2, x=use.x, subset.row=use.subset.row, by.block=by.block, 
+        tol=tol, ties.method=match.arg(ties.method), BPPARAM=BPPARAM)
+    stats <- .rho_to_pval(all.rho, null.dist)
+    all.pval <- stats$p
+    all.lim <- stats$limited
 
     # Formatting the output.
     final.names <- .choose_gene_names(subset.row=subset.row, x=x, use.names=use.names)
@@ -128,23 +109,43 @@
 }
 
 #' @importFrom BiocParallel bpmapply 
-.calc_blocked_rho <- function(sgene1, sgene2, x, subset.row, by.block, tol, BPPARAM)
+#' @importFrom DelayedMatrixStats rowRanks rowVars rowMeans2
+#' @importFrom DelayedArray DelayedArray
+#' @importFrom BiocGenerics t
+.calc_blocked_rho <- function(sgene1, sgene2, x, subset.row, by.block, tol, ties.method, BPPARAM)
 # Iterating through all blocking levels (for one-way layouts; otherwise, this is a loop of length 1).
 # Computing correlations between gene pairs, and adding a weighted value to the final average.
 {
     all.rho <- numeric(sum(lengths(sgene1)))
+    x <- DelayedArray(x)
 
     for (subset.col in by.block) { 
-        # Transposed for efficient access to ranks; rows are now cells, columns are genes.
-        ranked.exprs <- .Call(cxx_get_untied_ranks, x, subset.row, subset.col - 1L, as.double(tol))
+        ranks <- rowRanks(x, rows=subset.row, cols=subset.col, ties.method="average") 
+        ranks <- DelayedArray(ranks)
+        ranks <- ranks - rowMeans2(ranks)
+
+        if (ties.method=="average") {
+            rank.scale <- rowVars(ranks)
+        } else {
+            rank.scale <- var(seq_along(subset.col))
+        }
+
+        N <- length(subset.col)
+        rank.scale <- rank.scale * N/(N-1) # var -> sum of squares from mean
+        ranks <- ranks/sqrt(rank.scale)
+
+        # Transposing for easier C++ per-gene access.
+        # Realizing to avoid need to cache repeatedly.
+        ranks <- t(ranks)
+        ranks <- as.matrix(ranks) 
 
         out <- bpmapply(FUN=.get_correlation, gene1=sgene1, gene2=sgene2, 
-            MoreArgs=list(ranked.exprs=ranked.exprs), 
+            MoreArgs=list(ranked.exprs=ranks), 
             BPPARAM=BPPARAM, SIMPLIFY=FALSE)
         current.rho <- unlist(out)
 
         # Weighted by the number of cells in this block.
-        all.rho <- all.rho + current.rho * length(subset.col)
+        all.rho <- all.rho + current.rho * N
     }
 
     all.rho / ncol(x)
