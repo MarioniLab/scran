@@ -10,8 +10,8 @@
 \usage{
 correlateNull(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=SerialParam()) 
 
-\S4method{correlatePairs}{ANY}(x, null.dist=NULL, tol=1e-8, tie.iters=100, null.iters=1e6,
-    iters=NULL, block=NULL, design=NULL, lower.bound=NULL, use.names=TRUE, 
+\S4method{correlatePairs}{ANY}(x, null.dist=NULL, tol=1e-8, ties.method=c("expected", "average"),
+    iters=1e6, block=NULL, design=NULL, lower.bound=NULL, use.names=TRUE, 
     subset.row=NULL, pairings=NULL, per.gene=FALSE, cache.size=100L,
     BPPARAM=SerialParam())
 
@@ -31,8 +31,7 @@ correlateNull(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=SerialParam())
 }
 \item{null.dist}{A numeric vector of rho values under the null hypothesis.}
 \item{tol}{A numeric scalar indicating the maximum difference under which two expression values are tied.}
-\item{tie.iters}{An integer scalar specifying the number of iterations to randomize tied ranks.}
-\item{null.iters}{An integer scalar to pass to \code{iters=} in \code{correlateNull} if \code{null.dist=NULL}.}
+\item{ties.method}{String specifying how tied ranks should be handled.}
 \item{use.names}{
     A logical scalar specifying whether the row names of \code{x} should be used in the output.
     Alternatively, a character vector containing the names to use.
@@ -55,10 +54,10 @@ This allows prioritization of genes that are driving systematic substructure in 
 By definition, such genes should be correlated as they are behaving in the same manner across cells.
 In contrast, genes driven by random noise should not exhibit any correlations with other genes.
 
-An approximation of Spearman's rho is used to quantify correlations robustly based on ranks.
+We use Spearman's rho to quantify correlations robustly based on ranked gene expression, with some adjustment for ties (see below).
 To identify correlated gene pairs, the significance of non-zero correlations is assessed using a permutation test.
-The null hypothesis is that the (ranking of) normalized expression across cells should be independent between genes.
-This allows us to construct a null distribution by randomizing (ranked) expression within each gene.
+The null hypothesis is that the ranking of normalized expression across cells should be independent between genes.
+This allows us to construct a null distribution by randomizing the ranks within each gene.
 
 The \code{correlateNull} function constructs an empirical null distribution for rho computed with \code{ncells} cells.
 When \code{design=NULL}, this is done by shuffling the ranks, calculating the rho and repeating until \code{iters} values are obtained.
@@ -155,21 +154,21 @@ Model fitting may break ties in a consistent manner across genes, yielding large
 Focusing on HVGs should mitigate the detection of these uninteresting correlations, as genes dominated by zeroes will usually have low variance.
 }
 
-\section{Approximating Spearman's rho with tied values}{
-As previously mentioned, an approximate version of Spearman's rho is used where untied ranks are randomly assigned to any tied values.
-This has several benefits:
-\itemize{
-\item It allows us to use a common empirical distribution for all gene pairs, constructed once with \code{correlateNull}.
-This avoids the need to perform new permutations for every pair to account for the different pattern of ties.
-\item It avoids spuriously large correlations in the presence of many tied ranks. 
-Imagine a case where two genes are only expressed in one cell, and silent in all others.
-The standard rho calculation would yield a value of 1, while the randomized ties yields rho values closer to zero.
-}
+\section{Handling tied values}{
+By default, \code{ties.method="expected"} which uses the expected rho from randomly broken ties.
+Imagine obtaining unique ranks by randomly breaking ties in expression values, e.g., by addition of some very small random jitter.
+We then report the expected value of all possible permutations of broken ties.
 
-The cost is that the results may not be stable when ties are randomly broken.
-This is especially noticeable for low-abundance genes with many zeroes (and thus many tied values across cells).
-To improve stability, we repeat the rho calculation \code{tie.iters} times for each gene pair with new tie breaking.
-The reported rho is the average across these iterations, and the reported p-value is computed by applying Simes' method to the individual p-values from all iterations.
+With \code{ties.method="average"}, each set of tied observations is assigned the average rank across all tied values.
+This yields the standard value of Spearman's rho as computed by \code{\link{cor}}.
+
+We use the expected rho by default as avoids inflated correlations in the presence of many ties.
+This is especially relevant for single-cell data containing many zeroes that remain tied after scaling normalization.
+An extreme example is that of two genes that are only expressed in the same cell, for which the standard rho is 1 while the expected rho is close to zero.
+
+Note that the p-value calculations are not accurate in the presence of ties, as tied ranks are not considered by \code{correlateNull}.
+With \code{ties.method="expected"}, the p-values are probably a bit conservative.
+With \code{ties.method="average"}, they will be very anticonservative.
 }
 
 \author{
