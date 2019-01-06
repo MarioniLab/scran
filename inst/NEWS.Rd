@@ -18,11 +18,10 @@ Minor change in random number generation for consistency upon parallelization.
 
 \item Created correlateGenes() function to compute per-gene correlation statistics.
 
-\item Modified correlatePairs() to perform iterations of tie breaking via new tie.iters= argument.
-Statistics are consolidated across tie-breaking iterations to improve stability of results.
-Renamed iters= to null.iters= and deprecated the former.
-Deprecated cache.size= as all ties are now returned as in-memory representations.
+\item Modified correlatePairs() to compute expected rho after all possible tie-breaking permutations.
+Deprecated cache.size= as all ranks are now returned as in-memory representations.
 Deprecated per.gene= in favour of an external call to correlateGenes().
+Deprecated tol= as ties are now directly determined by rowRanks().
 }}
 
 \section{Version 1.10.0}{\itemize{
