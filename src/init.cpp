@@ -20,7 +20,6 @@ static const R_CallMethodDef all_call_entries[] = {
     REGISTER(get_null_rho_design, 4),
     REGISTER(test_rnorm, 2),
 
-    REGISTER(get_untied_ranks, 4),
     REGISTER(compute_rho_pairs, 3),
     REGISTER(combine_rho, 7),
     
