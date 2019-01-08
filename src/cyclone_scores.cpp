@@ -1,5 +1,5 @@
 #include "scran.h"
-#include "shuffle_custom.h"
+#include "rand_custom.h"
 
 template <class V>
 double get_proportion (const V& expr, const int minpairs, const Rcpp::IntegerVector& marker1, const Rcpp::IntegerVector& marker2, const double threshold=NA_REAL) {
@@ -50,7 +50,7 @@ SEXP cyclone_scores_internal (M mat_ptr,
         Rcpp::IntegerVector mycells,
         Rcpp::IntegerVector marker1, Rcpp::IntegerVector marker2, Rcpp::IntegerVector used, 
         Rcpp::IntegerVector iter, Rcpp::IntegerVector miniter, Rcpp::IntegerVector minpair,
-        Rcpp::IntegerVector seeds) {
+        Rcpp::NumericVector seeds, Rcpp::IntegerVector streams) {
    
     const size_t ncells=mycells.size();
     const size_t ngenes=mat_ptr->get_nrow();
@@ -62,6 +62,9 @@ SEXP cyclone_scores_internal (M mat_ptr,
     const int nit=check_integer_scalar(iter, "number of iterations");
     const int minit=check_integer_scalar(miniter, "minimum number of iterations");
     const int minp=check_integer_scalar(minpair, "minimum number of pairs");
+
+    // Checking PCG setup.
+    check_pcg_vectors(seeds, streams, mat_ptr->get_ncol(), "cells");
 
     // Checking marker sanity.    
     auto m2It=marker2.begin();
@@ -99,7 +102,7 @@ SEXP cyclone_scores_internal (M mat_ptr,
 
         // Iterations of shuffling to obtain a null distribution for the score.
         int below=0, total=0;
-        boost::random::mt19937 generator(seeds[curcell]);
+        auto generator=create_pcg32(seeds, streams, curcell);
         for (int it=0; it < nit; ++it) {
             shuffle_custom(current_exprs.begin(), current_exprs.end(), generator);
             const double newscore=get_proportion(current_exprs, minp, marker1, marker2, curscore);
@@ -117,15 +120,15 @@ SEXP cyclone_scores_internal (M mat_ptr,
     return output;
 }
 
-SEXP cyclone_scores(SEXP mycells, SEXP exprs, SEXP marker1, SEXP marker2, SEXP indices, SEXP iter, SEXP miniter, SEXP minpair, SEXP seeds) {
+SEXP cyclone_scores(SEXP mycells, SEXP exprs, SEXP marker1, SEXP marker2, SEXP indices, SEXP iter, SEXP miniter, SEXP minpair, SEXP seeds, SEXP streams) {
     BEGIN_RCPP
     int rtype=beachmat::find_sexp_type(exprs);
     if (rtype==INTSXP) {
         auto mat=beachmat::create_integer_matrix(exprs);
-        return cyclone_scores_internal<Rcpp::IntegerVector>(mat.get(), mycells, marker1, marker2, indices, iter, miniter, minpair, seeds);
+        return cyclone_scores_internal<Rcpp::IntegerVector>(mat.get(), mycells, marker1, marker2, indices, iter, miniter, minpair, seeds, streams);
     } else {
         auto mat=beachmat::create_numeric_matrix(exprs);
-        return cyclone_scores_internal<Rcpp::NumericVector>(mat.get(), mycells, marker1, marker2, indices, iter, miniter, minpair, seeds);
+        return cyclone_scores_internal<Rcpp::NumericVector>(mat.get(), mycells, marker1, marker2, indices, iter, miniter, minpair, seeds, streams);
     }
     END_RCPP
 }

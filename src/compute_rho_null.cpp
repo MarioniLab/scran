@@ -1,6 +1,7 @@
 #include "scran.h"
 #include "run_dormqr.h"
-#include "shuffle_custom.h"
+#include "rand_custom.h"
+#include "utils.h"
 
 static double rho_mult (double Ncells) {
     return 6/(Ncells*(Ncells*Ncells-1));
@@ -8,7 +9,7 @@ static double rho_mult (double Ncells) {
 
 /*** Null distribution estimation without a design matrix. ***/
 
-SEXP get_null_rho (SEXP cells, SEXP iters, SEXP seeds) {
+SEXP get_null_rho (SEXP cells, SEXP iters, SEXP seeds, SEXP streams) {
     BEGIN_RCPP
 
     // Pulling out input values.
@@ -18,10 +19,9 @@ SEXP get_null_rho (SEXP cells, SEXP iters, SEXP seeds) {
     const int Niters=check_integer_scalar(iters, "number of iterations");
     if (Niters < 0) { throw std::runtime_error("number of iterations should be non-negative"); }
 
-    Rcpp::IntegerVector Seeds(seeds);
-    if (Seeds.size()!=Niters) {
-        throw std::runtime_error("number of iterations and seeds should be the same"); 
-    }
+    Rcpp::NumericVector Seeds(seeds);
+    Rcpp::IntegerVector Streams(streams);
+    check_pcg_vectors(Seeds, Streams, Niters, "iterations");
 
     // Filling rank vector.
     std::vector<int> rankings(Ncells);
@@ -31,7 +31,7 @@ SEXP get_null_rho (SEXP cells, SEXP iters, SEXP seeds) {
     for (int it=0; it<Niters; ++it) {
         std::iota(rankings.begin(), rankings.end(), 0);
 
-        boost::random::mt19937 generator(Seeds[it]);
+        auto generator=create_pcg32(Seeds, Streams, it);
         shuffle_custom(rankings.begin(), rankings.end(), generator);
 
         double tmp=0;
@@ -49,15 +49,14 @@ SEXP get_null_rho (SEXP cells, SEXP iters, SEXP seeds) {
 
 /*** Null distribution estimation with a design matrix. ***/
 
-SEXP get_null_rho_design(SEXP qr, SEXP qraux, SEXP iters, SEXP seeds) {
+SEXP get_null_rho_design(SEXP qr, SEXP qraux, SEXP iters, SEXP seeds, SEXP streams) {
     BEGIN_RCPP
     const int Niters=check_integer_scalar(iters, "number of iterations");
     if (Niters <= 0) { throw std::runtime_error("number of iterations should be positive"); }
 
-    Rcpp::IntegerVector Seeds(seeds);
-    if (Seeds.size()!=Niters) {
-        throw std::runtime_error("number of iterations and seeds should be the same"); 
-    }
+    Rcpp::NumericVector Seeds(seeds);
+    Rcpp::IntegerVector Streams(streams);
+    check_pcg_vectors(Seeds, Streams, Niters, "iterations");
 
     // Setting up to multiply by the Q matrix.
     run_dormqr multQ(qr, qraux, 'N');
@@ -75,7 +74,7 @@ SEXP get_null_rho_design(SEXP qr, SEXP qraux, SEXP iters, SEXP seeds) {
      * correlations between the two reconstructions.
      */
     for (int it=0; it<Niters; ++it) {
-        boost::random::mt19937 generator(Seeds[it]);
+        auto generator=create_pcg32(Seeds, Streams, it);
         boost::random::normal_distribution<double> cpp_rnorm;
 
         for (int mode=0; mode<2; ++mode) {
@@ -114,8 +113,8 @@ SEXP get_null_rho_design(SEXP qr, SEXP qraux, SEXP iters, SEXP seeds) {
     END_RCPP
 }
 
-SEXP test_rnorm (SEXP N, SEXP seed) {
-    boost::random::mt19937 generator(check_integer_scalar(seed, "seed"));
+SEXP test_rnorm (SEXP N, SEXP seed, SEXP stream) {
+    auto generator=create_pcg32(seed, stream);
     boost::random::normal_distribution<double> cpp_rnorm;
     Rcpp::NumericVector output(check_integer_scalar(N, "number"));
     for (auto& val : output) { val = cpp_rnorm(generator); }

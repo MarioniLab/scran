@@ -1,4 +1,4 @@
-#include "scran.h"
+#include "utils.h"
 
 Rcpp::IntegerVector check_subset_vector(SEXP subvec, size_t len) {
     Rcpp::IntegerVector sout(subvec);
@@ -45,5 +45,3 @@ double check_numeric_scalar(Rcpp::RObject incoming, const char* arg) {
 bool check_logical_scalar(Rcpp::RObject incoming, const char* arg) {
     return check_scalar<bool, Rcpp::LogicalVector>(incoming, arg, "a logical scalar");
 }
-
-

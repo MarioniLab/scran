@@ -1,9 +1,10 @@
 #include "scran.h"
-#include "shuffle_custom.h"
+#include "rand_custom.h"
+#include "utils.h"
 
-SEXP test_shuffle_vector(SEXP incoming, SEXP nits, SEXP seed) {
+SEXP test_shuffle_vector(SEXP incoming, SEXP nits, SEXP seed, SEXP stream) {
     BEGIN_RCPP
-    const int niters=Rcpp::IntegerVector(nits)[0];
+    const int niters=check_integer_scalar(nits, "number of iterations");
     const Rcpp::NumericVector invec(incoming);
     const size_t N=invec.size();
     Rcpp::NumericMatrix outmat(N, niters);
@@ -11,7 +12,7 @@ SEXP test_shuffle_vector(SEXP incoming, SEXP nits, SEXP seed) {
     Rcpp::NumericVector::const_iterator source=invec.begin();
     Rcpp::NumericVector::iterator oIt=outmat.begin();
 
-    boost::random::mt19937 generator(check_integer_scalar(seed, "seed"));
+    auto generator=create_pcg32(seed, stream);
     for (int i=0; i<niters; ++i) {
         std::copy(source, source+N, oIt);
         shuffle_custom(oIt, oIt+N, generator);
@@ -23,13 +24,12 @@ SEXP test_shuffle_vector(SEXP incoming, SEXP nits, SEXP seed) {
     END_RCPP
 }
 
-SEXP test_shuffle_matrix(SEXP incoming, SEXP seeds) {
+SEXP test_shuffle_matrix(SEXP incoming, SEXP seeds, SEXP streams) {
     BEGIN_RCPP
     const Rcpp::NumericMatrix inmat(incoming);
     const Rcpp::NumericVector Seeds(seeds);
-    if (Seeds.size()!=inmat.ncol()) {
-        throw std::runtime_error("number of seeds and columns don't match up");
-    }
+    const Rcpp::IntegerVector Streams(streams);
+    check_pcg_vectors(Seeds, Streams, inmat.ncol(), "columns");
 
     Rcpp::NumericMatrix output(inmat.nrow(), inmat.ncol());
 
@@ -38,7 +38,7 @@ SEXP test_shuffle_matrix(SEXP incoming, SEXP seeds) {
         auto outcol=output.column(i);
         std::copy(incol.begin(), incol.end(), outcol.begin());
 
-        boost::random::mt19937 generator(Seeds[i]);
+        auto generator=create_pcg32(Seeds, Streams, i);
         shuffle_custom(outcol.begin(), outcol.end(), generator);
     }
 

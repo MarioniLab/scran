@@ -13,19 +13,19 @@ static const R_CallMethodDef all_call_entries[] = {
     REGISTER(subset_and_divide, 4),
 
     // Cell cycle calling.
-    REGISTER(cyclone_scores, 9),
+    REGISTER(cyclone_scores, 10),
 
     // Correlation calclulations.
-    REGISTER(get_null_rho, 3),
-    REGISTER(get_null_rho_design, 4),
-    REGISTER(test_rnorm, 2),
+    REGISTER(get_null_rho, 4),
+    REGISTER(get_null_rho_design, 5),
+    REGISTER(test_rnorm, 3),
 
     REGISTER(compute_rho_pairs, 3),
     REGISTER(combine_rho, 7),
     
     // Shuffling test functions.
-    REGISTER(test_shuffle_vector, 3),
-    REGISTER(test_shuffle_matrix, 2),
+    REGISTER(test_shuffle_vector, 4),
+    REGISTER(test_shuffle_matrix, 3),
 
     // Variance calculations.
     REGISTER(fit_linear_model, 5),
@@ -49,7 +49,7 @@ static const R_CallMethodDef all_call_entries[] = {
 
     REGISTER(compute_CV2, 4),
 
-    REGISTER(shuffle_matrix, 2),
+    REGISTER(shuffle_matrix, 3),
 
     // MNN calculations.
     REGISTER(find_mutual_nns, 2),

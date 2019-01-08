@@ -21,15 +21,15 @@ SEXP subset_and_divide(SEXP, SEXP, SEXP, SEXP);
 
 // Cell cycle calling.
 
-SEXP cyclone_scores (SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP cyclone_scores (SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
 // Correlation calclulations.
 
-SEXP get_null_rho(SEXP, SEXP, SEXP);
+SEXP get_null_rho(SEXP, SEXP, SEXP, SEXP);
 
-SEXP get_null_rho_design(SEXP, SEXP, SEXP, SEXP);
+SEXP get_null_rho_design(SEXP, SEXP, SEXP, SEXP, SEXP);
 
-SEXP test_rnorm(SEXP, SEXP);
+SEXP test_rnorm(SEXP, SEXP, SEXP);
 
 SEXP compute_rho_pairs(SEXP, SEXP, SEXP);
 
@@ -37,9 +37,9 @@ SEXP combine_rho(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 
 // Test shuffling functions.
 
-SEXP test_shuffle_vector(SEXP, SEXP, SEXP);
+SEXP test_shuffle_vector(SEXP, SEXP, SEXP, SEXP);
 
-SEXP test_shuffle_matrix(SEXP, SEXP);
+SEXP test_shuffle_matrix(SEXP, SEXP, SEXP);
 
 // Variance calculations.
 
@@ -73,7 +73,7 @@ SEXP get_residuals(SEXP, SEXP, SEXP, SEXP, SEXP);
 
 SEXP compute_CV2(SEXP, SEXP, SEXP, SEXP);
 
-SEXP shuffle_matrix(SEXP, SEXP);
+SEXP shuffle_matrix(SEXP, SEXP, SEXP);
 
 // MNN calculations.
 
