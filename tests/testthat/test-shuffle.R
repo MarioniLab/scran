@@ -80,13 +80,19 @@ test_that("shuffling is responding to the seed", {
         expect_identical(out1, out3) # Should be the same.
     }
 
+    # Checking that the same seed with a different stream gives different results.
+    blah <- rnorm(2000)
+    expect_false(isTRUE(all.equal(scramble_vector(blah, 1, seed=0, stream=1), scramble_vector(blah, 1, seed=0, stream=2))))
+    expect_true(identical(scramble_vector(blah, 1, seed=0, stream=1), scramble_vector(blah, 1, seed=0, stream=1))) # As a negative control
+    expect_false(isTRUE(all.equal(scramble_vector(blah, 1, seed=0, stream=0), scramble_vector(blah, 1, seed=1, stream=0)))) # Positive control.
+
     # Checking that matrix shuffling is reproducible.
     whee <- matrix(rnorm(2000), ncol=20)
-    seeds <- seq_len(ncol(whee))
+    seeds <- runif(ncol(whee), 0, 2^32)
     ref <- scramble_matrix(whee, seed=seeds)
-    sub.ref <- scramble_matrix(whee[,1:5], seed=seeds[1:5])
+    sub.ref <- scramble_matrix(whee[,1:5], seed=seeds[1:5], stream=1:5)
     expect_identical(ref[,1:5], sub.ref)
 
-    sub.ref <- scramble_matrix(whee[,11:5], seed=seeds[11:5])
+    sub.ref <- scramble_matrix(whee[,11:5], seed=seeds[11:5], stream=11:5)
     expect_identical(ref[,11:5], sub.ref)
 })

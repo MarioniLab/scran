@@ -3,8 +3,8 @@
 
 refnull <- function(niters, ncells, resort=TRUE) {
     rankings <- as.double(seq_len(ncells))
-    seeds <- scran:::.create_seeds(niters)
-    shuffled <- scramble_matrix(matrix(rankings, nrow=ncells, ncol=niters), seed=seeds)
+    setup <- scran:::.setup_pcg_state(niters)
+    shuffled <- scramble_matrix(matrix(rankings, nrow=ncells, ncol=niters), seed=setup$seeds[[1]], stream=setup$streams[[1]])
     out <- cor(shuffled, rankings, method="spearman")
     if (resort) { out <- sort(out) }
     out
@@ -27,14 +27,17 @@ test_that("null distribution of correlations is correctly calculated", {
 
 set.seed(200010) 
 test_that("C++ rnorm works correctly", {
-    vals <- .Call(scran:::cxx_test_rnorm, 20000, 1)
+    vals <- .Call(scran:::cxx_test_rnorm, 20000, 1, 1)
     expect_identical(length(vals), 20000L)
     expect_equal(mean(vals), 0, tol=0.01)
     expect_equal(var(vals), 1, tol=0.01)
     expect_identical(anyDuplicated(vals), 0L)
 
-    vals2 <- .Call(scran:::cxx_test_rnorm, 20000, 2)
+    vals2 <- .Call(scran:::cxx_test_rnorm, 20000, 2, 1)
     expect_false(identical(vals, vals2))
+
+    vals3 <- .Call(scran:::cxx_test_rnorm, 20000, 1, 2)
+    expect_false(identical(vals, vals3))
 })
 
 set.seed(20001)
@@ -45,9 +48,12 @@ test_that("correlateNull works with a design matrix", {
         df <- nrow(design)-ncol(design)
 
         collected <- list()
-        seeds <- scran:::.create_seeds(1e3)
+        rand.state <- scran:::.setup_pcg_state(1e3)
+        seeds <- rand.state$seeds[[1]]
+        streams <- rand.state$streams[[1]]
+
         for (x in seq_along(seeds)) {
-            vals <- .Call(scran:::cxx_test_rnorm, df*2L, seeds[x]) 
+            vals <- .Call(scran:::cxx_test_rnorm, df*2L, seeds[x], streams[x])
             expect_identical(length(vals), df*2L)
     
             first.half <- qr.qy(QR, c(0,0, head(vals, df)))

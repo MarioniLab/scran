@@ -2,17 +2,17 @@
 # require(scran); require(testthat); source("setup.R"); source("test-cyclone.R")
 
 classif.single <- function(cell, markers,Nmin.couples) { 
-    test <- unlist(cell[markers[,1]]-cell[markers[,2]])
+    test <- unlist(cell[markers[,1]] - cell[markers[,2]])
     tot <- sum(test!=0)
     if (tot < Nmin.couples){ return(NA) }  
     sum(test>0)/tot
 }
 
-random.success <- function(cell, markers, N, Nmin, Nmin.couples, seed) {  
+random.success <- function(cell, markers, N, Nmin, Nmin.couples, seed, stream) {  
     test <- classif.single(cell,markers,Nmin.couples) 
     if (is.na(test)) { return(NA) } 
 
-    cell.random <- scramble_vector(cell, N, seed)
+    cell.random <- scramble_vector(cell, N, seed, stream)
     success <- apply(cell.random, 2, classif.single, markers=markers, Nmin.couples=Nmin.couples)
     success <- success[!is.na(success)]
     if (length(success) < Nmin) { return(NA) }
@@ -49,10 +49,13 @@ refFUN <- function(x, pairs) {
         cur.x <- chosen.x[[phase]]
         cur.pairs <- pairs[[phase]]
         cur.scores <- numeric(ncol(x))
-        rand.seeds <- scran:::.create_seeds(ncol(x))
+
+        rng.state <- scran:::.setup_pcg_state(ncol(x))
+        rand.seeds <- rng.state$seeds[[1]]
+        rand.streams <- rng.state$streams[[1]]
 
         for (i in seq_along(cur.scores)) {
-            cur.scores[i] <- random.success(cell=cur.x[,i], markers=cur.pairs, N=N, Nmin=Nmin, Nmin.couples=Nmin.couples, seed=rand.seeds[i])
+            cur.scores[i] <- random.success(cell=cur.x[,i], markers=cur.pairs, N=N, Nmin=Nmin, Nmin.couples=Nmin.couples, seed=rand.seeds[i], stream=rand.streams[i])
         }
         scores[[phase]] <- cur.scores
     }
