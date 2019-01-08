@@ -50,9 +50,10 @@ setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
     all.scores <- vector('list', length(pairs))
     names(all.scores) <- names(pairs)
     for (cl in names(pairs)) { 
-        rand.seeds <- .create_seeds(ncol(x))
+        pcg.state <- .setup_pcg_state(ncol(x))
         cur.scores <- bplapply(wout, FUN=.get_phase_score, exprs=x, iter=iter, min.iter=min.iter, 
-            min.pairs=min.pairs, pairings=pairs[[cl]], seeds=rand.seeds, BPPARAM=BPPARAM)
+            min.pairs=min.pairs, pairings=pairs[[cl]], seeds=pcg.state$seeds[[1]], 
+            streams=pcg.state$streams[[1]], BPPARAM=BPPARAM)
         all.scores[[cl]] <- unlist(cur.scores)
     }
 
@@ -67,11 +68,11 @@ setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
     list(phases=phases, scores=scores, normalized.scores=scores.normalised)
 }
 
-.get_phase_score <- function(to.use, exprs, pairings, iter, min.iter, min.pairs, seeds) 
+.get_phase_score <- function(to.use, exprs, pairings, iter, min.iter, min.pairs, seeds, streams) 
 # Pass all arguments explicitly rather than via function environment
 # (avoid duplication of memory in bplapply).
 {
-    .Call(cxx_cyclone_scores, to.use, exprs, pairings$first, pairings$second, pairings$index, iter, min.iter, min.pairs, seeds) 
+    .Call(cxx_cyclone_scores, to.use, exprs, pairings$first, pairings$second, pairings$index, iter, min.iter, min.pairs, seeds, streams) 
 }
 
 #' @export

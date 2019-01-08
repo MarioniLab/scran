@@ -30,8 +30,9 @@ correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=Se
         # Using residual effects to compute the correlations.
         QR <- .ranksafe_qr(design)
         iters.per.core <- .niters_by_nworkers(as.integer(iters), BPPARAM)
-        seeds.per.core <- lapply(iters.per.core, .create_seeds)
-        out <- bpmapply(iters=iters.per.core, seeds=seeds.per.core, MoreArgs=list(QR=QR), FUN=.with_design_null, SIMPLIFY=FALSE, USE.NAMES=FALSE)
+        pcg.states <- .setup_pcg_state(iters.per.core)
+        out <- bpmapply(iters=iters.per.core, seeds=pcg.states$seeds, streams=pcg.states$streams, 
+            MoreArgs=list(QR=QR), FUN=.with_design_null, SIMPLIFY=FALSE, USE.NAMES=FALSE)
         out <- unlist(out)
         attrib <- list(design=design)
 
@@ -51,18 +52,19 @@ correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=Se
 #' @importFrom BiocParallel bpmapply
 .within_block_null <- function(iters, ncells, BPPARAM) {
     iters.per.core <- .niters_by_nworkers(as.integer(iters), BPPARAM)
-    seeds.per.core <- lapply(iters.per.core, .create_seeds)
-    out <- bpmapply(iters=iters.per.core, seeds=seeds.per.core, MoreArgs=list(ncells=as.integer(ncells)), 
-        FUN=.no_design_null, SIMPLIFY=FALSE, USE.NAMES=FALSE, BPPARAM=BPPARAM)
+    pcg.state <- .setup_pcg_state(iters.per.core)
+    out <- bpmapply(iters=iters.per.core, seeds=pcg.state$seeds, streams=pcg.state$streams,
+        MoreArgs=list(ncells=as.integer(ncells)), FUN=.no_design_null, 
+        SIMPLIFY=FALSE, USE.NAMES=FALSE, BPPARAM=BPPARAM)
     unlist(out)
 }
 
-.no_design_null <- function(ncells, iters, seeds) {
-    .Call(cxx_get_null_rho, ncells, iters, seeds)
+.no_design_null <- function(ncells, iters, seeds, streams) {
+    .Call(cxx_get_null_rho, ncells, iters, seeds, streams)
 }
 
-.with_design_null <- function(iters, QR, seeds) {
-    .Call(cxx_get_null_rho_design, QR$qr, QR$qraux, iters, seeds)
+.with_design_null <- function(iters, QR, seeds, streams) {
+    .Call(cxx_get_null_rho_design, QR$qr, QR$qraux, iters, seeds, streams)
 }
 
 #' @importFrom BiocParallel bpnworkers

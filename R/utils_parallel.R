@@ -42,6 +42,14 @@
 }
 
 #' @importFrom stats runif
-.create_seeds <- function(N) {
-    floor(runif(N, 0, .Machine$integer.max))
+.setup_pcg_state <- function(per.core) {
+    seeds <- streams <- vector("list", length(per.core))
+    last <- 0L
+    for (i in seq_along(per.core)) { 
+        N <- per.core[i]
+        seeds[[i]] <- runif(N, 0, 2^32)
+        streams[[i]] <- last + seq_len(N)
+        last <- last + N
+    }
+    list(seeds=seeds, streams=streams)
 }
