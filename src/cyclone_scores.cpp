@@ -4,7 +4,7 @@
 template <class V>
 double get_proportion (const V& expr, const int minpairs, const Rcpp::IntegerVector& marker1, const Rcpp::IntegerVector& marker2, const double threshold=NA_REAL) {
     int was_first=0, was_total=0;
-    const bool short_cut = !ISNA(threshold);
+    const bool short_cut = false;//!ISNA(threshold);
 
     auto eIt=expr.begin();
     const size_t npairs=marker1.size();
