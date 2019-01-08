@@ -229,7 +229,7 @@ alt.fit2 <- trendVar(sce, block=batch)
 alt.decomp2 <- decomposeVar(sce, alt.fit)
 ```
 
-See `r Biocpkg("simpleSingleCell", vignette="xtra-3-var.html", label="this workflow")` for more discussion about variance modelling with `trendVar` and `decomposeVar`.
+See `r Biocpkg("simpleSingleCell", vignette="var.html", label="this workflow")` for more discussion about variance modelling with `trendVar` and `decomposeVar`.
 Other alternatives include the `DM` and `technicalCV2` functions, which quantify expression variance based on the coefficient of variation of the (normalized) counts.
 These provide more power for detecting genes that are only expressed in rare subpopulations, but are also more sensitive to outliers.
 Also see the `improvedCV2` function, which is intended as a more stable counterpart of `technicalCV2`.
@@ -306,7 +306,7 @@ multiplot(
 
 The advantage of the MNN approach (that is not immediately obvious from the example above) is that it can handle differences in population composition between batches.
 This provides correct batch correction in situations where the cell type proportions change between samples, unlike standard methods like `removeBatchEffect()`.
-We suggest reading `r Biocpkg("simpleSingleCell", vignette="work-5-mnn.html", label="this workflow")` for more details.
+We suggest reading `r Biocpkg("simpleSingleCell", vignette="batch.html", label="this workflow")` for more details.
 
 # Converting to other formats
 
