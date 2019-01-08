@@ -4,7 +4,7 @@
 template <class V>
 double get_proportion (const V& expr, const int minpairs, const Rcpp::IntegerVector& marker1, const Rcpp::IntegerVector& marker2, const double threshold=NA_REAL) {
     int was_first=0, was_total=0;
-    const bool short_cut = false;//!ISNA(threshold);
+    const bool short_cut = !ISNA(threshold);
 
     auto eIt=expr.begin();
     const size_t npairs=marker1.size();
@@ -23,7 +23,7 @@ double get_proportion (const V& expr, const int minpairs, const Rcpp::IntegerVec
         }
 
         // Returning if all we need to know is whether the score is greater than or less than 'threshold'.
-        if (short_cut && was_total >= minpairs) {
+        if (false && was_total >= minpairs) {
             const size_t leftovers=npairs - m - 1;
             const double max_total=was_total + leftovers;
             const double n_thresh=max_total * threshold;
