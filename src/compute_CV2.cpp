@@ -1,5 +1,13 @@
 #include "scran.h"
 
+#include "beachmat/integer_matrix.h"
+#include "beachmat/numeric_matrix.h"
+#include "utils.h"
+
+#include <stdexcept>
+#include <cmath>
+#include <algorithm>
+
 /* This computes the mean and CV2 for every gene, while also dividing through by the size factors. 
  * Unless log_prior is specified, in which case the values in 'ptr' are assumed to be log-expressed.
  * These are converted back to the raw scale without any size factor calculations.

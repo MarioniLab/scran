@@ -1,5 +1,11 @@
 #include "scran.h"
+
 #include "utils.h"
+
+#include <vector>
+#include <stdexcept>
+#include <cmath>
+#include <algorithm>
 
 SEXP combine_simes(SEXP pvals, SEXP dolog) {
     BEGIN_RCPP 

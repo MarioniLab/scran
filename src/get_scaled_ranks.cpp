@@ -1,5 +1,15 @@
 #include "scran.h"
 
+#include "beachmat/numeric_matrix.h"
+#include "beachmat/integer_matrix.h"
+#include "utils.h"
+
+#include <vector>
+#include <utility>
+#include <algorithm>
+#include <stdexcept>
+#include <cmath>
+
 template <typename T, class V, class M> 
 SEXP average_ranks_internal(const M mat, SEXP intype, SEXP subset, SEXP transpose, SEXP as_sparse) { 
     /// Checking the subset values.

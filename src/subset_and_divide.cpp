@@ -1,5 +1,12 @@
 #include "scran.h"
 
+#include "beachmat/numeric_matrix.h"
+#include "beachmat/integer_matrix.h"
+#include "utils.h"
+
+#include <stdexcept>
+#include <algorithm>
+
 /* A function to (a) subset by row, (b) subset by column, and (c) divide through by the library sizes. 
  * The output is equivalent to t(t(MAT[row_subset,col_subset])/lib.sizes) where lib.sizes itself is
  * computed as colSums(MAT[row_subset,col_subset]).

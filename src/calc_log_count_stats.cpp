@@ -1,5 +1,11 @@
 #include "scran.h"
 
+#include "utils.h"
+
+#include <memory>
+#include <stdexcept>
+#include <cmath>
+
 struct FUN {
     FUN(double lim) : limit(lim) {}
     virtual ~FUN() {};
@@ -168,7 +174,7 @@ SEXP calc_log_sqdiff (SEXP means, SEXP sf, SEXP tol, SEXP disp, SEXP offset, SEX
     }
     const auto pseudo=get_pseudo(offset);
     auto ptr=choose_dist(tol, disp);
-    
+        
     const size_t Nmeans = Means.size(), Nsizes = Sizes.size();
     Rcpp::List outputv(Nmeans);
 

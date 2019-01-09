@@ -1,5 +1,8 @@
 #include "rand_custom.h"
+
 #include "utils.h"
+
+#include <stdexcept>
 #include <sstream>
 
 pcg32 create_pcg32_internal(double curseed, int curstream) {

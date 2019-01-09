@@ -1,5 +1,11 @@
 #include "scran.h"
 
+#include "utils.h"
+
+#include <stdexcept>
+#include <vector>
+#include <cmath>
+
 /*** Combining correlated p-values for each gene into a single combined p-value. ***/
 
 SEXP combine_rho (SEXP ng, SEXP g1, SEXP g2, SEXP rho, SEXP pval, SEXP limited, SEXP order) {

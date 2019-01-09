@@ -1,5 +1,11 @@
 #include "scran.h"
+
+#include "beachmat/numeric_matrix.h"
+#include "utils.h"
 #include "run_dormqr.h"
+
+#include <deque>
+#include <algorithm>
 
 /* This function computes residuals in a nice and quick manner.
  * It takes a pre-computed QR matrix from qr(), and optionally

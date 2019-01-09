@@ -1,6 +1,9 @@
 #include "scran.h"
+
 #include "rand_custom.h"
 #include "utils.h"
+
+#include <algorithm>
 
 SEXP test_shuffle_vector(SEXP incoming, SEXP nits, SEXP seed, SEXP stream) {
     BEGIN_RCPP

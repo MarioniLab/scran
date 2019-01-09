@@ -1,6 +1,9 @@
 #include "run_dormqr.h"
+
 #include "R_ext/BLAS.h"
 #include "R_ext/Lapack.h"
+
+#include <stdexcept>
 
 run_dormqr::run_dormqr(SEXP qr, SEXP qraux, const char tr) :
         QR(qr), AUX(qraux), qrptr(NULL), qxptr(NULL), 

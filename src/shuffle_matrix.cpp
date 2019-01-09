@@ -1,4 +1,7 @@
 #include "scran.h"
+
+#include "beachmat/numeric_matrix.h"
+#include "beachmat/integer_matrix.h"
 #include "rand_custom.h"
 
 template<class V, class I, class O>

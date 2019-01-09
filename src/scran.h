@@ -1,15 +1,7 @@
 #ifndef SCRAN_H
 #define SCRAN_H
 
-#include "beachmat/integer_matrix.h"
-#include "beachmat/numeric_matrix.h"
 #include "Rcpp.h"
-
-#include <stdexcept>
-#include <algorithm>
-#include <deque>
-#include <vector>
-#include <cmath>
 
 extern "C" {
 
@@ -86,7 +78,5 @@ SEXP smooth_gaussian_kernel(SEXP, SEXP, SEXP, SEXP);
 SEXP adjust_shift_variance(SEXP, SEXP, SEXP, SEXP);
 
 }
-
-#include "utils.h"
 
 #endif 

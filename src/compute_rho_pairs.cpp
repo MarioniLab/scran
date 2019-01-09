@@ -1,5 +1,7 @@
 #include "scran.h"
 
+#include <stdexcept>
+
 SEXP compute_rho_pairs(SEXP g1, SEXP g2, SEXP rankings) {
     BEGIN_RCPP
     Rcpp::IntegerVector gene1(g1), gene2(g2);

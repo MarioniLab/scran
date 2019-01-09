@@ -1,5 +1,7 @@
 #include "scran.h"
 
+#include <deque>
+
 /* The 'rank' version performs the original SNN clustering described by Xu and Su (2015, Bioinformatics).
  * This defines the weight between two nodes as (k - 0.5 * r), where r is the smallest sum of ranks for any node in both NN-sets.
  * The rank is computed separately in each NN set, with each node being 0-rank in its own set.

@@ -1,7 +1,13 @@
 #include "scran.h"
+
 #include "run_dormqr.h"
 #include "rand_custom.h"
 #include "utils.h"
+
+#include <stdexcept>
+#include <vector>
+#include <algorithm>
+#include <utility>
 
 static double rho_mult (double Ncells) {
     return 6/(Ncells*(Ncells*Ncells-1));
@@ -64,8 +70,8 @@ SEXP get_null_rho_design(SEXP qr, SEXP qraux, SEXP iters, SEXP seeds, SEXP strea
     const int Ncoef=multQ.get_ncoefs();
 
     Rcpp::NumericVector output(Niters);
-    std::deque<std::pair<double, int> > collected1(Nobs), collected2(Nobs);
-    std::deque<int> rank1(Nobs), rank2(Nobs);
+    std::vector<std::pair<double, int> > collected1(Nobs), collected2(Nobs);
+    std::vector<int> rank1(Nobs), rank2(Nobs);
     const double mult=rho_mult(Nobs);
 
     /* Simulating residuals, using the Q-matrix to do it. We set the main effects to zero 
@@ -87,13 +93,14 @@ SEXP get_null_rho_design(SEXP qr, SEXP qraux, SEXP iters, SEXP seeds, SEXP strea
             multQ.run();
 
             // Sorting.
-            std::deque<std::pair<double, int> >& current=(mode ? collected1 : collected2);
+            auto& current=(mode ? collected1 : collected2);
             for (int row=0; row<Nobs; ++row) {
                 current[row].first=multQ.rhs[row];
                 current[row].second=row;
             }
             std::sort(current.begin(), current.end());
-            std::deque<int>& rank=(mode ? rank1 : rank2);
+
+            auto& rank=(mode ? rank1 : rank2);
             for (int row=0; row<Nobs; ++row) {
                 rank[current[row].second]=row;
             }

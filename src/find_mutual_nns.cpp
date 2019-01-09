@@ -1,5 +1,18 @@
 #include "scran.h"
 
+#include "beachmat/integer_matrix.h"
+#include "beachmat/numeric_matrix.h"
+#include "utils.h"
+
+#include <stdexcept>
+#include <cmath>
+#include <algorithm>
+#include <vector>
+#include <memory>
+#include <deque>
+#include <set>
+#include <utility>
+
 SEXP find_mutual_nns (SEXP left, SEXP right) {
     BEGIN_RCPP
     const Rcpp::IntegerMatrix L(left), R(right);

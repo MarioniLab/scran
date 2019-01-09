@@ -1,5 +1,14 @@
 #include "scran.h"
 
+#include "beachmat/integer_matrix.h"
+#include "beachmat/numeric_matrix.h"
+#include "utils.h"
+
+#include <stdexcept>
+#include <deque>
+#include <vector>
+#include <algorithm>
+
 template <typename T, class V, class M>
 SEXP overlap_exprs_internal(const M mat, const Rcpp::List& groups, SEXP subset, const T tol) {
     /// Checking the subset values.

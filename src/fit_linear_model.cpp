@@ -1,5 +1,13 @@
 #include "scran.h"
+
+#include "beachmat/numeric_matrix.h"
+#include "beachmat/integer_matrix.h"
+#include "utils.h"
 #include "run_dormqr.h"
+
+#include <stdexcept>
+#include <algorithm>
+#include <vector>
 
 template<class M>
 SEXP fit_linear_model_internal (SEXP qr, SEXP qraux, M emat, SEXP subset, SEXP get_coefs) {

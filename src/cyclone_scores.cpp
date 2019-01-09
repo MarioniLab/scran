@@ -1,5 +1,12 @@
 #include "scran.h"
+
+#include "beachmat/integer_matrix.h"
+#include "beachmat/numeric_matrix.h"
+#include "utils.h"
 #include "rand_custom.h"
+
+#include <stdexcept>
+#include <algorithm>
 
 template <class V>
 double get_proportion (const V& expr, const int minpairs, const Rcpp::IntegerVector& marker1, const Rcpp::IntegerVector& marker2, const double threshold=NA_REAL) {

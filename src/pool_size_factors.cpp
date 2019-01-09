@@ -1,5 +1,11 @@
 #include "scran.h"
 
+#include "beachmat/numeric_matrix.h"
+
+#include <stdexcept>
+#include <algorithm>
+#include <vector>
+
 /*** A function to estimate the pooled size factors and construct the linear equations. ***/
 
 SEXP pool_size_factors (SEXP exprs, SEXP ref, SEXP ordering, SEXP poolsizes) {
