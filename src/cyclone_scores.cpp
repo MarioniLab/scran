@@ -30,7 +30,7 @@ double get_proportion (const V& expr, const int minpairs, const Rcpp::IntegerVec
         }
 
         // Returning if all we need to know is whether the score is greater than or less than 'threshold'.
-        if (false && was_total >= minpairs) {
+        if (short_cut && was_total >= minpairs) {
             const size_t leftovers=npairs - m - 1;
             const double max_total=was_total + leftovers;
             const double n_thresh=max_total * threshold;

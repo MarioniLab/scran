@@ -2,10 +2,15 @@
 # require(scran); require(testthat); source("setup.R"); source("test-cyclone.R")
 
 classif.single <- function(cell, markers,Nmin.couples) { 
-    test <- unlist(cell[markers[,1]] - cell[markers[,2]])
-    tot <- sum(test!=0)
-    if (tot < Nmin.couples){ return(NA) }  
-    sum(test>0)/tot
+    left <- cell[markers[,1]]
+    right <- cell[markers[,2]]
+
+    tot <- sum(left!=right)
+    if (tot < Nmin.couples) { 
+        return(NA) 
+    }  
+
+    sum(left > right)/tot
 }
 
 random.success <- function(cell, markers, N, Nmin, Nmin.couples, seed, stream) {  
