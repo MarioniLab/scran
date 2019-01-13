@@ -17,7 +17,7 @@ SEXP compute_CV2_internal(const M mat, SEXP subset_row, SEXP size_factors, SEXP 
 
     auto rsubout=check_subset_vector(subset_row, mat->get_nrow());
     const size_t rslen=rsubout.size();
-    const size_t& ncells=mat->get_ncol();
+    const size_t ncells=mat->get_ncol();
     if (ncells < 2) {
         throw std::runtime_error("need two or more cells to compute variances");
     }
@@ -33,7 +33,7 @@ SEXP compute_CV2_internal(const M mat, SEXP subset_row, SEXP size_factors, SEXP 
         }
     } else {
         sizefacs=size_factors;
-        if (sizefacs.size()!=ncells) { 
+        if (static_cast<size_t>(sizefacs.size())!=ncells) { 
             throw std::runtime_error("number of size factors is not equal to number of cells");
         }
     } 
@@ -86,6 +86,3 @@ SEXP compute_CV2(SEXP exprs, SEXP subset_row, SEXP size_factors, SEXP log_prior)
     }
     END_RCPP
 }
-
-
-

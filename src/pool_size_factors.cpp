@@ -26,7 +26,7 @@ SEXP pool_size_factors (SEXP exprs, SEXP ref, SEXP ordering, SEXP poolsizes) {
 
     int last_size=-1, total_size=0;
     for (auto s : pool_sizes) { 
-        if (s < 1 || s > ncells) { throw std::runtime_error("each element of sizes should be within [1, number of cells]"); }
+        if (s < 1 || static_cast<size_t>(s) > ncells) { throw std::runtime_error("each element of sizes should be within [1, number of cells]"); }
         if (s < last_size) { throw std::runtime_error("sizes should be sorted"); }
         total_size+=s;
         last_size=s;
@@ -40,7 +40,7 @@ SEXP pool_size_factors (SEXP exprs, SEXP ref, SEXP ordering, SEXP poolsizes) {
     Rcpp::IntegerVector order(ordering);
     if (order.size() < ncells*2-1)  { throw std::runtime_error("ordering vector is too short for number of cells"); }
     for (auto o : order) { 
-        if (o < 0 || o > ncells) { 
+        if (o < 0 || static_cast<size_t>(o) >= ncells) { 
             throw std::runtime_error("elements of ordering vector are out of range");
         }
     }

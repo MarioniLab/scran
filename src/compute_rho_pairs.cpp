@@ -12,8 +12,9 @@ SEXP compute_rho_pairs(SEXP g1, SEXP g2, SEXP rankings) {
         throw std::runtime_error("number of cells should be greater than or equal to 2");
     }
 
-    Rcpp::NumericVector output(gene1.size());
-    for (size_t i=0; i<output.size(); ++i) {
+    const size_t Npairs=gene1.size();
+    Rcpp::NumericVector output(Npairs);
+    for (size_t i=0; i<Npairs; ++i) {
         auto exprs1=ranks.column(gene1[i]);
         auto exprs2=ranks.column(gene2[i]);
         auto it1=exprs1.begin();

@@ -18,7 +18,7 @@ SEXP combine_simes(SEXP pvals, SEXP dolog) {
         auto& current=(individual[c]=Pvals[c]);
         if (c==0) {
             ngenes=current.size();
-        } else if (ngenes!=current.size()) {
+        } else if (ngenes!=static_cast<size_t>(current.size())) {
             throw std::runtime_error("p-value vectors must be of the same length");           
         }
     }

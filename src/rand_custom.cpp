@@ -24,13 +24,13 @@ void check_pcg_vectors(const Rcpp::NumericVector& seeds, const Rcpp::IntegerVect
     // and not coerced to integer at some point (which would give NAs or UB for [0, 2^32) integers
     // outside R's maximum range.
 
-    if (seeds.size()!=N) {
+    if (static_cast<size_t>(seeds.size())!=N) {
         std::stringstream err;
         err << "number of " << msg << " and seeds should be the same";
         throw std::runtime_error(err.str());
     }
 
-    if (streams.size()!=N) {
+    if (static_cast<size_t>(streams.size())!=N) {
         std::stringstream err;
         err << "number of " << msg << " and streams should be the same";
         throw std::runtime_error(err.str());

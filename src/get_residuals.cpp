@@ -15,7 +15,7 @@
 SEXP get_residuals(SEXP exprs, SEXP qr, SEXP qraux, SEXP subset, SEXP lower_bound) {
     BEGIN_RCPP
     auto emat=beachmat::create_numeric_matrix(exprs);
-    const size_t& ncells=emat->get_ncol();
+    const size_t ncells=emat->get_ncol();
 
     // Checking the subset vector.
     auto subout=check_subset_vector(subset, emat->get_nrow());
@@ -42,7 +42,7 @@ SEXP get_residuals(SEXP exprs, SEXP qr, SEXP qraux, SEXP subset, SEXP lower_boun
         // Identifying elements below the lower bound.
         if (check_lower) { 
             auto tIt=tmp.begin();
-            for (int c=0; c<ncells; ++c, ++tIt) {
+            for (size_t c=0; c<ncells; ++c, ++tIt) {
                 if (*tIt <= lbound) {
                     below_bound.push_back(c);                        
                 }

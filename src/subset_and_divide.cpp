@@ -32,7 +32,7 @@ SEXP subset_and_divide_internal(M in, SEXP row_subset, SEXP col_subset, SEXP sca
     Rcpp::NumericVector scale_values;
     if (use_custom_scale) {
         scale_values=Rcpp::NumericVector(scaling);
-        if (scale_values.size()!=in->get_ncol()) {
+        if (static_cast<size_t>(scale_values.size())!=in->get_ncol()) {
             throw std::runtime_error("'length(scaling)' should be equal to 'ncol(x)'");
         }
     }

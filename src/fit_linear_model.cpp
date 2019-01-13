@@ -16,7 +16,7 @@ SEXP fit_linear_model_internal (SEXP qr, SEXP qraux, M emat, SEXP subset, SEXP g
     const int ncoefs=multQ.get_ncoefs();
     const int ncells=multQ.get_nobs();
 
-    if (ncells!=int(emat->get_ncol())) {
+    if (ncells!=static_cast<int>(emat->get_ncol())) {
         throw std::runtime_error("number of rows of QR matrix not equal to number of cells");
     } else if (ncells==0) {
         throw std::runtime_error("cannot compute variance for zero cells");

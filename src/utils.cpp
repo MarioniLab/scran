@@ -4,8 +4,8 @@
 
 Rcpp::IntegerVector check_subset_vector(SEXP subvec, size_t len) {
     Rcpp::IntegerVector sout(subvec);
-    for (const auto& s : sout) {
-        if (isNA(s) || s < 0 || s >= len) {
+    for (const auto s : sout) {
+        if (isNA(s) || s < 0 || static_cast<size_t>(s) >= len) {
             throw std::runtime_error("subset indices out of range");
         }
     }

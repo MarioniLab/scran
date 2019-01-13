@@ -61,10 +61,12 @@ SEXP cyclone_scores_internal (M mat_ptr,
    
     const size_t ncells=mycells.size();
     const size_t ngenes=mat_ptr->get_nrow();
+    const size_t nused=used.size();
 
     const size_t npairs=marker1.size();
-    if (npairs!=marker2.size()) { throw std::runtime_error("vectors of markers must be of the same length"); }
-    const size_t nused=used.size();
+    if (npairs!=static_cast<size_t>(marker2.size())) { 
+        throw std::runtime_error("vectors of markers must be of the same length"); 
+    }
 
     const int nit=check_integer_scalar(iter, "number of iterations");
     const int minit=check_integer_scalar(miniter, "minimum number of iterations");
@@ -77,15 +79,22 @@ SEXP cyclone_scores_internal (M mat_ptr,
     auto m2It=marker2.begin();
     for (auto m1It=marker1.begin(); m1It!=marker1.end(); ++m1It, ++m2It) {
         const int& m1m=(*m1It);
-        if (m1m >= nused || m1m < 0) { throw std::runtime_error("first marker indices are out of range"); }
+        if (m1m < 0 || static_cast<size_t>(m1m) >= nused) { 
+            throw std::runtime_error("first marker indices are out of range"); 
+        }
+
         const int& m2m=(*m2It);
-        if (m2m >= nused || m2m < 0) { throw std::runtime_error("second marker indices are out of range"); }
+        if (m2m < 0 || static_cast<size_t>(m2m) >= nused) {
+            throw std::runtime_error("second marker indices are out of range"); 
+        }
     }
 
     // Checking gene index sanity.
     for (auto uIt=used.begin(); uIt!=used.end(); ++uIt) { 
         const int& usedex=(*uIt);
-        if (usedex >= ngenes || usedex < 0) { throw std::runtime_error("used gene indices are out of range"); }
+        if (usedex < 0 || static_cast<size_t>(usedex) >= ngenes) { 
+            throw std::runtime_error("used gene indices are out of range"); 
+        }
     }
 
     Rcpp::NumericVector output(ncells, NA_REAL);

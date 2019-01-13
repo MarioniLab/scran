@@ -12,35 +12,35 @@ SEXP combine_rho (SEXP ng, SEXP g1, SEXP g2, SEXP rho, SEXP pval, SEXP limited, 
     BEGIN_RCPP
 
     // Checking inputs.
-    const int Ngenes=check_integer_scalar(ng, "number of genes");
-    if (Ngenes < 0) { throw std::runtime_error("number of genes should be non-zero"); }
-
     Rcpp::IntegerVector first(g1), second(g2);
-    const size_t Npairs=first.size();
-    if (Npairs!=second.size()) { 
+    if (first.size()!=second.size()) { 
         throw std::runtime_error("gene index vectors must be of the same length"); 
     }
 
     Rcpp::NumericVector Rho(rho);
-    if (Rho.size()!=Npairs) { 
+    if (first.size()!=Rho.size()) {
         throw std::runtime_error("'rho' must be a double precision vector of length equal to the number of pairs");
     }
 
     Rcpp::NumericVector Pval(pval);
-    if (Pval.size()!=Npairs) {
+    if (first.size()!=Pval.size()) {
         throw std::runtime_error("'pval' must be a double precision vector of length equal to the number of pairs");
     }
 
     Rcpp::LogicalVector Limited(limited);
-    if (Limited.size()!=Npairs) { 
+    if (first.size()!=Limited.size()) {
         throw std::runtime_error("'limited' must be a logical vector of length equal to the number of pairs");
     }
 
     Rcpp::IntegerVector Order(order);
-    if (Order.size()!=Npairs) { 
+    if (first.size()!=Order.size()) {
         throw std::runtime_error("'order' must be an integer vector of length equal to the number of pairs");
     }
-   
+
+    const size_t Npairs=first.size();
+    const int Ngenes=check_integer_scalar(ng, "number of genes");
+    if (Ngenes < 0) { throw std::runtime_error("number of genes should be non-negative"); }
+
     // Going through and computing the combined p-value for each gene. 
     Rcpp::NumericVector pout(Ngenes), rout(Ngenes);
     Rcpp::LogicalVector lout(Ngenes);
@@ -48,7 +48,7 @@ SEXP combine_rho (SEXP ng, SEXP g1, SEXP g2, SEXP rho, SEXP pval, SEXP limited, 
 
     for (auto oIt=Order.begin(); oIt!=Order.end(); ++oIt) {
         const int& curp=*oIt;
-        if (curp < 0 || curp >= int(Npairs)) { 
+        if (curp < 0 || static_cast<size_t>(curp) >= Npairs) { 
             throw std::runtime_error("order indices out of range");
         }
         const double& currho=Rho[curp];
