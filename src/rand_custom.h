@@ -6,11 +6,11 @@
 #include "boost/random.hpp"
 #include <iterator>
 
-void check_pcg_vectors(const Rcpp::NumericVector&, const Rcpp::IntegerVector&, size_t, const char*); 
+void check_pcg_vectors(const Rcpp::IntegerVector&, const Rcpp::IntegerVector&, size_t, const char*); 
 
 pcg32 create_pcg32(SEXP, SEXP);
 
-pcg32 create_pcg32(const Rcpp::NumericVector&, const Rcpp::IntegerVector&, size_t);
+pcg32 create_pcg32(const Rcpp::IntegerVector&, const Rcpp::IntegerVector&, size_t);
 
 // A possible implementation of std::shuffle, hard-coded to avoid cross-platform inconsistencies. 
 // Taken from https://en.cppreference.com/w/cpp/algorithm/random_shuffle#Possible_implementation.

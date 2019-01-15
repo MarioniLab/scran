@@ -41,13 +41,12 @@
     return(by.core)
 }
 
-#' @importFrom stats runif
 .setup_pcg_state <- function(per.core) {
     seeds <- streams <- vector("list", length(per.core))
     last <- 0L
     for (i in seq_along(per.core)) { 
         N <- per.core[i]
-        seeds[[i]] <- runif(N, 0, 2^32)
+        seeds[[i]] <- sample(.Machine$integer.max, N, replace=TRUE)
         streams[[i]] <- last + seq_len(N)
         last <- last + N
     }

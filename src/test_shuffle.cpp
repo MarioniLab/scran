@@ -30,8 +30,7 @@ SEXP test_shuffle_vector(SEXP incoming, SEXP nits, SEXP seed, SEXP stream) {
 SEXP test_shuffle_matrix(SEXP incoming, SEXP seeds, SEXP streams) {
     BEGIN_RCPP
     const Rcpp::NumericMatrix inmat(incoming);
-    const Rcpp::NumericVector Seeds(seeds);
-    const Rcpp::IntegerVector Streams(streams);
+    const Rcpp::IntegerVector Seeds(seeds), Streams(streams);
     check_pcg_vectors(Seeds, Streams, inmat.ncol(), "columns");
 
     Rcpp::NumericMatrix output(inmat.nrow(), inmat.ncol());

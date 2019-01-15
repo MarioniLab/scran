@@ -25,8 +25,7 @@ SEXP get_null_rho (SEXP cells, SEXP iters, SEXP seeds, SEXP streams) {
     const int Niters=check_integer_scalar(iters, "number of iterations");
     if (Niters < 0) { throw std::runtime_error("number of iterations should be non-negative"); }
 
-    Rcpp::NumericVector Seeds(seeds);
-    Rcpp::IntegerVector Streams(streams);
+    Rcpp::IntegerVector Seeds(seeds), Streams(streams);
     check_pcg_vectors(Seeds, Streams, Niters, "iterations");
 
     // Filling rank vector.
@@ -60,8 +59,7 @@ SEXP get_null_rho_design(SEXP qr, SEXP qraux, SEXP iters, SEXP seeds, SEXP strea
     const int Niters=check_integer_scalar(iters, "number of iterations");
     if (Niters <= 0) { throw std::runtime_error("number of iterations should be positive"); }
 
-    Rcpp::NumericVector Seeds(seeds);
-    Rcpp::IntegerVector Streams(streams);
+    Rcpp::IntegerVector Seeds(seeds), Streams(streams);
     check_pcg_vectors(Seeds, Streams, Niters, "iterations");
 
     // Setting up to multiply by the Q matrix.

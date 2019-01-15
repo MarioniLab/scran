@@ -57,7 +57,7 @@ SEXP cyclone_scores_internal (M mat_ptr,
         Rcpp::IntegerVector mycells,
         Rcpp::IntegerVector marker1, Rcpp::IntegerVector marker2, Rcpp::IntegerVector used, 
         Rcpp::IntegerVector iter, Rcpp::IntegerVector miniter, Rcpp::IntegerVector minpair,
-        Rcpp::NumericVector seeds, Rcpp::IntegerVector streams) {
+        Rcpp::IntegerVector seeds, Rcpp::IntegerVector streams) {
    
     const size_t ncells=mycells.size();
     const size_t ngenes=mat_ptr->get_nrow();
