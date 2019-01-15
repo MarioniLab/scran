@@ -63,6 +63,10 @@ test_that("shuffling is responding to the seed", {
         out2 <- scramble_vector(blah, N)
         expect_false(all(out1==out2)) # Should be different.
 
+        sorted <- apply(out1, 2, sort)
+        expect_identical(sorted, apply(out2, 2, sort))
+        expect_identical(sorted, matrix(sort(blah), nrow=length(blah), ncol=N))
+
         set.seed(seed)
         out3 <- scramble_vector(blah, N)
         expect_identical(out1, out3) # Should be the same.
@@ -74,6 +78,10 @@ test_that("shuffling is responding to the seed", {
         out1 <- scramble_matrix(whee)
         out2 <- scramble_matrix(whee)
         expect_false(all(out1==out2)) # Should be different.
+
+        sorted <- apply(out1, 2, sort)
+        expect_identical(sorted, apply(out2, 2, sort))
+        expect_identical(sorted, apply(whee, 2, sort))
 
         set.seed(seed)
         out3 <- scramble_matrix(whee)
@@ -88,7 +96,7 @@ test_that("shuffling is responding to the seed", {
 
     # Checking that matrix shuffling is reproducible.
     whee <- matrix(rnorm(2000), ncol=20)
-    seeds <- runif(ncol(whee), 0, 2^32)
+    seeds <- all_positive_integers(ncol(whee))
     ref <- scramble_matrix(whee, seed=seeds)
     sub.ref <- scramble_matrix(whee[,1:5], seed=seeds[1:5], stream=1:5)
     expect_identical(ref[,1:5], sub.ref)
