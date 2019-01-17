@@ -8,7 +8,7 @@ Authors@R: c(person("Aaron", "Lun", role = c("aut", "cre"),
         person("Jong Kyoung", "Kim", role = "ctb"), 
         person("Antonio", "Scialdone", role="ctb"), 
         person("Laleh", "Haghverdi", role="ctb"))
-Depends: R (>= 3.6), SingleCellExperiment
+Depends: SingleCellExperiment
 Imports: SummarizedExperiment, S4Vectors, BiocGenerics, BiocParallel,
         Rcpp (>= 0.12.14), stats, methods, utils, Matrix, scater, 
         edgeR, limma, dynamicTreeCut, BiocNeighbors, igraph, statmod, 
