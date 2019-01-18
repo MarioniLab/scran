@@ -84,7 +84,7 @@ head(sizeFactors(y2, type="Spike"))
 }
 
 \seealso{
-\code{\link[SingleCellExperiment]{isSpike}}
+\code{\link{isSpike}}
 }
 
 \references{

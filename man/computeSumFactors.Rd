@@ -146,7 +146,7 @@ This results in zero or negative size factor estimates for many cells.
 Filtering ensures that this is not the case, e.g., by removing genes with average counts below 1.
 
 In general, genes with average counts below 1 (for read count data) or 0.1 (for UMI data) should not be used for normalization.
-Such genes will automatically be filtered out by applying a minimum threshold \code{min.mean} on the library size-adjusted average counts from \code{\link[scater]{calcAverage}}.
+Such genes will automatically be filtered out by applying a minimum threshold \code{min.mean} on the library size-adjusted average counts from \code{\link{calcAverage}}.
 If \code{clusters} is specified, filtering by \code{min.mean} is performed on the per-cluster average during within-cluster normalization,
 and then on the (library size-adjusted) average of the per-cluster averages during between-cluster normalization.
 
