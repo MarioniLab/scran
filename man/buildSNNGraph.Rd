@@ -13,15 +13,15 @@
 
 \usage{
 \S4method{buildSNNGraph}{ANY}(x, k=10, d=50, type=c("rank", "number"), transposed=FALSE,
-    pc.approx=FALSE, irlba.args=list(), subset.row=NULL, BNPARAM=NULL, 
-    BPPARAM=SerialParam())
+    pc.approx=NULL, irlba.args=list(), subset.row=NULL, BNPARAM=KmknnParam(), 
+    BSPARAM=ExactParam(), BPPARAM=SerialParam())
 
 \S4method{buildSNNGraph}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", 
     get.spikes=FALSE, use.dimred=NULL)
 
 \S4method{buildKNNGraph}{ANY}(x, k=10, d=50, directed=FALSE, transposed=FALSE, 
-    pc.approx=FALSE, irlba.args=list(), subset.row=NULL, BNPARAM=NULL, 
-    BPPARAM=SerialParam())
+    pc.approx=NULL, irlba.args=list(), subset.row=NULL, BNPARAM=KmknnParam(), 
+    BSPARAM=ExactParam(), BPPARAM=SerialParam())
 
 \S4method{buildKNNGraph}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", 
     get.spikes=FALSE, use.dimred=NULL)
@@ -35,11 +35,10 @@ If it is matrix, it can also be transposed.}
 \item{type}{A string specifying the type of weighting scheme to use for shared neighbors.}
 \item{directed}{A logical scalar indicating whether the output of \code{buildKNNGraph} should be a directed graph.}
 \item{transposed}{A logical scalar indicating whether \code{x} is transposed (i.e., rows are cells).}
-\item{pc.approx}{A logical scalar indicating whether approximate PCA should be performed.}
+\item{pc.approx, irlba.args}{Deprecated, use \code{BSPARAM} instead.}
 \item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
-\item{irlba.args}{A named list of additional arguments to pass to \code{\link[irlba]{prcomp_irlba}} when \code{pc.approx=TRUE}.}
-\item{BNPARAM}{A \linkS4class{BiocNeighborParam} object to specify the nearest neighbor algorithm.
-Defaults to an exact algorithm if \code{NULL}, see \code{?\link{findKNN}} for more details.}
+\item{BNPARAM}{A \linkS4class{BiocNeighborParam} object specifying the nearest neighbor algorithm.}
+\item{BSPARAM}{A \linkS4class{BiocSingularParam} object specifying the algorithm to use for PCA, if \code{d} is not \code{NA}.}
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object to use for parallel processing.}
 \item{...}{Additional arguments to pass to \code{buildSNNGraph,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use.}
@@ -87,9 +86,10 @@ In practice, PCA is performed on \code{x} to obtain the first \code{d} principal
 This is necessary in order to perform the k-NN search (done using the \code{\link{findKNN}} function) in reasonable time.
 By default, the first 50 components are chosen, which should retain most of the substructure in the data set.
 If \code{d} is \code{NA} or greater than or equal to the number of cells, no dimensionality reduction is performed.
-
-If \code{pc.approx=TRUE}, \code{\link[irlba]{prcomp_irlba}} will be used to quickly obtain the first \code{d} PCs.
-While this algorithm does converge towards the exact PCs, it performs a random initialization and thus is technically dependent on the session seed.
+    
+The PCA is performed using methods the \code{\link{runSVD}} function from the \pkg{BiocSingular} package.
+To improve speed, this can be done using approximate algorithms by modifying \code{BSPARAM}, e.g., to \code{\link{IrlbaParam}()}.
+Approximate algorithms will converge towards the correct result but often involve some random initialization and thus are technically dependent on the session seed.
 For full reproducibility, users are advised to call \code{\link{set.seed}} beforehand when using this option.
 
 Expression values in \code{x} should typically be on the log-scale, e.g., log-transformed counts.

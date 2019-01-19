@@ -8,9 +8,9 @@
 
 \usage{
 \S4method{quickCluster}{ANY}(x, min.size=100, method=c("igraph", "hclust"), 
-    use.ranks=NULL, pc.approx=FALSE, d=NULL, subset.row=NULL, min.mean=1, 
-    graph.fun=cluster_walktrap, block=NULL, block.BPPARAM=SerialParam(), 
-    ...)
+    use.ranks=NULL, pc.approx=NULL, d=NULL, subset.row=NULL, min.mean=1, 
+    graph.fun=cluster_walktrap, BSPARAM=ExactParam(), BPPARAM=SerialParam(),
+    block=NULL, block.BPPARAM=SerialParam(), ...)
 
 \S4method{quickCluster}{SingleCellExperiment}(x, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE)
 }
@@ -24,7 +24,7 @@
 \item{method}{A string specifying the clustering method to use.}
 \item{use.ranks}{A logical scalar indicating whether clustering should be performed on the rank matrix, i.e., based on Spearman's rank correlation.
 Defaults to \code{TRUE} for consistency with old defaults, but this will be changed to \code{FALSE} in subsequent releases.}
-\item{pc.approx}{A logical scalar indicating whether approximate PCA should be performed.}
+\item{pc.approx}{Deprecated, use \code{BSPARAM} instead.}
 \item{d}{An integer scalar specifying the number of principal components to retain.
 
 If \code{NULL} and \code{use.ranks=TRUE}, this defaults to 50.
@@ -37,6 +37,8 @@ If \code{NA}, no dimensionality reduction is performed and the gene expression v
 Only used when \code{use.ranks=TRUE}, see \code{?\link{scaledColRanks}} for details.}
 \item{graph.fun}{A function specifying the community detection algorithm to use on the nearest neighbor graph when \code{method="igraph"}.
 Usually obtained from the \pkg{igraph} package.}
+\item{BSPARAM}{A \linkS4class{BiocSingularParam} object specifying the algorithm to use for PCA, if \code{d} is not \code{NA}.}
+\item{BPPARAM}{A \linkS4class{BiocParallelParam} object to use for parallel processing within each block.}
 \item{block}{A factor of length equal to \code{ncol(x)} specifying whether clustering should be performed within pre-specified blocks.
 By default, all columns in \code{x} are treated as a single block.}
 \item{block.BPPARAM}{A \linkS4class{BiocParallelParam} object specifying whether and how parallelization should be performed across blocks, 

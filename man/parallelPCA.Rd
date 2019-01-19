@@ -8,8 +8,8 @@
 
 \usage{
 \S4method{parallelPCA}{ANY}(x, subset.row=NULL, value=c("pca", "n", "lowrank"), 
-    min.rank=5, max.rank=100, niters=50, threshold=0.1, approximate=FALSE, 
-    irlba.args=list(), BPPARAM=SerialParam())
+    min.rank=5, max.rank=100, niters=50, threshold=0.1, approximate=NULL, 
+    irlba.args=list(), BSPARAM=ExactParam(), BPPARAM=SerialParam())
 
 \S4method{parallelPCA}{SingleCellExperiment}(x, ..., subset.row=NULL, 
     value=c("pca", "n", "lowrank"), assay.type="logcounts", 
@@ -26,7 +26,8 @@ or a SingleCellExperiment object containing such values for \code{parallelPCA,Si
 \item{threshold}{Numeric scalar representing the \dQuote{p-value} threshold above which PCs are to be ignored.}
 \item{approximate}{A logical scalar indicating whether approximate SVD should be performed via \code{\link[irlba]{irlba}}.}
 \item{irlba.args}{A named list of additional arguments to pass to \code{\link[irlba]{irlba}} when \code{approximate=TRUE}.}
-\item{BPPARAM}{A BiocParallelParam object.}
+\item{BSPARAM}{A \linkS4class{BiocSingularParam} object specifying the algorithm to use for PCA.}
+\item{BPPARAM}{A \linkS4class{BiocParallelParam} object specifying how the iterations should be paralellized.}
 \item{...}{Further arguments to pass to \code{denoisePCA,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use.}
 \item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
