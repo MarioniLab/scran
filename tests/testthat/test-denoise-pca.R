@@ -143,7 +143,7 @@ test_that("denoisePCA works with min/max rank settings", {
     expect_identical(ncol(pcs), ncol(ref))
     pcs <- denoisePCA(lcounts, technical=fit$trend, min.rank=ncol(ref), max.rank=Inf)
     expect_identical(ncol(pcs), ncol(ref))
-    pcs <- denoisePCA(lcounts, technical=fit$trend, min.rank=-Inf, max.rank=Inf)
+    pcs <- denoisePCA(lcounts, technical=fit$trend, min.rank=0, max.rank=Inf)
     expect_identical(ncol(pcs), ncol(ref))
 })
 
@@ -187,7 +187,7 @@ test_that("denoisePCA works with IRLBA", {
     current <- t(posbio - rowMeans(posbio))
    
     set.seed(100)    
-    npcs <- suppressWarnings(denoisePCA(lcounts, technical=fit$trend, value="n", approximate=TRUE))
+    npcs <- suppressWarnings(denoisePCA(lcounts, technical=fit$trend, value="n", BSPARAM=BiocSingular::IrlbaParam()))
     set.seed(100)
     e1 <- suppressWarnings(irlba::irlba(current, nu=0, nv=max.cells))
 
@@ -197,7 +197,7 @@ test_that("denoisePCA works with IRLBA", {
     
     # Checking the actual PCs themselves.
     set.seed(200)
-    pca <- suppressWarnings(denoisePCA(lcounts, technical=fit$trend, value="pca", approximate=TRUE))
+    pca <- suppressWarnings(denoisePCA(lcounts, technical=fit$trend, value="pca", BSPARAM=BiocSingular::IrlbaParam()))
     set.seed(200)
     epc <- suppressWarnings(irlba::prcomp_irlba(current, n=max.cells, center=FALSE, scale.=FALSE))
     are_PCs_equal(pca, epc$x[,seq_len(npcs),drop=FALSE]) 
@@ -205,7 +205,7 @@ test_that("denoisePCA works with IRLBA", {
     
     # Checking the low-rank approximations.
     set.seed(300)
-    lr <- suppressWarnings(denoisePCA(lcounts, technical=fit$trend, value="lowrank", approximate=TRUE))
+    lr <- suppressWarnings(denoisePCA(lcounts, technical=fit$trend, value="lowrank", BSPARAM=BiocSingular::IrlbaParam()))
 
     set.seed(300)
     e2 <- suppressWarnings(irlba::irlba(current, nu=max.cells, nv=max.cells)) 

@@ -54,7 +54,7 @@ test_that("parallelPCA respects the seed", {
     BPPARAM <- MulticoreParam(3) # define BEFORE set.seed, otherwise this sets its own seed.
     set.seed(100)
     alt <- parallelPCA(lcounts, value="pca", niters=3, BPPARAM=BPPARAM)
-    expect_identical(alt, pcs)
+    expect_equal(alt, pcs) # not identical due to numerical imprecision from changes in summing order.
 })
 
 set.seed(1002)
