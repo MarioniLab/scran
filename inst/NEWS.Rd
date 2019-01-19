@@ -22,6 +22,9 @@ Minor change in random number generation for consistency upon parallelization.
 Deprecated cache.size= as all ranks are now returned as in-memory representations.
 Deprecated per.gene= in favour of an external call to correlateGenes().
 Deprecated tol= as ties are now directly determined by rowRanks().
+
+\item Switched to BiocSingular for PCA calculations across all functions.
+Deprecated approximate= and pc.approx= arguments in favour of BSPARAM=.
 }}
 
 \section{Version 1.10.0}{\itemize{

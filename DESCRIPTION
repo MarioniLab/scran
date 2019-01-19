@@ -12,7 +12,7 @@ Depends: SingleCellExperiment
 Imports: SummarizedExperiment, S4Vectors, BiocGenerics, BiocParallel,
         Rcpp (>= 0.12.14), stats, methods, utils, Matrix, scater, 
         edgeR, limma, dynamicTreeCut, BiocNeighbors, igraph, statmod, 
-        DelayedArray, DelayedMatrixStats
+        DelayedArray, DelayedMatrixStats, BiocSingular
 Suggests: testthat, BiocStyle, knitr, beachmat, HDF5Array, irlba, 
         org.Mm.eg.db, DESeq2, monocle, pracma, Biobase, aroma.light
 biocViews: ImmunoOncology, Normalization, Sequencing, RNASeq, Software, GeneExpression,
