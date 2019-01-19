@@ -2,9 +2,11 @@
 #' @importFrom DelayedMatrixStats rowVars rowMeans2
 #' @importClassesFrom S4Vectors DataFrame
 #' @importFrom methods is
+#' @importFrom BiocParallel SerialParam
+#' @importFrom BiocSingular ExactParam
 .denoisePCA <- function(x, technical, subset.row=NULL,
     value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100, 
-    approximate=FALSE, irlba.args=list())
+    approximate=NULL, irlba.args=list(), BSPARAM=ExactParam(), BPPARAM=SerialParam())
 # Performs PCA and chooses the number of PCs to keep based on the technical noise.
 # This is done on the residuals if a design matrix is supplied.
 #
@@ -41,7 +43,7 @@
     # Setting up the SVD results. 
     value <- match.arg(value)
     svd.out <- .centered_SVD(t(y), max.rank, approximate=approximate, extra.args=irlba.args, 
-        keep.left=(value!="n"), keep.right=(value=="lowrank")) 
+        keep.left=(value!="n"), keep.right=(value=="lowrank"), BSPARAM=BSPARAM, BPPARAM=BPPARAM)
 
     # Choosing the number of PCs.
     var.exp <- svd.out$d^2 / (ncol(y) - 1)

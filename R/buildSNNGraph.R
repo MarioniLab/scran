@@ -1,8 +1,10 @@
 #' @importFrom igraph make_graph simplify "E<-"
+#' @importFrom BiocNeighbors KmknnParam
 #' @importFrom BiocParallel SerialParam
+#' @importFrom BiocSingular ExactParam
 .buildSNNGraph <- function(x, k=10, d=50, type=c("rank", "number"),
-    transposed=FALSE, pc.approx=FALSE, irlba.args=list(),
-    subset.row=NULL, BNPARAM=NULL, BPPARAM=SerialParam()) 
+    transposed=FALSE, pc.approx=NULL, irlba.args=list(), subset.row=NULL, 
+    BNPARAM=KmknnParam(), BSPARAM=ExactParam(), BPPARAM=SerialParam()) 
 # Builds a shared nearest-neighbor graph, where edges are present between each 
 # cell and any other cell with which it shares at least one neighbour. Each edges 
 # is weighted based on the ranks of the shared nearest neighbours of the two cells, 
@@ -13,7 +15,7 @@
 { 
     nn.out <- .setup_knn_data(x=x, subset.row=subset.row, d=d, transposed=transposed,
         pc.approx=pc.approx, irlba.args=irlba.args, 
-        k=k, BNPARAM=BNPARAM, BPPARAM=BPPARAM) 
+        k=k, BNPARAM=BNPARAM, BSPARAM=BSPARAM, BPPARAM=BPPARAM) 
 
     # Building the SNN graph.
     type <- match.arg(type)
@@ -33,8 +35,8 @@
 
 #' @importFrom igraph make_graph simplify
 #' @importFrom BiocParallel SerialParam
-.buildKNNGraph <- function(x, k=10, d=50, directed=FALSE, transposed=FALSE, pc.approx=FALSE,
-    irlba.args=list(), subset.row=NULL, BNPARAM=NULL, BPPARAM=SerialParam()) 
+.buildKNNGraph <- function(x, k=10, d=50, directed=FALSE, transposed=FALSE, pc.approx=NULL,
+    irlba.args=list(), subset.row=NULL, BNPARAM=KmknnParam(), BSPARAM=ExactParam(), BPPARAM=SerialParam()) 
 # Builds a k-nearest-neighbour graph, where edges are present between each
 # cell and its 'k' nearest neighbours. Undirected unless specified otherwise.
 #
@@ -43,7 +45,7 @@
 { 
     nn.out <- .setup_knn_data(x=x, subset.row=subset.row, d=d, transposed=transposed,
         pc.approx=pc.approx, irlba.args=irlba.args,
-        k=k, BNPARAM=BNPARAM, BPPARAM=BPPARAM) 
+        k=k, BNPARAM=BNPARAM, BSPARAM=BSPARAM, BPPARAM=BPPARAM) 
 
     # Building the KNN graph.
     start <- as.vector(row(nn.out$index))
@@ -65,7 +67,7 @@
 
 #' @importFrom stats prcomp 
 #' @importFrom BiocNeighbors findKNN
-.setup_knn_data <- function(x, subset.row, d, transposed, pc.approx, irlba.args, k, BNPARAM, BPPARAM) {
+.setup_knn_data <- function(x, subset.row, d, transposed, pc.approx, irlba.args, k, BNPARAM, BSPARAM, BPPARAM) {
     ncells <- ncol(x)
     if (!is.null(subset.row)) {
         x <- x[.subset_to_index(subset.row, x, byrow=TRUE),,drop=FALSE]
@@ -77,7 +79,7 @@
     
     # Reducing dimensions, if 'd' is less than the number of genes.
     if (!is.na(d) && d < ncol(x)) {
-        svd.out <- .centered_SVD(x, max.rank=d, approximate=pc.approx, extra.args=irlba.args, keep.right=FALSE)
+        svd.out <- .centered_SVD(x, max.rank=d, approximate=pc.approx, extra.args=irlba.args, keep.right=FALSE, BSPARAM=BSPARAM, BPPARAM=BPPARAM)
         x <- .svd_to_pca(svd.out, d, named=FALSE)
     }
    

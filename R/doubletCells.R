@@ -4,13 +4,12 @@
 #' @importFrom Matrix rowMeans
 #' @importFrom stats median
 #' @importFrom BiocNeighbors findKNN findNeighbors queryNeighbors queryKNN buildIndex
-#' @importClassesFrom BiocNeighbors KmknnIndex
 #' @importFrom methods is
 .doublet_cells <- function(x, size.factors.norm=NULL, size.factors.content=NULL,
     k=50, subset.row=NULL, niters=max(10000, ncol(x)), block=10000, 
-    d=50, approximate=FALSE, irlba.args=list(), 
+    d=50, approximate=NULL, irlba.args=list(), 
     force.match=FALSE, force.k=20, force.ndist=3,
-    BNPARAM=NULL, BPPARAM=SerialParam())
+    BNPARAM=KmknnParam(), BSPARAM=ExactParam(), BPPARAM=SerialParam())
 # Simulates doublets and uses a mutual nearest-neighbour approach to match them to real cells.
 #
 # written by Aaron Lun
@@ -31,7 +30,7 @@
 
     # Running the SVD.
     svd.out <- .centered_SVD(t(y), max.rank=d, approximate=approximate, extra.args=irlba.args, 
-        keep.left=TRUE, keep.right=TRUE)
+        keep.left=TRUE, keep.right=TRUE, BSPARAM=BSPARAM, BPPARAM=BPPARAM)
     pcs <- .svd_to_pca(svd.out, ncomp=d, named=FALSE)
     sim.pcs <- .spawn_doublet_pcs(x, size.factors.norm, V=svd.out$v, centers=rowMeans(y), niters=niters, block=block)
 
@@ -46,13 +45,9 @@
     self.dist <- findKNN(BNINDEX=pre.pcs, k=k, BPPARAM=BPPARAM, get.index=FALSE)$distance
     dist2nth <- pmax(1e-8, median(self.dist[,ncol(self.dist)]))
 
-    if (is(pre.pcs, "KmknnIndex")) {
-        args <- list(precomputed=pre.pcs) # skipping re-clustering if it's of the right type.
-    } else {
-        args <- list(X=pcs)
-    }
-    self.dist <- do.call(findNeighbors, c(args, list(threshold=dist2nth, BPPARAM=BPPARAM, get.index=FALSE)))$distance
-    sim.dist <- queryNeighbors(sim.pcs, query=pcs, threshold=dist2nth, BPPARAM=BPPARAM, get.index=FALSE)$distance
+    args <- list(precomputed=pre.pcs) 
+    self.dist <- do.call(findNeighbors, c(args, list(threshold=dist2nth, BNPARAM=BNPARAM, BPPARAM=BPPARAM, get.index=FALSE)))$distance
+    sim.dist <- queryNeighbors(sim.pcs, query=pcs, threshold=dist2nth, BNPARAM=BNPARAM, BPPARAM=BPPARAM, get.index=FALSE)$distance
 
     rel.dens <- bpmapply(FUN=function(self, sim, limit) {
         sum((1 - (sim/limit)^3)^3)/sum((1 - (self/limit)^3)^3)^2

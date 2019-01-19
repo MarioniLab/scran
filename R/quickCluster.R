@@ -5,8 +5,9 @@
 #' @importFrom BiocParallel SerialParam bpmapply
 #' @importFrom BiocGenerics t
 .quick_cluster <- function(x, min.size=100, method=c("igraph", "hclust"), use.ranks=NULL,
-    pc.approx=FALSE, d=NULL, subset.row=NULL, min.mean=1, graph.fun=cluster_walktrap,
-    block=NULL, block.BPPARAM=SerialParam(), ...)
+    pc.approx=NULL, d=NULL, subset.row=NULL, min.mean=1, graph.fun=cluster_walktrap,
+    BSPARAM=ExactParam(), BPPARAM=SerialParam(), block=NULL, block.BPPARAM=SerialParam(), 
+    ...)
 # Generates a factor specifying the cluster to which each cell is assigned.
 #
 # written by Karsten Bach, with modifications by Aaron Lun
@@ -50,7 +51,7 @@
         y <- normalizeCounts(x, size_factors=sf, return_log=TRUE, subset_row=subset.row)
         if (is.null(d)) {
             fit <- trendVar(y)
-            y <- denoisePCA(y, technical=fit$trend, approximate=pc.approx)
+            y <- denoisePCA(y, technical=fit$trend, approximate=pc.approx, BSPARAM=BSPARAM)
             d <- NA
         } else {
             y <- t(y)
@@ -58,7 +59,7 @@
     }
 
     if (!is.na(d)) {
-        svd.out <- .centered_SVD(y, max.rank=d, approximate=pc.approx, keep.right=FALSE)
+        svd.out <- .centered_SVD(y, max.rank=d, approximate=pc.approx, keep.right=FALSE, BSPARAM=BSPARAM)
         y <- .svd_to_pca(svd.out, d, named=FALSE)
     }
 
