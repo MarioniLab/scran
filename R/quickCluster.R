@@ -21,7 +21,7 @@
         collected <- bpmapply(FUN=.quick_cluster, x.by.block, 
             MoreArgs=list(min.size=min.size, method=method, use.ranks=use.ranks,
                 pc.approx=pc.approx, subset.row=subset.row, min.mean=min.mean, 
-                BSPARAM=BSPARAM, BPPARAM=BPPARAM, ...), 
+                ...), 
             BPPARAM=block.BPPARAM)
 
         # Merging the results across different blocks.
