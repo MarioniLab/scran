@@ -84,7 +84,7 @@ test_that("quickCluster functions correctly with blocking", {
     last <- 0L
     for (x in sort(unique(block))) {
         chosen <- block==x
-        current <- quickCluster(mat[,chosen], min.size=10)
+        current <- quickCluster(mat[,chosen], min.size=10, use.ranks=FALSE)
         collected[chosen] <- as.integer(current) + last
         last <- last + nlevels(current)
     }
