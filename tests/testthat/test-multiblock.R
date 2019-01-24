@@ -86,6 +86,10 @@ test_that("multiBlockVar works properly", {
     expect_identical(nrow(multi), nrow(multi2))
     expect_identical(colnames(multi), colnames(multi2))
 
+    multi3 <- multiBlockVar(X2, block=block, make.tech.trend=TRUE)
+    expect_identical(nrow(multi), nrow(multi3))
+    expect_identical(colnames(multi), colnames(multi3))
+
     # Expecting a warning.
     Y <- normalize(X)
     expect_warning(multi <- multiBlockVar(Y, block=block), "centred")

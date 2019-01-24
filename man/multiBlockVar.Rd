@@ -5,22 +5,23 @@
 \description{Fit a mean-dependent trend to the per-gene variances for each blocking level, and decompose them to biological and technical components.}
 
 \usage{
-multiBlockVar(x, block, trend.args=list(), dec.args=list(), 
-    assay.type="logcounts", ...)
+multiBlockVar(x, block, make.tech.trend=FALSE, trend.args=list(), 
+    dec.args=list(), assay.type="logcounts", ...)
 }
 
 \arguments{
 \item{x}{A SingleCellExperiment object containing log-normalized expression values, computed with \code{\link{multiBlockNorm}}.}
 \item{block}{A factor specifying the blocking level for each cell in \code{x}.}
-\item{trend.args}{A list of named arguments to pass to \code{\link{trendVar}}.}
+\item{make.tech.trend}{A logical scalar indicating whether to use \code{\link{makeTechTrend}} to create the mean-variance trend.}
+\item{trend.args}{A list of named arguments to pass to \code{\link{trendVar}} if \code{make.tech.trend=FALSE} or \code{\link{makeTechTrend}} otherwise.}
 \item{dec.args}{A list of named arguments to pass to \code{\link{decomposeVar}}.}
-\item{assay.type}{A string or integer scalar specifying the assay in \code{x} to use for all calculations.}
+\item{assay.type}{A string or integer scalar specifying the assay in \code{x} to use for all calculations (except for \code{\link{makeTechTrend}}).}
 \item{...}{Additional arguments to pass to \code{\link{combineVar}}.}
 }
 
 \details{
 This function models the variance of expression in each level of \code{block} separately.
-Each subset of cells is passed to \code{\link{trendVar}} to fit a block-specific trend, 
+Each subset of cells is passed to \code{\link{trendVar}} (or \code{\link{makeTechTrend}}) to fit a block-specific trend, 
 and then passed to \code{\link{decomposeVar}} to obtain block-specific biological and technical components.
 Results are consolidated across blocks using the \code{\link{combineVar}} function.
 The aim is to enable users to handle differences in the mean-variance relationship across, e.g., different experimental batches.
@@ -34,7 +35,7 @@ Otherwise, a warning will be raised about non-centered size factors.
 \value{
 A DataFrame is returned containing all components returned by \code{\link{combineVar}}, in addition to a \code{per.block} column.
 This additional column is a DataFrame containing nested DataFrames, each containing a result of \code{\link{decomposeVar}} for the corresponding level of \code{block}.
-The trend function from \code{\link{trendVar}} is also stored as \code{trend} in the metadata of the per-block nested DataFrames.
+The trend function from \code{\link{trendVar}} or \code{\link{makeTechTrend}} is also stored as \code{trend} in the metadata of the per-block nested DataFrames.
 }
 
 \seealso{

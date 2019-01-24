@@ -1,6 +1,6 @@
 #' @export 
 #' @importFrom S4Vectors DataFrame metadata
-multiBlockVar <- function(x, block, trend.args=list(), dec.args=list(), assay.type="logcounts", ...) 
+multiBlockVar <- function(x, block, make.tech.trend=FALSE, trend.args=list(), dec.args=list(), assay.type="logcounts", ...) 
 # Fits a separate trend for each level of the blocking factor, and decomposes it.
 # The aim is to account for different mean-variance trends in a coherent manner.
 # 
@@ -22,7 +22,12 @@ multiBlockVar <- function(x, block, trend.args=list(), dec.args=list(), assay.ty
         cur.x <- x[,cur.b]
 
         # Estimating the technical/biological components.
-        cur.fit <- do.call(trendVar, c(list(cur.x, assay.type=assay.type), trend.args))
+        if (!make.tech.trend) {
+            cur.fit <- do.call(trendVar, c(list(cur.x, assay.type=assay.type), trend.args))
+        } else {
+            new.trend <- do.call(makeTechTrend, c(list(x=cur.x), trend.args))
+            cur.fit <- list(trend=new.trend)
+        }
         cur.dec <- do.call(decomposeVar, c(list(cur.x, cur.fit, assay.type=assay.type), dec.args))
         metadata(cur.dec)$trend <- cur.fit$trend
         
