@@ -20,7 +20,8 @@
     Alternatively, a SingleCellExperiment object containing such a matrix.
 }
 \item{fit}{
-    A list containing the output of \code{\link{trendVar}}, run on log-expression values for spike-in genes.
+    A list containing \code{trend}, a function that takes a numeric vector of abundances and returns the technical component of variation.
+    This is usually produced by running \code{\link{trendVar}} on log-expression values for spike-in genes.
 }
 \item{block}{A factor containing the level of a blocking factor for each cell.}
 \item{design}{A numeric matrix describing the uninteresting factors contributing to expression in each cell.
@@ -45,6 +46,11 @@ Highly variable genes (HVGs) can be identified as those with large biological co
 Unlike other methods for decomposition, this approach estimates the variance of the log-counts rather than of the counts themselves.
 The log-transformation blunts the impact of large positive outliers and ensures that HVGs are driven by strong log-fold changes between cells, not differences in counts.
 Interpretation is not compromised -- HVGs will still be so, regardless of whether counts or log-counts are considered.
+
+The \code{fit} list should contain at least \code{trend}, as this is necessary for the decomposition.
+If \code{x} is missing, \code{fit} should also contain \code{mean} and \code{var}, numeric vectors of the means and variances for all features.
+This will be used to perform the decomposition rather than (re)computing any statistics from \code{x}.
+The list may optionally contain \code{block} and \code{design}, but this will be overridden by any explicitly passed arguments.
 
 If \code{assay.type="logcounts"} and the size factors are not centred at unity, a warning will be raised - see \code{?\link{trendVar}} for details.
 }
