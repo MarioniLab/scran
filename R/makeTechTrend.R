@@ -1,7 +1,9 @@
 #' @importFrom BiocGenerics sizeFactors counts
-#' @importFrom Matrix colSums rowMeans
-#' @importFrom SingleCellExperiment logcounts
+#' @importFrom Matrix rowMeans
+#' @importFrom SingleCellExperiment logcounts 
+#' @importFrom BiocGenerics sizeFactors
 #' @importFrom stats splinefun
+#' @importFrom scater librarySizeFactors
 #' @importFrom BiocParallel SerialParam bplapply bpmapply
 #' @export
 makeTechTrend <- function(means, size.factors=1, tol=1e-6, dispersion=0, pseudo.count=1, approx.npts=Inf, x=NULL, BPPARAM=SerialParam()) 
@@ -14,10 +16,11 @@ makeTechTrend <- function(means, size.factors=1, tol=1e-6, dispersion=0, pseudo.
 # created 2 January 2018
 {
     if (!is.null(x)) {
+        .check_centered_SF(x, "logcounts")
+
         size.factors <- sizeFactors(x)
         if (is.null(size.factors)) { 
-            size.factors <- colSums(counts(x))
-            size.factors <- size.factors/mean(size.factors)
+            size.factors <- librarySizeFactors(x, exprs_values="counts")
         }
 
         pseudo.count <- .get_log_offset(x)
@@ -28,10 +31,6 @@ makeTechTrend <- function(means, size.factors=1, tol=1e-6, dispersion=0, pseudo.
         all.ave <- rowMeans(logcounts(x))
         upper.value <- max(all.ave)
         means <- 2^seq(from=0, to=upper.value, length.out=100) - pseudo.count
-    }
-
-    if (abs(mean(size.factors) - 1) > 1e-6) {
-        stop("size factors should be centred at unity") 
     }
 
     to.core <- .worker_assign(length(means), BPPARAM)

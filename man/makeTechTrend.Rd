@@ -12,8 +12,7 @@ makeTechTrend(means, size.factors=1, tol=1e-6, dispersion=0,
 \arguments{
 \item{means}{A numeric vector of average counts.
 Note that there are means of the counts, \emph{not} means of the log-expression values.}
-\item{size.factors}{A numeric vector of size factors.
-If supplied, these should be centred at unity.}
+\item{size.factors}{A numeric vector of size factors.}
 \item{tol}{A numeric scalar specifying the tolerance for approximating the mean/variance.
 Lower values result in greater accuracy.}
 \item{dispersion}{A numeric scalar specifying the dispersion for the NB distribution.
@@ -40,7 +39,7 @@ Note that the returned function accepts mean log-values as input, \emph{not} the
 This means that the function is directly usable as a replacement for the \code{trend} returned by \code{\link{trendVar}}.
 
 If \code{x} is set, \code{pseudo.count} is overridden by \code{metadata(sce)$log.exprs.offset};
-\code{size.factors} is overridden by \code{sizeFactors(sce)} (or the column sums of \code{counts(sce)}, if no size factors are specified);
+\code{size.factors} is overridden by \code{sizeFactors(sce)} (or the column sums of \code{counts(sce)}, if no size factors are present in \code{x});
 and \code{means} is automatically determined from the range of row averages of \code{logcounts(sce)} (after undoing the log-transformation).
 
 If \code{approx.npts} is finite and less than \code{length(size.factors)}, an approximate approach is used to construct the trend.

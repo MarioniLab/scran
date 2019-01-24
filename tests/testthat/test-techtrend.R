@@ -114,9 +114,9 @@ test_that("makeTechTrend handles other options properly", {
     # Returns a zero when a zero is provided.
     expect_equal(out1(0), 0)
 
-    # Chucks an error when size factors are not centred.
-    expect_error(makeTechTrend(0:5, size.factors=1:5), "centred at unity") 
-})
+    # Happy with non-centred size factors.
+    expect_error(makeTechTrend(0:5, size.factors=1:5), NA)
+})        
 
 test_that("makeTechTrend handles SCE inputs correctly", {
     X <- SingleCellExperiment(list(counts=matrix(1:5, ncol=2, nrow=5)))
@@ -129,6 +129,7 @@ test_that("makeTechTrend handles SCE inputs correctly", {
                          size.factors=sizeFactors(X))
     expect_equal(out(0:10/2), ref(0:10/2))
 
+    # Automatically uses the library sizes as size factors.
     X <- SingleCellExperiment(list(counts=matrix(1:10, ncol=2, nrow=5)))
     suppressWarnings(X <- normalize(X))
     out <- makeTechTrend(x=X)
@@ -136,5 +137,11 @@ test_that("makeTechTrend handles SCE inputs correctly", {
     ref <- makeTechTrend(2^seq(0, max(rowMeans(exprs(X))), length.out=100)-1,
                          size.factors=libsizes/mean(libsizes))
     expect_equal(out(0:10/2), ref(0:10/2))
+
+    # Chucks an warning when there are multiple features with non-centred size factors.
+    isSpike(X, "ERCC") <- 1
+    sizeFactors(X) <- runif(ncol(X))
+    sizeFactors(X, "ERCC") <- runif(ncol(X))
+    expect_warning(makeTechTrend(x=X), "centred") 
 })
 
