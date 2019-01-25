@@ -1,8 +1,35 @@
 # This checks the denoisePCA function.
 # require(scran); require(testthat); source("setup.R"); source("test-denoise-pca.R")
 
-# Mocking up some data with subpopulations of cells.
-# This requires a mean-varaince trend, hence the somewhat complex set-up.
+set.seed(70001)
+test_that("denoisePCANumber works as expected", {
+    v <- sort(runif(100))
+    total <- sum(v)
+
+    tech.var <- total * 0.8
+    out <- denoisePCANumber(v, tech.var, total)
+    expect_identical(out, length(v) - sum(cumsum(rev(v)) < tech.var))
+
+    alt <- denoisePCANumber(head(v, out+5L), tech.var, total)
+    expect_identical(out, alt)
+    alt <- denoisePCANumber(head(v, out+1L), tech.var, total)
+    expect_identical(out, alt)
+
+    alt <- denoisePCANumber(head(v, out-1L), tech.var, total)
+    expect_identical(out-1L, alt)
+
+    tech.var <- 0
+    out <- denoisePCANumber(v, tech.var, total)
+    expect_identical(out, length(v))
+
+    tech.var <- total
+    out <- denoisePCANumber(v, tech.var, total)
+    expect_identical(out, 1L)
+}) 
+
+################################
+# Running tests for denoisePCA. This requires a mean-varaince trend, 
+# hence the somewhat complex set-up for the mock data.
 
 set.seed(1000)
 ngenes <- 1000
@@ -24,10 +51,6 @@ lcounts <- log2(counts + 1)
 fit <- trendVar(lcounts, subset.row=is.spike)
 dec <- decomposeVar(lcounts, fit)
 
-################################
-# Running tests for denoisePCA #
-################################
-
 test_that("denoisePCA works as expected", {
     # Checking that the filtering for positive bio.comp and calculation of the variance explained is correct.
     npcs <- denoisePCA(lcounts, technical=fit$trend, value="n")
@@ -36,8 +59,9 @@ test_that("denoisePCA works as expected", {
 
     verify_npcs <- function(npcs, sdev, tech.total) {
         var.exp <- sdev^2
-        expect_equal(npcs[1], scran:::.get_npcs_to_keep(var.exp, tech.total))
-        
+        total.var <- sum(var.exp)
+        expect_equal(npcs[1], denoisePCANumber(var.exp, tech.total, total.var))
+
         # Chosen number of PCs should be at the technical threshold.
         expect_true(sum(var.exp[(npcs+1):ncol(lcounts)]) < tech.total) 
         expect_true(sum(var.exp[(npcs):ncol(lcounts)]) > tech.total)
@@ -51,46 +75,31 @@ test_that("denoisePCA works as expected", {
     total.tech <- sum(tech.var[keep])
     verify_npcs(npcs, pc.out$sdev, total.tech)
 
-    # Checking with different values for the technical noise, just in case.
-    lower.fun <- function(x) { fit$trend(x) - 0.1 }
-    npcs2 <- denoisePCA(lcounts, technical=lower.fun, value="n")
-    expect_false(npcs==npcs2)
-
-    tech.var2 <- lower.fun(rowMeans(lcounts))
-    keep2 <- apply(lcounts, 1, var) > tech.var2
-    pc.out2 <- prcomp(t(lcounts[keep2,]))
-    total.tech2 <- sum(tech.var2[keep2])
-
-    verify_npcs(npcs2, pc.out2$sdev, total.tech2)
-
-    # And again.
-    even.lower.fun <- function(x) { fit$trend(x) - 0.2 }
-    npcs3 <- denoisePCA(lcounts, technical=even.lower.fun, value="n")
-    expect_false(npcs==npcs3)
-    
-    tech.var3 <- even.lower.fun(rowMeans(lcounts))
-    keep3 <- apply(lcounts, 1, var) > tech.var3
-    pc.out3 <- prcomp(t(lcounts[keep3,]))
-    total.tech3 <- sum(tech.var3[keep3])
-
-    verify_npcs(npcs3, pc.out3$sdev, total.tech3)
-
-    # Checking that the PC selection is correct.
+    # Checking that the PC selection was correct.
     pcs <- denoisePCA(lcounts, technical=fit$trend, value="pca")
     expect_equal(pcs[,], pc.out$x[,seq_len(npcs)])
     expect_equal(attr(pcs, "percentVar"), attr(npcs, "percentVar"))
 
-    pcs2 <- denoisePCA(lcounts, technical=lower.fun, value="pca")
-    expect_equal(pcs2[,], pc.out2$x[,seq_len(npcs2)])
-    expect_equal(attr(pcs2, "percentVar"), attr(npcs2, "percentVar"))
+    # Checking with different values for the technical noise, just in case.
+    for (sub in c(0.05, 0.1, 0.2)) {
+        lower.fun <- function(x) { fit$trend(x) - sub }
+        npcs2 <- denoisePCA(lcounts, technical=lower.fun, value="n")
+        expect_false(npcs==npcs2)
 
-    pcs3 <- denoisePCA(lcounts, technical=even.lower.fun, value="pca")
-    expect_equal(pcs3[,], pc.out3$x[,seq_len(npcs3)])
-    expect_equal(attr(pcs3, "percentVar"), attr(npcs3, "percentVar"))
+        tech.var2 <- lower.fun(rowMeans(lcounts))
+        keep2 <- apply(lcounts, 1, var) > tech.var2
+        pc.out2 <- prcomp(t(lcounts[keep2,]))
+        total.tech2 <- sum(tech.var2[keep2])
+        
+        verify_npcs(npcs2, pc.out2$sdev, total.tech2)
+
+        pcs2 <- denoisePCA(lcounts, technical=lower.fun, value="pca")
+        expect_equal(pcs2[,], pc.out2$x[,seq_len(npcs2)])
+        expect_equal(attr(pcs2, "percentVar"), attr(npcs2, "percentVar"))
+    }
 })
 
 test_that("Low-rank approximations work as expected", {
-    # Checking that the low-rank approximation is correctly computed.
     lrout <- denoisePCA(lcounts, technical=fit$trend, value="lowrank")
     expect_identical(dim(lrout), dim(lcounts))
     
@@ -116,7 +125,6 @@ test_that("Low-rank approximations work as expected", {
 }) 
 
 test_that("denoisePCA works with subsetting", {
-    # Checking proper behaviour with subsetting.
     not.spike <- setdiff(seq_len(ngenes), is.spike)
     pcs <- denoisePCA(lcounts, technical=fit$trend, subset.row=not.spike)
     pcs2 <- denoisePCA(lcounts[not.spike,], technical=fit$trend)
@@ -159,23 +167,30 @@ test_that("denoisePCA works with a DataFrame input", {
     # Works with subsetting.
     set.seed(9191)
     chosen <- sample(nrow(lcounts), 100)
-    ref2 <- denoisePCA(lcounts, technical=fit$trend, subset.row=chosen, value="pca")
-    pcs2 <- denoisePCA(lcounts, technical=dec, subset.row=chosen, value="pca")
-    expect_equal(ref2, pcs2)
+    ref <- denoisePCA(lcounts, technical=fit$trend, subset.row=chosen, value="pca")
+    pcs <- denoisePCA(lcounts, technical=dec, subset.row=chosen, value="pca")
+    expect_equal(ref, pcs)
+
+    # A vector has the same effect.
+    ref <- denoisePCA(lcounts, technical=dec, value="pca")
+    ref2 <- denoisePCA(lcounts, technical=dec$tech, value="pca")
+    expect_equal(ref, ref2)
 
     # Testing the rescaling to force the total variance in dec$total to match the observed variance.
     rescaled <- runif(nrow(lcounts))
     lcountsX <- lcounts * rescaled
-    ref2 <- denoisePCA(lcountsX, technical=dec$tech * rescaled^2, value="pca")
-    pcs3 <- denoisePCA(lcountsX, technical=dec, value="pca")
-    expect_equal(ref2, pcs3)
+    ref <- denoisePCA(lcountsX, technical=dec$tech * rescaled^2, value="pca")
+    pcs <- denoisePCA(lcountsX, technical=dec, value="pca")
+    expect_equal(ref, pcs)
 
     # Handles all-zero rows with zero variance, where scaling would be undefined.
-    lcounts[1,] <- 0
-    dec$total[1] <- dec$tech[1] <- dec$bio[1] <- 0
-    ref2 <- denoisePCA(lcounts, technical=dec$tech, value="pca")
-    pcs3 <- denoisePCA(lcounts, technical=dec, value="pca")
-    expect_equal(ref2, pcs3)
+    lcountsAlt <- lcounts    
+    lcountsAlt[1,] <- 0
+    decAlt <- dec	
+    decAlt$total[1] <- decAlt$tech[1] <- decAlt$bio[1] <- 0
+    ref <- denoisePCA(lcountsAlt, technical=decAlt$tech, value="pca")
+    pcs <- denoisePCA(lcountsAlt, technical=decAlt, value="pca")
+    expect_equal(ref, pcs)
 })
 
 test_that("denoisePCA works with IRLBA", {
@@ -192,8 +207,9 @@ test_that("denoisePCA works with IRLBA", {
     e1 <- suppressWarnings(irlba::irlba(current, nu=0, nv=max.cells))
 
     total.var <- sum(dec$total[keep])
-    expect_equal(npcs[1], scran:::.get_npcs_to_keep(e1$d^2/df0, sum(dec$tech[keep]), total=total.var))
-    expect_equal(attr(npcs, "percentVar"), e1$d^2/df0/total.var)
+    var.exp <- e1$d^2/df0
+    expect_equal(npcs[1], denoisePCANumber(var.exp, sum(dec$tech[keep]), total.var))
+    expect_equal(attr(npcs, "percentVar"), var.exp/total.var)
     
     # Checking the actual PCs themselves.
     set.seed(200)
@@ -217,7 +233,6 @@ test_that("denoisePCA works with IRLBA", {
 })
 
 test_that("denoisePCA throws errors correctly", {
-    # Checking invalid specifications.
     expect_error(denoisePCA(lcounts[0,], fit$trend), "a dimension is zero")
     expect_error(denoisePCA(lcounts[,0], fit$trend), "a dimension is zero")
 })

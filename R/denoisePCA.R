@@ -33,12 +33,10 @@
 
     # Filtering out genes with negative biological components.
     keep <- all.var > tech.var
-    use.rows <- subset.row[keep]
-    y <- x[use.rows,,drop=FALSE] 
-
     tech.var <- tech.var[keep]
     all.var <- all.var[keep]
-    total.tech <- sum(tech.var)
+    use.rows <- subset.row[keep]
+    y <- x[use.rows,,drop=FALSE] 
 
     # Setting up the SVD results. 
     value <- match.arg(value)
@@ -47,7 +45,8 @@
 
     # Choosing the number of PCs.
     var.exp <- svd.out$d^2 / (ncol(y) - 1)
-    npcs <- .get_npcs_to_keep(var.exp, total.tech, total=sum(all.var))
+    total.var <- sum(all.var)
+    npcs <- denoisePCANumber(var.exp, sum(tech.var), total.var)
     npcs <- .keep_rank_in_range(npcs, min.rank, length(var.exp))
 
     # Processing remaining aspects.
@@ -56,27 +55,29 @@
         pca=.svd_to_pca(svd.out, npcs),
         lowrank=.svd_to_lowrank(svd.out, npcs, x, use.rows)
     )
-    attr(out.val, "percentVar") <- var.exp/sum(all.var)
-    return(out.val)
+    attr(out.val, "percentVar") <- var.exp/total.var
+    out.val
 } 
 
-.get_npcs_to_keep <- function(var.exp, technical, total=sum(var.exp)) 
+#' @export
+denoisePCANumber <- function(var.exp, var.tech, var.total) 
 # Discarding PCs until we get rid of as much technical noise as possible
 # while preserving the biological signal. This is done by assuming that 
 # the biological signal is fully contained in earlier PCs, such that we 
-# discard the later PCs until we account for 'tech.var'.
+# discard the later PCs until we account for 'var.tech'.
 {
     npcs <- length(var.exp)
     flipped.var.exp <- rev(var.exp)
-    estimated.contrib <- cumsum(flipped.var.exp) 
+    estimated.contrib <- cumsum(flipped.var.exp) + (var.total - sum(flipped.var.exp)) 
 
-    above.noise <- estimated.contrib > technical - (total - sum(var.exp)) 
+    above.noise <- estimated.contrib > var.tech 
     if (any(above.noise)) { 
         to.keep <- npcs - min(which(above.noise)) + 1L
     } else {
-        to.keep <- npcs
+        to.keep <- 1L
     }
-    return(to.keep)
+
+    to.keep
 }
 
 ##############################
