@@ -42,10 +42,10 @@
     }
 
     if (use.ranks) {
-        y <- scaledColRanks(x, subset.row=subset.row, min.mean=min.mean, transposed=TRUE)
         if (is.null(d)) {
             d <- 50
         }
+        y <- .create_rank_matrix(x, as.sparse=!is.na(d), subset.row=subset.row, min.mean=min.mean)
     } else {
         sf <- librarySizeFactors(x, subset_row=subset.row)
         y <- normalizeCounts(x, size_factors=sf, return_log=TRUE, subset_row=subset.row)
@@ -92,6 +92,18 @@
 ############################
 # Internal functions.
 ############################
+
+#' @importFrom Matrix colMeans t
+#' @importFrom BiocSingular DeferredMatrix
+.create_rank_matrix <- function(x, as.sparse, ...) {
+    if (!as.sparse) {
+        y <- scaledColRanks(x, ..., transposed=TRUE)
+    } else {
+        y <- scaledColRanks(x, ..., transposed=FALSE, as.sparse=TRUE)
+        y <- t(DeferredMatrix(y, center=colMeans(y)))
+    }
+    y
+}
 
 #' @importFrom igraph modularity E
 .merge_closest_graph <- function(g, clusters, min.size) {
