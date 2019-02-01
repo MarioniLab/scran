@@ -50,6 +50,24 @@ test_that("quickCluster with use.ranks=TRUE is consistent with clustering on cor
     expect_identical(clusters, as.integer(obs)) # this can complain if unassigned, as 0 becomes 1 in as.integer().
 })
 
+set.seed(30000101)
+test_that("use.ranks=TRUE generates the correct DeferredMatrix", {
+    mat <- matrix(rpois(10000, lambda=5), nrow=20)
+    ref <- scran:::.create_rank_matrix(mat, as.sparse=FALSE)
+    def <- scran:::.create_rank_matrix(mat, as.sparse=TRUE)
+    expect_equivalent(ref, as.matrix(def))
+
+    # Same results from the two options in quickCluster() itself.
+    ref <- quickCluster(mat, use.ranks=TRUE, d=NA, method="hclust")
+    out <- quickCluster(mat, use.ranks=TRUE, d=min(dim(mat)), method="hclust")
+    expect_identical(ref, out)
+
+    # Set low 'k' to avoid inconsistencies caused by tied neighbors.
+    ref <- quickCluster(mat, use.ranks=TRUE, d=NA, method="igraph", k=2)
+    out <- quickCluster(mat, use.ranks=TRUE, d=min(dim(mat)), method="igraph", k=2)
+    expect_identical(ref, out)
+})
+
 set.seed(3000011)
 test_that("quickCluster functions correctly with subsetting", {
     mat <- matrix(rpois(20000, lambda=1:100), nrow=100)
@@ -174,12 +192,9 @@ test_that("quickCluster with igraph merging works correctly", {
 
 set.seed(3000022)
 test_that("quickCluster with igraph on ranks works correctly", {
-    # NOTE 1: these tests are surprisingly fragile for use.rank=TRUE, as findKNN in rank space is liable to find lots of tied distances.
+    # These tests are surprisingly fragile for use.rank=TRUE, as findKNN in rank space is liable to find lots of tied distances.
     # This results in arbitrary choices and ordering of neighbors, which can differ between seeds and machines (depending on precision).
     # Hence we need to make sure that there are no ties, by supplying enough dimensions with no tied ranks.
-    #
-    # NOTE 2: As a result of the above note, we also need to turn off approximate PCs, to avoid issues with irlba variability.
-    # Otherwise we would have to set the seed everytime, and this would mask any issues with NN detection.
     k <- 10
     mat <- matrix(rnorm(200000, mean=20), nrow=400)
     obs <- quickCluster(mat, min.size=0, method="igraph", k=k, use.ranks=FALSE)
