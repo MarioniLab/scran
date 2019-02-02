@@ -25,7 +25,8 @@ SEXP get_null_rho (SEXP cells, SEXP iters, SEXP seeds, SEXP streams) {
     const int Niters=check_integer_scalar(iters, "number of iterations");
     if (Niters < 0) { throw std::runtime_error("number of iterations should be non-negative"); }
 
-    Rcpp::IntegerVector Seeds(seeds), Streams(streams);
+    Rcpp::List Seeds(seeds);
+    Rcpp::IntegerVector Streams(streams);
     check_pcg_vectors(Seeds, Streams, Niters, "iterations");
 
     // Filling rank vector.
@@ -36,7 +37,7 @@ SEXP get_null_rho (SEXP cells, SEXP iters, SEXP seeds, SEXP streams) {
     for (int it=0; it<Niters; ++it) {
         std::iota(rankings.begin(), rankings.end(), 0);
 
-        auto generator=create_pcg32(Seeds, Streams, it);
+        auto generator=create_pcg32(Seeds[it], Streams[it]);
         shuffle_custom(rankings.begin(), rankings.end(), generator);
 
         double tmp=0;
@@ -59,7 +60,8 @@ SEXP get_null_rho_design(SEXP qr, SEXP qraux, SEXP iters, SEXP seeds, SEXP strea
     const int Niters=check_integer_scalar(iters, "number of iterations");
     if (Niters <= 0) { throw std::runtime_error("number of iterations should be positive"); }
 
-    Rcpp::IntegerVector Seeds(seeds), Streams(streams);
+    Rcpp::List Seeds(seeds);
+    Rcpp::IntegerVector Streams(streams);
     check_pcg_vectors(Seeds, Streams, Niters, "iterations");
 
     // Setting up to multiply by the Q matrix.
@@ -78,7 +80,7 @@ SEXP get_null_rho_design(SEXP qr, SEXP qraux, SEXP iters, SEXP seeds, SEXP strea
      * correlations between the two reconstructions.
      */
     for (int it=0; it<Niters; ++it) {
-        auto generator=create_pcg32(Seeds, Streams, it);
+        auto generator=create_pcg32(Seeds[it], Streams[it]);
         boost::random::normal_distribution<double> cpp_rnorm;
 
         for (int mode=0; mode<2; ++mode) {
@@ -119,7 +121,7 @@ SEXP get_null_rho_design(SEXP qr, SEXP qraux, SEXP iters, SEXP seeds, SEXP strea
 }
 
 SEXP test_rnorm (SEXP N, SEXP seed, SEXP stream) {
-    auto generator=create_pcg32(seed, stream);
+    auto generator=create_pcg32(seed, check_integer_scalar(stream, "stream"));
     boost::random::normal_distribution<double> cpp_rnorm;
     Rcpp::NumericVector output(check_integer_scalar(N, "number"));
     for (auto& val : output) { val = cpp_rnorm(generator); }
