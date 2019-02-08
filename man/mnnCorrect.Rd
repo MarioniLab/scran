@@ -7,7 +7,7 @@
 \usage{
 mnnCorrect(..., k=20, sigma=0.1, cos.norm.in=TRUE, cos.norm.out=TRUE,
     svd.dim=0L, var.adj=TRUE, compute.angle=FALSE, subset.row=NULL, 
-    order=NULL, pc.approx=FALSE, irlba.args=list(),
+    order=NULL, pc.approx=FALSE, irlba.args=list(), BNPARAM=KmknnParam(),
     BPPARAM=SerialParam())
 }
 
@@ -26,6 +26,7 @@ Each matrix should contain the same number of rows, corresponding to the same ge
 \item{order}{An integer vector specifying the order in which batches are to be corrected.}
 \item{pc.approx}{A logical scalar indicating whether \code{\link[irlba]{irlba}} should be used to identify the biological subspace.}
 \item{irlba.args}{A list of arguments to pass to \code{\link[irlba]{irlba}} when \code{pc.approx=TRUE}.}
+\item{BNPARAM}{A \linkS4class{BiocNeighborParam} specifying the algorithm to use for neighbor searches.}
 \item{BPPARAM}{A BiocParallelParam object specifying whether the nearest-neighbor searches should be parallelized.}
 }
 

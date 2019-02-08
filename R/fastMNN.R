@@ -1,10 +1,11 @@
 #' @export
 #' @importFrom BiocParallel SerialParam
 #' @importFrom S4Vectors DataFrame Rle
+#' @importFrom BiocNeighbors KmknnParam
 fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE, 
     irlba.args=list(), subset.row=NULL, auto.order=FALSE, pc.input=FALSE,
     compute.variances=FALSE, assay.type="logcounts", get.spikes=FALSE, 
-    BNPARAM=NULL, BPPARAM=SerialParam()) 
+    BNPARAM=KmknnParam(), BPPARAM=SerialParam()) 
 # A faster version of the MNN batch correction approach.
 # 
 # written by Aaron Lun
@@ -177,9 +178,9 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
     return(mat)
 }
 
-#' @importFrom BiocNeighbors queryKNN
+#' @importFrom BiocNeighbors queryKNN KmknnParam
 #' @importFrom BiocParallel SerialParam
-.tricube_weighted_correction <- function(curdata, correction, in.mnn, k=20, ndist=3, BNPARAM=NULL, BPPARAM=SerialParam())
+.tricube_weighted_correction <- function(curdata, correction, in.mnn, k=20, ndist=3, BNPARAM=KmknnParam(), BPPARAM=SerialParam())
 # Computing tricube-weighted correction vectors for individual cells,
 # using the nearest neighbouring cells _involved in MNN pairs_.
 {
@@ -214,9 +215,9 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
 ############################################
 # Auto-ordering functions.
 
-#' @importFrom BiocNeighbors queryKNN buildIndex 
+#' @importFrom BiocNeighbors queryKNN buildIndex KmknnParam
 #' @importFrom BiocParallel SerialParam
-.define_first_merge <- function(pc.mat, k=20, BNPARAM=NULL, BPPARAM=SerialParam())
+.define_first_merge <- function(pc.mat, k=20, BNPARAM=KmknnParam(), BPPARAM=SerialParam())
 # Find the pair of matrices in 'options' which has the greatest number of MNNs.
 {
     precomputed <- lapply(pc.mat, buildIndex, BNPARAM=BNPARAM)
@@ -243,9 +244,9 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
     return(list(first=max.first, second=max.second, pairs=max.pairs, precomputed=precomputed))
 }
 
-#' @importFrom BiocNeighbors queryKNN buildIndex 
+#' @importFrom BiocNeighbors queryKNN buildIndex KmknnParam
 #' @importFrom BiocParallel SerialParam
-.define_next_merge <- function(refdata, pc.mat, processed, precomputed, k=20, BNPARAM=NULL, BPPARAM=SerialParam()) 
+.define_next_merge <- function(refdata, pc.mat, processed, precomputed, k=20, BNPARAM=KmknnParam(), BPPARAM=SerialParam()) 
 # Find the matrix in pc.mat[-processed] that has the greater number of MNNs to 'refdata'.
 {
     max.pairs <- list()

@@ -7,7 +7,7 @@
 mnnCorrect <- function(..., k=20, sigma=0.1, cos.norm.in=TRUE, cos.norm.out=TRUE, 
                        svd.dim=0L, var.adj=TRUE, compute.angle=FALSE,
                        subset.row=NULL, order=NULL, pc.approx=FALSE, irlba.args=list(),
-                       BPPARAM=SerialParam())
+                       BNPARAM=KmknnParam(), BPPARAM=SerialParam())
 # Performs batch correction on multiple matrices of expression data,
 # as specified in the ellipsis.
 #    
@@ -62,7 +62,7 @@ mnnCorrect <- function(..., k=20, sigma=0.1, cos.norm.in=TRUE, cos.norm.out=TRUE
         }
         
         # Finding pairs of mutual nearest neighbours.
-        sets <- find.mutual.nn(ref.batch.in, other.batch.in, k1=k, k2=k, BPPARAM=BPPARAM)
+        sets <- find.mutual.nn(ref.batch.in, other.batch.in, k1=k, k2=k, BNPARAM=BNPARAM, BPPARAM=BPPARAM)
         s1 <- sets$first
         s2 <- sets$second      
 
@@ -204,7 +204,7 @@ prepare.input.data <- function(batches, cos.norm.in, cos.norm.out, subset.row) {
 
 #' @importFrom BiocNeighbors queryKNN
 #' @importFrom BiocParallel SerialParam
-find.mutual.nn <- function(data1, data2, k1, k2, BNPARAM=NULL, BPPARAM=SerialParam()) 
+find.mutual.nn <- function(data1, data2, k1, k2, BNPARAM=KmknnParam(), BPPARAM=SerialParam()) 
 # Finds mutal neighbors between data1 and data2.
 {
     data1 <- as.matrix(data1)

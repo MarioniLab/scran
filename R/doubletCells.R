@@ -45,8 +45,7 @@
     self.dist <- findKNN(BNINDEX=pre.pcs, k=k, BPPARAM=BPPARAM, get.index=FALSE)$distance
     dist2nth <- pmax(1e-8, median(self.dist[,ncol(self.dist)]))
 
-    args <- list(precomputed=pre.pcs) 
-    self.dist <- do.call(findNeighbors, c(args, list(threshold=dist2nth, BNPARAM=BNPARAM, BPPARAM=BPPARAM, get.index=FALSE)))$distance
+    self.dist <- findNeighbors(threshold=dist2nth, BNINDEX=pre.pcs, BNPARAM=BNPARAM, BPPARAM=BPPARAM, get.index=FALSE)$distance
     sim.dist <- queryNeighbors(sim.pcs, query=pcs, threshold=dist2nth, BNPARAM=BNPARAM, BPPARAM=BPPARAM, get.index=FALSE)$distance
 
     rel.dens <- bpmapply(FUN=function(self, sim, limit) {
