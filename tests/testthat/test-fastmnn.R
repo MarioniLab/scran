@@ -226,9 +226,9 @@ test_that("fastMNN works as expected for three batches with re-ordering", {
     expect_identical(fmerge$second, 1L)
     expect_identical(fmerge$pairs, scran:::find.mutual.nn(t(B2), t(B1), k1=20, k2=20))
 
-    expect_identical(BiocNeighbors::findKNN(precomputed=fmerge$precomputed[[1]], k=5), BiocNeighbors::findKNN(t(B1), k=5)) # checking that the precomputations are correct.
-    expect_identical(BiocNeighbors::findKNN(precomputed=fmerge$precomputed[[2]], k=10), BiocNeighbors::findKNN(t(B2), k=10))
-    expect_identical(BiocNeighbors::findKNN(precomputed=fmerge$precomputed[[3]], k=15), BiocNeighbors::findKNN(t(B3), k=15))
+    expect_identical(BiocNeighbors::findKNN(BNINDEX=fmerge$precomputed[[1]], k=5), BiocNeighbors::findKNN(t(B1), k=5)) # checking that the precomputations are correct.
+    expect_identical(BiocNeighbors::findKNN(BNINDEX=fmerge$precomputed[[2]], k=10), BiocNeighbors::findKNN(t(B2), k=10))
+    expect_identical(BiocNeighbors::findKNN(BNINDEX=fmerge$precomputed[[3]], k=15), BiocNeighbors::findKNN(t(B3), k=15))
 
     nmerge <- scran:::.define_next_merge(t(B1), list(t(B1), t(B2), t(B3)), processed=1L, precomputed=fmerge$precomputed, k=20)   
     expect_identical(nmerge$other, 2L) # 1 should have more MNNs with 2 than with 3.
