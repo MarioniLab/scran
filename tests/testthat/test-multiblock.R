@@ -27,7 +27,11 @@ test_that("multiBlockNorm works properly", {
     sp <- sizeFactors(X2, "MySpikes")
     for (i in unique(block)) {
         chosen <- block==i
-        expect_identical(mean(ref.en[chosen]), mean(sp[chosen]))
+        target <- mean(ref.en[chosen])
+        expect_equal(target, mean(sp[chosen]))
+
+        original <- sizeFactors(X, "MySpikes")[chosen]
+        expect_equal(sp[chosen], original/mean(original)*target)
     }
 
     # Checking that log-counts are correctly computed.

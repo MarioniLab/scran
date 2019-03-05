@@ -56,11 +56,12 @@ refFUN <- function(x, pairs) {
         cur.scores <- numeric(ncol(x))
 
         rng.state <- scran:::.setup_pcg_state(ncol(x))
-        rand.seeds <- rng.state$seeds[1]
+        rand.seeds <- rng.state$seeds[[1]]
         rand.streams <- rng.state$streams[[1]]
 
         for (i in seq_along(cur.scores)) {
-            cur.scores[i] <- random.success(cell=cur.x[,i], markers=cur.pairs, N=N, Nmin=Nmin, Nmin.couples=Nmin.couples, seed=rand.seeds[i], stream=rand.streams[i])
+            cur.scores[i] <- random.success(cell=cur.x[,i], markers=cur.pairs, N=N, Nmin=Nmin, Nmin.couples=Nmin.couples, 
+                    seed=rand.seeds[[i]], stream=rand.streams[[i]])
         }
         scores[[phase]] <- cur.scores
     }
