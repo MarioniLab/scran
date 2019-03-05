@@ -7,7 +7,7 @@
 #include <sstream>
 
 pcg32 create_pcg32(SEXP seed, int stream) {
-    return pcg32(convert_seed<uint64_t>(seed), stream);
+    return pcg32(dqrng::convert_seed<uint64_t>(seed), stream);
 }
 
 void check_pcg_vectors(const Rcpp::List seeds, Rcpp::IntegerVector streams, size_t N, const char* msg) {
