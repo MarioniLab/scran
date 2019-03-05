@@ -57,7 +57,7 @@ SEXP cyclone_scores_internal (M mat_ptr,
         Rcpp::IntegerVector mycells,
         Rcpp::IntegerVector marker1, Rcpp::IntegerVector marker2, Rcpp::IntegerVector used, 
         Rcpp::IntegerVector iter, Rcpp::IntegerVector miniter, Rcpp::IntegerVector minpair,
-        Rcpp::IntegerVector seeds, Rcpp::IntegerVector streams) {
+        Rcpp::List seeds, Rcpp::IntegerVector streams) {
    
     const size_t ncells=mycells.size();
     const size_t ngenes=mat_ptr->get_nrow();
@@ -118,7 +118,7 @@ SEXP cyclone_scores_internal (M mat_ptr,
 
         // Iterations of shuffling to obtain a null distribution for the score.
         int below=0, total=0;
-        auto generator=create_pcg32(seeds, streams, curcell);
+        auto generator=create_pcg32(seeds[curcell], streams[curcell]);
         for (int it=0; it < nit; ++it) {
             shuffle_custom(current_exprs.begin(), current_exprs.end(), generator);
             const double newscore=get_proportion(current_exprs, minp, marker1, marker2, curscore);

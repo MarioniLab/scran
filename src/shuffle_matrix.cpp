@@ -1,5 +1,7 @@
 #include "scran.h"
 
+#include "utils.h"
+
 #include "beachmat/numeric_matrix.h"
 #include "beachmat/integer_matrix.h"
 #include "rand_custom.h"
@@ -9,7 +11,7 @@ void shuffle_matrix_internal(I in, O out, SEXP seed, SEXP stream) {
     const size_t NR=in->get_nrow(), NC=in->get_ncol();
     V tmp(NR);
 
-    auto gen=create_pcg32(seed, stream);
+    auto gen=create_pcg32(seed, check_integer_scalar(stream, "stream"));
     for (size_t c=0; c<NC; ++c) {
         in->get_col(c, tmp.begin());
         shuffle_custom(tmp.begin(), tmp.end(), gen);

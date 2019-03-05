@@ -15,7 +15,7 @@ SEXP test_shuffle_vector(SEXP incoming, SEXP nits, SEXP seed, SEXP stream) {
     Rcpp::NumericVector::const_iterator source=invec.begin();
     Rcpp::NumericVector::iterator oIt=outmat.begin();
 
-    auto generator=create_pcg32(seed, stream);
+    auto generator=create_pcg32(seed, check_integer_scalar(stream, "stream"));
     for (int i=0; i<niters; ++i) {
         std::copy(source, source+N, oIt);
         shuffle_custom(oIt, oIt+N, generator);
@@ -30,7 +30,8 @@ SEXP test_shuffle_vector(SEXP incoming, SEXP nits, SEXP seed, SEXP stream) {
 SEXP test_shuffle_matrix(SEXP incoming, SEXP seeds, SEXP streams) {
     BEGIN_RCPP
     const Rcpp::NumericMatrix inmat(incoming);
-    const Rcpp::IntegerVector Seeds(seeds), Streams(streams);
+    Rcpp::List Seeds(seeds);
+    Rcpp::IntegerVector Streams(streams);
     check_pcg_vectors(Seeds, Streams, inmat.ncol(), "columns");
 
     Rcpp::NumericMatrix output(inmat.nrow(), inmat.ncol());
@@ -40,7 +41,7 @@ SEXP test_shuffle_matrix(SEXP incoming, SEXP seeds, SEXP streams) {
         auto outcol=output.column(i);
         std::copy(incol.begin(), incol.end(), outcol.begin());
 
-        auto generator=create_pcg32(Seeds, Streams, i);
+        auto generator=create_pcg32(Seeds[i], Streams[i]);
         shuffle_custom(outcol.begin(), outcol.end(), generator);
     }
 
