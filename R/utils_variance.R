@@ -54,14 +54,12 @@
 # In particular, extracting spike-ins and their size factors.    
 {
     sf.cell <- sizeFactors(x)
-    if (is.null(spike.type) || !is.na(spike.type)) { 
+    if (is.null(spike.type) || all(!is.na(spike.type))) { 
         if (is.null(spike.type)) { 
             # Get all spikes.
             spike.type <- spikeNames(x)            
-        } else {
-            if (!all(spike.type %in% spikeNames(x))) { 
-                stop(sprintf("spike-in set '%s' does not exist", spike.type[1]))
-            }
+        } else if (!all(spike.type %in% spikeNames(x))) { 
+            stop(sprintf("spike-in set '%s' does not exist", spike.type[1]))
         }
         if (!length(spike.type)) { 
             stop("no spike-in sets specified from 'x'")

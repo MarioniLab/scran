@@ -53,7 +53,7 @@ test_that("correlateNull works with a design matrix", {
         streams <- rand.state$streams[[1]]
 
         for (x in seq_along(seeds)) {
-            vals <- .Call(scran:::cxx_test_rnorm, df*2L, seeds[x], streams[x])
+            vals <- .Call(scran:::cxx_test_rnorm, df*2L, seeds[[x]], streams[x])
             expect_identical(length(vals), df*2L)
     
             first.half <- qr.qy(QR, c(0,0, head(vals, df)))

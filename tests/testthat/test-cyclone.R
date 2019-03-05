@@ -56,7 +56,7 @@ refFUN <- function(x, pairs) {
         cur.scores <- numeric(ncol(x))
 
         rng.state <- scran:::.setup_pcg_state(ncol(x))
-        rand.seeds <- rng.state$seeds[[1]]
+        rand.seeds <- rng.state$seeds[1]
         rand.streams <- rng.state$streams[[1]]
 
         for (i in seq_along(cur.scores)) {

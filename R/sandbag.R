@@ -75,9 +75,11 @@ setMethod("sandbag", "ANY", function(x, phases, gene.names=rownames(x), fraction
     gene.names <- gene.names[subset.row]
 
     class.names <- names(phases)
-    if (is.null(class.names) || is.na(class.names)) stop("'phases' must have non-missing, non-NULL names") 
-    gene.data <- lapply(phases, function(cl) t(x[subset.row,cl,drop=FALSE]))
+    if (is.null(class.names) || any(is.na(class.names))) {
+        stop("'phases' must have non-missing, non-NULL names") 
+    }
 
+    gene.data <- lapply(phases, function(cl) t(x[subset.row,cl,drop=FALSE]))
     nclasses <- length(gene.data)
     marker.pairs <- vector("list", nclasses)
     for (i in seq_len(nclasses)) {
