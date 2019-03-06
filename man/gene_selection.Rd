@@ -8,7 +8,7 @@
 For functions accepting some matrix \code{x}, we can choose to perform calculations only on a subset of rows with \code{subset.row}.
 This can be a logical, integer or character vector indicating the rows of \code{x} to use.
 If a character vector, it must contain the names of the rows in \code{x}.
-Future support will be added for more estoeric subsetting vectors like the Biocondcutor \linkS4class{Rle} classes.
+Future support will be added for more esoteric subsetting vectors like the Bioconductor \linkS4class{Rle} classes.
 
 The output of running a function with \code{subset.row} will \emph{always} be the same as the output of subsetting \code{x} beforehand and passing it into the function.
 However, it is often more efficient to use \code{subset.row} as we can avoid constructing an intermediate subsetted matrix.
