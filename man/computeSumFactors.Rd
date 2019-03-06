@@ -103,7 +103,7 @@ The default \code{max.cluster.size} will arbitrarily break up the cell populatio
 In general, it is more appropriate to pool more similar cells to avoid violating the assumption of a non-DE majority of genes across the data set.
 This can be done by specifying the \code{clusters} argument where cells in each cluster have similar expression profiles.
 Deconvolution is subsequently applied on the cells within each cluster.
-A convenince function \code{\link{quickCluster}} is provided for this purpose.
+A convenience function \code{\link{quickCluster}} is provided for this purpose, though any reasonable clustering can be used.
 
 Size factors computed within each cluster must be rescaled for comparison between clusters.
 This is done by normalizing between clusters to identify the rescaling factor.
