@@ -128,6 +128,11 @@ Aaron Lun
 }
 
 \examples{
+\dontshow{
+# To avoid CHECK problems with parallelization.
+register(SerialParam())
+}
+
 B1 <- matrix(rnorm(10000), ncol=50) # Batch 1 
 B2 <- matrix(rnorm(10000), ncol=50) # Batch 2
 out <- fastMNN(B1, B2) # corrected values
@@ -138,7 +143,7 @@ cB1 <- cosineNorm(B1)
 cB2 <- cosineNorm(B2)
 pcs <- multiBatchPCA(cB1, cB2)
 out.2 <- fastMNN(pcs[[1]], pcs[[2]], pc.input=TRUE)
-all.equal(out[1:3], out.2) # should be TRUE (no rotation)
+all.equal(head(out,-1), out.2) # should be TRUE (no rotation)
 
 # Obtaining corrected expression values for genes 1 and 10.
 cor.exp <- tcrossprod(out$rotation[c(1,10),], out$corrected)

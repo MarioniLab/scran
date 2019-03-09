@@ -22,6 +22,8 @@ opts_chunk$set(error=FALSE, message=FALSE, warning=FALSE)
 
 ```{r setup, echo=FALSE, message=FALSE}
 library(scran)
+library(BiocParallel)
+register(SerialParam()) # avoid problems with fastMNN parallelization.
 set.seed(100)
 ```
 
