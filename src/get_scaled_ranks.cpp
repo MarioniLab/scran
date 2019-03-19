@@ -2,6 +2,7 @@
 
 #include "beachmat/numeric_matrix.h"
 #include "beachmat/integer_matrix.h"
+#include "beachmat/utils/const_column.h"
 #include "utils.h"
 
 #include <vector>
@@ -10,9 +11,11 @@
 #include <stdexcept>
 #include <cmath>
 
-template <typename T, class V, class M> 
-SEXP average_ranks_internal(const M mat, SEXP intype, SEXP subset, SEXP transpose, SEXP as_sparse) { 
-    /// Checking the subset values.
+template <class M> 
+SEXP average_ranks_internal(SEXP input, SEXP subset, SEXP transpose, SEXP as_sparse) { 
+    auto mat=beachmat::create_matrix<M>(input);
+
+    // Checking the subset values.
     const size_t ncells=mat->get_ncol();
     const size_t ngenes=mat->get_nrow();
     auto SS=check_subset_vector(subset, ngenes);
@@ -25,22 +28,26 @@ SEXP average_ranks_internal(const M mat, SEXP intype, SEXP subset, SEXP transpos
 
     // Creating the output matrix.
     const bool sparsify=check_logical_scalar(as_sparse, "sparse specification");
-    auto omat=beachmat::create_numeric_output(out_nr, out_nc, 
-        sparsify ? beachmat::SPARSE_PARAM : beachmat::SIMPLE_PARAM);
+    beachmat::output_param OPARAM(mat.get());
+    if (!sparsify) {
+        OPARAM=beachmat::output_param("dgCMatrix", "Matrix");
+    }
+    auto omat=beachmat::create_numeric_output(out_nr, out_nc, OPARAM);
 
     // Various other bits and pieces.
-    std::vector<std::pair<T, int> > collected(slen);
+    std::vector<std::pair<typename M::type, int> > collected(slen);
     const double mean_adj=double(slen-1)/2;
-    V incoming(ngenes);
+    beachmat::const_column<M> col_holder(mat.get(), false); // no sparse, need row-level indexing.
     Rcpp::NumericVector outgoing(slen);
 
     for (size_t c=0; c<ncells; ++c) {
-        mat->get_col(c, incoming.begin());
+        col_holder.fill(c);
+        auto vals=col_holder.get_values();
 
         // Sorting all subsetted values.
         auto sIt=SS.begin();
         for (size_t s=0; s<slen; ++s, ++sIt) {
-            const T& curval=incoming[*sIt];
+            const typename M::type curval=*(vals + *sIt);
             if (isNA(curval)) { 
                 throw std::runtime_error("missing values not supported in quickCluster");
             }
@@ -113,11 +120,9 @@ SEXP get_scaled_ranks(SEXP exprs, SEXP subset, SEXP transpose, SEXP as_sparse) {
     BEGIN_RCPP
     int rtype=beachmat::find_sexp_type(exprs);
     if (rtype==INTSXP) { 
-        auto mat=beachmat::create_integer_matrix(exprs);
-        return average_ranks_internal<int, Rcpp::IntegerVector>(mat.get(), exprs, subset, transpose, as_sparse);
+        return average_ranks_internal<beachmat::integer_matrix>(exprs, subset, transpose, as_sparse);
     } else {
-        auto mat=beachmat::create_numeric_matrix(exprs);
-        return average_ranks_internal<double, Rcpp::NumericVector>(mat.get(), exprs, subset, transpose, as_sparse);
+        return average_ranks_internal<beachmat::numeric_matrix>(exprs, subset, transpose, as_sparse);
     }
     END_RCPP
 }

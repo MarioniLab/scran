@@ -1,6 +1,7 @@
 #include "scran.h"
 
 #include "beachmat/numeric_matrix.h"
+#include "beachmat/utils/const_column.h"
 
 #include <stdexcept>
 #include <algorithm>
@@ -45,18 +46,14 @@ SEXP pool_size_factors (SEXP exprs, SEXP ref, SEXP ordering, SEXP poolsizes) {
         }
     }
 
-    // Setting up the storage space and the vector of iterators for each cell's profile.
-    Rcpp::NumericVector all_collected(last_size*ngenes);
-    std::deque<Rcpp::NumericVector::const_iterator> collected;
-    auto acIt=all_collected.begin();
-    collected.push_back(acIt); // unfilled first vector, which gets dropped and refilled in the first iteration anyway.
-    acIt+=ngenes;
-
+    // Setting up the storage space.
+    // The first vector is unfilled as it gets dropped and refilled in the first iteration anyway.
+    typedef beachmat::numeric_matrix M;
+    std::deque<beachmat::const_column<M> > collected(1, beachmat::const_column<M>(emat.get()));
     auto orIt_tail=order.begin();
-    Rcpp::NumericVector tmp(emat->get_nrow());
-    for (int s=1; s<last_size; ++s, ++orIt_tail, acIt+=ngenes) {
-        auto colIt=emat->get_const_col(*orIt_tail, acIt);
-        collected.push_back(colIt); 
+    for (int s=1; s<last_size; ++s, ++orIt_tail) {
+        collected.push_back(beachmat::const_column<M>(emat.get()));
+        collected.back().fill(*orIt_tail);
     }
 
     // Setting up the output vectors and other bits and pieces.
@@ -74,18 +71,14 @@ SEXP pool_size_factors (SEXP exprs, SEXP ref, SEXP ordering, SEXP poolsizes) {
     const int halfway=int(ngenes/2);
 
     // Running through the sliding windows.
-    for (size_t win=0; win<ncells; ++win, ++orIt) {
+    for (size_t win=0; win<ncells; ++win, ++orIt, ++orIt_tail) {
         std::fill(combined.begin(), combined.end(), 0);
-        
-        // Dropping the column that we've moved past, adding the next column.
-        if (acIt==all_collected.end()) { 
-            acIt=all_collected.begin();
-        }
-        collected.pop_front();
-        auto curIt=emat->get_const_col(*orIt_tail, acIt);
-        collected.push_back(curIt);
-        ++orIt_tail;
-        acIt+=ngenes;
+
+        // Rotating; effectively moves the first element of 'collected' to the end.
+        // The is the same as shifting the column that we've moved past to the end,
+        // and then overwriting it with the next column.
+        std::rotate(collected.begin(), collected.begin()+1, collected.end());
+        collected.back().fill(*orIt_tail);
 
         int index=0;
         int rownum=win; // Setting the row so that all pools with the same SIZE form consecutive equations.
@@ -97,9 +90,19 @@ SEXP pool_size_factors (SEXP exprs, SEXP ref, SEXP ordering, SEXP poolsizes) {
             colIt+=SIZE;
 
             for (; index<SIZE; ++index) {
-                auto ceIt=collected[index];
-                for (auto cIt=combined.begin(); cIt!=combined.end(); ++cIt, ++ceIt) {
-                    (*cIt)+=(*ceIt);
+                const auto& current=collected[index];
+                auto val=current.get_values();
+
+                if (current.is_sparse()) {
+                    auto n=current.get_n();
+                    auto idx=current.get_indices();
+                    for (auto i=0; i<n; ++i, ++val, ++idx) {
+                        combined[*idx]=*val;
+                    }
+                } else { 
+                    for (auto cIt=combined.begin(); cIt!=combined.end(); ++cIt, ++val) {
+                        (*cIt)+=(*val);
+                    }
                 }
             }
            

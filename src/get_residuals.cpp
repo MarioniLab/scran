@@ -30,7 +30,13 @@ SEXP get_residuals(SEXP exprs, SEXP qr, SEXP qraux, SEXP subset, SEXP lower_boun
     const double lbound=check_numeric_scalar(lower_bound, "lower bound");
     const bool check_lower=R_FINITE(lbound);
 
-    auto omat=beachmat::create_numeric_output(slen, ncells, beachmat::output_param(exprs, true, false));
+    // Sparsity is lost with residuals.
+    beachmat::output_param OPARAM(emat->get_class(), emat->get_package());
+    if (emat->get_class()=="dgCMatrix" && emat->get_class()=="Matrix") {
+        OPARAM=beachmat::output_param();
+    }
+    auto omat=beachmat::create_numeric_output(slen, ncells, OPARAM);
+
     Rcpp::NumericVector tmp(ncells);
     double* tptr=(ncells ? &(tmp[0]) : NULL);
     std::deque<int> below_bound;

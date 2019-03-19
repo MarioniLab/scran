@@ -2,6 +2,7 @@
 
 #include "beachmat/integer_matrix.h"
 #include "beachmat/numeric_matrix.h"
+#include "beachmat/utils/const_column.h"
 #include "utils.h"
 #include "rand_custom.h"
 
@@ -52,13 +53,13 @@ double get_proportion (const V& expr, const int minpairs, const Rcpp::IntegerVec
     return output;
 }
 
-template <class V, class M>
-SEXP cyclone_scores_internal (M mat_ptr, 
-        Rcpp::IntegerVector mycells,
+template <class M>
+SEXP cyclone_scores_internal (Rcpp::RObject input, Rcpp::IntegerVector mycells,
         Rcpp::IntegerVector marker1, Rcpp::IntegerVector marker2, Rcpp::IntegerVector used, 
         Rcpp::IntegerVector iter, Rcpp::IntegerVector miniter, Rcpp::IntegerVector minpair,
-        Rcpp::List seeds, Rcpp::IntegerVector streams) {
-   
+        Rcpp::List seeds, Rcpp::IntegerVector streams) 
+{
+    auto mat_ptr=beachmat::create_matrix<M>(input);
     const size_t ncells=mycells.size();
     const size_t ngenes=mat_ptr->get_nrow();
     const size_t nused=used.size();
@@ -98,17 +99,19 @@ SEXP cyclone_scores_internal (M mat_ptr,
     }
 
     Rcpp::NumericVector output(ncells, NA_REAL);
-    V all_exprs(ngenes), current_exprs(nused);
+    typename M::vector current_exprs(nused);
+    beachmat::const_column<M> col_holder(mat_ptr.get(), false); // need indexed access.
 
     auto oIt=output.begin();
     for (auto cIt=mycells.begin(); cIt!=mycells.end(); ++cIt, ++oIt) { 
         const size_t curcell=*cIt - 1;
 
         // Extracting only the expression values that are used in at least one pair.
-        auto inIt=mat_ptr->get_const_col(curcell, all_exprs.begin());
+        col_holder.fill(curcell);
+        auto allIt=col_holder.get_values();
         auto curIt=current_exprs.begin();
         for (auto uIt=used.begin(); uIt!=used.end(); ++uIt, ++curIt) {
-            (*curIt)=*(inIt + *uIt);
+            (*curIt)=*(allIt + *uIt);
         }
 
         const double curscore=get_proportion(current_exprs, minp, marker1, marker2);
@@ -140,11 +143,9 @@ SEXP cyclone_scores(SEXP mycells, SEXP exprs, SEXP marker1, SEXP marker2, SEXP i
     BEGIN_RCPP
     int rtype=beachmat::find_sexp_type(exprs);
     if (rtype==INTSXP) {
-        auto mat=beachmat::create_integer_matrix(exprs);
-        return cyclone_scores_internal<Rcpp::IntegerVector>(mat.get(), mycells, marker1, marker2, indices, iter, miniter, minpair, seeds, streams);
+        return cyclone_scores_internal<beachmat::integer_matrix>(exprs, mycells, marker1, marker2, indices, iter, miniter, minpair, seeds, streams);
     } else {
-        auto mat=beachmat::create_numeric_matrix(exprs);
-        return cyclone_scores_internal<Rcpp::NumericVector>(mat.get(), mycells, marker1, marker2, indices, iter, miniter, minpair, seeds, streams);
+        return cyclone_scores_internal<beachmat::numeric_matrix>(exprs, mycells, marker1, marker2, indices, iter, miniter, minpair, seeds, streams);
     }
     END_RCPP
 }
