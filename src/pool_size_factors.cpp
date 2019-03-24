@@ -46,13 +46,17 @@ SEXP pool_size_factors (SEXP exprs, SEXP ref, SEXP ordering, SEXP poolsizes) {
         }
     }
 
-    // Setting up the storage space.
-    // The first vector is unfilled as it gets dropped and refilled in the first iteration anyway.
+    /* Setting up the storage space.
+     * The first vector is unfilled as it gets dropped and refilled in the first iteration anyway.
+     * We also trigger generation of indices so that each element doesn't generate its own indices.
+     */
     typedef beachmat::numeric_matrix M;
     std::deque<beachmat::const_column<M> > collected(1, beachmat::const_column<M>(emat.get()));
+    collected.back().get_indices(); 
+
     auto orIt_tail=order.begin();
     for (int s=1; s<last_size; ++s, ++orIt_tail) {
-        collected.push_back(beachmat::const_column<M>(emat.get()));
+        collected.push_back(collected.front());
         collected.back().fill(*orIt_tail);
     }
 
@@ -74,9 +78,10 @@ SEXP pool_size_factors (SEXP exprs, SEXP ref, SEXP ordering, SEXP poolsizes) {
     for (size_t win=0; win<ncells; ++win, ++orIt, ++orIt_tail) {
         std::fill(combined.begin(), combined.end(), 0);
 
-        // Rotating; effectively moves the first element of 'collected' to the end.
-        // The is the same as shifting the column that we've moved past to the end,
-        // and then overwriting it with the next column.
+        /* Rotating; effectively moves the first element of 'collected' to the end.
+         * The is the same as shifting the column that we've moved past to the end,
+         * and then overwriting it with the next column.
+         */
         std::rotate(collected.begin(), collected.begin()+1, collected.end());
         collected.back().fill(*orIt_tail);
 
@@ -90,14 +95,14 @@ SEXP pool_size_factors (SEXP exprs, SEXP ref, SEXP ordering, SEXP poolsizes) {
             colIt+=SIZE;
 
             for (; index<SIZE; ++index) {
-                const auto& current=collected[index];
+                auto& current=collected[index];
                 auto val=current.get_values();
 
                 if (current.is_sparse()) {
                     auto n=current.get_n();
                     auto idx=current.get_indices();
                     for (auto i=0; i<n; ++i, ++val, ++idx) {
-                        combined[*idx]=*val;
+                        combined[*idx]+=*val;
                     }
                 } else { 
                     for (auto cIt=combined.begin(); cIt!=combined.end(); ++cIt, ++val) {

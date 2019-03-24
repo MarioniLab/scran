@@ -16,7 +16,7 @@
 template <class M>
 SEXP subset_and_divide_internal(SEXP incoming, SEXP row_subset, SEXP col_subset, SEXP scaling) {
     auto in=beachmat::create_matrix<M>(incoming);
-    beachmat::const_column<M> col_holder(in.get());
+    beachmat::const_column<M> col_holder(in.get(), false); // need to index by rows, so turn off sparsity.
 
     // Checking subset vectors
     auto rsubout=check_subset_vector(row_subset, in->get_nrow());
@@ -52,7 +52,7 @@ SEXP subset_and_divide_internal(SEXP incoming, SEXP row_subset, SEXP col_subset,
 
     for (size_t cs=0; cs<cslen; ++cs) {
         const auto& curdex=csubout[cs];
-        col_holder.fill(cs, start_row, end_row);
+        col_holder.fill(curdex, start_row, end_row);
 
         // Extracting the column, subsetting the rows.
         auto val=col_holder.get_values();
