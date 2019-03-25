@@ -2,6 +2,7 @@
 
 #include "beachmat/numeric_matrix.h"
 #include "beachmat/integer_matrix.h"
+#include "beachmat/utils/const_column.h"
 #include "utils.h"
 
 #include <stdexcept>
@@ -12,18 +13,20 @@
  * computed as colSums(MAT[row_subset,col_subset]).
  */
 
-template <class V, class M>
-SEXP subset_and_divide_internal(M in, SEXP row_subset, SEXP col_subset, SEXP scaling) {
+template <class M>
+SEXP subset_and_divide_internal(SEXP incoming, SEXP row_subset, SEXP col_subset, SEXP scaling) {
+    auto in=beachmat::create_matrix<M>(incoming);
+    beachmat::const_column<M> col_holder(in.get(), false); // need to index by rows, so turn off sparsity.
+
     // Checking subset vectors
     auto rsubout=check_subset_vector(row_subset, in->get_nrow());
     const size_t rslen=rsubout.size();
     auto csubout=check_subset_vector(col_subset, in->get_ncol());
     const size_t cslen=csubout.size();
 
-    V incoming(in->get_nrow());
+    // Cutting out extraction costs for unneeded start/end elements.
     size_t start_row=0, end_row=0;
     if (rslen) {
-        // Cutting out extraction costs for unneeded start/end elements.
         start_row=*std::min_element(rsubout.begin(), rsubout.end());
         end_row=*std::max_element(rsubout.begin(), rsubout.end())+1;
     }
@@ -41,17 +44,21 @@ SEXP subset_and_divide_internal(M in, SEXP row_subset, SEXP col_subset, SEXP sca
     Rcpp::NumericVector outscale(cslen);
     Rcpp::NumericVector outgoing(rslen), averaged(rslen);
 
-    beachmat::output_param oparam=(in->get_matrix_type()==beachmat::SPARSE ? beachmat::SPARSE_PARAM : beachmat::SIMPLE_PARAM);
-    auto omat=beachmat::create_numeric_output(rslen, cslen, oparam);
+    beachmat::output_param OPARAM;
+    if (in->get_class()=="dgCMatrix" && in->get_package()=="Matrix") {
+        OPARAM=beachmat::output_param("dgCMatrix", "Matrix");
+    }
+    auto omat=beachmat::create_numeric_output(rslen, cslen, OPARAM);
 
     for (size_t cs=0; cs<cslen; ++cs) {
         const auto& curdex=csubout[cs];
+        col_holder.fill(curdex, start_row, end_row);
 
         // Extracting the column, subsetting the rows.
-        auto inIt=in->get_const_col(curdex, incoming.begin(), start_row, end_row);
+        auto val=col_holder.get_values();
         auto oIt=outgoing.begin();
         for (const auto& r : rsubout) {
-            (*oIt)=*(inIt + r - start_row);
+            (*oIt)=*(val + r - start_row);
             ++oIt;
         }
 
@@ -96,11 +103,9 @@ SEXP subset_and_divide(SEXP matrix, SEXP row_subset, SEXP col_subset, SEXP scali
     BEGIN_RCPP
     int rtype=beachmat::find_sexp_type(matrix);
     if (rtype==INTSXP) {
-        auto input=beachmat::create_integer_matrix(matrix);
-        return subset_and_divide_internal<Rcpp::IntegerVector>(input.get(), row_subset, col_subset, scaling);
+        return subset_and_divide_internal<beachmat::integer_matrix>(matrix, row_subset, col_subset, scaling);
     } else {
-        auto input=beachmat::create_numeric_matrix(matrix);
-        return subset_and_divide_internal<Rcpp::NumericVector>(input.get(), row_subset, col_subset, scaling);
+        return subset_and_divide_internal<beachmat::numeric_matrix>(matrix, row_subset, col_subset, scaling);
     }
     END_RCPP
 }

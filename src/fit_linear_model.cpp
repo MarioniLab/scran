@@ -10,12 +10,13 @@
 #include <vector>
 
 template<class M>
-SEXP fit_linear_model_internal (SEXP qr, SEXP qraux, M emat, SEXP subset, SEXP get_coefs) {
+SEXP fit_linear_model_internal (SEXP qr, SEXP qraux, SEXP inmat, SEXP subset, SEXP get_coefs) {
     // Setting up for Q-based multiplication.
     run_dormqr multQ(qr, qraux, 'T');
     const int ncoefs=multQ.get_ncoefs();
     const int ncells=multQ.get_nobs();
 
+    auto emat=beachmat::create_matrix<M>(inmat);
     if (ncells!=static_cast<int>(emat->get_ncol())) {
         throw std::runtime_error("number of rows of QR matrix not equal to number of cells");
     } else if (ncells==0) {
@@ -65,11 +66,9 @@ SEXP fit_linear_model (SEXP qr, SEXP qraux, SEXP exprs, SEXP subset, SEXP get_co
     BEGIN_RCPP
     int rtype=beachmat::find_sexp_type(exprs);
     if (rtype==INTSXP) {
-        auto emat=beachmat::create_integer_matrix(exprs);
-        return fit_linear_model_internal(qr, qraux, emat.get(), subset, get_coefs);
+        return fit_linear_model_internal<beachmat::integer_matrix>(qr, qraux, exprs, subset, get_coefs);
     } else {
-        auto emat=beachmat::create_numeric_matrix(exprs);
-        return fit_linear_model_internal(qr, qraux, emat.get(), subset, get_coefs);
+        return fit_linear_model_internal<beachmat::numeric_matrix>(qr, qraux, exprs, subset, get_coefs);
     }
     END_RCPP
 }
@@ -77,9 +76,11 @@ SEXP fit_linear_model (SEXP qr, SEXP qraux, SEXP exprs, SEXP subset, SEXP get_co
 /* A much faster function when there's a one-way layout involved. */
 
 template<class M>
-SEXP fit_oneway_internal (Rcpp::List bygroup, M emat, SEXP subset) {
-    // Checking the various groupings.
+SEXP fit_oneway_internal (Rcpp::List bygroup, SEXP inmat, SEXP subset) {
+    auto emat=beachmat::create_matrix<M>(inmat);
     const size_t ncells=emat->get_ncol();
+ 
+    // Checking the various groupings.
     const size_t ngroups=bygroup.size();
     std::vector<Rcpp::IntegerVector> groups(ngroups);
     for (size_t i=0; i<ngroups; ++i) { 
@@ -137,11 +138,9 @@ SEXP fit_oneway (SEXP grouping, SEXP exprs, SEXP subset) {
     BEGIN_RCPP
     int rtype=beachmat::find_sexp_type(exprs);
     if (rtype==INTSXP) {
-        auto emat=beachmat::create_integer_matrix(exprs);
-        return fit_oneway_internal(grouping, emat.get(), subset);
+        return fit_oneway_internal<beachmat::integer_matrix>(grouping, exprs, subset);
     } else {
-        auto emat=beachmat::create_numeric_matrix(exprs);
-        return fit_oneway_internal(grouping, emat.get(), subset);
+        return fit_oneway_internal<beachmat::numeric_matrix>(grouping, exprs, subset);
     }
     END_RCPP
 }

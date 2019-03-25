@@ -53,18 +53,20 @@ test_that("quickCluster with use.ranks=TRUE is consistent with clustering on cor
 set.seed(30000101)
 test_that("use.ranks=TRUE generates the correct DeferredMatrix", {
     mat <- matrix(rpois(10000, lambda=5), nrow=20)
-    ref <- scran:::.create_rank_matrix(mat, as.sparse=FALSE)
-    def <- scran:::.create_rank_matrix(mat, as.sparse=TRUE)
+    ref <- scran:::.create_rank_matrix(mat, deferred=FALSE)
+    def <- scran:::.create_rank_matrix(mat, deferred=TRUE)
+    expect_s4_class(def, "DeferredMatrix")
     expect_equivalent(ref, as.matrix(def))
 
     # Same results from the two options in quickCluster() itself.
     ref <- quickCluster(mat, use.ranks=TRUE, d=NA, method="hclust")
-    out <- quickCluster(mat, use.ranks=TRUE, d=min(dim(mat)), method="hclust")
+    bspar <- BiocSingular::ExactParam(deferred=TRUE)
+    out <- quickCluster(as(mat, "dgCMatrix"), use.ranks=TRUE, d=min(dim(mat)), method="hclust", BSPARAM=bspar)
     expect_identical(ref, out)
 
     # Set low 'k' to avoid inconsistencies caused by tied neighbors.
     ref <- quickCluster(mat, use.ranks=TRUE, d=NA, method="igraph", k=2)
-    out <- quickCluster(mat, use.ranks=TRUE, d=min(dim(mat)), method="igraph", k=2)
+    out <- quickCluster(as(mat, "dgCMatrix"), use.ranks=TRUE, d=min(dim(mat)), method="igraph", k=2, BSPARAM=bspar)
     expect_identical(ref, out)
 })
 

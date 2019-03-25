@@ -1,9 +1,11 @@
 #' @importFrom stats hclust dist
 #' @importFrom dynamicTreeCut cutreeDynamic
-#' @importFrom scater calcAverage librarySizeFactors normalizeCounts
+#' @importFrom scater librarySizeFactors normalizeCounts
 #' @importFrom igraph cluster_walktrap
 #' @importFrom BiocParallel SerialParam bpmapply
 #' @importFrom BiocGenerics t
+#' @importFrom BiocSingular ExactParam bsdeferred
+#' @importClassesFrom Matrix dgCMatrix
 .quick_cluster <- function(x, min.size=100, method=c("igraph", "hclust"), use.ranks=NULL,
     pc.approx=NULL, d=NULL, subset.row=NULL, min.mean=1, graph.fun=cluster_walktrap,
     BSPARAM=ExactParam(), BPPARAM=SerialParam(), block=NULL, block.BPPARAM=SerialParam(), 
@@ -45,7 +47,14 @@
         if (is.null(d)) {
             d <- 50
         }
-        y <- .create_rank_matrix(x, as.sparse=!is.na(d), subset.row=subset.row, min.mean=min.mean)
+
+        # Only preserving sparsity in the ranks if:
+        # - the input type is amenable,
+        # - we're using the output for PCA via fast %*%,
+        # - we're allowing deferred calculations for PCA.
+        deferred <- !is.na(d) && is(x, "dgCMatrix") && bsdeferred(BSPARAM)
+
+        y <- .create_rank_matrix(x, deferred=deferred, subset.row=subset.row, min.mean=min.mean)
     } else {
         sf <- librarySizeFactors(x, subset_row=subset.row)
         y <- normalizeCounts(x, size_factors=sf, return_log=TRUE, subset_row=subset.row)
@@ -95,8 +104,8 @@
 
 #' @importFrom Matrix colMeans t
 #' @importFrom BiocSingular DeferredMatrix
-.create_rank_matrix <- function(x, as.sparse, ...) {
-    if (!as.sparse) {
+.create_rank_matrix <- function(x, deferred, ...) {
+    if (!deferred) {
         y <- scaledColRanks(x, ..., transposed=TRUE)
     } else {
         y <- scaledColRanks(x, ..., transposed=FALSE, as.sparse=TRUE)
@@ -137,8 +146,7 @@
         clusters <- max.clust
     }
 
-    clusters <- as.integer(factor(clusters))
-    return(clusters)
+    as.integer(factor(clusters))
 }
 
 ############################

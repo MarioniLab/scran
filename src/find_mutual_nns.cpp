@@ -62,12 +62,10 @@ SEXP cosine_norm_internal (M mat, SEXP original, SEXP return_mat) {
     // Deciding whether or not to return the matrix.
     bool mat_return=check_logical_scalar(return_mat, "return matrix specification");
     
-    beachmat::numeric_output* optr=NULL;
-    std::vector<std::unique_ptr<beachmat::numeric_output> > holder;
+    std::unique_ptr<beachmat::numeric_output> optr=nullptr;
     if (mat_return) { 
-        holder.push_back(beachmat::create_numeric_output(nrow, ncol, 
-                         beachmat::output_param(original, false, true)));
-        optr=holder.front().get();
+        optr=beachmat::create_numeric_output(nrow, ncol, 
+            beachmat::output_param(mat->get_class(), mat->get_package()));
     }
    
     // Calculating the L2 norm of each vector and applying it. 
@@ -177,18 +175,15 @@ SEXP smooth_gaussian_kernel(SEXP vect, SEXP index, SEXP data, SEXP sigma) {
 
     // Using distances between cells and MNN-involved cells to smooth the correction vector per cell.
     for (const auto& mnn : mnncell) {
-        auto mnn_iIt=mat->get_const_col(mnn, mnn_incoming.begin());
+        mat->get_col(mnn, mnn_incoming.begin());
 
         for (int other=0; other<ncells; ++other) {
             double& curdist2=(distances2[other]=0);
-            auto other_iIt=mat->get_const_col(other, other_incoming.begin());
-            auto iIt_copy=mnn_iIt;
+            mat->get_col(other, other_incoming.begin());
 
             for (int g=0; g<ngenes_for_dist; ++g) {
-                const double tmp=(*iIt_copy  - *other_iIt);
+                const double tmp=mnn_incoming[g] - other_incoming[g];
                 curdist2+=tmp*tmp;
-                ++other_iIt;
-                ++iIt_copy;
             }
         }
 
@@ -290,9 +285,13 @@ SEXP adjust_shift_variance(SEXP data1, SEXP data2, SEXP vect, SEXP sigma) {
         tmpcell_same(ngenes),
         tmpcell_other(ngenes);
 
+    auto curcell=tmpcell_current.begin();
+    auto samecell=tmpcell_same.begin();
+    auto othercell=tmpcell_other.begin();
+
     // Iterating through all cells.
     for (size_t cell=0; cell<ncells2; ++cell) {
-        const auto curcell=d2->get_const_col(cell, tmpcell_current.begin());
+        d2->get_col(cell, curcell);
 
         // Calculating the l2 norm and adjusting to a unit vector.
         double l2norm=0;
@@ -314,7 +313,7 @@ SEXP adjust_shift_variance(SEXP data1, SEXP data2, SEXP vect, SEXP sigma) {
                 prob2+=1;
                 totalprob2+=1;
             } else {
-                const auto samecell=d2->get_const_col(same, tmpcell_same.begin());
+                d2->get_col(same, samecell);
                 const double sameproj=std::inner_product(grad.begin(), grad.end(), samecell, 0.0); // Projection
                 const double samedist=sq_distance_to_line(curcell, grad.begin(), samecell, working); // Distance.
                 
@@ -330,7 +329,7 @@ SEXP adjust_shift_variance(SEXP data1, SEXP data2, SEXP vect, SEXP sigma) {
         // Filling up the coordinates and weights for the reference batch.
         double totalprob1=0;
         for (size_t other=0; other<ncells1; ++other) {
-            const auto othercell=d1->get_const_col(other, tmpcell_other.begin());
+            d1->get_col(other, othercell);
             distance1[other].first=std::inner_product(grad.begin(), grad.end(), othercell, 0.0); // Projection
             const double otherdist=sq_distance_to_line(curcell, grad.begin(), othercell, working); // Distance.
             totalprob1+=(distance1[other].second=std::exp(-otherdist/s2));

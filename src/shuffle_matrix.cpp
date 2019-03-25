@@ -1,15 +1,17 @@
 #include "scran.h"
 
-#include "utils.h"
-
 #include "beachmat/numeric_matrix.h"
 #include "beachmat/integer_matrix.h"
+
+#include "utils.h"
 #include "rand_custom.h"
 
-template<class V, class I, class O>
-void shuffle_matrix_internal(I in, O out, SEXP seed, SEXP stream) {
+template<class I, class O>
+Rcpp::RObject shuffle_matrix_internal(SEXP incoming, SEXP seed, SEXP stream) {
+    auto in=beachmat::create_matrix<I>(incoming);
     const size_t NR=in->get_nrow(), NC=in->get_ncol();
-    V tmp(NR);
+    auto out=beachmat::create_output<O>(NR, NC, beachmat::output_param(in.get()));
+    typename I::vector tmp(NR);
 
     auto gen=create_pcg32(seed, check_integer_scalar(stream, "stream"));
     for (size_t c=0; c<NC; ++c) {
@@ -18,22 +20,16 @@ void shuffle_matrix_internal(I in, O out, SEXP seed, SEXP stream) {
         out->set_col(c, tmp.begin());
     }
 
-    return;
+    return out->yield();
 }
 
 SEXP shuffle_matrix(SEXP incoming, SEXP seed, SEXP stream) {
     BEGIN_RCPP
     int rtype=beachmat::find_sexp_type(incoming);
     if (rtype==INTSXP) {
-        auto mat=beachmat::create_integer_matrix(incoming);
-        auto out=beachmat::create_integer_output(mat->get_nrow(), mat->get_ncol(), beachmat::output_param(mat->get_matrix_type(), true, true));
-        shuffle_matrix_internal<Rcpp::IntegerVector>(mat.get(), out.get(), seed, stream);
-        return out->yield();
+        return shuffle_matrix_internal<beachmat::integer_matrix, beachmat::integer_output>(incoming, seed, stream);
     } else {
-        auto mat=beachmat::create_numeric_matrix(incoming);
-        auto out=beachmat::create_numeric_output(mat->get_nrow(), mat->get_ncol(), beachmat::output_param(mat->get_matrix_type(), true, true));
-        shuffle_matrix_internal<Rcpp::NumericVector>(mat.get(), out.get(), seed, stream);
-        return out->yield();
+        return shuffle_matrix_internal<beachmat::numeric_matrix, beachmat::numeric_output>(incoming, seed, stream);
     }
     END_RCPP
 }
