@@ -16,6 +16,26 @@ test_that("scaledColRanks correctly computes the ranks", {
     })
     expect_equal(emp.ranks, ref)
 
+    # Behaves with many ties.
+	dummy <- matrix(sample(50, ncells*ngenes, replace=TRUE), ncol=ncells, nrow=ngenes)
+    emp.ranks <- scaledColRanks(dummy)
+    ref <- apply(dummy, 2, FUN=function(y) {
+        r <- rank(y)
+        r <- r - mean(r)
+        r/sqrt(sum(r^2))/2
+    })
+    expect_equal(emp.ranks, ref)
+
+    # Behaves with no ties.
+	dummy <- matrix(rnorm(ncells*ngenes), ncol=ncells, nrow=ngenes)
+    emp.ranks <- scaledColRanks(dummy)
+    ref <- apply(dummy, 2, FUN=function(y) {
+        r <- rank(y)
+        r <- r - mean(r)
+        r/sqrt(sum(r^2))/2
+    })
+    expect_equal(emp.ranks, ref)
+
     # Works correctly with shuffling.
     shuffled <- sample(ncells)
     emp.ranks <- scaledColRanks(dummy, subset.row=shuffled)
@@ -77,12 +97,17 @@ test_that("scaledColRanks handles sparsity requests", {
 
     library(Matrix)
     rnks <- scaledColRanks(mat, as.sparse=TRUE)
+    expect_identical(rnks!=0, as(mat, "dgCMatrix")!=0)
+
     centred <- sweep(rnks, 2, Matrix::colMeans(rnks), "-")
     centred <- as.matrix(centred)
     dimnames(centred) <- NULL
     expect_equal(centred, ref)
 
+    # With transposition.
     rnks <- scaledColRanks(mat, as.sparse=TRUE, transposed=TRUE)
+    expect_identical(rnks!=0, as(t(mat), "dgCMatrix")!=0)
+
     centred <- rnks - Matrix::rowMeans(rnks)
     centred <- as.matrix(centred)
     dimnames(centred) <- NULL
