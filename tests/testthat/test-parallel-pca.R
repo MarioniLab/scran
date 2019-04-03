@@ -51,6 +51,7 @@ test_that("parallelPCA respects the seed", {
     expect_identical(ncol(ipcs), ncol(pcs))
 
     # With parallelization.
+    skip_on_os("windows")
     BPPARAM <- MulticoreParam(3) # define BEFORE set.seed, otherwise this sets its own seed.
     set.seed(100)
     alt <- parallelPCA(lcounts, value="pca", niters=3, BPPARAM=BPPARAM)
