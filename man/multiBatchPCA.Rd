@@ -52,6 +52,7 @@ Aaron Lun
 }
 
 \examples{
+\dontrun{
 d1 <- matrix(rnorm(5000), ncol=100)
 d1[1:10,1:10] <- d1[1:10,1:10] + 2 # unique population in d1
 d2 <- matrix(rnorm(2000), ncol=40)
@@ -63,4 +64,5 @@ xlim <- range(c(out[[1]][,1], out[[2]][,1]))
 ylim <- range(c(out[[1]][,2], out[[2]][,2]))
 plot(out[[1]][,1], out[[1]][,2], col="red", xlim=xlim, ylim=ylim)
 points(out[[2]][,1], out[[2]][,2], col="blue") 
+}
 }

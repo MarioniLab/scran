@@ -15,6 +15,7 @@ mnnCorrect <- function(..., k=20, sigma=0.1, cos.norm.in=TRUE, cos.norm.out=TRUE
 # with modifications by Aaron Lun
 # created 7 April 2017
 {
+    .Deprecated("batchelor::mnnCorrect")
     batches <- list(...) 
     nbatches <- length(batches) 
     if (nbatches < 2L) { 

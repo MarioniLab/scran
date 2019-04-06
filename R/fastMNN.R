@@ -11,6 +11,7 @@ fastMNN <- function(..., k=20, cos.norm=TRUE, ndist=3, d=50, approximate=FALSE,
 # written by Aaron Lun
 # created 26 May 2018
 {
+    .Deprecated("batchelor::fastMNN")
     batches <- list(...) 
     nbatches <- length(batches) 
     if (nbatches < 2L) { 

@@ -59,6 +59,7 @@ Aaron Lun
 }
 
 \examples{
+\dontrun{
 d1 <- matrix(rnbinom(50000, mu=10, size=1), ncol=100)
 sce1 <- SingleCellExperiment(list(counts=d1))
 sizeFactors(sce1) <- runif(ncol(d1))
@@ -70,6 +71,7 @@ sizeFactors(sce2) <- runif(ncol(d2))
 out <- multiBatchNorm(sce1, sce2)
 summary(sizeFactors(out[[1]]))
 summary(sizeFactors(out[[2]]))
+}
 }
 
 \keyword{normalization}

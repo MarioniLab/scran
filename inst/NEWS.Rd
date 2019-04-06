@@ -25,6 +25,8 @@ Deprecated tol= as ties are now directly determined by rowRanks().
 
 \item Switched to BiocSingular for PCA calculations across all functions.
 Deprecated approximate= and pc.approx= arguments in favour of BSPARAM=.
+
+\item Deprecated all batch correction functions to prepare for the migration to batchelor.
 }}
 
 \section{Version 1.10.0}{\itemize{

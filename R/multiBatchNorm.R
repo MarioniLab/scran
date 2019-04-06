@@ -8,6 +8,7 @@ multiBatchNorm <- function(..., assay.type="counts", norm.args=list(), min.mean=
 # written by Aaron Lun
 # created 4 June 2018
 {
+    .Deprecated("batchelor::multiBatchNorm")
     batches <- list(...)
     .check_batch_consistency(batches, byrow=TRUE)
     .check_spike_consistency(batches)

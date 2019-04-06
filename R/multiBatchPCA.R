@@ -9,6 +9,7 @@ multiBatchPCA <- function(..., d=50, approximate=FALSE, irlba.args=list(), subse
 # written by Aaron Lun
 # created 4 July 2018
 {
+    .Deprecated("batchelor::multiBatchPCA")
     mat.list <- list(...)
     out <- .SCEs_to_matrices(mat.list, assay.type=assay.type, subset.row=subset.row, get.spikes=get.spikes)
     mat.list <- out$batches

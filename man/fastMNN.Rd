@@ -128,10 +128,7 @@ Aaron Lun
 }
 
 \examples{
-\dontshow{
-# To avoid CHECK problems with parallelization.
-register(SerialParam())
-}
+\dontrun{
 
 B1 <- matrix(rnorm(10000), ncol=50) # Batch 1 
 B2 <- matrix(rnorm(10000), ncol=50) # Batch 2
@@ -148,6 +145,7 @@ all.equal(head(out,-1), out.2) # should be TRUE (no rotation)
 # Obtaining corrected expression values for genes 1 and 10.
 cor.exp <- tcrossprod(out$rotation[c(1,10),], out$corrected)
 dim(cor.exp)
+}
 }
 
 \references{
