@@ -155,7 +155,7 @@ test_that("Cyclone gives the same results regardless of the number of cores", {
     set.seed(200)
     ref <- cyclone(X, markers)
 
-    BPPARAM <- MulticoreParam(3) # Before set.seed, as MulticoreParam changes the seed.
+    BPPARAM <- safeBPParam(3) # Before set.seed, as safeBPParam changes the seed.
     set.seed(200)
     alt <- cyclone(X, markers, BPPARAM=BPPARAM)
     expect_identical(ref, alt)

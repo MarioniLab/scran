@@ -117,7 +117,7 @@ test_that("quickCluster functions correctly with blocking", {
 
     # Should avoid problems with multiple BPPARAM specifications.
     ref <- quickCluster(mat, min.size=10, block=block, method="igraph", use.ranks=FALSE)
-    obs <- quickCluster(mat, min.size=10, block=block, method="igraph", use.ranks=FALSE, block.BPPARAM=BiocParallel::MulticoreParam())
+    obs <- quickCluster(mat, min.size=10, block=block, method="igraph", use.ranks=FALSE, block.BPPARAM=safeBPParam(2))
     expect_identical(obs, ref)
 })
 

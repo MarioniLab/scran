@@ -40,13 +40,13 @@ test_that("worker assignment works correctly", {
     wout <- scran:::.worker_assign(101, SerialParam())
     expect_identical(wout, list(seq_len(101)))
 
-    skip_on_os("windows") # No proper MulticoreParam support.
-    wout <- scran:::.worker_assign(101, MulticoreParam(workers=2))
+    skip_on_os("windows") # No proper safeBPParam support.
+    wout <- scran:::.worker_assign(101, safeBPParam(2))
     expect_identical(length(wout), 2L) 
     expect_true(all(lengths(wout) >= floor(101/2)))
     expect_identical(unlist(wout), seq_len(101))
 
-    wout <- scran:::.worker_assign(101, MulticoreParam(workers=3))
+    wout <- scran:::.worker_assign(101, safeBPParam(3))
     expect_identical(length(wout), 3L) 
     expect_true(all(lengths(wout) >= floor(101/3)))
     expect_identical(unlist(wout), seq_len(101))

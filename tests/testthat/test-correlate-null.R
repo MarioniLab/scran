@@ -105,7 +105,7 @@ test_that("correlateNull is unaffected by the number of cores", {
     set.seed(200)
     ref <- correlateNull(12, iters=1e3)
 
-    BPPARAM <- MulticoreParam(3) # Before set.seed, as MulticoreParam resets the seed.
+    BPPARAM <- safeBPParam(3) # Before set.seed, as safeBPParam resets the seed.
     set.seed(200)
     out <- correlateNull(12, iters=1e3, BPPARAM=BPPARAM)
     expect_identical(ref, out)
