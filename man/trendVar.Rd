@@ -68,10 +68,11 @@ This provides a fairly flexible fit while protecting against genes with very lar
 Arguments to \code{\link{loess}} are specified with \code{loess.args}, with defaults of \code{span=0.3}, \code{family="symmetric"} and \code{degree=1} unless otherwise specified. 
 Some experimentation with these parameters may be required to obtain satisfactory results.
 
-If \code{method="spline"}, smoothing will instead be performed using the \code{\link{smooth.spline}} function 
-Arguments are specified with \code{spline.args}, with a default degrees of freedom of \code{df=4} unless otherwise specified.
+If \code{method="spline"}, smoothing will instead be performed using \code{robustSmoothSpline} (a robustified version of the \code{\link{smooth.spline}} function in the \pkg{aroma.light} package).
 Splines can be more effective than loess at capturing smooth curves with strong non-linear gradients.
 Spline fitting is also faster for very large numbers of points, which may occur in large data sets with many genes and/or many levels of \code{block}.
+Arguments are specified with \code{spline.args} with a default \code{df=4} and \code{"symmetric"} robust weighting.
+Users can force the use of cross-validation by supplying an invalid \code{df=0}, but this tends to result in a rather bumpy trend.
 
 The \code{trendVar} function will produce an output \code{trend} function with which fitted values can be computed.
 When extrapolating to values below the smallest observed mean, the output function will approach zero.
