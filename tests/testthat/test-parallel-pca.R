@@ -44,9 +44,9 @@ test_that("parallelPCA respects the seed", {
 
     # With irlba:
     set.seed(100)
-    ipcs <- parallelPCA(lcounts, value="pca", niters=3, approximate=TRUE, max.rank=10)
+    ipcs <- parallelPCA(lcounts, value="pca", niters=3, BSPARAM=BiocSingular::IrlbaParam(), max.rank=10)
     set.seed(100)
-    ipcs2 <- parallelPCA(lcounts, value="pca", niters=3, approximate=TRUE, max.rank=10)
+    ipcs2 <- parallelPCA(lcounts, value="pca", niters=3, BSPARAM=BiocSingular::IrlbaParam(), max.rank=10)
     expect_identical(pcs, pcs2)
     expect_identical(ncol(ipcs), ncol(pcs))
 

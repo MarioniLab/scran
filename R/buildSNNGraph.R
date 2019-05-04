@@ -43,7 +43,6 @@
 # created 16 November 2017
 { 
     nn.out <- .setup_knn_data(x=x, subset.row=subset.row, d=d, transposed=transposed,
-        pc.approx=pc.approx, irlba.args=irlba.args,
         k=k, BNPARAM=BNPARAM, BSPARAM=BSPARAM, BPPARAM=BPPARAM) 
 
     # Building the KNN graph.

@@ -63,15 +63,15 @@ test_that("correlatePairs runs properly", {
 
 test_that("buildSNNGraph with irlba runs properly on sparse matrices", {
     set.seed(1000)
-    g1 <- suppressWarnings(buildSNNGraph(X, pc.approx=TRUE))
+    g1 <- buildSNNGraph(X, BSPARAM=BiocSingular::IrlbaParam())
     set.seed(1000)
-    g2 <- suppressWarnings(buildSNNGraph(X_, pc.approx=TRUE))
+    g2 <- buildSNNGraph(X_, BSPARAM=BiocSingular::IrlbaParam())
     expect_identical(g1[], g2[])
 
     set.seed(100)
-    g1 <- suppressWarnings(buildSNNGraph(X, d=10, pc.approx=TRUE))
+    g1 <- buildSNNGraph(X, d=10, BSPARAM=BiocSingular::IrlbaParam())
     set.seed(100)
-    g2 <- suppressWarnings(buildSNNGraph(X_, d=10, pc.approx=TRUE))
+    g2 <- buildSNNGraph(X_, d=10, BSPARAM=BiocSingular::IrlbaParam())
     expect_identical(g1[], g2[])
 })
 

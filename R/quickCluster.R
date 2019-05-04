@@ -22,7 +22,7 @@
         x.by.block <- .split_matrix_by_workers(x, by.block, byrow=FALSE)
         collected <- bpmapply(FUN=.quick_cluster, x.by.block, 
             MoreArgs=list(min.size=min.size, method=method, use.ranks=use.ranks,
-                pc.approx=pc.approx, subset.row=subset.row, min.mean=min.mean, 
+                subset.row=subset.row, min.mean=min.mean, 
                 BSPARAM=BSPARAM, BPPARAM=BPPARAM, ...), 
             BPPARAM=block.BPPARAM)
 
