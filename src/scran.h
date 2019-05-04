@@ -67,16 +67,6 @@ SEXP compute_CV2(SEXP, SEXP, SEXP, SEXP);
 
 SEXP shuffle_matrix(SEXP, SEXP, SEXP);
 
-// MNN calculations.
-
-SEXP find_mutual_nns(SEXP, SEXP);
-
-SEXP cosine_norm(SEXP, SEXP);
-
-SEXP smooth_gaussian_kernel(SEXP, SEXP, SEXP, SEXP);
-
-SEXP adjust_shift_variance(SEXP, SEXP, SEXP, SEXP);
-
 }
 
 #endif 
