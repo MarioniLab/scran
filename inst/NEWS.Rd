@@ -2,12 +2,18 @@
 \title{scran News}
 \encoding{UTF-8}
 
+\section{Version 1.14.0}{\itemize{
+\item Removed deprecated approximate= and pc.approx= arguments.
+
+\item Removed deprecated batch correction functions.
+}}
+
 \section{Version 1.12.0}{\itemize{
 \item Added option in quickCluster() to cluster on log-expression profiles.
 Modified defaults to use graph-based clustering on log-expression-derived PCs.
 
 \item Modified default choice of ref.clust= in computeSumFactors().
-Degrade quietly to library size factors when cluster is to small for all pool sizes.
+Degrade quietly to library size factors when cluster is too small for all pool sizes.
 
 \item Minor change to cyclone() random number generation for consistency upon parallelization.
 

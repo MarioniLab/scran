@@ -1,20 +1,19 @@
 Package: scran
-Version: 1.13.0
-Date: 2019-04-16
+Version: 1.13.1
+Date: 2019-05-04
 Title: Methods for Single-Cell RNA-Seq Data Analysis
 Authors@R: c(person("Aaron", "Lun", role = c("aut", "cre"), 
         email = "infinite.monkeys.with.keyboards@gmail.com"), 
         person("Karsten", "Bach", role = "aut"),
         person("Jong Kyoung", "Kim", role = "ctb"), 
-        person("Antonio", "Scialdone", role="ctb"), 
-        person("Laleh", "Haghverdi", role="ctb"))
+        person("Antonio", "Scialdone", role="ctb"))
 Depends: SingleCellExperiment
 Imports: SummarizedExperiment, S4Vectors, BiocGenerics, BiocParallel,
         Rcpp (>= 0.12.14), stats, methods, utils, Matrix, scater, 
         edgeR, limma, dynamicTreeCut, BiocNeighbors, igraph, statmod, 
         DelayedArray, DelayedMatrixStats, BiocSingular, dqrng
 Suggests: testthat, BiocStyle, knitr, beachmat, HDF5Array, irlba, 
-        org.Mm.eg.db, DESeq2, monocle, pracma, Biobase, aroma.light
+        org.Mm.eg.db, DESeq2, monocle, Biobase, aroma.light
 biocViews: ImmunoOncology, Normalization, Sequencing, RNASeq, Software, GeneExpression,
         Transcriptomics, SingleCell, Visualization, BatchEffect,
         Clustering
