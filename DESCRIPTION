@@ -22,8 +22,8 @@ Description: Implements functions for low-level analyses of single-cell
         RNA-seq data. Methods are provided for normalization of 
         cell-specific biases, assignment of cell cycle phase, 
         detection of highly variable and significantly correlated genes,
-        correction of batch effects, identification of marker genes,
-        and other common tasks in single-cell analysis workflows.
+        identification of marker genes, and other common tasks in 
+        routine single-cell analysis workflows.
 License: GPL-3
 NeedsCompilation: yes
 VignetteBuilder: knitr
