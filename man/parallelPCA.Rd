@@ -8,8 +8,8 @@
 
 \usage{
 \S4method{parallelPCA}{ANY}(x, subset.row=NULL, value=c("pca", "n", "lowrank"), 
-    min.rank=5, max.rank=100, niters=50, threshold=0.1, approximate=NULL, 
-    irlba.args=list(), BSPARAM=ExactParam(), BPPARAM=SerialParam())
+    min.rank=5, max.rank=100, niters=50, threshold=0.1, BSPARAM=ExactParam(), 
+    BPPARAM=SerialParam())
 
 \S4method{parallelPCA}{SingleCellExperiment}(x, ..., subset.row=NULL, 
     value=c("pca", "n", "lowrank"), assay.type="logcounts", 
@@ -24,8 +24,6 @@ or a SingleCellExperiment object containing such values for \code{parallelPCA,Si
 \item{min.rank, max.rank}{Integer scalars specifying the minimum and maximum number of PCs to retain.}
 \item{niters}{Integer scalar specifying the number of iterations to use for the parallel analysis.}
 \item{threshold}{Numeric scalar representing the \dQuote{p-value} threshold above which PCs are to be ignored.}
-\item{approximate}{A logical scalar indicating whether approximate SVD should be performed via \code{\link[irlba]{irlba}}.}
-\item{irlba.args}{A named list of additional arguments to pass to \code{\link[irlba]{irlba}} when \code{approximate=TRUE}.}
 \item{BSPARAM}{A \linkS4class{BiocSingularParam} object specifying the algorithm to use for PCA.}
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object specifying how the iterations should be paralellized.}
 \item{...}{Further arguments to pass to \code{denoisePCA,ANY-method}.}
@@ -60,7 +58,8 @@ A PC is considered similar if the permuted fractions exceed the observed fractio
 This is a more conservative criterion than discarding PCs with fractions below the average null fraction, which tends to overstate the rank in noisy datasets.
 Note that the number of PCs will be coerced to lie between \code{min.rank} and \code{max.rank}.
 
-This function can be sped up by specifying \code{approximate=TRUE}, which will use approximate strategies for performing the PCA.
+This function can be sped up by specifying \code{BSPARAM=IrlbaParam()} or similar, 
+to use approximate strategies for performing the PCA.
 Another option is to set \code{BPPARAM} to perform the iterations in parallel.
 }
 

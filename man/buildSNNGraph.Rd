@@ -13,15 +13,15 @@
 
 \usage{
 \S4method{buildSNNGraph}{ANY}(x, k=10, d=50, type=c("rank", "number"), transposed=FALSE,
-    pc.approx=NULL, irlba.args=list(), subset.row=NULL, BNPARAM=KmknnParam(), 
-    BSPARAM=ExactParam(), BPPARAM=SerialParam())
+    subset.row=NULL, BNPARAM=KmknnParam(), BSPARAM=ExactParam(), 
+    BPPARAM=SerialParam())
 
 \S4method{buildSNNGraph}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", 
     get.spikes=FALSE, use.dimred=NULL)
 
 \S4method{buildKNNGraph}{ANY}(x, k=10, d=50, directed=FALSE, transposed=FALSE, 
-    pc.approx=NULL, irlba.args=list(), subset.row=NULL, BNPARAM=KmknnParam(), 
-    BSPARAM=ExactParam(), BPPARAM=SerialParam())
+    subset.row=NULL, BNPARAM=KmknnParam(), BSPARAM=ExactParam(), 
+    BPPARAM=SerialParam())
 
 \S4method{buildKNNGraph}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", 
     get.spikes=FALSE, use.dimred=NULL)
@@ -35,7 +35,6 @@ If it is matrix, it can also be transposed.}
 \item{type}{A string specifying the type of weighting scheme to use for shared neighbors.}
 \item{directed}{A logical scalar indicating whether the output of \code{buildKNNGraph} should be a directed graph.}
 \item{transposed}{A logical scalar indicating whether \code{x} is transposed (i.e., rows are cells).}
-\item{pc.approx, irlba.args}{Deprecated, use \code{BSPARAM} instead.}
 \item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 \item{BNPARAM}{A \linkS4class{BiocNeighborParam} object specifying the nearest neighbor algorithm.}
 \item{BSPARAM}{A \linkS4class{BiocSingularParam} object specifying the algorithm to use for PCA, if \code{d} is not \code{NA}.}

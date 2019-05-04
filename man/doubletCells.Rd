@@ -9,9 +9,8 @@
 \usage{
 \S4method{doubletCells}{ANY}(x, size.factors.norm=NULL, size.factors.content=NULL,
     k=50, subset.row=NULL, niters=max(10000, ncol(x)), block=10000, 
-    d=50, approximate=NULL, irlba.args=list(), force.match=FALSE, 
-    force.k=20, force.ndist=3, BNPARAM=KmknnParam(), BSPARAM=ExactParam(),
-    BPPARAM=SerialParam())
+    d=50, force.match=FALSE, force.k=20, force.ndist=3, BNPARAM=KmknnParam(), 
+    BSPARAM=ExactParam(), BPPARAM=SerialParam())
 
 \S4method{doubletCells}{SingleCellExperiment}(x, size.factors.norm=NA, ..., subset.row=NULL, 
     assay.type="counts", get.spikes=FALSE)
@@ -32,7 +31,6 @@ For the SingleCellExperiment method, this may be \code{NA}, in which case \code{
 \item{niters}{An integer scalar specifying how many simulated doublets should be generated.}
 \item{block}{An integer scalar controlling the rate of doublet generation, to keep memory usage low.}
 \item{d}{An integer scalar specifying the number of components to retain after the PCA.}
-\item{approximate, irlba.args}{Deprecated, use \code{BSPARAM} instead.}
 \item{force.match}{A logical scalar indicating whether remapping of simulated doublets to original cells should be performed.}
 \item{force.k}{An integer scalar specifying the number of neighbours to use for remapping if \code{force.match=TRUE}.}
 \item{force.ndist}{A numeric scalar specifying the bandwidth for remapping if \code{force.match=TRUE}.}
