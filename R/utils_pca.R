@@ -1,20 +1,11 @@
-#' @importFrom BiocSingular runSVD IrlbaParam ExactParam
+#' @importFrom BiocSingular runSVD ExactParam
 #' @importFrom BiocParallel SerialParam
 #' @importFrom Matrix colMeans
-.centered_SVD <- function(y, max.rank, BSPARAM=ExactParam(), BPPARAM=SerialParam(), approximate=FALSE, extra.args=list(), keep.left=TRUE, keep.right=TRUE)
+.centered_SVD <- function(y, max.rank, BSPARAM=ExactParam(), BPPARAM=SerialParam(), keep.left=TRUE, keep.right=TRUE)
 # Performs the PCA given a log-expression matrix.
 # Switches between svd() and irlba() on request.
 # Output format is guaranteed to be the same.
 {
-    if (!is.null(approximate)) {
-        .Deprecated(msg="'approximate=TRUE' or 'pc.approx=TRUE' are deprecated.\nUse BSPARAM=BiocSingular::IrlbaParam() instead.")
-        if (approximate) {
-            BSPARAM <- do.call(IrlbaParam, extra.args)
-        } else {
-            BSPARAM <- ExactParam()
-        }
-    }
-
     runSVD(y, center=TRUE, BSPARAM=BSPARAM, k=max.rank, 
         nu=if (keep.left) max.rank else 0L,
         nv=if (keep.right) max.rank else 0L,

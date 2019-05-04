@@ -7,8 +7,7 @@
 #' @importFrom methods is
 .doublet_cells <- function(x, size.factors.norm=NULL, size.factors.content=NULL,
     k=50, subset.row=NULL, niters=max(10000, ncol(x)), block=10000, 
-    d=50, approximate=NULL, irlba.args=list(), 
-    force.match=FALSE, force.k=20, force.ndist=3,
+    d=50, force.match=FALSE, force.k=20, force.ndist=3,
     BNPARAM=KmknnParam(), BSPARAM=ExactParam(), BPPARAM=SerialParam())
 # Simulates doublets and uses a mutual nearest-neighbour approach to match them to real cells.
 #
@@ -29,8 +28,7 @@
     y <- normalizeCounts(x, size.factors.norm, centre_size_factors=FALSE)
 
     # Running the SVD.
-    svd.out <- .centered_SVD(t(y), max.rank=d, approximate=approximate, extra.args=irlba.args, 
-        keep.left=TRUE, keep.right=TRUE, BSPARAM=BSPARAM, BPPARAM=BPPARAM)
+    svd.out <- .centered_SVD(t(y), max.rank=d, keep.left=TRUE, keep.right=TRUE, BSPARAM=BSPARAM, BPPARAM=BPPARAM)
     pcs <- .svd_to_pca(svd.out, ncomp=d, named=FALSE)
     sim.pcs <- .spawn_doublet_pcs(x, size.factors.norm, V=svd.out$v, centers=rowMeans(y), niters=niters, block=block)
 

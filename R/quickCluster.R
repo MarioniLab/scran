@@ -7,7 +7,7 @@
 #' @importFrom BiocSingular ExactParam bsdeferred
 #' @importClassesFrom Matrix dgCMatrix
 .quick_cluster <- function(x, min.size=100, method=c("igraph", "hclust"), use.ranks=NULL,
-    pc.approx=NULL, d=NULL, subset.row=NULL, min.mean=1, graph.fun=cluster_walktrap,
+    d=NULL, subset.row=NULL, min.mean=1, graph.fun=cluster_walktrap,
     BSPARAM=ExactParam(), BPPARAM=SerialParam(), block=NULL, block.BPPARAM=SerialParam(), 
     ...)
 # Generates a factor specifying the cluster to which each cell is assigned.
@@ -60,7 +60,7 @@
         y <- normalizeCounts(x, size_factors=sf, return_log=TRUE, subset_row=subset.row)
         if (is.null(d)) {
             fit <- trendVar(y)
-            y <- denoisePCA(y, technical=fit$trend, approximate=pc.approx, BSPARAM=BSPARAM)
+            y <- denoisePCA(y, technical=fit$trend, BSPARAM=BSPARAM)
             d <- NA
         } else {
             y <- t(y)
@@ -68,7 +68,7 @@
     }
 
     if (!is.na(d)) {
-        svd.out <- .centered_SVD(y, max.rank=d, approximate=pc.approx, keep.right=FALSE, BSPARAM=BSPARAM)
+        svd.out <- .centered_SVD(y, max.rank=d, keep.right=FALSE, BSPARAM=BSPARAM)
         y <- .svd_to_pca(svd.out, d, named=FALSE)
     }
 

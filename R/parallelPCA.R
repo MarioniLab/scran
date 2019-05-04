@@ -3,7 +3,7 @@
 #' @importFrom DelayedMatrixStats rowVars
 #' @importFrom BiocSingular ExactParam
 .parallelPCA <- function(x, subset.row=NULL, value=c("pca", "n", "lowrank"), min.rank=5, max.rank=100,
-    niters=50, threshold=0.1, approximate=NULL, irlba.args=list(), BSPARAM=ExactParam(), BPPARAM=SerialParam())
+    niters=50, threshold=0.1, BSPARAM=ExactParam(), BPPARAM=SerialParam())
 # This performs Horn's parallel analysis to determine the number of PCs
 # to retain, by randomizing each row and repeating the PCA to obtain
 # an estimate of the mean variance explained per PC under a random model.
@@ -21,15 +21,15 @@
     
     # Running the PCA function once.
     value <- match.arg(value)
-    svd.out <- .centered_SVD(y, max.rank, approximate=approximate, extra.args=irlba.args, 
-        keep.left=(value!="n"), keep.right=(value=="lowrank"), BSPARAM=BSPARAM, BPPARAM=BPPARAM)
+    svd.out <- .centered_SVD(y, max.rank, keep.left=(value!="n"), keep.right=(value=="lowrank"), 
+        BSPARAM=BSPARAM, BPPARAM=BPPARAM)
     original.d2 <- svd.out$d^2
 
     # Running it once, and then multiple times after permutation.
     pcg.states <- .setup_pcg_state(niters)
-    permuted <- bpmapply(FUN=.parallel_PA, max.rank=rep(max.rank, niters), seed=pcg.states$seeds[[1]], stream=pcg.states$streams[[1]],
-        MoreArgs=list(y=y, approximate=approximate, extra.args=irlba.args, BSPARAM=BSPARAM), 
-        BPPARAM=BPPARAM, SIMPLIFY=FALSE, USE.NAMES=FALSE)
+    permuted <- bpmapply(FUN=.parallel_PA, max.rank=rep(max.rank, niters), 
+        seed=pcg.states$seeds[[1]], stream=pcg.states$streams[[1]],
+        MoreArgs=list(y=y, BSPARAM=BSPARAM), BPPARAM=BPPARAM, SIMPLIFY=FALSE, USE.NAMES=FALSE)
     permutations <- do.call(cbind, permuted)
 
     # Figuring out where the original drops to "within range" of permuted.
