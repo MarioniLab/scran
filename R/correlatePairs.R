@@ -3,7 +3,7 @@
 #' @importFrom stats p.adjust
 .correlate_pairs <- function(x, null.dist=NULL, ties.method=c("expected", "average"), tol=1e-8, 
     iters=1e6, block=NULL, design=NULL, lower.bound=NULL, use.names=TRUE, subset.row=NULL, 
-    pairings=NULL, per.gene=FALSE, cache.size=100L, BPPARAM=SerialParam())
+    pairings=NULL, cache.size=100L, BPPARAM=SerialParam())
 # This calculates a (modified) Spearman's rho for each pair of genes.
 #
 # written by Aaron Lun
@@ -53,11 +53,7 @@
     }
     .is_sig_limited(out)
 
-    if (per.gene) {
-        .Deprecated(msg="'per.gene=' is deprecated.\nUse 'correlateGenes' instead.")
-        out <- correlateGenes(out)
-    }
-    return(out)
+    out
 }
 
 ##########################################

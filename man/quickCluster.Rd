@@ -8,7 +8,7 @@
 
 \usage{
 \S4method{quickCluster}{ANY}(x, min.size=100, method=c("igraph", "hclust"), 
-    use.ranks=NULL, d=NULL, subset.row=NULL, min.mean=1, 
+    use.ranks=FALSE, d=NULL, subset.row=NULL, min.mean=1, 
     graph.fun=cluster_walktrap, BSPARAM=ExactParam(), BPPARAM=SerialParam(),
     block=NULL, block.BPPARAM=SerialParam(), ...)
 
@@ -72,7 +72,7 @@ In addition, if \code{x} is a \linkS4class{dgCMatrix} and \code{BSPARAM} has \co
 ranks will be computed without loss of sparsity to improve speed and memory efficiency during PCA.
 
 Setting \code{use.ranks=TRUE} is invariant to scaling normalization and avoids circularity between normalization and clustering, e.g., in \code{\link{computeSumFactors}}.
-However, the default is to use the log-expression values as this yields finer and more precise clusters.
+However, the default is to use the log-expression values with \code{use.ranks=FALSE}, as this yields finer and more precise clusters.
 }
 
 \section{Enforcing cluster sizes}{
@@ -122,8 +122,11 @@ ngenes <- 1000
 all.facs <- 2^rnorm(popsize, sd=0.5)
 counts <- matrix(rnbinom(ngenes*popsize, mu=all.facs, size=1), ncol=popsize, byrow=TRUE)
 
-clusters <- quickCluster(counts, use.ranks=FALSE, min.size=20)
-clusters <- quickCluster(counts, use.ranks=TRUE)
+clusters <- quickCluster(counts, min.size=20)
+table(clusters)
+
+clusters2 <- quickCluster(counts, use.ranks=TRUE)
+table(clusters2)
 }
 
 \keyword{normalization}

@@ -6,7 +6,7 @@
 #' @importFrom Matrix t
 #' @importFrom BiocSingular ExactParam bsdeferred
 #' @importClassesFrom Matrix dgCMatrix
-.quick_cluster <- function(x, min.size=100, method=c("igraph", "hclust"), use.ranks=NULL,
+.quick_cluster <- function(x, min.size=100, method=c("igraph", "hclust"), use.ranks=FALSE,
     d=NULL, subset.row=NULL, min.mean=1, graph.fun=cluster_walktrap,
     BSPARAM=ExactParam(), BPPARAM=SerialParam(), block=NULL, block.BPPARAM=SerialParam(), 
     ...)
@@ -38,11 +38,6 @@
     }
 
     # Obtaining some values to use for clustering.
-    if (is.null(use.ranks)) {
-        .Deprecated(msg="Setting 'use.ranks=TRUE' for the old defaults.\nSet 'use.ranks=FALSE' for the new defaults.") 
-        use.ranks <- TRUE
-    }
-
     if (use.ranks) {
         if (is.null(d)) {
             d <- 50

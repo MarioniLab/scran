@@ -12,8 +12,7 @@ correlateNull(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=SerialParam())
 
 \S4method{correlatePairs}{ANY}(x, null.dist=NULL, ties.method=c("expected", "average"), tol=1e-8, 
     iters=1e6, block=NULL, design=NULL, lower.bound=NULL, use.names=TRUE, 
-    subset.row=NULL, pairings=NULL, per.gene=FALSE, cache.size=100L,
-    BPPARAM=SerialParam())
+    subset.row=NULL, pairings=NULL, cache.size=100L, BPPARAM=SerialParam())
 
 \S4method{correlatePairs}{SingleCellExperiment}(x, ..., use.names=TRUE, subset.row=NULL, per.gene=FALSE,
     lower.bound=NULL, assay.type="logcounts", get.spikes=FALSE)
@@ -40,7 +39,6 @@ correlateNull(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=SerialParam())
 \item{pairings}{A \code{NULL} value indicating that all pairwise correlations should be computed;
 or a list of 2 vectors of genes between which correlations are to be computed;
 or a integer/character matrix with 2 columns of specific gene pairs - see below for details.}
-\item{per.gene}{Deprecated argument, use \code{\link{correlateGenes}} instead.}
 \item{lower.bound}{A numeric scalar specifying the theoretical lower bound of values in \code{x}, only used when \code{residuals=TRUE}.}
 \item{cache.size}{Deprecated argument, ignored.}
 \item{...}{Additional arguments to pass to \code{correlatePairs,ANY-method}.}
