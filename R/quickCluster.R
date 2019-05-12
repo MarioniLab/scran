@@ -3,7 +3,7 @@
 #' @importFrom scater librarySizeFactors normalizeCounts
 #' @importFrom igraph cluster_walktrap
 #' @importFrom BiocParallel SerialParam bpmapply
-#' @importFrom BiocGenerics t
+#' @importFrom Matrix t
 #' @importFrom BiocSingular ExactParam bsdeferred
 #' @importClassesFrom Matrix dgCMatrix
 .quick_cluster <- function(x, min.size=100, method=c("igraph", "hclust"), use.ranks=NULL,
