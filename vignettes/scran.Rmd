@@ -247,7 +247,7 @@ Testing is performed against the null hypothesis of independent genes, using a p
 null.dist <- correlateNull(ncol(sce))
 # Only using the first 200 genes as a demonstration.
 cor.pairs <- correlatePairs(sce, subset.row=top.hvgs[1:200], null.dist=null.dist)
-head(cor.pairs)
+cor.pairs
 ```
 
 As with variance estimation, if uninteresting substructure is present, this should be blocked on using the `block=` argument in both `correlateNull` and `correlatePairs`.
@@ -262,11 +262,11 @@ cor.pairs2 <- correlatePairs(sce, subset.row=top.hvgs[1:200],
 The pairs can be used for choosing marker genes in experimental validation, and to construct gene-gene association networks.
 In other situations, the pairs may not be of direct interest - rather, we just want to know whether a gene is correlated with any other gene.
 This is often the case if we are to select a set of correlated HVGs for use in downstream steps like clustering or dimensionality reduction.
-To do so, we set `per.gene=TRUE` to compute a single set of statistics for each gene, rather than for each pair.
+To do so, we use `correlateGenes()` to compute a single set of statistics for each gene, rather than for each pair.
 
 ```{r}
-cor.genes <- correlatePairs(sce, subset.row=top.hvgs[1:200], 
-    null.dist=null.dist, per.gene=TRUE)
+cor.genes <- correlateGenes(cor.pairs)
+cor.genes
 ```
 
 Significant correlations are defined at a false discovery rate (FDR) threshold of, e.g., 5%.
