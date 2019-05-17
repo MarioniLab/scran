@@ -272,13 +272,12 @@ setMethod("correlatePairs", "ANY", .correlate_pairs)
 
 #' @importFrom SummarizedExperiment assay
 #' @export
-setMethod("correlatePairs", "SingleCellExperiment", 
-          function(x, ..., use.names=TRUE, subset.row=NULL, per.gene=FALSE, 
-                   lower.bound=NULL, assay.type="logcounts", get.spikes=FALSE) {
-
+setMethod("correlatePairs", "SingleCellExperiment", function(x, ..., use.names=TRUE, subset.row=NULL, 
+    lower.bound=NULL, assay.type="logcounts", get.spikes=FALSE)
+{
     subset.row <- .SCE_subset_genes(subset.row, x=x, get.spikes=get.spikes)              
     lower.bound <- .guess_lower_bound(x, assay.type, lower.bound)
-    .correlate_pairs(assay(x, i=assay.type), subset.row=subset.row, per.gene=per.gene, 
-                     use.names=use.names, lower.bound=lower.bound, ...)
+    .correlate_pairs(assay(x, i=assay.type), subset.row=subset.row, 
+        use.names=use.names, lower.bound=lower.bound, ...)
 })
 

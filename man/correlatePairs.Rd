@@ -14,7 +14,7 @@ correlateNull(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=SerialParam())
     iters=1e6, block=NULL, design=NULL, lower.bound=NULL, use.names=TRUE, 
     subset.row=NULL, pairings=NULL, cache.size=100L, BPPARAM=SerialParam())
 
-\S4method{correlatePairs}{SingleCellExperiment}(x, ..., use.names=TRUE, subset.row=NULL, per.gene=FALSE,
+\S4method{correlatePairs}{SingleCellExperiment}(x, ..., use.names=TRUE, subset.row=NULL, 
     lower.bound=NULL, assay.type="logcounts", get.spikes=FALSE)
 }
 

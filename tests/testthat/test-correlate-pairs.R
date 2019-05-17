@@ -306,13 +306,6 @@ test_that("correlatePairs works correctly with SingleCellExperiment objects", {
     out <- correlatePairs(X2, null.dist=nulls)
     expect_equal(out, ref)
     
-    # With per.gene=TRUE.
-    set.seed(100)
-    ref <- correlatePairs(exprs(X2), null.dist=nulls, per.gene=TRUE)
-    set.seed(100)
-    out <- correlatePairs(X2, null.dist=nulls, per.gene=TRUE)
-    expect_equal(out, ref)
-    
     # With spikes.
     isSpike(X2, "MySpike") <- rbinom(Ngenes, 1, 0.6)==0L
     set.seed(100)
