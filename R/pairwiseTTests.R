@@ -2,7 +2,7 @@
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel SerialParam
 pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("any", "up", "down"),
-    lfc=0, log.p=FALSE, gene.names=rownames(x), subset.row=NULL, BPPARAM=SerialParam())
+    lfc=0, std.lfc=FALSE, log.p=FALSE, gene.names=rownames(x), subset.row=NULL, BPPARAM=SerialParam())
 # Performs pairwise Welch t-tests between clusters.
 #
 # written by Aaron Lun
@@ -29,9 +29,11 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
     direction <- match.arg(direction)
 
     if (!is.null(block) || is.null(design)) {
-        results <- .test_block_internal(x, subset.row, clusters, block=block, direction=direction, lfc=lfc, gene.names=gene.names, log.p=log.p, BPPARAM=BPPARAM)
+        results <- .test_block_internal(x, subset.row, clusters, block=block, direction=direction, lfc=lfc, 
+            std.lfc=std.lfc, gene.names=gene.names, log.p=log.p, BPPARAM=BPPARAM)
     } else {
-        results <- .fit_lm_internal(x, subset.row, clusters, design=design, direction=direction, lfc=lfc, gene.names=gene.names, log.p=log.p, BPPARAM=BPPARAM)
+        results <- .fit_lm_internal(x, subset.row, clusters, design=design, direction=direction, lfc=lfc, 
+            std.lfc=std.lfc, gene.names=gene.names, log.p=log.p, BPPARAM=BPPARAM)
     }
 
     first <- rep(names(results), lengths(results))
@@ -47,7 +49,8 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
 
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel bplapply SerialParam
-.test_block_internal <- function(x, subset.row, clusters, block=NULL, direction="any", lfc=0, gene.names=NULL, log.p=TRUE, BPPARAM=SerialParam())
+.test_block_internal <- function(x, subset.row, clusters, block=NULL, direction="any", lfc=0, std.lfc=FALSE,
+    gene.names=NULL, log.p=TRUE, BPPARAM=SerialParam())
 # This looks at every level of the blocking factor and performs
 # t-tests between pairs of clusters within each blocking level.
 {
@@ -103,7 +106,9 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
             for (b in seq_len(nblocks)) {
                 host.n <- out.n[[b]][host]
                 target.n <- out.n[[b]][target]
-                t.out <- .get_t_test_stats(host.s2=out.s2[[b]][,host], target.s2=out.s2[[b]][,target], host.n=host.n, target.n=target.n)
+                host.s2 <- out.s2[[b]][,host]
+                target.s2 <- out.s2[[b]][,target]
+                t.out <- .get_t_test_stats(host.s2=host.s2, target.s2=target.s2, host.n=host.n, target.n=target.n)
 
                 cur.err <- t.out$err
                 cur.df <- t.out$test.df
@@ -111,6 +116,12 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
                 p.out <- .run_t_test(cur.lfc, cur.err, cur.df, thresh.lfc=lfc, direction=direction)
 
                 all.lfc[[b]] <- cur.lfc
+                if (std.lfc) {
+                    # Computing Cohen's D.
+                    pooled.s2 <- ((host.n - 1) * host.s2 + (target.n - 1) * target.s2)/(target.n + host.n - 2)
+                    all.lfc[[b]] <- all.lfc[[b]] / sqrt(pooled.s2)
+                }
+
                 all.left[[b]] <- p.out$left
                 all.right[[b]] <- p.out$right
 
@@ -178,7 +189,8 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
 #' @importFrom stats model.matrix
 #' @importFrom limma lmFit contrasts.fit
 #' @importFrom BiocParallel bplapply SerialParam
-.fit_lm_internal <- function(x, subset.row, clusters, design, direction="any", lfc=0, gene.names=NULL, log.p=TRUE, BPPARAM=SerialParam())
+.fit_lm_internal <- function(x, subset.row, clusters, design, direction="any", lfc=0, std.lfc=FALSE,
+    gene.names=NULL, log.p=TRUE, BPPARAM=SerialParam())
 # This fits a linear model to each gene and performs a t-test for
 # differential expression between clusters.
 {
@@ -232,6 +244,10 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
             hvt.p <- .choose_leftright_pvalues(test.out$left, test.out$right, direction=direction)
             tvh.p <- .choose_leftright_pvalues(test.out$right, test.out$left, direction=direction)
 
+            if (std.lfc) {
+                # Computing Cohen's D.
+                cur.lfc <- cur.lfc / sqrt(sigma2)
+            }
             out.stats[[host]][[target]] <- .create_full_stats(logFC=cur.lfc, p=hvt.p, gene.names=gene.names, log.p=log.p)
             out.stats[[target]][[host]] <- .create_full_stats(logFC=-cur.lfc, p=tvh.p, gene.names=gene.names, log.p=log.p)
         }
