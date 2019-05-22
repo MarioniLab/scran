@@ -6,6 +6,8 @@
 \item Removed deprecated approximate= and pc.approx= arguments.
 
 \item Removed deprecated batch correction functions.
+
+\item Added option to pairwiseTTests() and findMarkers() for standardization of log-fold changes.
 }}
 
 \section{Version 1.12.0}{\itemize{
