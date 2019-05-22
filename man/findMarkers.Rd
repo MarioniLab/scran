@@ -9,7 +9,8 @@
 \usage{
 \S4method{findMarkers}{ANY}(x, clusters, gene.names=rownames(x), block=NULL, design=NULL,
     pval.type=c("any", "all"), direction=c("any", "up", "down"), lfc=0, 
-    log.p=FALSE, full.stats=FALSE, subset.row=NULL, BPPARAM=SerialParam())
+    std.lfc=FALSE, log.p=FALSE, full.stats=FALSE, subset.row=NULL, 
+    BPPARAM=SerialParam())
 
 \S4method{findMarkers}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", 
     get.spikes=FALSE) 
@@ -27,6 +28,7 @@
 \item{pval.type}{A string specifying the type of combined p-value to be computed, i.e., Simes' or IUT.}
 \item{direction}{A string specifying the direction of log-fold changes to be considered for each cluster.}
 \item{lfc}{A positive numeric scalar specifying the log-fold change threshold to be tested against.}
+\item{std.lfc}{A logical scalar indicating if log-fold changes should be standardized.}
 \item{log.p}{A logical scalar indicating if log-transformed p-values/FDRs should be returned.}
 \item{full.stats}{A logical scalar indicating whether all statistics (i.e., raw and BH-adjusted p-values) should be returned for each pairwise comparison.}
 \item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
@@ -37,11 +39,14 @@
 }
 
 \details{
-This function provides a convenience wrapper for marker gene identification, based on running \code{\link{pairwiseTTests}} and passing the result to \code{\link{combineMarkers}}.
-All of the arguments above are supplied directly to one of these two functions.
+This function provides a convenience wrapper for marker gene identification, 
+based on running \code{\link{pairwiseTTests}} and passing the result to \code{\link{combineMarkers}}.
+All of the arguments above are supplied directly to one of these two functions - 
+refer to the relevant function's documentation for more details.
 
 Note that \code{log.p} only affects the combined p-values and FDRs.
-If \code{full.stats=TRUE}, the p-values for each pairwise comparison will be log-transformed regardless of the value of \code{log.p}.
+If \code{full.stats=TRUE}, the p-values for each individual pairwise comparison will be log-transformed,
+regardless of the value of \code{log.p}.
 }
 
 \value{

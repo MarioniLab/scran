@@ -6,7 +6,7 @@
 
 \usage{
 pairwiseTTests(x, clusters, block=NULL, design=NULL, 
-	direction=c("any", "up", "down"), lfc=0, log.p=FALSE, 
+	direction=c("any", "up", "down"), lfc=0, std.lfc=FALSE, log.p=FALSE, 
 	gene.names=rownames(x), subset.row=NULL, BPPARAM=SerialParam())
 }
 
@@ -18,6 +18,7 @@ pairwiseTTests(x, clusters, block=NULL, design=NULL,
 Note that these should not be confounded with \code{clusters} or contain an intercept, see Details.}
 \item{direction}{A string specifying the direction of log-fold changes to be considered for each cluster.}
 \item{lfc}{A positive numeric scalar specifying the log-fold change threshold to be tested against.}
+\item{std.lfc}{A logical scalar indicating whether log-fold changes should be standardized.}
 \item{log.p}{A logical scalar indicating if log-transformed p-values/FDRs should be returned.}
 \item{gene.names}{A character vector of gene names with one value for each row of \code{x}.}
 \item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
@@ -76,6 +77,11 @@ A two-sided p-value is computed against this composite null.
 \item If \code{direction="down"}, the null hypothesis is that the true log-fold change is \code{-lfc}, and a one-sided p-value is computed.
 }
 This is similar to the approach used in \code{\link[limma:eBayes]{treat}} and allows users to focus on genes with strong log-fold changes.
+
+If \code{std.lfc=TRUE}, the log-fold change for each gene is standardized by the variance.
+When the Welch t-test is being used, this is equivalent to Cohen's d.
+Standardized log-fold changes may be more appealing for visualization as it avoids large fold changes due to large variance.
+The choice of \code{std.lfc} does not affect the calculation of the p-values.
 }
 
 \section{Weighting across blocking levels}{

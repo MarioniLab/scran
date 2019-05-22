@@ -1,5 +1,5 @@
 # Tests the pairwiseTTests function.
-# library(scran); library(testthat); source("test-pairwise-t.R")
+# library(scran); library(testthat); source("setup.R"); source("test-pairwise-t.R")
 
 REFFUN <- function(y, grouping, direction="any", lfc=0) 
 # A reference function using the t.test function.
@@ -403,6 +403,33 @@ test_that("pairwiseTTests behaves as expected with log-transformation", {
         expect_equal(log(ref$statistics[[i]]$p.value), out$statistics[[i]]$log.p.value)
         expect_equal(log(ref$statistics[[i]]$FDR), out$statistics[[i]]$log.FDR)
     }
+})
+
+set.seed(70000051)
+test_that("pairwiseTTests behaves with standardization of the log-fold changes", {
+    y <- matrix(rnorm(12000), ncol=20)
+    g <- rep(LETTERS[1:5], c(6,5,4,3,2))
+    X <- cbind(rnorm(ncol(y)))
+
+    ref <- pairwiseTTests(y, g)
+    std <- pairwiseTTests(y, g, std.lfc=TRUE)
+    expect_identical(ref[[1]][[1]]$PValue, std[[1]][[1]]$PValue)
+
+    in.1 <- g=="A"
+    s1 <- apply(y[,in.1], 1, var)
+    in.2 <- g=="B"
+    s2 <- apply(y[,in.2], 1, var)
+    s.pool <- sqrt((s1 * (sum(in.1) - 1) + s2 * (sum(in.2) - 1))/(sum(in.1|in.2) -2))
+    expect_equal(ref[[1]][[1]]$logFC / s.pool, std[[1]][[1]]$logFC)
+
+    # With linear models.
+    ref <- pairwiseTTests(y, g, design=X) 
+    std <- pairwiseTTests(y, g, design=X, std.lfc=TRUE)
+    expect_identical(ref[[1]][[1]]$PValue, std[[1]][[1]]$PValue)
+
+    fit <- lm.fit(x=cbind(model.matrix(~g), X), y=t(y))
+    s2 <- colMeans(fit$effects[-seq_len(fit$rank),]^2)
+    expect_equal(ref[[1]][[1]]$logFC / sqrt(s2), std[[1]][[1]]$logFC)
 })
 
 set.seed(7000006)
