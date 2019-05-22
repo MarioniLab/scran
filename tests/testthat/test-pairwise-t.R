@@ -322,16 +322,30 @@ test_that("pairwiseTTests with linear models works across multiple cores", {
 set.seed(70000032)
 test_that("pairwiseTTests with linear models responds to non-standard level ordering", {
     clusters <- sample(LETTERS[1:5], ncol(X), replace=TRUE)
+
+    # Releveled factors.
     f1 <- factor(clusters)
     f2 <- factor(clusters, rev(levels(f1)))
 
     covariate <- cbind(runif(ncol(X)))
     FACTORCHECK(pairwiseTTests(X, f1, design=covariate), pairwiseTTests(X, f2, design=covariate))
 
+    # Linearly equivalent design matrices.
     d1 <- cbind(sample(0:1, ncol(X), replace=TRUE), sample(0:1, ncol(X), replace=TRUE))
     d2 <- d1
     d2[,1] <- d2[,1] + d2[,2]
     FACTORCHECK(pairwiseTTests(X, f1, design=d1), pairwiseTTests(X, f2, design=d2))
+
+    # Checking that the two tests above are non-trivial,
+    # i.e., involve some differences in the pivoting.
+    CHECK_PIVOTING <- function(X1, X2) {
+        expect_false(identical(qr(X1, LAPACK=TRUE)$pivot, qr(X2, LAPACK=TRUE)$pivot))
+        QR <- qr(cbind(X1, X2)) # making sure X1 and X2 are equivalent.
+        expect_identical(QR$rank, ncol(X1))
+        expect_identical(QR$pivot[seq_len(QR$rank)], seq_len(QR$rank))
+    }
+    CHECK_PIVOTING(cbind(model.matrix(~f1), covariate), cbind(model.matrix(~f2), covariate))
+    CHECK_PIVOTING(cbind(model.matrix(~f1), d1), cbind(model.matrix(~f2), d2))
 })
 
 ###################################################################
