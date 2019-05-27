@@ -34,7 +34,7 @@ This is simple, fast and performs reasonably well for single-cell count data (So
 However, if one of the clusters contains fewer than two cells, no p-value will be reported for comparisons involving that cluster.
 A warning will also be raised about insufficient degrees of freedom (d.f.) in such cases.
 
-If \code{block} is specified, the same t-tests are performed between clusters within each level of \code{block}.
+If \code{block} is specified, t-tests are performed between clusters within each level of \code{block}.
 For each pair of clusters, the p-values for each gene across all levels of \code{block} are combined using Stouffer's Z-score method.
 The p-value for each level is assigned a weight inversely proportional to the expected variance of the log-fold change estimate for that level.
 Blocking levels are ignored if no p-value was reported, e.g., if there were insufficient cells for a cluster in a particular level. 
@@ -93,11 +93,18 @@ Unlike p-values, though, this calculation will use blocking levels where both cl
 }
 
 \value{
-A list is returned containing \code{statistics}, a list of \linkS4class{DataFrame}s where each element contains the statistics for a comparison between a pair of clusters;
-and \code{pairs}, a DataFrame specifying the identity of pairs being compared in each entry of \code{statistics}.
+A list is returned containing \code{statistics} and \code{pairs}.
 
-In each DataFrame of statistics, the log-fold change represents the change in the \code{first} cluster compared to the \code{second} cluster.
-Note that the order of clusters will affect the sign of the log-fold change and, when \code{direction!="any"}, the size of the p-value itself.
+The \code{statistics} element is itself a list of \linkS4class{DataFrame}s.
+Each DataFrame contains the statistics for a comparison between a pair of clusters,
+including the log-fold changes, p-values and false discovery rates.
+
+The \code{pairs} element is a DataFrame with one row corresponding to each entry of \code{statistics}.
+This contains the fields \code{first} and \code{second}, 
+specifying the two clusters under comparison in the corresponding DataFrame in \code{statistics}.
+
+In each DataFrame in \code{statistics}, the log-fold change represents the change in the \code{first} cluster compared to the \code{second} cluster.
+Note that switching the \code{first} and \code{second} clusters will affect the sign of the log-fold change and, when \code{direction!="any"}, the size of the p-value itself.
 }
 
 \author{

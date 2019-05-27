@@ -40,9 +40,8 @@ Also note that we approximate the distribution of the Wilcoxon rank sum statisti
 }
 
 \section{Blocking on uninteresting factors}{
-If \code{block} is specified, the same t-tests are performed between clusters within each level of \code{block}.
+If \code{block} is specified, Wilcoxon tests are performed between clusters within each level of \code{block}.
 For each pair of clusters, the p-values for each gene across all levels of \code{block} are combined using Stouffer's Z-score method.
-The p-value for each level is assigned a weight inversely proportional to the expected variance of the log-fold change estimate for that level.
 Blocking levels are ignored if no p-value was reported, e.g., if there were insufficient cells for a cluster in a particular level. 
 
 The weight for the p-value in a particular level of \code{block} is defined as \eqn{N_xN_y},
@@ -62,11 +61,18 @@ See \code{?\link{wilcox.test}} for more details on the interpretation of one-sid
 }
 
 \value{
-A list is returned containing \code{statistics}, a list of \linkS4class{DataFrame}s where each element contains the statistics for a comparison between a pair of clusters;
-and \code{pairs}, a DataFrame specifying the identity of pairs being compared in each entry of \code{statistics}.
+A list is returned containing \code{statistics} and \code{pairs}.
 
-In each DataFrame, the overlap proportion represents the probability of sampling a value in the \code{first} cluster greater than a random value from the \code{second} cluster.
-Note that the order of clusters will affect the value of the overlap and, when \code{direction!="any"}, the size of the p-value itself.
+The \code{statistics} element is itself a list of \linkS4class{DataFrame}s.
+Each DataFrame contains the statistics for a comparison between a pair of clusters,
+including the overlap proportions, p-values and false discovery rates.
+
+The \code{pairs} element is a DataFrame with one row corresponding to each entry of \code{statistics}.
+This contains the fields \code{first} and \code{second}, 
+specifying the two clusters under comparison in the corresponding DataFrame in \code{statistics}.
+
+In each DataFrame in \code{statistics}, the overlap proportion represents the probability of sampling a value in the \code{first} cluster greater than a random value from the \code{second} cluster.
+Note that switching the \code{first} and \code{second} clusters will affect the value of the overlap and, when \code{direction!="any"}, the size of the p-value itself.
 }
 
 \author{
