@@ -36,9 +36,9 @@ A named \linkS4class{List} of \linkS4class{DataFrame}s where each DataFrame cont
 Within each DataFrame (say, the DataFrame for cluster X), rows correspond to genes with the fields:
 \describe{
 \item{\code{Top}:}{Integer, the minimum rank across all pairwise comparisons.
-Only reported if \code{rank.type="any"}.}
+Only reported if \code{pval.type="any"}.}
 \item{\code{p.value}:}{Numeric, the p-value across all comparisons if \code{log.p.out=FALSE}.
-This is a Simes' p-value if \code{rank.type="any"}, otherwise it is an IUT p-value.}
+This is a Simes' p-value if \code{pval.type="any"}, otherwise it is an IUT p-value.}
 \item{\code{log.p.value}:}{Numeric, the log-transformed version of \code{p.value} if \code{log.p.out=TRUE}.}
 \item{\code{FDR}:}{Numeric, the BH-adjusted p-value for each gene if \code{log.p.out=FALSE}.}
 \item{\code{log.FDR}:}{Numeric, the log-transformed adjusted p-value for each gene if \code{log.p.out=TRUE}.}
@@ -68,7 +68,7 @@ DE statistics from any testing regime can be supplied to this function - see the
 By default, each table is sorted by the \code{Top} value when \code{pval.type="any"}.
 This is the minimum rank across all pairwise comparisons for each gene, and specifies the size of the candidate marker set.
 Taking all rows with \code{Top} values less than or equal to X will yield a marker set containing the top X genes (ranked by significance) from each pairwise comparison.
-The marker set for each cluster allows it to be distinguished from every other cluster based on the expression of at least one gene.
+The marker set for each cluster allows it to be distinguished from every other cluster based on the differential expression of at least one gene.
 
 To demonstrate, let us define a marker set with an X of 1 for a given cluster.
 The set of genes with \code{Top <= 1} will contain the top gene from each pairwise comparison to every other cluster.
