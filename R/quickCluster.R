@@ -4,11 +4,11 @@
 #' @importFrom igraph cluster_walktrap
 #' @importFrom BiocParallel SerialParam bpmapply
 #' @importFrom Matrix t
-#' @importFrom BiocSingular ExactParam bsdeferred
+#' @importFrom BiocSingular IrlbaParam bsdeferred
 #' @importClassesFrom Matrix dgCMatrix
 .quick_cluster <- function(x, min.size=100, method=c("igraph", "hclust"), use.ranks=FALSE,
     d=NULL, subset.row=NULL, min.mean=1, graph.fun=cluster_walktrap,
-    BSPARAM=ExactParam(), BPPARAM=SerialParam(), block=NULL, block.BPPARAM=SerialParam(), 
+    BSPARAM=IrlbaParam(), BPPARAM=SerialParam(), block=NULL, block.BPPARAM=SerialParam(), 
     ...)
 # Generates a factor specifying the cluster to which each cell is assigned.
 #
