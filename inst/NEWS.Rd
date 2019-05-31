@@ -8,6 +8,8 @@
 \item Removed deprecated batch correction functions.
 
 \item Added option to pairwiseTTests() and findMarkers() for standardization of log-fold changes.
+
+\item Changed default BSPARAM=IrlbaParam() in quickCluster().
 }}
 
 \section{Version 1.12.0}{\itemize{
