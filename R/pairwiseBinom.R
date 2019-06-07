@@ -56,7 +56,7 @@ pairwiseBinom <- function(x, clusters, block=NULL, direction=c("any", "up", "dow
 
     # Choosing the parallelization strategy.
     wout <- .worker_assign(length(subset.row), BPPARAM)
-    by.core <- .split_vector_by_workers(subset.row - 1L, wout)
+    by.core <- .split_vector_by_workers(subset.row, wout)
 
     # Computing across blocks.
     clust.vals <- levels(clusters)
@@ -69,7 +69,7 @@ pairwiseBinom <- function(x, clusters, block=NULL, direction=c("any", "up", "dow
         all.n[[b]] <- as.vector(table(cur.clusters))
         names(all.n[[b]]) <- clust.vals
         
-        cur.groups <- split(chosen - 1L, cur.clusters)
+        cur.groups <- split(chosen, cur.clusters)
         raw.nzero <- bplapply(by.core, FUN=.compute_nzero_stat, x=x, by.group=cur.groups, threshold=threshold, BPPARAM=BPPARAM)
         cons.nzero <- do.call(rbind, raw.nzero)
         colnames(cons.nzero) <- clust.vals
