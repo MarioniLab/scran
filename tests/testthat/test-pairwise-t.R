@@ -221,7 +221,7 @@ test_that("pairwiseTTests works as expected with blocking", {
     re.clust[block==1] <- 1
     re.block <- block
     re.block[re.clust==1] <- 1
-    expect_warning(BLOCKFUN(X, re.clust, re.block), "no d.f. for blocked comparison")
+    expect_warning(BLOCKFUN(X, re.clust, re.block), "no within-block comparison")
 })
 
 set.seed(70000021)

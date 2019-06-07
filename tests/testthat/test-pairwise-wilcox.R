@@ -1,5 +1,5 @@
 # Tests the pairwiseWilcox() function.
-# library(scran); library(testthat); source("test-pairwise-wilcox.R")
+# library(scran); library(testthat); source("setup.R"); source("test-pairwise-wilcox.R")
 
 REFFUN <- function(y, grouping, direction="any") 
 # A reference function using the t.test function.
