@@ -98,8 +98,8 @@ pairwiseBinom <- function(x, clusters, block=NULL, direction=c("any", "up", "dow
         )
     }
 
-    .pairwise_blocked_template(x, clust.vals, block=block, direction=direction, 
-        gene.names=NULL, log.p=log.p, STATFUN=STATFUN, FLIPFUN=function(x) -x, effect="diff")
+    .pairwise_blocked_template(x, clust.vals, nblocks=length(block), direction=direction, 
+        gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, FLIPFUN=function(x) -x, effect="diff")
 }
 
 #' @importFrom scater nexprs

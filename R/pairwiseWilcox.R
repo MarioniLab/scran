@@ -109,9 +109,8 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
         output
     }
 
-    .pairwise_blocked_template(x, clust.vals, block=block, direction=direction, 
-        gene.names=NULL, log.p=log.p, STATFUN=STATFUN, FLIPFUN=function(x) 1-x, 
-        effect.name="overlap")
+    .pairwise_blocked_template(x, clust.vals, nblocks=length(block), direction=direction, 
+        gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, FLIPFUN=function(x) 1-x, effect.name="overlap")
 }
 
 .find_overlap_exprs <- function(x, subset.row, by.group, tol) 

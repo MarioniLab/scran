@@ -1,12 +1,10 @@
-.pairwise_blocked_template <- function(x, clusters, block=NULL, direction="any", 
+.pairwise_blocked_template <- function(x, clust.vals, nblocks, direction="any", 
     gene.names=NULL, log.p=TRUE, STATFUN, FLIPFUN, effect.name) 
 {
-    nblocks <- length(block)
-    out.stats <- .create_output_container(clusters)
-
-    for (i in seq_along(clusters)) {
-        host <- clusters[i]
-        targets <- clusters[seq_len(i-1L)]
+    out.stats <- .create_output_container(clust.vals)
+    for (i in seq_along(clust.vals)) {
+        host <- clust.vals[i]
+        targets <- clust.vals[seq_len(i-1L)]
 
         for (target in targets) {
             all.effect <- all.left <- all.right <- vector("list", nblocks)
