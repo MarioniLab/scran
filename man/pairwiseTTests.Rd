@@ -59,6 +59,11 @@ This may not be the case with \code{block} if a pair of clusters never co-occur 
 }
 
 \section{Direction and magnitude of the log-fold change}{ 
+Log-fold changes are reported as differences in the values of \code{x}.
+Thus, all log-fold changes have the same base as whatever was used to perform the log-transformation in \code{x}.
+If \code{\link[scater]{normalize}} was used, this would be base 2.
+By comparison, when \code{log.p=TRUE}, the log-transformed p-values and FDRs are reported using the natural base.
+
 If \code{direction="any"}, two-sided tests will be performed for each pairwise comparisons between clusters.
 Otherwise, one-sided tests in the specified direction will be used to compute p-values for each gene.
 This can be used to focus on genes that are upregulated in each cluster of interest, which is often easier to interpret.

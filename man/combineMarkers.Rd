@@ -26,7 +26,8 @@ Each row should specify the pair of clusters being compared for the correspondin
 \item{pval.type}{A string specifying the type of combined p-value to be computed, i.e., Simes' (\code{"any"}) or IUT (\code{"all"}).}
 \item{log.p.in}{A logical scalar indicating if the p-values in \code{de.lists} were log-transformed.}
 \item{log.p.out}{A logical scalar indicating if log-transformed p-values/FDRs should be returned.}
-\item{output.field}{A string specifying the prefix of the field names containing the effect sizes.}
+\item{output.field}{A string specifying the prefix of the field names containing the effect sizes.
+Defaults to \code{"stats"} if \code{full.stats=TRUE}, otherwise it is set to \code{effect.field}.}
 \item{full.stats}{A logical scalar indicating whether all statistics in \code{de.lists} should be stored in the output for each pairwise comparison.}
 }
 
@@ -39,13 +40,23 @@ Within each DataFrame (say, the DataFrame for cluster X), rows correspond to gen
 Only reported if \code{pval.type="any"}.}
 \item{\code{p.value}:}{Numeric, the p-value across all comparisons if \code{log.p.out=FALSE}.
 This is a Simes' p-value if \code{pval.type="any"}, otherwise it is an IUT p-value.}
-\item{\code{log.p.value}:}{Numeric, the log-transformed version of \code{p.value} if \code{log.p.out=TRUE}.}
+\item{\code{log.p.value}:}{Numeric, the log-transformed version of \code{p.value} if \code{log.p.out=TRUE}.
+Natural logarithms are reported.}
 \item{\code{FDR}:}{Numeric, the BH-adjusted p-value for each gene if \code{log.p.out=FALSE}.}
-\item{\code{log.FDR}:}{Numeric, the log-transformed adjusted p-value for each gene if \code{log.p.out=TRUE}.}
-\item{\code{logFC.Y}:}{Numeric for every other cluster Y in \code{clusters}, containing the effect size of the comparison of X to Y when \code{full.stats=FALSE}.
-Note that this is named according to the \code{output.field} prefix and so may not necessarily contain the log-fold change.}
+\item{\code{log.FDR}:}{Numeric, the log-transformed adjusted p-value for each gene if \code{log.p.out=TRUE}.
+Natural logarithms are reported.}
+\item{\code{logFC.Y}:}{Numeric field present for every other cluster Y in \code{clusters}.
+It contains the effect size of the comparison of X to Y:
+\itemize{
+\item Log-fold changes, usually in base 2, from \code{\link{pairwiseTTests}}.
+\item Overlap proportions from \code{\link{pairwiseWilcox}}.
+\item Difference in non-zero proportions from \code{\link{pairwiseBinom}}.
+}
+The exact name of this field depends on \code{output.field}, see Examples.
+It is only reported when \code{full.stats=FALSE}.}
 \item{\code{stats.Y}:}{DataFrame for every other cluster Y in \code{clusters}, returned when \code{full.stats=TRUE}.
-This contains the same fields in the corresponding entry of \code{de.lists} for the X versus Y comparison.}
+This contains the same fields in the corresponding entry of \code{de.lists} for the X versus Y comparison.
+The name of this field can be altered by setting \code{output.field}.}
 }
 Genes are ranked by the \code{Top} column (if available) and then the \code{p.value} column.
 
@@ -124,5 +135,13 @@ kout <- kmeans(t(logcounts(y2)), centers=2) # Any clustering method is okay.
 
 out <- pairwiseTTests(logcounts(y2), clusters=paste0("Cluster", kout$cluster))
 comb <- combineMarkers(out$statistics, out$pairs)
+comb[["Cluster1"]]
+
+out <- pairwiseWilcox(logcounts(y2), clusters=paste0("Cluster", kout$cluster))
+comb <- combineMarkers(out$statistics, out$pairs, effect.field="overlap")
+comb[["Cluster1"]]
+
+out <- pairwiseBinom(logcounts(y2), clusters=paste0("Cluster", kout$cluster))
+comb <- combineMarkers(out$statistics, out$pairs, effect.field="diff")
 comb[["Cluster1"]]
 }

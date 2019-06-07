@@ -47,10 +47,15 @@ refer to the relevant function's documentation for more details.
 Note that \code{log.p} only affects the combined p-values and FDRs.
 If \code{full.stats=TRUE}, the p-values for each individual pairwise comparison will be log-transformed,
 regardless of the value of \code{log.p}.
+Log-transformed p-values and FDRs are reported using the natural base.
 }
 
 \value{
 A named list of \linkS4class{DataFrame}s, each of which contains a sorted marker gene list for the corresponding cluster.
+In each DataFrame, the top genes are chosen to enable separation of that cluster from all other clusters.
+Log-fold changes are reported as differences in average \code{x} between clusters
+(usually in base 2, depending on the transformation applied to \code{x}).
+
 See \code{?\link{combineMarkers}} for more details on the output format.
 }
 
