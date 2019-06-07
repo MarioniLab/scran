@@ -92,71 +92,43 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
     }
 
     # Running through all pairs of comparisons.
-    out.stats <- .create_output_container(clust.vals)
-    for (i in seq_along(clust.vals)) {
-        host <- clust.vals[i]
-        targets <- clust.vals[seq_len(i-1L)]
+    STATFUN <- function(b, host, target) {
+        host.n <- out.n[[b]][host]
+        target.n <- out.n[[b]][target]
+        host.s2 <- out.s2[[b]][,host]
+        target.s2 <- out.s2[[b]][,target]
+        t.out <- .get_t_test_stats(host.s2=host.s2, target.s2=target.s2, host.n=host.n, target.n=target.n)
 
-        for (target in targets) {
-            all.lfc <- all.left <- all.right <- vector("list", nblocks)
-            all.weight <- numeric(nblocks)
-            valid.test <- logical(nblocks)
+        cur.err <- t.out$err
+        cur.df <- t.out$test.df
+        cur.lfc <- out.means[[b]][,host] - out.means[[b]][,target]
+        p.out <- .run_t_test(cur.lfc, cur.err, cur.df, thresh.lfc=lfc, direction=direction)
 
-            # Performing the same pairwise t-test within each block.
-            for (b in seq_len(nblocks)) {
-                host.n <- out.n[[b]][host]
-                target.n <- out.n[[b]][target]
-                host.s2 <- out.s2[[b]][,host]
-                target.s2 <- out.s2[[b]][,target]
-                t.out <- .get_t_test_stats(host.s2=host.s2, target.s2=target.s2, host.n=host.n, target.n=target.n)
-
-                cur.err <- t.out$err
-                cur.df <- t.out$test.df
-                cur.lfc <- out.means[[b]][,host] - out.means[[b]][,target]
-                p.out <- .run_t_test(cur.lfc, cur.err, cur.df, thresh.lfc=lfc, direction=direction)
-
-                all.lfc[[b]] <- cur.lfc
-                if (std.lfc) {
-                    # Computing Cohen's D.
-                    pooled.s2 <- ((host.n - 1) * host.s2 + (target.n - 1) * target.s2)/(target.n + host.n - 2)
-                    all.lfc[[b]] <- all.lfc[[b]] / sqrt(pooled.s2)
-                }
-
-                all.left[[b]] <- p.out$left
-                all.right[[b]] <- p.out$right
-
-                # Weights are inversely proportional to the squared error of the log-fold change,
-                # _assuming equal variance_ across blocks and groups for simplicity.
-                # (Using the actual variance is dangerous as some blocks have zero variance
-                # with a defined log-fold change, if there are many zeroes.)
-                all.weight[b] <- 1/(1/host.n + 1/target.n)
-
-                # Indicating that there is no valid test statistic if the df is zero.
-                valid.test[b] <- all(!is.na(cur.df))
-            }
-
-            # Combining the p-values for each side across blocks.
-            if (any(valid.test)) { 
-                comb.args <- list(method="z", weights=all.weight[valid.test], log.p=TRUE)
-                com.left <- do.call(combinePValues, c(all.left[valid.test], comb.args))
-                com.right <- do.call(combinePValues, c(all.right[valid.test], comb.args))
-            } else {
-                com.left <- com.right <- rep(NA_real_, length(all.left[[1]]))
-                warning(paste("no d.f. for blocked comparison between", host, "and", target))
-            }
-
-            # Flipping left/right to get the p-value from the reversed comparison.
-            hvt.p <- .choose_leftright_pvalues(com.left, com.right, direction=direction)
-            tvh.p <- .choose_leftright_pvalues(com.right, com.left, direction=direction)
-
-            # Symmetrical log-fold changes, hence the -1.
-            com.lfc <- .weighted_average_vals(all.lfc, all.weight, weighted=TRUE)
-            out.stats[[host]][[target]] <- .create_full_stats(logFC=com.lfc, p=hvt.p, gene.names=gene.names, log.p=log.p)
-            out.stats[[target]][[host]] <- .create_full_stats(logFC=-com.lfc, p=tvh.p, gene.names=gene.names, log.p=log.p)
+        effect.size <- cur.lfc
+        if (std.lfc) {
+            # Computing Cohen's D.
+            pooled.s2 <- ((host.n - 1) * host.s2 + (target.n - 1) * target.s2)/(target.n + host.n - 2)
+            effect.size <- effect.size / sqrt(pooled.s2)
         }
+        
+        list(
+            effect=effect.size,
+            left=p.out$left,
+            right=p.out$right,
+
+            # Weights are inversely proportional to the squared error of the log-fold change,
+            # _assuming equal variance_ across blocks and groups for simplicity.
+            # (Using the actual variance is dangerous as some blocks have zero variance
+            # with a defined log-fold change, if there are many zeroes.)
+            weight=1/(1/host.n + 1/target.n),
+
+            # Indicating that there is no valid test statistic if the df is zero.
+            valid=all(!is.na(cur.df))
+        )
     }
-	
-    out.stats
+
+    .pairwise_blocked_template(x, clust.vals, nblocks, direction=direction,
+        gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, FLIPFUN=function(x) -x, effect.name="logFC")
 }
 
 .get_t_test_stats <- function(host.s2, target.s2, host.n, target.n)
@@ -248,8 +220,8 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
                 # Computing Cohen's D.
                 cur.lfc <- cur.lfc / sqrt(sigma2)
             }
-            out.stats[[host]][[target]] <- .create_full_stats(logFC=cur.lfc, p=hvt.p, gene.names=gene.names, log.p=log.p)
-            out.stats[[target]][[host]] <- .create_full_stats(logFC=-cur.lfc, p=tvh.p, gene.names=gene.names, log.p=log.p)
+            out.stats[[host]][[target]] <- .create_full_stats(cur.lfc, p=hvt.p, gene.names=gene.names, log.p=log.p)
+            out.stats[[target]][[host]] <- .create_full_stats(-cur.lfc, p=tvh.p, gene.names=gene.names, log.p=log.p)
         }
     }
 
