@@ -3,7 +3,7 @@
 #' @importFrom BiocParallel SerialParam
 pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "down"),
     log.p=FALSE, gene.names=rownames(x), subset.row=NULL, tol=1e-8, BPPARAM=SerialParam())
-# Performs pairwise Welch t-tests between clusters.
+# Performs pairwise Wilcoxon rank sum tests between clusters.
 #
 # written by Aaron Lun
 # created 15 September 2018
@@ -27,7 +27,8 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
     }
 
     direction <- match.arg(direction)
-    results <- .blocked_wilcox(x, subset.row, clusters, block=block, direction=direction, gene.names=gene.names, log.p=log.p, tol=tol, BPPARAM=BPPARAM)
+    results <- .blocked_wilcox(x, subset.row, clusters, block=block, direction=direction, 
+        gene.names=gene.names, log.p=log.p, tol=tol, BPPARAM=BPPARAM)
 
     first <- rep(names(results), lengths(results))
     second <- unlist(lapply(results, names), use.names=FALSE)
@@ -36,12 +37,10 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
     list(statistics=results, pairs=DataFrame(first=first, second=second))
 }
 
-#' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel bplapply SerialParam
 #' @importFrom stats pnorm 
-.blocked_wilcox <- function(x, subset.row, clusters, block=NULL, direction="any", gene.names=NULL, log.p=TRUE, tol=tol, BPPARAM=SerialParam())
-# This looks at every level of the blocking factor and performs
-# t-tests between pairs of clusters within each blocking level.
+.blocked_wilcox <- function(x, subset.row, clusters, block=NULL, direction="any", gene.names=NULL, 
+    log.p=TRUE, tol=1e-8, BPPARAM=SerialParam())
 {
     if (is.null(block)) {
         block <- list(`1`=seq_len(ncol(x)))
@@ -84,63 +83,35 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
         all.ties[[b]] <- cons.ties
     }
 
-    # Organizing into some pairwise output.
-    out.stats <- .create_output_container(clust.vals)
-    
-    for (i in seq_along(clust.vals)) {
-        host <- clust.vals[i]
-        targets <- clust.vals[seq_len(i-1L)]
+    # This looks at every level of the blocking factor and performs
+    # Wilcoxon tests between pairs of clusters within each blocking level.
+    STATFUN <- function(b, host, target) {
+        cur.effect <- all.stats[[b]][[host]][,target]
+        host.n <- as.double(all.n[[b]][[host]]) # numeric conversion to avoid overflow.
+        target.n <- as.double(all.n[[b]][[target]])
+        cur.prod <- host.n * target.n
 
-        for (target in targets) {
-            all.effect <- all.left <- all.right <- vector("list", nblocks)
-            valid.test <- logical(nblocks)
-            all.weight <- numeric(nblocks)
+        output <- list(effect=cur.effect / cur.prod, weight=cur.prod)
 
-            for (b in seq_len(nblocks)) {
-                cur.effect <- all.stats[[b]][[host]][,target]
-                host.n <- as.double(all.n[[b]][[host]]) # numeric conversion to avoid overflow.
-                target.n <- as.double(all.n[[b]][[target]])
-                cur.prod <- host.n * target.n
+        # 'cur.prod' is still nominally integer; we use 1.5 to avoid numerical imprecision upon an exact comparison.
+        output$valid <- cur.prod > 1.5
 
-                all.effect[[b]] <- cur.effect / cur.prod
-                all.weight[b] <- cur.prod
-                valid.test[b] <- cur.prod > 1.5 # 'cur.prod' is still nominally integer, so use 1.5 to avoid numerical imprecision upon an exact comparison.
+        # Approximate Wilcoxon with continuity correction: ripped straight from wilcox.test() in stats.
+        TIESUM <- all.ties[[b]][[host]][,target]
+        z <- cur.effect - cur.prod/2
+        SIGMA <- sqrt((host.n * target.n/12) * ((host.n + target.n + 1) - TIESUM/((host.n + target.n) * (host.n + target.n - 1))))
 
-                # Approximate Wilcoxon with continuity correction: ripped straight from wilcox.test() in stats.
-                TIESUM <- all.ties[[b]][[host]][,target]
-                z <- cur.effect - cur.prod/2
-                SIGMA <- sqrt((host.n * target.n/12) * ((host.n + target.n + 1) - TIESUM/((host.n + target.n) * (host.n + target.n - 1))))
+        # using 0.25 to avoid numerical imprecision; z should go up in units of 0.5's.
+        CORRECTION <- if (direction=="any") ifelse(abs(z) < 0.25, 0, 0.5) else 0.5 
+        output$left <- pnorm((z + CORRECTION)/SIGMA, log.p=TRUE)
+        output$right <- pnorm((z - CORRECTION)/SIGMA, log.p=TRUE, lower.tail=FALSE)
 
-                CORRECTION <- if (direction=="any") ifelse(abs(z) < 0.25, 0, 0.5) else 0.5 # using 0.25 to avoid numerical imprecision; z should go up in units of 0.5's.
-                all.left[[b]] <- pnorm((z + CORRECTION)/SIGMA, log.p=TRUE)
-                all.right[[b]] <- pnorm((z - CORRECTION)/SIGMA, log.p=TRUE, lower.tail=FALSE)
-            }
-
-            # Combining the p-values for each side across blocks.
-            if (any(valid.test)) { 
-                comb.args <- list(method="z", weights=all.weight[valid.test], log.p=TRUE)
-                com.left <- do.call(combinePValues, c(all.left[valid.test], comb.args))
-                com.right <- do.call(combinePValues, c(all.right[valid.test], comb.args))
-            } else {
-                com.left <- com.right <- rep(NA_real_, length(all.left[[1]]))
-            }
-
-            # Flipping left/right to get the p-value from the reversed comparison.
-            hvt.p <- .choose_leftright_pvalues(com.left, com.right, direction=direction)
-            tvh.p <- .choose_leftright_pvalues(com.right, com.left, direction=direction)
-
-            # Capping on the log-scale, as the continuity correction means that quantiles are not symmetric around zero with Stouffer's Z.
-            hvt.p <- pmin(hvt.p, 0)
-            tvh.p <- pmin(tvh.p, 0)
-
-            # Symmetric effects, hence the '1-'.
-            com.effect <- .weighted_average_vals(all.effect, all.weight, weighted=TRUE)
-            out.stats[[host]][[target]] <- .create_full_stats(overlap=com.effect, p=hvt.p, gene.names=gene.names, log.p=log.p)
-            out.stats[[target]][[host]] <- .create_full_stats(overlap=1-com.effect, p=tvh.p, gene.names=gene.names, log.p=log.p)
-        }
+        output
     }
-	
-    out.stats
+
+    .pairwise_blocked_template(x, clust.vals, block=block, direction=direction, 
+        gene.names=NULL, log.p=log.p, STATFUN=STATFUN, FLIPFUN=function(x) 1-x, 
+        effect.name="overlap")
 }
 
 .find_overlap_exprs <- function(x, subset.row, by.group, tol) 
