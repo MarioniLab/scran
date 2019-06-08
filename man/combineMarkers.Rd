@@ -49,8 +49,8 @@ Natural logarithms are reported.}
 It contains the effect size of the comparison of X to Y:
 \itemize{
 \item Log-fold changes, usually in base 2, from \code{\link{pairwiseTTests}}.
-\item Overlap proportions from \code{\link{pairwiseWilcox}}.
-\item Difference in non-zero proportions from \code{\link{pairwiseBinom}}.
+\item Area under the curve from \code{\link{pairwiseWilcox}}.
+\item Log2-odds ratios from \code{\link{pairwiseBinom}}.
 }
 The exact name of this field depends on \code{output.field}, see Examples.
 It is only reported when \code{full.stats=FALSE}.}
@@ -138,10 +138,10 @@ comb <- combineMarkers(out$statistics, out$pairs)
 comb[["Cluster1"]]
 
 out <- pairwiseWilcox(logcounts(y2), clusters=paste0("Cluster", kout$cluster))
-comb <- combineMarkers(out$statistics, out$pairs, effect.field="overlap")
+comb <- combineMarkers(out$statistics, out$pairs, effect.field="AUC")
 comb[["Cluster1"]]
 
 out <- pairwiseBinom(logcounts(y2), clusters=paste0("Cluster", kout$cluster))
-comb <- combineMarkers(out$statistics, out$pairs, effect.field="diff")
+comb <- combineMarkers(out$statistics, out$pairs, effect.field="logOR")
 comb[["Cluster1"]]
 }
