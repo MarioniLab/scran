@@ -90,7 +90,7 @@ pairwiseBinom <- function(x, clusters, block=NULL, direction=c("any", "up", "dow
         p <- host.n/(host.n + target.n)
 
         list(
-            effect=host.nzero/host.n - target.nzero/target.n,
+            effect=unname(log2((host.nzero + 0.5)/(host.n + 0.5) * (target.n + 0.5)/(target.nzero + 0.5))),
             weight=as.double(host.n)*as.double(target.n),
             valid=host.n > 0L && target.n > 0L,
             left=pbinom(host.nzero, size, p, log.p=TRUE),
@@ -99,7 +99,7 @@ pairwiseBinom <- function(x, clusters, block=NULL, direction=c("any", "up", "dow
     }
 
     .pairwise_blocked_template(x, clust.vals, nblocks=length(block), direction=direction, 
-        gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, FLIPFUN=function(x) -x, effect="diff")
+        gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, FLIPFUN=function(x) -x, effect="logOR")
 }
 
 #' @importFrom scater nexprs
