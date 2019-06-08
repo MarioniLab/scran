@@ -92,7 +92,7 @@ This contains the fields \code{first} and \code{second},
 specifying the two clusters under comparison in the corresponding DataFrame in \code{statistics}.
 
 In each DataFrame in \code{statistics}, the log-odds ratio represents the log-ration of the proportion of expressing cells in the \code{first} cluster compared to the expressing proportion in the \code{second} cluster.
-Switching the \code{first} and \code{second} clusters will affect the value of the overlap and, when \cod e{direction!="any"}, the size of the p-value itself.
+Switching the \code{first} and \code{second} clusters will affect the value of the overlap and, when \code{direction!="any"}, the size of the p-value itself.
 }
 
 \author{
