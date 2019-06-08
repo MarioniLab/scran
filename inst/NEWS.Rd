@@ -10,6 +10,10 @@
 \item Added option to pairwiseTTests() and findMarkers() for standardization of log-fold changes.
 
 \item Changed default BSPARAM=IrlbaParam() in quickCluster().
+
+\item Added the pairwiseBinom() function for pairwise binomial tests of gene expression.
+
+\item Renamed output fields of pairwiseWilcox() to use AUC for less confusion.
 }}
 
 \section{Version 1.12.0}{\itemize{
