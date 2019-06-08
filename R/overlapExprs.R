@@ -8,7 +8,7 @@
 # created 17 April 2017
 {
     fit <- pairwiseWilcox(x, groups, block=block, direction=direction, gene.names=gene.names, log.p=TRUE, subset.row=subset.row, BPPARAM=BPPARAM)
-    combineMarkers(fit$statistics, fit$pairs, pval.type=pval.type, log.p.in=TRUE, log.p.out=log.p, full.stats=full.stats, pval.field="log.p.value", effect.field="overlap")
+    combineMarkers(fit$statistics, fit$pairs, pval.type=pval.type, log.p.in=TRUE, log.p.out=log.p, full.stats=full.stats, pval.field="log.p.value", effect.field="AUC")
 }
 
 ###########################################################

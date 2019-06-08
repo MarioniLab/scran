@@ -38,7 +38,7 @@ A vector of group assignments for all cells.
 }
 
 \details{
-This function provides a convenience wrapper for marker gene identification, based on running \code{\link{pairwiseTTests}} and passing the result to \code{\link{combineMarkers}}.
+This function provides a convenience wrapper for marker gene identification, based on running \code{\link{pairwiseWilcox}} and passing the result to \code{\link{combineMarkers}}.
 All of the arguments above are supplied directly to one of these two functions.
 
 Note that \code{log.p} only affects the combined p-values and FDRs.
