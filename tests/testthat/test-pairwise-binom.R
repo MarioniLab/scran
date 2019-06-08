@@ -23,8 +23,11 @@ REFFUN <- function(y, grouping, direction="any")
             p <- host.n/(host.n + target.n)
 
             if (host.n > 0L && target.n > 0L) {
-                effect <- pval <- numeric(nrow(y))
+                lvals <- edgeR::cpm(cbind(host.y, target.y), lib.size=c(host.n, target.n), 
+                    prior.count=1, log=TRUE)
+                effect <- unname(lvals[,1] - lvals[,2])
 
+                pval <- numeric(nrow(y))
                 for (i in seq_along(pval)) {
                     cur.n <- n[i]
                     cur.y <- host.y[i]
@@ -40,8 +43,6 @@ REFFUN <- function(y, grouping, direction="any")
                     } else {
                         pv <- 1
                     }
-
-                    effect[i] <- log2((host.y[i]+0.5)/(host.n+0.5)) - log2((target.y[i]+0.5)/(target.n+0.5))
                     pval[i] <- unname(pv)
                 }
             } else {
@@ -50,7 +51,7 @@ REFFUN <- function(y, grouping, direction="any")
             
 			currow <- which(output$pairs[,1]==host & output$pairs[,2]==target)
             curres <- output$statistics[[currow]]
-			expect_equal(unname(curres$logOR), effect)
+			expect_equal(unname(curres$logFC), effect)
             expect_equal(pval, curres$p.value)
             expect_equal(p.adjust(pval, method="BH"), curres$FDR)
             expect_identical(rownames(y), rownames(curres))
@@ -157,20 +158,20 @@ BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
                 block.res.down <- pairwiseBinom(y[,chosen], grouping[chosen], direction="down", ...)
                 to.use.down <- which(block.res.down$pairs$first==curpair[1] & block.res.down$pairs$second==curpair[2])
 
-                block.lfc[[B]] <- block.res.up$statistics[[to.use.up]]$logOR
+                block.lfc[[B]] <- block.res.up$statistics[[to.use.up]]$logFC
                 block.up[[B]] <- block.res.up$statistics[[to.use.up]]$p.value
                 block.down[[B]] <- block.res.down$statistics[[to.use.down]]$p.value
             } else {
                 block.res <- pairwiseBinom(y[,chosen], grouping[chosen], direction=direction, ...)
                 to.use <- which(block.res$pairs$first==curpair[1] & block.res$pairs$second==curpair[2])
-                block.lfc[[B]] <- block.res$statistics[[to.use]]$logOR
+                block.lfc[[B]] <- block.res$statistics[[to.use]]$logFC
                 block.up[[B]] <- block.down[[B]] <- block.res$statistics[[to.use]]$p.value
             }
         }
 
         block.weights <- unlist(block.weights)
         if (length(block.weights)==0) {
-            expect_equal(ref.res$logOR, rep(NA_real_, nrow(ref.res)))
+            expect_equal(ref.res$logFC, rep(NA_real_, nrow(ref.res)))
             expect_equal(ref.res$p.value, rep(NA_real_, nrow(ref.res)))
             next
         }
@@ -178,7 +179,7 @@ BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
         # Taking a weighted average.
         all.lfc <- do.call(rbind, block.lfc)
         ave.lfc <- colSums(all.lfc * block.weights) / sum(block.weights)
-        expect_equal(ave.lfc, ref.res$logOR)
+        expect_equal(ave.lfc, ref.res$logFC)
 
         # Combining p-values in each direction.
         up.p <- do.call(combinePValues, c(block.up, list(method="z", weights=block.weights)))
@@ -317,6 +318,6 @@ test_that("pairwiseBinom fails gracefully with silly inputs", {
     out <- pairwiseBinom(stuff, g)
     expect_true(all(out$statistics[[1]]$FDR==1))
     expect_true(all(out$statistics[[2]]$FDR==1))
-    expect_equal(out$statistics[[1]]$logOR, rep(0, ngenes))
-    expect_equal(out$statistics[[2]]$logOR, rep(0, ngenes))
+    expect_equal(out$statistics[[1]]$logFC, rep(0, ngenes))
+    expect_equal(out$statistics[[2]]$logFC, rep(0, ngenes))
 })

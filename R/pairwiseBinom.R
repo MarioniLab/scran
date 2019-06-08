@@ -88,9 +88,13 @@ pairwiseBinom <- function(x, clusters, block=NULL, direction=c("any", "up", "dow
 
         size <- host.nzero + target.nzero
         p <- host.n/(host.n + target.n)
+        mean.lib <- mean(c(host.n, target.n))
+        pseudo.host <- 1 * host.n/mean.lib
+        pseudo.target <- 1 * target.n/mean.lib
 
         list(
-            effect=unname(log2((host.nzero + 0.5)/(host.n + 0.5) * (target.n + 0.5)/(target.nzero + 0.5))),
+            effect=unname(log2((host.nzero + pseudo.host)/(host.n + 2 * pseudo.host))
+                - log2((target.nzero + pseudo.target)/(target.n + 2 * pseudo.target))), # mimic edgeR::cpm().
             weight=as.double(host.n)*as.double(target.n),
             valid=host.n > 0L && target.n > 0L,
             left=pbinom(host.nzero, size, p, log.p=TRUE),
@@ -99,7 +103,7 @@ pairwiseBinom <- function(x, clusters, block=NULL, direction=c("any", "up", "dow
     }
 
     .pairwise_blocked_template(x, clust.vals, nblocks=length(block), direction=direction, 
-        gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, FLIPFUN=function(x) -x, effect.name="logOR")
+        gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, FLIPFUN=function(x) -x, effect.name="logFC")
 }
 
 #' @importFrom scater nexprs

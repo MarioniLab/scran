@@ -30,11 +30,11 @@ Here, the null hypothesis is that the proportion of cells expressing a gene is t
 A list of tables is returned where each table contains the statistics for all genes for a comparison between each pair of clusters.
 This can be examined directly or used as input to \code{\link{combineMarkers}} for marker gene detection.
 
-Effect sizes for each comparison are reported as log2-odds ratios,
-i.e., the ratio of the proportion of expressing cells in one cluster to the proportion in another cluster.
-Large log-ORs correspond to large relative differences in these proportions,
+Effect sizes for each comparison are reported as log2-fold changes 
+in the proportion of expressing cells in one cluster over the proportion in another cluster.
+Large log-FCs correspond to large relative differences in these proportions,
 where the sign indicates the direction of the change in proportions.
-We add a pseudo-count of 0.5 to all counts prior to computing the log-ORs to avoid undefined values.
+We add a pseudo-count that squeezes the log-FCs towards zero, to avoid undefined values when one proportion is zero.
 
 \code{x} can be a count matrix or any transformed counterpart where zeroes remain zero and non-zeroes remain non-zero.
 This is true of any scaling normalization and monotonic transformation like the log-transform.
@@ -91,8 +91,8 @@ The \code{pairs} element is a DataFrame with one row corresponding to each entry
 This contains the fields \code{first} and \code{second}, 
 specifying the two clusters under comparison in the corresponding DataFrame in \code{statistics}.
 
-In each DataFrame in \code{statistics}, the log-odds ratio represents the log-ration of the proportion of expressing cells in the \code{first} cluster compared to the expressing proportion in the \code{second} cluster.
-Switching the \code{first} and \code{second} clusters will affect the value of the overlap and, when \code{direction!="any"}, the size of the p-value itself.
+In each DataFrame in \code{statistics}, the log-fold change represents the log-ratio of the proportion of expressing cells in the \code{first} cluster compared to the expressing proportion in the \code{second} cluster.
+Switching the \code{first} and \code{second} clusters will affect the sign of the log-FC and, when \code{direction!="any"}, the size of the p-value itself.
 }
 
 \author{
