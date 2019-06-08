@@ -27,11 +27,13 @@ This function performs Wilcoxon rank sum tests to identify differentially expres
 A list of tables is returned where each table contains the statistics for all genes for a comparison between each pair of clusters.
 This can be examined directly or used as input to \code{\link{combineMarkers}} for marker gene detection.
 
-Effect sizes are computed as overlap proportions.
-Consider the distribution of expression values for gene X within each of two groups of cells A and B.
-The overlap proportion is defined as the probability that a randomly selected cell in A has a greater expression value of X than a randomly selected cell in B. 
-Overlap proportions near 0 (A is lower than B) or 1 (A is higher than B) indicate that the expression distributions are well-separated. 
-The Wilcoxon rank sum test effectively tests for significant deviations from an overlap proportion of 0.5.
+The effect size for each gene in each comparison is reported as the area under the curve (AUC).
+Consider the distribution of expression values for gene X within each of two groups A and B.
+The AUC is the probability that a randomly selected cell in A has a greater expression of X than a randomly selected cell in B. 
+(Ties are assumed to be randomly broken.)
+Concordance probabilities near 0 indicate that most observations in A are lower than most observations in B;
+conversely, probabilities near 1 indicate that most observations in A are higher than those in B.
+The Wilcoxon rank sum test effectively tests for significant deviations from an AUC of 0.5.
 
 Wilcoxon rank sum tests are more robust to outliers and insensitive to non-normality, in contrast to t-tests in \code{\link{pairwiseTTests}}.
 However, they take longer to run, the effect sizes are less interpretable, and there are more subtle violations of its assumptions in real data.

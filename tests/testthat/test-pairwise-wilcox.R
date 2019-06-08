@@ -15,22 +15,22 @@ REFFUN <- function(y, grouping, direction="any")
             target.y <- y[,grouping==target,drop=FALSE]
 
             if (ncol(host.y) * ncol(target.y) > 1L) {
-                overlap <- pval <- numeric(nrow(y))
+                auc <- pval <- numeric(nrow(y))
                 for (i in seq_along(pval)) {
                     result <- wilcox.test(host.y[i,], target.y[i,], alternative=alt.hyp, exact=FALSE)
-                    overlap[i] <- result$statistic / (ncol(host.y) * ncol(target.y))
+                    auc[i] <- result$statistic / (ncol(host.y) * ncol(target.y))
                     pval[i] <- result$p.value
                 }
             } else {
-                pval <- overlap <- rep(NA_real_, nrow(y))
+                pval <- auc <- rep(NA_real_, nrow(y))
                 if (ncol(host.y) && ncol(target.y)) {
-                    overlap <- unname(1 + sign(host.y[,1] - target.y[,1])) / 2
+                    auc <- unname(1 + sign(host.y[,1] - target.y[,1])) / 2
                 }
             }
             
 			currow <- which(output$pairs[,1]==host & output$pairs[,2]==target)
             curres <- output$statistics[[currow]]
-			expect_equal(unname(curres$overlap), overlap)
+			expect_equal(unname(curres$AUC), auc)
             expect_equal(pval, curres$p.value)
             expect_equal(p.adjust(pval, method="BH"), curres$FDR)
             expect_identical(rownames(y), rownames(curres))
@@ -138,21 +138,23 @@ BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
                 block.res.down <- pairwiseWilcox(y[,chosen], grouping[chosen], direction="down", ...)
                 to.use.down <- which(block.res.down$pairs$first==curpair[1] & block.res.down$pairs$second==curpair[2])
 
-                block.lfc[[B]] <- block.res.up$statistics[[to.use.up]]$overlap
-                middled <- abs(block.lfc[[B]] - 0.5) * N1 * N2 < 0.25 # see comments in pairwiseWilcox().
+                # Directional p-values exhibit different corrections from two-sided p-values for near-zero U-statistics,
+                # so some care is required here; see pairwiseWilcox() for why we use 0.25.
+                block.lfc[[B]] <- block.res.up$statistics[[to.use.up]]$AUC
+                middled <- abs(block.lfc[[B]] - 0.5) * N1 * N2 < 0.25 
                 block.up[[B]] <- ifelse(middled, 0.5, block.res.up$statistics[[to.use.up]]$p.value)
                 block.down[[B]] <- ifelse(middled, 0.5, block.res.down$statistics[[to.use.down]]$p.value)
             } else {
                 block.res <- pairwiseWilcox(y[,chosen], grouping[chosen], direction=direction, ...)
                 to.use <- which(block.res$pairs$first==curpair[1] & block.res$pairs$second==curpair[2])
-                block.lfc[[B]] <- block.res$statistics[[to.use]]$overlap
+                block.lfc[[B]] <- block.res$statistics[[to.use]]$AUC
                 block.up[[B]] <- block.down[[B]] <- block.res$statistics[[to.use]]$p.value
             }
         }
 
         block.weights <- unlist(block.weights)
         if (length(block.weights)==0) {
-            expect_equal(ref.res$overlap, rep(NA_real_, nrow(ref.res)))
+            expect_equal(ref.res$AUC, rep(NA_real_, nrow(ref.res)))
             expect_equal(ref.res$p.value, rep(NA_real_, nrow(ref.res)))
             next
         }
@@ -160,7 +162,7 @@ BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
         # Taking a weighted average.
         all.lfc <- do.call(rbind, block.lfc)
         ave.lfc <- colSums(all.lfc * block.weights) / sum(block.weights)
-        expect_equal(ave.lfc, ref.res$overlap)
+        expect_equal(ave.lfc, ref.res$AUC)
 
         # Combining p-values in each direction.
         up.p <- do.call(combinePValues, c(block.up, list(method="z", weights=block.weights)))
@@ -273,7 +275,7 @@ test_that("pairwiseWilcox behaves as expected with log-transformation", {
     expect_identical(ref$pairs, out$pairs)
 
     for (i in seq_along(ref$statistics)) {
-        expect_equal(ref$statistics[[i]]$overlap, out$statistics[[i]]$overlap)
+        expect_equal(ref$statistics[[i]]$AUC, out$statistics[[i]]$AUC)
         expect_equal(log(ref$statistics[[i]]$p.value), out$statistics[[i]]$log.p.value)
         expect_equal(log(ref$statistics[[i]]$FDR), out$statistics[[i]]$log.FDR)
     }
@@ -300,6 +302,6 @@ test_that("pairwiseWilcox fails gracefully with silly inputs", {
     out <- pairwiseWilcox(stuff, clusters)
     expect_true(all(out$statistics[[1]]$FDR < 1e-4))
     expect_true(all(out$statistics[[2]]$FDR < 1e-4))
-    expect_equal(out$statistics[[1]]$overlap, rep(0, ngenes))
-    expect_equal(out$statistics[[2]]$overlap, rep(1, ngenes))
+    expect_equal(out$statistics[[1]]$AUC, rep(0, ngenes))
+    expect_equal(out$statistics[[2]]$AUC, rep(1, ngenes))
 })
