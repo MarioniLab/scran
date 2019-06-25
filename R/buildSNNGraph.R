@@ -2,13 +2,15 @@
 #' @importFrom BiocNeighbors KmknnParam
 #' @importFrom BiocParallel SerialParam
 #' @importFrom BiocSingular ExactParam
-.buildSNNGraph <- function(x, k=10, d=50, type=c("rank", "number"),
+.buildSNNGraph <- function(x, k=10, d=50, 
+    type=c("rank", "number", "jaccard"),
     transposed=FALSE, subset.row=NULL, 
     BNPARAM=KmknnParam(), BSPARAM=ExactParam(), BPPARAM=SerialParam()) 
 # Builds a shared nearest-neighbor graph, where edges are present between each 
-# cell and any other cell with which it shares at least one neighbour. Each edges 
+# cell and any other cell with which it shares at least one neighbour. Each edge
 # is weighted based on the ranks of the shared nearest neighbours of the two cells, 
-# as described in the SNN-Cliq paper.
+# as described in the SNN-Cliq paper; or by the number of shared numbers;
+# or by the Jaccard index, a la Seurat's default.
 #
 # written by Aaron Lun
 # created 3 April 2017
@@ -23,8 +25,12 @@
     } else {
         g.out <- .Call(cxx_build_snn_number, nn.out$index)
     }
+
     edges <- g.out[[1]] 
     weights <- g.out[[2]]
+    if (type=="jaccard") {
+        weights <- weights / (2 * (k + 1) - weights)
+    }
 
     g <- make_graph(edges, directed=FALSE)
     E(g)$weight <- weights

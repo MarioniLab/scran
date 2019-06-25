@@ -24,8 +24,10 @@ check <- function(vals, k=10, type="rank")
             if (type=="rank") {
                 s <- k + 1 - 0.5*(match(shared, inn) + match(shared, jnn))
                 collected[j] <- max(s)
-            } else {
+            } else if (type=="number") {
                 collected[j] <- length(shared)
+            } else {
+                collected[j] <- length(shared) / length(union(inn, jnn))
             }
         }
         collected[i] <- 0
@@ -57,6 +59,16 @@ test_that("buildSNNGraph gives same results as a reference", {
     
     dummy <- matrix(rnorm(ngenes*ncells), ncol=ncells, nrow=ngenes)
     check(dummy, k=5, type="number")
+
+    # Checking 'jaccard' mode.  
+    dummy <- matrix(rnorm(ngenes*ncells), ncol=ncells, nrow=ngenes)
+    check(dummy, k=10, type="jaccard")
+    
+    dummy <- matrix(rnorm(ngenes*ncells), ncol=ncells, nrow=ngenes)
+    check(dummy, k=20, type="jaccard")
+    
+    dummy <- matrix(rnorm(ngenes*ncells), ncol=ncells, nrow=ngenes)
+    check(dummy, k=5, type="jaccard")
 })
 
 # Checking that the value is sensible with subset.row.

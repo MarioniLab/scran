@@ -12,9 +12,9 @@
 \description{Build a shared or k-nearest-neighbors graph for cells based on their expression profiles.}
 
 \usage{
-\S4method{buildSNNGraph}{ANY}(x, k=10, d=50, type=c("rank", "number"), transposed=FALSE,
-    subset.row=NULL, BNPARAM=KmknnParam(), BSPARAM=ExactParam(), 
-    BPPARAM=SerialParam())
+\S4method{buildSNNGraph}{ANY}(x, k=10, d=50, type=c("rank", "number", "jaccard"),
+    transposed=FALSE, subset.row=NULL, BNPARAM=KmknnParam(), 
+    BSPARAM=ExactParam(), BPPARAM=SerialParam())
 
 \S4method{buildSNNGraph}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts", 
     get.spikes=FALSE, use.dimred=NULL)
@@ -52,13 +52,16 @@ An edge is drawn between all pairs of cells that share at least one neighbour, w
 \itemize{
     \item If \code{type="rank"}, the weighting scheme defined by Xu and Su (2015) is used.
         The weight between two nodes is equal to \eqn{k - r/2}, where \eqn{r} is the smallest sum of ranks for any shared neighboring node.
-        For example, if both nodes had the same closest neighbor, the weight would be \eqn{k - 1}.
+        For example, if one node was the closest neighbor of each of two nodes, the weight between the two latter nodes would be \eqn{k - 1}.
         For the purposes of this ranking, each node has a rank of zero in its own nearest-neighbor set. 
+        More shared neighbors, or shared neighbors that are close to both cells, will generally yield larger weights.
     \item If \code{type="number"}, the weight between two nodes is simply the number of shared nearest neighbors between them.
         The weight can range from zero to \eqn{k + 1}, as the node itself is included in its own nearest-neighbor set.
         This is a simpler scheme that is also slightly faster but does not account for the ranking of neighbors within each set.
+    \item If \code{type="jaccard"}, the weight between two nodes is the Jaccard similarity between the two sets of neighbors for those nodes.
+        This weight can range from zero to 1, and is a monotonic transformation of the weight used by \code{type="number"}.
+        It is provided for consistency with other clustering algorithms such as those in \pkg{seurat}.
 }
-More shared neighbors, or shared neighbors that are close to both cells, will generally yield larger weights.
 
 The aim is to use the SNN graph to perform clustering of cells via community detection algorithms in the \pkg{igraph} package.
 This is faster and more memory efficient than hierarchical clustering for large numbers of cells.
