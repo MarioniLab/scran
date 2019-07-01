@@ -3,7 +3,7 @@
 
 set.seed(6000)
 ngenes <- 10000
-means <- 2^runif(ngenes, 6, 10)
+means <- 2^runif(ngenes, 0, 10)
 dispersions <- 10/means + 0.2
 nsamples <- 50
 
@@ -176,9 +176,6 @@ test_that("improvedCV2 fits to all genes properly", {
     all.used <- improvedCV2(counts(X), sf.cell=sizeFactors(X), sf.spike=sizeFactors(X), is.spike=NA)
     all.used3 <- improvedCV2(X, assay.type="counts", spike.type=NA)
     expect_equal(all.used, all.used3)
-
-    # Robustness works.
-    all.used <- improvedCV2(X, robust=TRUE)
 })
 
 test_that("improvedCV2 behaves in the presence of silly inputs", {
@@ -197,8 +194,7 @@ test_that("improvedCV2 is robust to zeroes", {
     counts[501,] <- 0
     out <- improvedCV2(counts, is.spike=NA)
     expect_identical(out$mean[1], 0)
-    expect_identical(out$var[1], 0)
     expect_identical(out$cv2[1], NaN)
-    expect_identical(out$trend[1], NA_real_)
+    expect_identical(out$trend[1], Inf)
     expect_equivalent(out[1,], out[501,])
 })
