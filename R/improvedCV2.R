@@ -1,7 +1,7 @@
 #' @importFrom S4Vectors DataFrame
 #' @importFrom stats pnorm predict median
 .improvedCV2 <- function(x, is.spike, sf.cell=NULL, sf.spike=NULL, log.prior=NULL, 
-    use.spikes=FALSE, nbins=20, top.prop=0.01, max.iter=50)
+    use.spikes=FALSE, bw.adjust=1, top.prop=0.01, max.iter=50)
 # Fits a spline to the log-CV2 values and computes a p-value for its deviation.
 #
 # written by Aaron Lun
@@ -62,7 +62,7 @@
     use.means <- means[to.use]
     use.cv2 <- cv2[to.use]
 
-    tech.FUN <- .fit_trend_improved(use.means, use.cv2, nbins=nbins, top.prop=top.prop, max.iter=max.iter)
+    tech.FUN <- .fit_trend_improved(use.means, use.cv2, adjust=bw.adjust, top.prop=top.prop, max.iter=max.iter)
     tech.cv2 <- tech.FUN(means)
     log.cv2 <- log(cv2)
     log.tech.cv2 <- log(tech.cv2)
@@ -79,35 +79,32 @@
         p.value=p, FDR=p.adjust(p, method="BH"), row.names=rownames(x))
 }
 
-#' @importFrom stats nls median quantile
-.fit_trend_improved <- function(x, y, nbins=20, max.iter=3, top.prop=0.01) {
-    y0 <- log(y)
-    x0 <- log(x)
-
-    by.interval <- cut(x0, breaks=nbins)
-    freq <- as.numeric(table(by.interval)[by.interval])
-    weights <- 1/freq
+#' @importFrom stats nls median quantile coef
+.fit_trend_improved <- function(x, y, adjust=1, max.iter=50, top.prop=0.01) {
+    y <- log(y)
+    w <- .inverse_density_weights(log(x), adjust=adjust)
 
     # Rough estimation of initial parameters.
-    B <- median(y0 + log(x), na.rm=TRUE)
-    A <- median(y0[x >= quantile(x, 1-top.prop)])
+    B <- median(y + log(x), na.rm=TRUE)
+    A <- median(y[x >= quantile(x, 1-top.prop)])
 
-    # Least squares fitting on the log-transformed 'y', plus robustness iterations. 
-    for (i in seq_len(max.iter)) {
-        pfit <- nls(y0 ~ log(exp(A) + exp(B)/x), start=list(A=A, B=B), weights=weights)
-        paramFUN <- function(x) { exp(coef(pfit)["A"]) + exp(coef(pfit)["B"])/x }
-
-        r <- abs(y0 - log(paramFUN(x)))
-        r <- r/(median(r, na.rm=TRUE) * 6)
-        r <- pmin(r, 1)
-        new.weights <- (1 - r^3)^3/freq
-        if (max(abs(new.weights - weights)) < 1e-8) { 
-            break
-        }
-        weights <- new.weights
+    fitFUN <- function(X, Y, W) {
+        nls(Y ~ log(exp(A) + exp(B)/X), start=list(A=A, B=B), weights=W)
     }
 
-    paramFUN
+    predFUN <- function(fit) {
+        Aest <- exp(coef(fit)["A"])
+        Best <- exp(coef(fit)["B"])
+        function(x) { Aest  + Best/x }
+    }
+
+    logpredFUN <- function(fit) {
+        FUN <- predFUN(fit)
+        function(x) log(FUN(x))
+    }
+
+    fit <- .robustify_fit(x, y, fitFUN, logpredFUN, weights=w, max.iter=max.iter)
+    predFUN(fit) 
 }
 
 #' @export

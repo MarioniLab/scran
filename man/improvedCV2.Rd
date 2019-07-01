@@ -11,7 +11,7 @@ This is intended to be a more stable version of \code{\link{technicalCV2}}.
 
 \usage{
 \S4method{improvedCV2}{ANY}(x, is.spike, sf.cell=NULL, sf.spike=NULL, log.prior=NULL, 
-    use.spikes=FALSE, nbins=20, top.prop=0.01, robust.iter=3)
+    use.spikes=FALSE, top.prop=0.01, max.iter=50)
 
 \S4method{improvedCV2}{SingleCellExperiment}(x, spike.type=NULL, ..., assay.type="logcounts", 
     logged=NULL, normalized=NULL)
@@ -32,9 +32,8 @@ This is ignored if \code{log.prior!=NULL}.}
 \item{log.prior}{A numeric scalar specifying the pseudo-count added prior to log-transformation.
 If this is set, \code{x} is assumed to contain normalized log-expression values, otherwise it is assumed to contain counts.}
 \item{use.spikes}{A logical scalar indicating whether p-values should be returned for spike-in transcripts.}
-\item{nbins}{An integer scalar specifying the number of bins to use to compute inverse-frequency weights.}
 \item{top.prop}{A numeric scalar in (0, 1), specifying the top percentage of high-abundance genes to use for estimating the initial value of the plateau parameter of the fitted trend.}
-\item{robust.iter}{An integer scalar specifying the number of robustness iterations to use for trend fitting.}
+\item{max.iter}{An integer scalar specifying the maximum number of robustness iterations to use for trend fitting.}
 \item{spike.type}{A character vector containing the names of the spike-in sets to use.}
 \item{...}{Additional arguments to pass to \code{improvedCV2,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use.}
@@ -62,16 +61,15 @@ We fit this trend using \code{\link{nls}} on the log-CV2, i.e., errors are compu
 
 Several parameters are available to tune this fit:
 \itemize{
-\item To ensure that the fit is not driven by abundance intervals with many genes,
-we partition the log-means into \code{nbins} bins.
-Each gene is assigned a weight that is inversely proportional to the number of genes in its bin.
 \item To obtain a good initial estimate of the \eqn{A} parameter, 
 we assume the CV2 has already plateaued at the top \code{top.prop} genes.
 The median of these top genes is used as an initial value for \eqn{A}.
-\item We reduce the effect of outliers and highly variable genes on the fit by using \code{robust.iter} robustness iterations.
-Each gene is reweighted using tricube weights computed using the log-difference from the trend,
-where the maximum distance is 3 times the median log-difference across all genes.
+\item We reduce the effect of outliers and highly variable genes on the fit by using multiple robustness iterations.
+Each gene is reweighted using tricube weights based on the residuals in log space.
+Iterations are performed until convergence, for up to \code{max.iter} iterations.
 }
+In addition, we weight each gene in inversely proportion to the number of genes with a similar mean.
+This ensures that the fit is not dominated by the large number of low-abundance genes.
 
 For any given data set, the maximum CV2 that can be achieved is equal to the number of cells.
 (This occurs when only one cell has a non-zero expression value - proof via Holder's inequality.)
@@ -135,21 +133,21 @@ Aaron Lun
 \examples{
 # Setting up the data.
 library(scRNAseq)
-sce.zeisel <- ZeiselBrainData()
+sce <- ZeiselBrainData()
 
 library(scater)
-sizeFactors(sce.zeisel) <- librarySizeFactors(sce.zeisel)
-sce.zeisel <- computeSpikeFactors(sce.zeisel)
+sizeFactors(sce) <- librarySizeFactors(sce)
+sce <- computeSpikeFactors(sce)
 
 # Computing based on the spike-ins.
-out <- improvedCV2(sce.zeisel, assay.type="counts")
+out <- improvedCV2(sce, assay.type="counts")
 head(out)
 
 plot(out$mean, out$cv2, log="xy")
 points(out$mean, out$trend, col="red", pch=16, cex=0.5)
 
 # Again, but without the spike.ins.
-out2 <- improvedCV2(sce.zeisel, spike.type=NA, assay.type="counts")
+out2 <- improvedCV2(sce, spike.type=NA, assay.type="counts")
 plot(out2$mean, out2$cv2, log="xy")
 points(out2$mean, out2$trend, col="red", pch=16, cex=0.5)
 }

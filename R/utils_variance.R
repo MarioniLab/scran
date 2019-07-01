@@ -93,5 +93,32 @@
         is.spike <- NA
     }
 
-    return(list(is.spike=is.spike, sf.cell=sf.cell, sf.spike=sf.spike))
-} 
+    list(is.spike=is.spike, sf.cell=sf.cell, sf.spike=sf.spike)
+}
+
+#' @importFrom stats density approx
+.inverse_density_weights <- function(x, adjust=1) {
+    out <- density(x, adjust=adjust, from=min(x), to=max(x))
+    w <- 1/approx(out$x, out$y, xout=x)$y 
+    w/mean(w)
+}
+
+#' @importFrom stats median
+.robustify_fit <- function(x, y, fitFUN, predFUN, weights, max.iter=50, nmads=6, tol=1e-8) {
+    original <- weights
+    for (i in seq_len(max.iter)) {
+        fit <- fitFUN(x, y, weights)
+
+        r <- abs(y - predFUN(fit)(x))
+        r <- r/(median(r, na.rm=TRUE) * nmads)
+        r <- pmin(r, 1)
+
+        new.weights <- (1 - r^3)^3 * original
+        if (max(abs(new.weights - weights)) < tol) {
+            break
+        }
+        weights <- new.weights
+    }
+    
+    fit
+}
