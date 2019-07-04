@@ -14,8 +14,8 @@
 #' @return 
 #' A named list is returned, containing:
 #' \describe{
-#' \item{\code{means}:}{A numeric vector of mean log-expression values for all features used for trend fitting.}
-#' \item{\code{vars}:}{A numeric vector of the variances of log-expression values for all features used for trend fitting.}
+#' \item{\code{mean}:}{A numeric vector of mean log-expression values for all features used for trend fitting.}
+#' \item{\code{var}:}{A numeric vector of the variances of log-expression values for all features used for trend fitting.}
 #' \item{\code{trend}:}{A function that returns the fitted value of the trend at any value of the mean.}
 #' \item{\code{rsd}:}{A numeric scalar containing the robust standard deviation of the ratio of \code{var} to the fitted value of the trend across all features used for trend fitting.}
 #' }
@@ -113,10 +113,12 @@ NULL
         output
     }
 
-    stats.out <- stats.out[c("means", "vars")]
-    stats.out$trend <- FUN
-    stats.out$rsd <- unname(weighted.median(abs(leftovers/med - 1), w, na.rm=TRUE)) * 1.4826 # assume normality of ratios.
-    stats.out
+    output <- list(mean=stats.out$means, var=stats.out$vars)
+    output$trend <- FUN
+
+    # We assume ratios are normally distributed around 1 with some standard deviation.
+    output$rsd <- unname(weighted.median(abs(leftovers/med - 1), w, na.rm=TRUE)) * 1.4826 
+    output
 }
 
 #########################
@@ -124,11 +126,15 @@ NULL
 #########################
 
 #' @export
+#' @rdname fitTrendVar
 setGeneric("fitTrendVar", function(x, ...) standardGeneric("fitTrendVar"))
 
 #' @export
+#' @rdname fitTrendVar
 setMethod("fitTrendVar", "ANY", .fit_trend_var)
 
+#' @export
+#' @rdname fitTrendVar
 #' @importFrom SummarizedExperiment assay
 #' @importFrom SingleCellExperiment isSpike
 setMethod("fitTrendVar", "SingleCellExperiment", function(x, subset.row=NULL, ..., assay.type="logcounts", use.spikes=TRUE) {
