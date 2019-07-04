@@ -96,15 +96,12 @@ NULL
     } 
 
     lfit <- weightedLowess(m, to.fit, weights=w, ...)
-    LOESSFUN <- splinefun(m, lfit$fitted)
+    LOESSFUN <- approxfun(m, lfit$fitted, rule=2)
 
     # Only trusting the parametric function for extrapolation; 
     # restricting non-parametric forms within the supported range.
-    left.edge <- min(m)
-    right.edge <- max(m)
     UNSCALEDFUN <- function(x) { 
-        both.bounded <- pmax(pmin(x, right.edge), left.edge)
-        exp(LOESSFUN(both.bounded)) * PARAMFUN(x)
+        exp(LOESSFUN(x)) * PARAMFUN(x)
     }
 
     # Adjusting for any scale shift due to fitting to the log-values.
