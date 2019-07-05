@@ -5,10 +5,12 @@
 #' @param x A numeric matrix of log-counts, or a \linkS4class{SingleCellExperiment} containing such a matrix.
 #' @param parametric A logical scalar indicating whether a parametric fit should be attempted.
 #' @param nls.args A list of parameters to pass to \code{\link{nls}} if \code{parametric=TRUE}.
-#' @param ... Further arguments to pass to \code{\link{weightedLowess}} for LOWESS fitting.
 #' @param design A numeric matrix containing blocking terms for uninteresting factors of variation.
 #' @param min.mean A numeric scalar specifying the minimum mean to use for trend fitting.
 #' @param subset.row See \code{?"\link{scran-gene-selection}"}.
+#' @param ... For the \code{ANY} method, further arguments to pass to \code{\link{weightedLowess}} for LOWESS fitting.
+#'
+#' For the generic and SingleCellExperiment methods, further arguments to pass to the \code{ANY} method.
 #' @param BPPARAM A \linkS4class{BiocParallelParam} object indicating whether parallelization should be performed across genes.
 #'
 #' @return 
@@ -17,7 +19,7 @@
 #' \item{\code{mean}:}{A numeric vector of mean log-expression values for all features used for trend fitting.}
 #' \item{\code{var}:}{A numeric vector of the variances of log-expression values for all features used for trend fitting.}
 #' \item{\code{trend}:}{A function that returns the fitted value of the trend at any value of the mean.}
-#' \item{\code{rsd}:}{A numeric scalar containing the robust standard deviation of the ratio of \code{var} to the fitted value of the trend across all features used for trend fitting.}
+#' \item{\code{std.dev}:}{A numeric scalar containing the robust standard deviation of the ratio of \code{var} to the fitted value of the trend across all features used for trend fitting.}
 #' }
 #'
 #' @details
@@ -35,9 +37,9 @@
 #' fit.endog <- fitTrendVar(example.sce, use.spikes=FALSE)
 #' 
 #' # Comparing the two trend fits:
-#' plot(fit.endog$means, fit.endog$vars, pch=16, cex=0.5,
+#' plot(fit.endog$mean, fit.endog$var, pch=16, cex=0.5,
 #'     xlab="Mean", ylab="Variance")
-#' points(fit.spike$means, fit.spike$vars, col="red", pch=16)
+#' points(fit.spike$mean, fit.spike$var, col="red", pch=16)
 #' 
 #' curve(fit.endog$trend(x), add=TRUE, col="dodgerblue", lwd=3)
 #' curve(fit.spike$trend(x), add=TRUE, col="salmon", lwd=3)
@@ -105,20 +107,9 @@ NULL
     }
 
     # Adjusting for any scale shift due to fitting to the log-values.
-    leftovers <- v/UNSCALEDFUN(m)
-    med <- weighted.median(leftovers, w, na.rm=TRUE)
-    FUN <- function(x) { 
-        output <- UNSCALEDFUN(x) * med
-        names(output) <- names(x)
-        output
-    }
+    corrected <- .correct_logged_expectation(m, v, w, UNSCALEDFUN)
 
-    output <- list(mean=stats.out$means, var=stats.out$vars)
-    output$trend <- FUN
-
-    # We assume ratios are normally distributed around 1 with some standard deviation.
-    output$rsd <- unname(weighted.median(abs(leftovers/med - 1), w, na.rm=TRUE)) * 1.4826 
-    output
+    c(list(mean=stats.out$means, var=stats.out$vars), corrected)
 }
 
 #########################

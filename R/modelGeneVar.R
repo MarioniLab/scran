@@ -103,7 +103,7 @@ NULL
 
     output <- DataFrame(mean=x.mean, total=x.vars, tech=fit$trend(x.mean))
     output$bio <- output$total - output$tech
-    output$p.value <- pnorm(output$bio/output$tech, sd=fit$rsd, lower.tail=FALSE)
+    output$p.value <- pnorm(output$bio/output$tech, sd=fit$std.dev, lower.tail=FALSE)
 
     rownames(output) <- rownames(x)[.subset_to_index(subset.row, x)]
     metadata(output) <- fit

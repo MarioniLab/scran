@@ -103,22 +103,26 @@
     w/mean(w)
 }
 
-#' @importFrom stats median
-.robustify_fit <- function(x, y, fitFUN, predFUN, weights, max.iter=50, nmads=6, tol=1e-8) {
-    original <- weights
-    for (i in seq_len(max.iter)) {
-        fit <- fitFUN(x, y, weights)
+#' @importFrom limma weighted.median
+.correct_logged_expectation <- function(x, y, w, FUN) 
+# Adjusting for any scale shift due to fitting to the log-values.
+# The expectation of the log-values should be the log-expectation
+# plus a factor that is dependent on the variance of the raw values
+# divided by the squared mean, using a second-order Taylor approximation. 
+# If we assume that the standard deviation of the variances is proportional
+# to the mean variances with the same constant across all abundances,
+# we should be able to correct the discrepancy with a single rescaling factor. 
+{
+    leftovers <- y/FUN(x)
+    med <- weighted.median(leftovers, w, na.rm=TRUE)
 
-        r <- abs(y - predFUN(fit)(x))
-        r <- r/(median(r, na.rm=TRUE) * nmads)
-        r <- pmin(r, 1)
-
-        new.weights <- (1 - r^3)^3 * original
-        if (max(abs(new.weights - weights)) < tol) {
-            break
-        }
-        weights <- new.weights
+    OUT <- function(x) { 
+        output <- FUN(x) * med
+        names(output) <- names(x)
+        output
     }
-    
-    fit
+
+    # We assume ratios are normally distributed around 1 with some standard deviation.
+    std.dev <- unname(weighted.median(abs(leftovers/med - 1), w, na.rm=TRUE)) * 1.4826 
+    list(trend=OUT, std.dev=std.dev)
 }
