@@ -65,6 +65,7 @@ NULL
     if (is.null(size.factors)) {
         size.factors <- librarySizeFactors(x)
     }
+    subset.row <- .subset_to_index(subset.row, x)
     x <- sweep(x[subset.row,,drop=FALSE], 2, size.factors, "/")
     vars <- rowVars(x)
     means <- rowMeans(x)
