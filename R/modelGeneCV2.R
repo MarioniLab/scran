@@ -88,6 +88,7 @@ NULL
 #' @importFrom S4Vectors DataFrame metadata<-
 #' @importFrom stats pnorm 
 #' @importFrom DelayedMatrixStats rowVars
+#' @importFrom DelayedArray DelayedArray
 #' @importFrom Matrix rowMeans
 .model_gene_cv2_per_block <- function(x, ..., fit.size.factors=size.factors, subset.fit=NULL, 
     size.factors=NULL, subset.row=NULL) 
@@ -104,7 +105,7 @@ NULL
         subset.row <- .subset_to_index(subset.row, x)
         x <- sweep(x[subset.row,,drop=FALSE], 2, size.factors, "/")
         x.mean <- rowMeans(x)
-        x.cv2 <- rowVars(x)/x.mean^2
+        x.cv2 <- rowVars(DelayedArray(x))/x.mean^2
     }
 
     output <- DataFrame(mean=x.mean, cv2=x.cv2, trend=fit$trend(x.mean))

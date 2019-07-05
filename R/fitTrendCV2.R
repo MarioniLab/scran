@@ -54,7 +54,7 @@ NULL
 #' @importFrom scater librarySizeFactors
 #' @importFrom DelayedMatrixStats rowVars
 #' @importFrom Matrix rowMeans
-#' @importFrom DelayedArray sweep
+#' @importFrom DelayedArray sweep DelayedArray
 #' @importFrom stats nls median quantile coef
 .fit_trend_cv2 <- function(x, size.factors=NULL, subset.row=NULL, top.prop=0.01)
 # Fits a spline to the log-CV2 values.
@@ -67,7 +67,7 @@ NULL
     }
     subset.row <- .subset_to_index(subset.row, x)
     x <- sweep(x[subset.row,,drop=FALSE], 2, size.factors, "/")
-    vars <- rowVars(x)
+    vars <- rowVars(DelayedArray(x))
     means <- rowMeans(x)
     cv2 <- vars/means^2
 
