@@ -96,6 +96,78 @@
     list(is.spike=is.spike, sf.cell=sf.cell, sf.spike=sf.spike)
 }
 
+#' @importFrom BiocParallel bplapply
+.lognormvar <- function(x, block, subset.row, design, BPPARAM, size.factors, pseudo.count) {
+    subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
+    wout <- .worker_assign(length(subset.row), BPPARAM)
+    by.core <- .split_vector_by_workers(subset.row, wout)
+    by.core <- .split_matrix_by_workers(x, by.core)
+
+    if (!is.null(block)) { 
+        if (ncol(x)!=length(block)) {
+            stop("length of 'block' should be the same as 'ncol(x)'")
+        }
+
+        # Checking residual d.f.
+        by.block <- split(seq_len(ncol(x))-1L, block, drop=TRUE)
+	} else {
+        by.block <- list(seq_len(ncol(x))-1L)
+	}
+
+    resid.df <- lengths(by.block) - 1L
+	if (all(resid.df<=0L)){ 
+		stop("no residual d.f. in any level of 'block' for variance estimation")
+	}
+
+    if (is.null(design)) {
+	    raw.stats <- bplapply(by.core, FUN=compute_blocked_stats_lognorm, bygroup=by.block, 
+            sf=size.factors, pseudo=pseudo.count, BPPARAM=BPPARAM)
+        means <- do.call(rbind, lapply(raw.stats, FUN=function(x) t(x[[1]])))
+        vars <- do.call(rbind, lapply(raw.stats, FUN=function(x) t(x[[2]])))
+    } else {
+        # Put linear modelling section here.
+    }
+
+	dimnames(means) <- dimnames(vars) <- list(rownames(x)[subset.row], names(by.block))
+
+    list(means=means, vars=vars)
+}
+
+#' @importFrom BiocParallel SerialParam
+#' @importFrom scater librarySizeFactors
+.compute_var_stats_from_counts <- function(x, size.factors=NULL, subset.row=NULL, block=NULL, 
+    fit.x=NULL, fit.size.factors=NULL, BPPARAM=SerialParam(), FUN, ...) 
+{
+    if (is.null(size.factors)) {
+        size.factors <- librarySizeFactors(x, subset_row=subset.row)        
+    }
+    stats.out <- FUN(x, block=block, ..., subset.row=subset.row, BPPARAM=BPPARAM, size.factors=size.factors)
+
+    if (is.null(fit.x)) {
+        fit.stats <- stats.out
+    } else {
+        if (is.null(fit.size.factors)) {
+            fit.size.factors <- librarySizeFactors(fit.x) # no subset_row here, as that only applies to 'x'.
+        }
+
+        # Rescaling so that the mean fit.size.factors is the same as each size.factors in each block.
+        if (is.null(block)) {
+            fit.size.factors <- fit.size.factors/mean(fit.size.factors) * mean(size.factors)
+        } else {
+            by.block <- split(seq_along(block), block)
+            for (i in by.block) {
+                current <- fit.size.factors[i]
+                fit.size.factors[i] <- current / mean(current) * mean(size.factors[i])
+            }
+        }
+
+        fit.stats <- FUN(fit.x, block=block, design=design, subset.row=subset.row, 
+            BPPARAM=BPPARAM, size.factors=fit.size.factors)
+    }
+
+    list(x=stats.out, fit=fit.stats)
+}
+
 #' @importFrom stats density approx
 .inverse_density_weights <- function(x, adjust=1) {
     out <- density(x, adjust=adjust, from=min(x), to=max(x))

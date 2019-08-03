@@ -52,21 +52,24 @@ NULL
 # Defining the basic method #
 #############################
 
-#' @importFrom stats nls fitted median predict
-#' @importFrom limma weightedLowess weighted.median
 #' @importFrom BiocParallel SerialParam
 .fit_trend_var <- function(x, parametric=TRUE, nls.args=list(), ..., design=NULL, 
-    min.mean=0.1, subset.row=NULL, BPPARAM=SerialParam()) 
+    min.mean=0.1, subset.row=NULL, BPPARAM=SerialParam())
 {
-    stats.out <- .get_var_stats(x, block=NULL, design=design, subset.row=subset.row, BPPARAM=BPPARAM)
+    stats.out <- .lognormvar(x, block=NULL, design=design, subset.row=subset.row, BPPARAM=BPPARAM)
+    .fit_trend_var0(stats.out$means, stats.out$vars, min.mean=min.mean, parametric=parametric, nls.args=nls.args, ...)
+}
 
+#' @importFrom stats nls fitted median predict
+#' @importFrom limma weightedLowess weighted.median
+.fit_trend_var0 <- function(means, vars, min.mean=0.1, parametric=TRUE, nls.args=list(), ...) {
     # Filtering out zero-variance and low-abundance genes.
-    is.okay <- !is.na(stats.out$vars) & stats.out$vars > 1e-8 & stats.out$means >= min.mean 
-    v <- stats.out$vars[is.okay]
-    m <- stats.out$means[is.okay]
+    is.okay <- !is.na(vars) & vars > 1e-8 & means >= min.mean 
+    v <- vars[is.okay]
+    m <- means[is.okay]
     w <- .inverse_density_weights(m, adjust=1)
 
-    # Default parametric trend is a gradient from 0 to 1 below the supported range.
+    # Default parametric trend is a straight line from 0 to 1 below the supported range.
     if (length(v) < 2L) {
         stop("need at least 2 points for non-parametric curve fitting")
     } 
@@ -109,7 +112,7 @@ NULL
     # Adjusting for any scale shift due to fitting to the log-values.
     corrected <- .correct_logged_expectation(m, v, w, UNSCALEDFUN)
 
-    c(list(mean=stats.out$means, var=stats.out$vars), corrected)
+    c(list(mean=means, var=vars), corrected)
 }
 
 #########################

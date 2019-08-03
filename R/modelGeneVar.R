@@ -86,59 +86,43 @@ NULL
 # Defining the basic method #
 #############################
 
-#' @importFrom BiocParallel SerialParam
 #' @importFrom S4Vectors DataFrame metadata<-
-#' @importFrom stats pnorm 
-.model_gene_var_per_block <- function(x, ..., design=NULL, subset.fit=NULL, subset.row=NULL, BPPARAM=SerialParam()) {
-    fit <- fitTrendVar(x, ..., design=design, subset.row=subset.fit, BPPARAM=BPPARAM)
-
-    if (identical(subset.fit, subset.row)) {
-        x.mean <- fit$mean
-        x.vars <- fit$var
-    } else {
-        out <- .get_var_stats(x, block=NULL, design=design, subset.row=subset.row, BPPARAM=BPPARAM)
-        x.mean <- out$mean
-        x.vars <- out$var
-    }
-
-    output <- DataFrame(mean=x.mean, total=x.vars, tech=fit$trend(x.mean))
-    output$bio <- output$total - output$tech
-    output$p.value <- pnorm(output$bio/output$tech, sd=fit$std.dev, lower.tail=FALSE)
-
-    rownames(output) <- rownames(x)[.subset_to_index(subset.row, x)]
-    metadata(output) <- fit
-
-    output
-}
-
-#' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel SerialParam
 #' @importFrom stats pnorm p.adjust
-.model_gene_var <- function(x, ..., design=NULL, subset.fit=NULL, subset.row=NULL, 
-    block=NULL, equiweight=TRUE, method="fisher", BPPARAM=SerialParam()) 
+#' @importFrom scater librarySizeFactors
+.model_gene_var <- function(x, size.factors=NULL, ..., design=NULL, 
+    subset.row=NULL, block=NULL, fit.x=NULL, fit.size.factors=NULL, pseudo.count=1,
+    equiweight=TRUE, method="fisher", BPPARAM=SerialParam()) 
 {
-    args <- list(..., subset.fit=subset.fit, subset.row=subset.row, BPPARAM=BPPARAM)
+    all <- .compute_var_stats_from_counts(x=x, size.factors=size.factors, 
+        subset.row=subset.row, block=block, fit.x=fit.x, fit.size.factors=fit.size.factors, 
+        FUN=.lognormvar, pseudo.count=pseudo.count, design=design)
 
-    if (is.null(block)) {
-        output <- do.call(.model_gene_var_per_block, c(list(x=x, design=design), args))
-        output$FDR <- p.adjust(output$p.value, method="BH")
-        return(output)
+    collected <- vector("list", ncol(all$x$means))
+    for (i in seq_along(collected)) {
+        fit <- .fit_trend_var0(all$fit$means[,i], all$fit$vars[,i], ...)
+
+        x.means <- all$x$means[,i]
+        output <- DataFrame(mean=x.means, total=all$x$vars[,i], tech=fit$trend(x.means))
+        output$bio <- output$total - output$tech
+        output$p.value <- pnorm(output$bio/output$tech, sd=fit$std.dev, lower.tail=FALSE)
+
+        rownames(output) <- rownames(x.means)
+        metadata(output) <- fit
+        collected[[i]] <- output
     }
 
-    collected <- split(seq_along(block), block)
+    if (length(collected)==1L) {
+        return(collected[[1]])
+    }
+
+    # Combining statistics with optional weighting.
     if (equiweight) {
         weights <- rep(1, length(collected))
     } else {
         weights <- lengths(collected)
     }
 
-    for (i in names(collected)) {
-        current <- collected[[i]]
-        cur.args <- list(x=x[,current], design=design[current,,drop=FALSE])
-        collected[[i]] <- do.call(.model_gene_var_per_block, c(cur.args, args))
-    }
-
-    # Combining statistics with optional weighting.
     combined <- list()
     for (i in c("mean", "total", "tech", "bio")) {
         extracted <- lapply(collected, "[[", i=i)
@@ -170,14 +154,25 @@ setMethod("modelGeneVar", "ANY", .model_gene_var)
 
 #' @export
 #' @importFrom SummarizedExperiment assay
+#' @importFrom BiocGenerics sizeFactors
+#' @importFrom SingleCellExperiment altExp
+#' @importFrom methods is
+#' @importClassesFrom SingleCellExperiment SingleCellExperiment
 #' @rdname modelGeneVar
-setMethod("modelGeneVar", "SingleCellExperiment", function(x, ..., subset.fit=NULL, assay.type="logcounts", use.spikes=TRUE) {
-    if (use.spikes) {
-        subset.fit <- isSpike(x)
-        if (!any(subset.fit)) {
-            stop("no spike-ins to use with 'use.spikes=TRUE'")
-        }
+setMethod("modelGeneVar", "SingleCellExperiment", function(x, size.factors=NULL, fit.x=NULL, fit.size.factors=NULL,
+    ..., assay.type="counts", altexp=NULL) 
+{
+    if (is.null(size.factors)) {
+        size.factors <- sizeFactors(x)
     }
-    .check_centered_SF(x, assay.type=assay.type)
-    .model_gene_var(assay(x, i=assay.type), ..., subset.fit=subset.fit)
+    if (!is.null(altexp)){
+        fit.x <- altExp(fit.x, alt.exp)
+        if (is.null(fit.size.factors) && is(fit.x, "SingleCellExperiment")) {
+            fit.size.factors <- sizeFactors(fit.x)            
+        }
+        fit.x <- assay(fit.x, assay.type)
+    }
+         
+    .model_gene_var(x=assay(x, i=assay.type), size.factors=size.factors, 
+        fit.x=fit.x, fit.size.factors=fit.size.factors, ...)
 }) 
