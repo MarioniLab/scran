@@ -5,11 +5,19 @@ compute_blocked_stats_lognorm <- function(bygroup, inmat, sf, pseudo) {
     .Call('_scran_compute_blocked_stats_lognorm', PACKAGE = 'scran', bygroup, inmat, sf, pseudo)
 }
 
+compute_residual_stats_lognorm <- function(qr, qraux, inmat, sf, pseudo) {
+    .Call('_scran_compute_residual_stats_lognorm', PACKAGE = 'scran', qr, qraux, inmat, sf, pseudo)
+}
+
 compute_blocked_stats_norm <- function(bygroup, inmat, sf) {
     .Call('_scran_compute_blocked_stats_norm', PACKAGE = 'scran', bygroup, inmat, sf)
 }
 
 compute_blocked_stats_none <- function(bygroup, inmat) {
     .Call('_scran_compute_blocked_stats_none', PACKAGE = 'scran', bygroup, inmat)
+}
+
+compute_residual_stats_none <- function(qr, qraux, inmat) {
+    .Call('_scran_compute_residual_stats_none', PACKAGE = 'scran', qr, qraux, inmat)
 }
 
