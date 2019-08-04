@@ -112,7 +112,5 @@ fitTrendVar <- function(means, vars, min.mean=0.1, parametric=TRUE, nls.args=lis
     }
 
     # Adjusting for any scale shift due to fitting to the log-values.
-    corrected <- .correct_logged_expectation(m, v, w, UNSCALEDFUN)
-
-    c(list(mean=means, var=vars), corrected)
+    .correct_logged_expectation(m, v, w, UNSCALEDFUN)
 }

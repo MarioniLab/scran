@@ -57,7 +57,9 @@
 .decompose_log_exprs <- function(x.means, x.vars, fit.means, fit.vars, ...) {
     collected <- vector("list", ncol(x.means))
     for (i in seq_along(collected)) {
-        fit <- fitTrendVar(fit.means[,i], fit.vars[,i], ...)
+        fm <- fit.means[,i]
+        fv <- fit.vars[,i]
+        fit <- fitTrendVar(fm, fv, ...)
 
         xm <- x.means[,i]
         output <- DataFrame(mean=xm, total=x.vars[,i], tech=fit$trend(xm))
@@ -65,7 +67,7 @@
         output$p.value <- pnorm(output$bio/output$tech, sd=fit$std.dev, lower.tail=FALSE)
 
         rownames(output) <- rownames(x.means)
-        metadata(output) <- fit
+        metadata(output) <- c(list(mean=fm, var=fv), fit)
         collected[[i]] <- output
     }
     collected
@@ -88,7 +90,7 @@
         output$p.value <- pnorm(output$ratio, mean=1, sd=fit$std.dev, lower.tail=FALSE)
 
         rownames(output) <- rownames(x.means)
-        metadata(output) <- fit
+        metadata(output) <- c(list(mean=fm, cv2=fcv2), fit)
         collected[[i]] <- output
     }
     collected

@@ -83,8 +83,8 @@
 #' spk <- modelGeneVarWithSpikes(example.sce, "Spike")
 #' spk
 #' 
-#' plot(spk$mean, spk$total)
-#' points(metadata(spk)$mean, metadata(spk)$var, col="red", pch=16)
+#' plot(spk$mean, spk$total, log="xy")
+#' points(metadata(spk)$mean, metadata(spk)$cv2, col="red", pch=16)
 #' curve(metadata(spk)$trend(x), add=TRUE, col="dodgerblue")
 #'
 #' # With blocking (and spike-ins).
@@ -96,7 +96,7 @@
 #' for (i in colnames(blk$per.block)) {
 #'     current <- blk$per.block[[i]]
 #'     plot(current$mean, current$total)
-#'     points(metadata(current)$mean, metadata(current)$var, col="red", pch=16)
+#'     points(metadata(current)$mean, metadata(current)$cv2, col="red", pch=16)
 #'     curve(metadata(current)$trend(x), add=TRUE, col="dodgerblue")
 #' }
 #' 
