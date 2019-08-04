@@ -9,42 +9,30 @@
 #' Alternatively, for the SingleCellExperiment method, this can be a string or an integer scalar specifying the \code{\link{altExp}} containing the spike-in count matrix.
 #' @param size.factors A numeric vector of size factors for each cell in \code{x}, to be used for scaling gene expression.
 #' @param spike.size.factors A numeric vector of size factors for each cell in \code{spikes}, to be used for scaling spike-ins.
-#' @param design A numeric matrix containing blocking terms for uninteresting factors of variation.
-#' @param min.mean A numeric scalar specifying the minimum mean to use for trend fitting.
-#' @param subset.row See \code{?"\link{scran-gene-selection}"}, specifying the rows for which to model the variance.
-#' @param BPPARAM A \linkS4class{BiocParallelParam} object indicating whether parallelization should be performed across genes.
+#' @param pseudo.count Numeric scalar specifying the pseudo-count to add prior to log-transformation.
 #' @param ... For the generic, further arguments to pass to each method.
 #' 
 #' For the ANY method, further arguments to pass to \code{\link{fitTrendVar}}.
 #'
-#' For the generic and \linkS4class{SingleCellExperiment} method, further arguments to pass to the ANY method.
-#' @param block A factor specifying the blocking levels for each cell in \code{x}.
-#' If specified, variance modelling is performed separately within each block and statistics are combined across blocks.
-#' @param equiweight A logical scalar indicating whether statistics from each block should be given equal weight.
-#' Otherwise, each block is weighted according to its number of cells.
-#' Only used if \code{block} is specified.
-#' @param method String specifying how p-values should be combined, see \code{\link{combinePValues}}.
-#' @param assay.type String or integer scalar specifying the assay containing the counts.
-#' @param pseudo.count Numeric scalar specifying the pseudo-count to add prior to log-transformation.
+#' For the \linkS4class{SingleCellExperiment} method, further arguments to pass to the ANY method.
+#' @inheritParams modelGeneVar
 #'
 #' @details
 #' For each gene and spike-in transcript, we compute the variance and mean of the log-expression values.
 #' A trend is fitted to the variance against the mean for spike-in transcripts using \code{\link{fitTrendVar}}.
 #' The technical component for each gene is defined as the value of the trend at that gene's mean abundance.
-#' This assumes that a constant amount of spike-in RNA was added to each cell, such that any differences in observed expression of the spike-in transcripts can be wholly attributed to technical noise.
 #' The biological component is then defined as the residual from the trend.
 #'
-#' This function can be considered the same as \code{\link{modelGeneVar}}, with the only theoretical difference being that the trend is fitted on spike-in variances rather than using the means and variances of endogenous genes.
-#' Both methods compute variances and means on the log-expression values;
-#' both methods use \code{\link{fitTrendVar}} to fit the mean-variance trend; 
-#' and both methods allow blocking or regression of uninteresting factors of variation.
+#' This function is almost the same as \code{\link{modelGeneVar}}, with the only difference being that the trend is fitted on spike-in variances rather than using the means and variances of endogenous genes.
+#' It assumes that a constant amount of spike-in RNA was added to each cell, such that any differences in observed expression of the spike-in transcripts can be wholly attributed to technical noise; 
+#' and that endogenous genes and spike-in transcripts follow the same mean-variance relationship.
 #' 
-#' \code{modelGeneVarWithSpikes} starts from a count matrix (for both genes and spike-ins) and requires size factors and a pseudo-count specification to compute the log-expression values.
-#' This is necessary under the assumption that endogenous genes and spike-in transcripts follow the same mean-variance relationship.
+#' Unlike \code{\link{modelGeneVar}}, \code{modelGeneVarWithSpikes} starts from a count matrix (for both genes and spike-ins) and requires size factors and a pseudo-count specification to compute the log-expression values.
 #' Specifically, the mean size factor for the genes must be the same as the mean size factor for the spike-ins for the trend fitted to the latter to be applicable to the former.
 #' (If \code{block} is specified, this must be true for all cells in each block.)
 #' We enforce this by centering the size factors for both sets of features and recomputing the log-expression values prior to computing means and variances.
 #'
+#' @section Default size factor choices:
 #' If no size factors are supplied, they are automatically computed depending on the input type:
 #' \itemize{
 #' \item If \code{size.factors=NULL} for the ANY method, the sum of counts for each cell in \code{x} is used to compute a size factor via the \code{\link{librarySizeFactors}} function.
@@ -55,6 +43,14 @@
 #' Otherwise, it defaults to library size-derived size factors.
 #' }
 #' If \code{size.factors} or \code{spike.size.factors} are supplied, they will override any size factors present in \code{x}.
+#' 
+#' @inheritSection modelGeneVar Handling uninteresting factors
+#' 
+#' @section Computing p-values:
+#' The p-value for each gene is computed by assuming that the variance estimates are normally distributed around the trend, and that the standard deviation of the variance distribution is proportional to the value of the trend.
+#' This is used to construct a one-sided test for each gene based on its \code{bio}, under the null hypothesis that the biological component is equal to zero.
+#' The proportionality constant for the standard deviation is set to the \code{std.dev} returned by \code{\link{fitTrendVar}}.
+#' This is estimated from the spread of variance estimates for spike-in transcripts, so the null hypothesis effectively becomes \dQuote{is this gene \emph{more} variable than spike-in transcripts of the same abundance?}
 #' 
 #' @return 
 #' A \linkS4class{DataFrame} is returned where each row corresponds to a gene in \code{x} (or in \code{subset.row}, if specified).
@@ -68,7 +64,8 @@
 #' }
 #' 
 #' If \code{block} is not specified, 
-#' the \code{metadata} of the DataFrame contains the output of running \code{\link{fitTrendVar}} on the spike-in transcripts.
+#' the \code{metadata} of the DataFrame contains the output of running \code{\link{fitTrendVar}} on the spike-in transcripts,
+#' along with the \code{mean} and \code{var} used to fit the trend.
 #'
 #' If \code{block} is specified, the output contains another \code{per.block} field.
 #' This field is itself a DataFrame of DataFrames, where each internal DataFrame contains statistics for the variance modelling within each block and has the same format as described above. 
@@ -138,10 +135,11 @@ NULL
 #########################
 
 #' @export
+#' @rdname modelGeneVarWithSpikes
 setGeneric("modelGeneVarWithSpikes", function(x, ...) standardGeneric("modelGeneVarWithSpikes"))
 
 #' @export
-#' @rdname modelGeneVar
+#' @rdname modelGeneVarWithSpikes
 setMethod("modelGeneVarWithSpikes", "ANY", .model_gene_var_with_spikes)
 
 #' @export

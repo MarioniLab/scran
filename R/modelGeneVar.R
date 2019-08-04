@@ -14,13 +14,13 @@
 #' 
 #' For the ANY method, further arguments to pass to \code{\link{fitTrendVar}}.
 #'
-#' For the generic and \linkS4class{SingleCellExperiment} method, further arguments to pass to the ANY method.
+#' For the \linkS4class{SingleCellExperiment} method, further arguments to pass to the ANY method.
 #' @param block A factor specifying the blocking levels for each cell in \code{x}.
 #' If specified, variance modelling is performed separately within each block and statistics are combined across blocks.
 #' @param equiweight A logical scalar indicating whether statistics from each block should be given equal weight.
 #' Otherwise, each block is weighted according to its number of cells.
 #' Only used if \code{block} is specified.
-#' @param method String specifying how p-values should be combined, see \code{\link{combinePValues}}.
+#' @param method String specifying how p-values should be combined when \code{block} is specified, see \code{\link{combinePValues}}.
 #' @param assay.type String or integer scalar specifying the assay containing the log-expression values.
 #'
 #' @details
@@ -62,6 +62,12 @@
 #' In this case, a linear model is fitted to the expression profile for each gene and the residual variance is calculated.
 #' This approach is useful for covariates or additive models that cannot be expressed as a one-way layout for use in \code{block}.
 #'
+#' @section Computing p-values:
+#' The p-value for each gene is computed by assuming that the variance estimates are normally distributed around the trend, and that the standard deviation of the variance distribution is proportional to the value of the trend.
+#' This is used to construct a one-sided test for each gene based on its \code{bio}, under the null hypothesis that the biological component is equal to zero.
+#' The proportionality constant for the standard deviation is set to the \code{std.dev} returned by \code{\link{fitTrendVar}}.
+#' This is estimated from the spread of per-gene variance estimates around the trend, so the null hypothesis effectively becomes \dQuote{is this gene \emph{more} variable than other genes of the same abundance?}
+#'
 #' @return 
 #' A \linkS4class{DataFrame} is returned where each row corresponds to a gene in \code{x} (or in \code{subset.row}, if specified).
 #' This contains the numeric fields:
@@ -70,11 +76,12 @@
 #' \item{\code{total}:}{Variance of the normalized log-expression per gene.}
 #' \item{\code{bio}:}{Biological component of the variance.}
 #' \item{\code{tech}:}{Technical component of the variance.}
-#' \item{\code{p.value, FDR}:}{Raw and adjusted p-values for the test against the null hypothesis that \code{bio=0}.}
+#' \item{\code{p.value, FDR}:}{Raw and adjusted p-values for the test against the null hypothesis that \code{bio<=0}.}
 #' }
 #' 
 #' If \code{block} is not specified, 
-#' the \code{metadata} of the DataFrame contains the output of running \code{\link{fitTrendVar}} on the specified features.
+#' the \code{metadata} of the DataFrame contains the output of running \code{\link{fitTrendVar}} on the specified features,
+#' along with the \code{mean} and \code{var} used to fit the trend.
 #'
 #' If \code{block} is specified,
 #' the output contains another \code{per.block} field.
