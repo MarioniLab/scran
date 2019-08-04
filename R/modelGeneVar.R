@@ -5,13 +5,16 @@
 #' 
 #' @param x A numeric matrix of log-counts, or a \linkS4class{SingleCellExperiment} containing such a matrix.
 #' @param design A numeric matrix containing blocking terms for uninteresting factors of variation.
-#' @param min.mean A numeric scalar specifying the minimum mean to use for trend fitting.
 #' @param subset.row See \code{?"\link{scran-gene-selection}"}, specifying the rows for which to model the variance.
+#' Defaults to all genes in \code{x}.
 #' @param subset.fit An argument similar to \code{subset.row}, specifying the rows to be used for trend fitting.
+#' Defaults to \code{subset.row}.
 #' @param BPPARAM A \linkS4class{BiocParallelParam} object indicating whether parallelization should be performed across genes.
-#' @param ... For the \code{ANY} method, further arguments to pass to \code{\link{fitTrendVar}}.
+#' @param ... For the generic, further arguments to pass to each method.
+#' 
+#' For the ANY method, further arguments to pass to \code{\link{fitTrendVar}}.
 #'
-#' For the generic and \linkS4class{SingleCellExperiment} method, further arguments to pass to the \code{ANY} method.
+#' For the generic and \linkS4class{SingleCellExperiment} method, further arguments to pass to the ANY method.
 #' @param block A factor specifying the blocking levels for each cell in \code{x}.
 #' If specified, variance modelling is performed separately within each block and statistics are combined across blocks.
 #' @param equiweight A logical scalar indicating whether statistics from each block should be given equal weight.
@@ -19,12 +22,45 @@
 #' Only used if \code{block} is specified.
 #' @param method String specifying how p-values should be combined, see \code{\link{combinePValues}}.
 #' @param assay.type String or integer scalar specifying the assay containing the log-expression values.
-#' @param use.spikes Logical scalar indicating whether spike-in transcripts should be used for trend fitting.
 #'
 #' @details
-#' For each gene, the technical component of the variance is estimated according to the fitted value of the trend.
-#' The biological component is defined as the residual from the trend.
-#' This enables the identification of interesting genes in a manner that accounts for the mean-variance relationship.
+#' For each gene, we compute the variance and mean of the log-expression values.
+#' A trend is fitted to the variance against the mean for all genes using \code{\link{fitTrendVar}}.
+#' The fitted value for each gene is used as a proxy for the technical component of variation for each gene,
+#' under the assumption that most genes exhibit a low baseline level of variation that is not biologically interesting.
+#' The biological component of variation for each gene is defined as the the residual from the trend.
+#'
+#' Ranking genes by the biological component enables identification of interesting genes for downstream analyses 
+#' in a manner that accounts for the mean-variance relationship.
+#' We use log-transformed expression values to blunt the impact of large positive outliers and to ensure that large variances are driven by strong log-fold changes between cells rather than differences in counts.
+#' Log-expression values are also used in downstream analyses like PCA, so modelling them here avoids inconsistencies with different quantifications of variation across analysis steps.
+#'
+#' By default, the trend is fitted using all of the genes in \code{x}.
+#' If \code{subset.fit} is specified, the trend is fitted using only the specified subset,
+#' and the technical components for all other genes are determined by extrapolation or interpolation.
+#' This could be used to perform the fit based on genes that are known to have low variance, thus weakening the assumption above.
+#' Note that this does not refer to spike-in transcripts, which should be handled via \code{\link{modelGeneVarWithSpikes}}.
+#'
+#' @section Handling uninteresting factors:
+#' Setting \code{block} will estimate the mean and variance of each gene for cells in each level of \code{block} separately.
+#' The trend is fitted separately for each level, and the variance decomposition is also performed separately.
+#' Per-level statistics are then combined to obtain a single value per gene:
+#' \itemize{
+#' \item For means and variance components, this is done by averaging values across levels.
+#' If \code{equiweight=FALSE}, a weighted average is used where the value for each level is weighted by the number of cells.
+#' By default, all levels are equally weighted when combining statistics.
+#' \item Per-level p-values are combined using \code{\link{combinePValues}} according to \code{method}.
+#' By default, Fisher's method is used to identify genes that are highly variable in any batch.
+#' Whether or not this is responsive to \code{equiweight} depends on the chosen method.
+#' }
+#'
+#' Use of \code{block} is the recommended approach for accounting for any uninteresting categorical factor of variation.
+#' In addition to accounting for systematic differences in expression between levels of the blocking factor,
+#' it also accommodates differences in the mean-variance relationships.
+#'
+#' Alternatively, uninteresting factors can be used to construct a design matrix to pass to the function via \code{design}.
+#' In this case, a linear model is fitted to the expression profile for each gene and the residual variance is calculated.
+#' This approach is useful for covariates or additive models that cannot be expressed as a one-way layout for use in \code{block}.
 #'
 #' @return 
 #' A \linkS4class{DataFrame} is returned where each row corresponds to a gene in \code{x} (or in \code{subset.row}, if specified).
@@ -50,22 +86,22 @@
 #' @examples
 #' data(example.sce)
 #'
-#' # Using spike-ins.
-#' spk <- modelGeneVar(example.sce)
-#' spk
+#' # Fitting to all features.
+#' allf <- modelGeneVar(example.sce)
+#' allf
 #' 
-#' plot(spk$mean, spk$total)
-#' points(metadata(spk)$mean, metadata(spk)$var, col="red")
-#' curve(metadata(spk)$trend(x), add=TRUE, col="blue")
+#' plot(allf$mean, allf$total)
+#' curve(metadata(allf)$trend(x), add=TRUE, col="dodgerblue")
 #'
-#' # Not using spike-ins.
-#' nspk <- modelGeneVar(example.sce, use.spikes=FALSE)
-#' nspk
+#' # Using a subset of features.
+#' subf <- modelGeneVar(example.sce, subset.fit=1:100)
+#' subf 
 #' 
-#' plot(nspk$mean, nspk$total)
-#' curve(metadata(nspk)$trend(x), add=TRUE, col="blue")
+#' plot(subf$mean, subf$total)
+#' curve(metadata(subf)$trend(x), add=TRUE, col="dodgerblue")
+#' points(metadata(subf)$mean, metadata(subf)$var, col="red", pch=16)
 #'
-#' # With blocking (and spike-ins).
+#' # With blocking. 
 #' block <- sample(LETTERS[1:2], ncol(example.sce), replace=TRUE)
 #' blk <- modelGeneVar(example.sce, block=block)
 #' blk
