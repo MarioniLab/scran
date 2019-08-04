@@ -30,50 +30,24 @@
 #' data(example.sce)
 #'
 #' # Fitting a trend:
-#' fit.spike <- fitTrendCV2(example.sce) # defaults to using spike-ins
-#' fit.endog <- fitTrendCV2(example.sce, use.spikes=FALSE)
+#' fit <- fitTrendCV2(example.sce) 
 #' 
-#' # Comparing the two trend fits:
-#' plot(fit.endog$mean, fit.endog$cv2, pch=16, cex=0.5,
+#' # Examining the trend fit:
+#' plot(fit$mean, fit$cv2, pch=16, cex=0.5,
 #'     xlab="Mean", ylab="CV2", log="xy")
-#' points(fit.spike$mean, fit.spike$cv2, col="red", pch=16)
-#' 
-#' curve(fit.endog$trend(x), add=TRUE, col="dodgerblue", lwd=3)
-#' curve(fit.spike$trend(x), add=TRUE, col="salmon", lwd=3)
+#' curve(fit$trend(x), add=TRUE, col="dodgerblue", lwd=3)
 #'
-#' @name fitTrendCV2
-#' @aliases fitTrendCV2 fitTrendCV2,ANY-method fitTrendCV2,SingleCellExperiment-method
-NULL
-
-#############################
-# Defining the basic method #
-#############################
-
-#' @importFrom S4Vectors DataFrame
-#' @importFrom stats pnorm predict median
-#' @importFrom scater librarySizeFactors
-#' @importFrom DelayedMatrixStats rowVars
-#' @importFrom Matrix rowMeans
-#' @importFrom DelayedArray sweep DelayedArray
+#' @export
 #' @importFrom stats nls median quantile coef
-.fit_trend_cv2 <- function(x, size.factors=NULL, subset.row=NULL, top.prop=0.01)
+fitTrendCV2 <- function(means, cv2, ncells, min.mean=0.1, subset.row=NULL, top.prop=0.01)
 # Fits a spline to the log-CV2 values.
 #
 # written by Aaron Lun
 # created 9 February 2017
 {
-    if (is.null(size.factors)) {
-        size.factors <- librarySizeFactors(x)
-    }
-    subset.row <- .subset_to_index(subset.row, x)
-    x <- sweep(x[subset.row,,drop=FALSE], 2, size.factors, "/")
-    vars <- rowVars(DelayedArray(x))
-    means <- rowMeans(x)
-    cv2 <- vars/means^2
-
     # Ignoring maxed CV2 values due to an outlier (caps at the number of cells).
-    # Ignoring means of zero, obviously.
-    to.use <- cv2 < ncol(x) - 1e-8 & means > 0
+    # Also ignoring means that are too low.
+    to.use <- cv2 < ncells - 1e-8 & means > min.mean
 
     y <- cv2[to.use]
     x <- means[to.use]
@@ -116,48 +90,5 @@ NULL
         weights <- new.weights
     }
 
-    corrected <- .correct_logged_expectation(x, y, w, predFUN(fit))
-    c(list(means=means, cv2=cv2), corrected)
+    .correct_logged_expectation(x, y, w, predFUN(fit))
 }
-
-#########################
-# Setting up S4 methods #
-#########################
-
-#' @export
-#' @rdname fitTrendCV2
-setGeneric("fitTrendCV2", function(x, ...) standardGeneric("fitTrendCV2"))
-
-#' @export
-#' @rdname fitTrendCV2
-setMethod("fitTrendCV2", "ANY", .fit_trend_cv2)
-
-#' @export
-#' @rdname fitTrendCV2
-#' @importFrom SummarizedExperiment assay
-#' @importFrom SingleCellExperiment isSpike
-setMethod("fitTrendCV2", "SingleCellExperiment", function(x, subset.row=NULL, ..., assay.type="counts", use.spikes=TRUE) 
-{
-    subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
-
-    # Can use only spikes, everything but spikes, or everything.
-    if (!is.na(use.spikes)) {
-        is.spike <- isSpike(x)
-        if (is.null(is.spike)) {
-            is.spike <- logical(nrow(x))
-        }
-        is.spike <- which(is.spike)
-        if (use.spikes) {
-            if (!length(is.spike)) {
-                warning("no spike-in transcripts present for 'use.spikes=TRUE'")
-            } else {
-                subset.row <- intersect(subset.row, is.spike)
-            }
-        } else {
-            subset.row <- setdiff(subset.row, is.spike)
-        }
-    }
-
-    .fit_trend_cv2(assay(x, i=assay.type), size.factors=sizeFactors(x), ..., subset.row=subset.row) 
-})
-
