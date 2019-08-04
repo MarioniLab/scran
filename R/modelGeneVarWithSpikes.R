@@ -74,43 +74,35 @@
 #' for (i in colnames(blk$per.block)) {
 #'     current <- blk$per.block[[i]]
 #'     plot(current$mean, current$total)
-#'     curve(metadata(current)$trend(x), add=TRUE, col="dodgerblue")
+#'     points(metadata(current)$mean, metadata(current)$var, col="red")
+#'     curve(metadata(current)$trend(x), add=TRUE, col="blue")
 #' }
 #' 
-#' @name modelGeneVar
-#' @aliases modelGeneVar modelGeneVar,ANY-method modelGeneVar,SingleCellExperiment-method
-#' @seealso
-#' \code{\link{fitTrendVar}}, for the trend fitting options.
-#' 
-#' \code{\link{modelGeneVarWithSpikes}}, for modelling variance with spike-in controls.
+#' @name modelGeneVarWithSpikes
 NULL
 
 #############################
 # Defining the basic method #
 #############################
 
+#' @importFrom S4Vectors DataFrame metadata<-
 #' @importFrom BiocParallel SerialParam
-.model_gene_var <- function(x, block=NULL, design=NULL, subset.row=NULL, subset.fit=NULL, 
-    ..., equiweight=TRUE, method="fisher", BPPARAM=SerialParam()) 
+#' @importFrom stats pnorm p.adjust
+#' @importFrom scater librarySizeFactors
+.model_gene_var_with_spikes <- function(x, spikes, size.factors=NULL, spike.size.factors=NULL, 
+    block=NULL, design=NULL, subset.row=NULL, pseudo.count=1, ..., 
+    equiweight=TRUE, method="fisher", BPPARAM=SerialParam()) 
 {
-    FUN <- function(s) {
-        .compute_mean_var(x, block=block, design=design, subset.row=s, 
-            block.FUN=compute_blocked_stats_none, 
-            residual.FUN=compute_residuals_stats_none, 
-            BPPARAM=BPPARAM)
-    }
-    x.stats <- FUN(subset.row)
+    all <- .compute_var_stats_with_spikes(x=x, size.factors=size.factors, 
+        subset.row=subset.row, block=block, 
+        spikes=spikes, spike.size.factors=spike.size.factors, 
+        BPPARAM=BPPARAM,
+        block.FUN=compute_blocked_stats_lognorm, 
+        residual.FUN=compute_residual_stats_lognorm, 
+        pseudo=pseudo.count, design=design)
 
-    if (is.null(subset.fit)) {
-        fit.stats <- x.stats
-    } else {
-        # Yes, we could do this more efficiently by rolling up 'subset.fit'
-        # into 'subset.row' for a single '.compute_mean_var' call... but I CBF'd.
-        fit.stats <- FUN(subset.fit)
-    }
-
-    collected <- .decompose_log_exprs(x.stats$means, x.stats$vars, fit.stats$means, fit.stats$vars, ...)
-    output <- .combine_blocked_statistics(collected, method, equiweight, x.stats$ncells)
+    collected <- .decompose_log_exprs(all$x$means, all$x$vars, all$spikes$means, all$spikes$vars, ...)
+    output <- .combine_blocked_statistics(collected, method, equiweight, all$x$ncells)
     rownames(output) <- rownames(x)[.subset_to_index(subset.row, x)]
     output
 }
@@ -120,16 +112,36 @@ NULL
 #########################
 
 #' @export
-setGeneric("modelGeneVar", function(x, ...) standardGeneric("modelGeneVar"))
+setGeneric("modelGeneVarWithSpikes", function(x, ...) standardGeneric("modelGeneVarWithSpikes"))
 
 #' @export
 #' @rdname modelGeneVar
-setMethod("modelGeneVar", "ANY", .model_gene_var)
+setMethod("modelGeneVarWithSpikes", "ANY", .model_gene_var_with_spikes)
 
 #' @export
 #' @importFrom SummarizedExperiment assay
-#' @rdname modelGeneVar
-setMethod("modelGeneVar", "SingleCellExperiment", function(x, ..., assay.type="logcounts")
+#' @importFrom BiocGenerics sizeFactors
+#' @importFrom SingleCellExperiment altExp
+#' @importFrom methods selectMethod
+#' @rdname modelGeneVarWithSpikes
+setMethod("modelGeneVarWithSpikes", "SingleCellExperiment", function(x, spikes, 
+    size.factors=NULL, spike.size.factors=NULL, ..., assay.type="counts")
 {
-    .model_gene_var(x=assay(x, i=assay.type), ...)
+    if (is.null(size.factors)) {
+        size.factors <- sizeFactors(x)
+    }
+
+    if (is.null(dim(spikes))) {
+        spikes <- altExp(x, spikes)
+        if (is.null(spike.size.factors)) {
+            sfFUN <- selectMethod("sizeFactors", class(spikes), optional=TRUE)
+            if (!is.null(sfFUN)) {
+                spike.size.factors <- sfFUN(spikes)
+            }
+        }
+        spikes <- assay(spikes, assay.type)
+    }
+
+    .model_gene_var_with_spikes(x=assay(x, i=assay.type), spikes=spikes,
+        size.factors=size.factors, spike.size.factors=spike.size.factors, ...)
 }) 

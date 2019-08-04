@@ -1,3 +1,76 @@
+#' @importFrom BiocParallel bplapply
+.compute_mean_var <- function(x, block, design, subset.row, block.FUN, residual.FUN, BPPARAM, ...) {
+    subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
+    wout <- .worker_assign(length(subset.row), BPPARAM)
+    by.core <- .split_vector_by_workers(subset.row, wout)
+    by.core <- .split_matrix_by_workers(x, by.core)
+
+    if (!is.null(block)) { 
+        if (ncol(x)!=length(block)) {
+            stop("length of 'block' should be the same as 'ncol(x)'")
+        }
+
+        # Checking residual d.f.
+        by.block <- split(seq_len(ncol(x))-1L, block, drop=TRUE)
+	} else {
+        by.block <- list(seq_len(ncol(x))-1L)
+	}
+
+    resid.df <- lengths(by.block) - 1L
+	if (all(resid.df<=0L)){ 
+		stop("no residual d.f. in any level of 'block' for variance estimation")
+	}
+
+    if (is.null(design)) {
+	    raw.stats <- bplapply(by.core, FUN=block.FUN, bygroup=by.block, ..., BPPARAM=BPPARAM)
+        means <- do.call(rbind, lapply(raw.stats, FUN=function(x) t(x[[1]])))
+        vars <- do.call(rbind, lapply(raw.stats, FUN=function(x) t(x[[2]])))
+    } else {
+        # Put linear modelling section here.
+        means <- vars <- vector("list", length(by.block))
+
+        for (i in seq_along(by.block)) {
+            current <- by.block[[i]] + 1L
+            curdesign <- design[current,,drop=FALSE]
+            cur.core <- lapply(by.core, "[", , j=current, drop=FALSE)
+
+            # Checking residual d.f.
+            resid.df <- nrow(curdesign) - ncol(curdesign)
+            if (resid.df <= 0L) {
+                stop("no residual d.f. in 'design' for variance estimation")
+            }
+            QR <- .ranksafe_qr(curdesign)
+
+            # Calculating the residual variance of the fitted linear model.
+            raw.stats <- bplapply(cur.core, FUN=residual.FUN, qr=QR$qr, qraux=QR$qraux, ..., BPPARAM=BPPARAM)
+            means[[i]] <- unlist(lapply(raw.stats, FUN="[[", i=1))
+            vars[[i]] <- unlist(lapply(raw.stats, FUN="[[", i=2))
+        }
+    }
+
+	dimnames(means) <- dimnames(vars) <- list(rownames(x)[subset.row], names(by.block))
+    list(means=means, vars=vars, ncells=lengths(by.block))
+}
+
+#' @importFrom stats pnorm
+#' @importFrom S4Vectors DataFrame metadata<-
+.decompose_log_exprs <- function(x.means, x.vars, fit.means, fit.vars, ...) {
+    collected <- vector("list", ncol(x.means))
+    for (i in seq_along(collected)) {
+        fit <- .fit_trend_var0(fit.means[,i], fit.vars[,i], ...)
+
+        xm <- x.means[,i]
+        output <- DataFrame(mean=xm, total=x.vars[,i], tech=fit$trend(xm))
+        output$bio <- output$total - output$tech
+        output$p.value <- pnorm(output$bio/output$tech, sd=fit$std.dev, lower.tail=FALSE)
+
+        rownames(output) <- rownames(x.means)
+        metadata(output) <- fit
+        collected[[i]] <- output
+    }
+    collected
+}
+
 #' @importFrom SummarizedExperiment assayNames
 #' @importFrom scater librarySizeFactors
 #' @importFrom SingleCellExperiment sizeFactorNames
@@ -96,76 +169,78 @@
     list(is.spike=is.spike, sf.cell=sf.cell, sf.spike=sf.spike)
 }
 
-#' @importFrom BiocParallel bplapply
-.lognormvar <- function(x, block, subset.row, design, BPPARAM, size.factors, pseudo.count) {
-    subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
-    wout <- .worker_assign(length(subset.row), BPPARAM)
-    by.core <- .split_vector_by_workers(subset.row, wout)
-    by.core <- .split_matrix_by_workers(x, by.core)
-
-    if (!is.null(block)) { 
-        if (ncol(x)!=length(block)) {
-            stop("length of 'block' should be the same as 'ncol(x)'")
-        }
-
-        # Checking residual d.f.
-        by.block <- split(seq_len(ncol(x))-1L, block, drop=TRUE)
-	} else {
-        by.block <- list(seq_len(ncol(x))-1L)
-	}
-
-    resid.df <- lengths(by.block) - 1L
-	if (all(resid.df<=0L)){ 
-		stop("no residual d.f. in any level of 'block' for variance estimation")
-	}
-
-    if (is.null(design)) {
-	    raw.stats <- bplapply(by.core, FUN=compute_blocked_stats_lognorm, bygroup=by.block, 
-            sf=size.factors, pseudo=pseudo.count, BPPARAM=BPPARAM)
-        means <- do.call(rbind, lapply(raw.stats, FUN=function(x) t(x[[1]])))
-        vars <- do.call(rbind, lapply(raw.stats, FUN=function(x) t(x[[2]])))
-    } else {
-        # Put linear modelling section here.
+#' @importFrom stats p.adjust
+#' @importFrom S4Vectors DataFrame
+.combine_blocked_statistics <- function(collected, method, equiweight, ncells, geometric=FALSE,
+    fields=c("mean", "total", "tech", "bio"), pval="p.value")
+{
+    if (length(collected)==1L) {
+        return(collected[[1]])
     }
 
-	dimnames(means) <- dimnames(vars) <- list(rownames(x)[subset.row], names(by.block))
+    # Combining statistics with optional weighting.
+    if (equiweight) {
+        weights <- rep(1, length(collected))
+    } else {
+        weights <- ncells
+    }
 
-    list(means=means, vars=vars)
+    combined <- list()
+    for (i in fields) {
+        extracted <- lapply(collected, "[[", i=i)
+        extracted <- mapply("*", extracted, weights, SIMPLIFY=FALSE, USE.NAMES=FALSE)
+
+        if (geometric) {
+            extracted <- lapply(extracted, log)
+        }
+        extracted <- mapply("*", extracted, weights, SIMPLIFY=FALSE)
+        averaged <- Reduce("+", extracted)/sum(weights)
+        if (geometric) {
+            averaged <- exp(averaged)            
+        }
+        combined[[i]] <- averaged 
+    }
+
+    extracted <- lapply(collected, "[[", i=pval)
+    combined$p.value <- do.call(combinePValues, c(extracted, list(method=method, weights=weights)))
+    combined$FDR <- p.adjust(combined$p.value, method="BH")
+
+    output <- DataFrame(combined)
+    output$per.block <- do.call(DataFrame, lapply(collected, I))
+
+    output
 }
 
 #' @importFrom BiocParallel SerialParam
 #' @importFrom scater librarySizeFactors
-.compute_var_stats_from_counts <- function(x, size.factors=NULL, subset.row=NULL, block=NULL, 
-    fit.x=NULL, fit.size.factors=NULL, BPPARAM=SerialParam(), FUN, ...) 
+.compute_var_stats_with_spikes <- function(x, spikes, size.factors=NULL, spike.size.factors=NULL, 
+    subset.row=NULL, block=NULL, BPPARAM=SerialParam(), ...)
 {
     if (is.null(size.factors)) {
         size.factors <- librarySizeFactors(x, subset_row=subset.row)        
     }
-    stats.out <- FUN(x, block=block, ..., subset.row=subset.row, BPPARAM=BPPARAM, size.factors=size.factors)
+    stats.out <- .compute_mean_var(x, block=block, subset.row=subset.row, 
+        BPPARAM=BPPARAM, sf=size.factors, ...)
 
-    if (is.null(fit.x)) {
-        fit.stats <- stats.out
-    } else {
-        if (is.null(fit.size.factors)) {
-            fit.size.factors <- librarySizeFactors(fit.x) # no subset_row here, as that only applies to 'x'.
-        }
-
-        # Rescaling so that the mean fit.size.factors is the same as each size.factors in each block.
-        if (is.null(block)) {
-            fit.size.factors <- fit.size.factors/mean(fit.size.factors) * mean(size.factors)
-        } else {
-            by.block <- split(seq_along(block), block)
-            for (i in by.block) {
-                current <- fit.size.factors[i]
-                fit.size.factors[i] <- current / mean(current) * mean(size.factors[i])
-            }
-        }
-
-        fit.stats <- FUN(fit.x, block=block, design=design, subset.row=subset.row, 
-            BPPARAM=BPPARAM, size.factors=fit.size.factors)
+    if (is.null(spike.size.factors)) {
+        spike.size.factors <- librarySizeFactors(spikes) # no subset_row here, as that only applies to 'x'.
     }
 
-    list(x=stats.out, fit=fit.stats)
+    # Rescaling so that the mean spike.size.factors is the same as each size.factors in each block.
+    if (is.null(block)) {
+        spike.size.factors <- spike.size.factors / mean(spike.size.factors) * mean(size.factors)
+    } else {
+        by.block <- split(seq_along(block), block)
+        for (i in by.block) {
+            current <- spike.size.factors[i]
+            spike.size.factors[i] <- current / mean(current) * mean(size.factors[i])
+        }
+    }
+
+    spike.stats <- .compute_mean_var(spikes, block=block, subset.row=subset.row, 
+        BPPARAM=BPPARAM, sf=spike.size.factors, ...)
+
+    list(x=stats.out, spikes=spike.stats)
 }
 
 #' @importFrom stats density approx
