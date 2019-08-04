@@ -71,6 +71,29 @@
     collected
 }
 
+#' @importFrom stats pnorm
+#' @importFrom S4Vectors DataFrame metadata<-
+.decompose_cv2 <- function(x.means, x.vars, fit.means, fit.vars, ncells, ...) {
+    collected <- vector("list", ncol(x.means))
+    for (i in seq_along(collected)) {
+        fm <- fit.means[,i]
+        fcv2 <- fit.vars[,i]/fm^2
+        fit <- fitTrendCV2(fm, fcv2, ncells[i], ...)
+
+        xm <- x.means[,i]
+        xcv2 <- x.vars[,i]/xm^2
+        output <- DataFrame(mean=xm, total=xcv2, trend=fit$trend(xm))
+
+        output$ratio <- output$total/output$trend
+        output$p.value <- pnorm(output$ratio, mean=1, sd=fit$std.dev, lower.tail=FALSE)
+
+        rownames(output) <- rownames(x.means)
+        metadata(output) <- fit
+        collected[[i]] <- output
+    }
+    collected
+}
+
 #' @importFrom SummarizedExperiment assayNames
 #' @importFrom scater librarySizeFactors
 #' @importFrom SingleCellExperiment sizeFactorNames

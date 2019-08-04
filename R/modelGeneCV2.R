@@ -49,22 +49,14 @@
 #' @examples
 #' data(example.sce)
 #'
-#' # Using spike-ins.
+#' # Simple case:
 #' spk <- modelGeneCV2(example.sce)
 #' spk
 #' 
-#' plot(spk$mean, spk$cv2, pch=16, log="xy")
-#' points(metadata(spk)$mean, metadata(spk)$cv2, col="red", pch=16)
+#' plot(spk$mean, spk$total, pch=16, log="xy")
 #' curve(metadata(spk)$trend(x), add=TRUE, col="dodgerblue")
 #'
-#' # Not using spike-ins.
-#' nspk <- modelGeneCV2(example.sce, use.spikes=FALSE)
-#' nspk
-#' 
-#' plot(nspk$mean, nspk$cv2, pch=16, log="xy")
-#' curve(metadata(nspk)$trend(x), add=TRUE, col="dodgerblue")
-#'
-#' # With blocking (and spike-ins).
+#' # With blocking: 
 #' block <- sample(LETTERS[1:2], ncol(example.sce), replace=TRUE)
 #' blk <- modelGeneCV2(example.sce, block=block)
 #' blk
@@ -72,8 +64,7 @@
 #' par(mfrow=c(1,2))
 #' for (i in colnames(blk$per.block)) {
 #'     current <- blk$per.block[[i]]
-#'     plot(current$mean, current$cv2, pch=16, log="xy")
-#'     points(metadata(current)$mean, metadata(current)$cv2, col="red", pch=16)
+#'     plot(current$mean, current$total, pch=16, log="xy")
 #'     curve(metadata(current)$trend(x), add=TRUE, col="dodgerblue")
 #' }
 #' 
@@ -85,89 +76,35 @@ NULL
 # Defining the basic method #
 #############################
 
-#' @importFrom S4Vectors DataFrame metadata<-
-#' @importFrom stats pnorm 
-#' @importFrom DelayedMatrixStats rowVars
-#' @importFrom DelayedArray DelayedArray
-#' @importFrom Matrix rowMeans
-.model_gene_cv2_per_block <- function(x, ..., fit.size.factors=size.factors, subset.fit=NULL, 
-    size.factors=NULL, subset.row=NULL) 
+#' @importFrom BiocParallel SerialParam
+#' @importFrom scater librarySizeFactors
+.model_gene_cv2 <- function(x, size.factors=NULL, block=NULL, subset.row=NULL, subset.fit=NULL,
+    ..., equiweight=TRUE, method="fisher", BPPARAM=SerialParam())
 {
     if (is.null(size.factors)) {
-        size.factors <- librarySizeFactors(x)
+        size.factors <- librarySizeFactors(x, subset_row=subset.row)
     }
-    fit <- fitTrendCV2(x, size.factors=fit.size.factors, ..., subset.row=subset.fit)
 
-    if (identical(subset.fit, subset.row)) {
-        x.mean <- fit$mean
-        x.cv2 <- fit$cv2
+    FUN <- function(s) {
+        .compute_mean_var(x, block=block, design=NULL, subset.row=s,
+            block.FUN=compute_blocked_stats_norm,
+            BPPARAM=BPPARAM, sf=size.factors)
+    }
+    x.stats <- FUN(subset.row)
+
+    if (is.null(subset.fit)) {
+        fit.stats <- x.stats
     } else {
-        subset.row <- .subset_to_index(subset.row, x)
-        x <- sweep(x[subset.row,,drop=FALSE], 2, size.factors, "/")
-        x.mean <- rowMeans(x)
-        x.cv2 <- rowVars(DelayedArray(x))/x.mean^2
+        # Yes, we could do this more efficiently by rolling up 'subset.fit'
+        # into 'subset.row' for a single '.compute_mean_var' call... but I CBF'd.
+        fit.stats <- FUN(subset.fit)
     }
 
-    output <- DataFrame(mean=x.mean, cv2=x.cv2, trend=fit$trend(x.mean))
-    output$ratio <- output$cv2/output$trend
-    output$p.value <- pnorm(output$ratio, mean=1, sd=fit$std.dev, lower.tail=FALSE)
-
+    collected <- .decompose_cv2(x.stats$means, x.stats$vars, fit.stats$means, fit.stats$vars, 
+        ncells=x.stats$ncells, ...)
+    output <- .combine_blocked_statistics(collected, method, equiweight, x.stats$ncells, 
+        geometric=TRUE, fields=c("mean", "total", "trend", "ratio"))
     rownames(output) <- rownames(x)[.subset_to_index(subset.row, x)]
-    metadata(output) <- fit
-
-    output
-}
-
-#' @importFrom S4Vectors DataFrame
-#' @importFrom BiocParallel SerialParam
-#' @importFrom stats pnorm p.adjust
-.model_gene_cv2 <- function(x, ..., fit.size.factors=NULL, subset.fit=NULL, size.factors=NULL, subset.row=NULL, 
-    block=NULL, equiweight=TRUE, method="fisher")
-{
-    args <- list(..., subset.fit=subset.fit, subset.row=subset.row)
-
-    if (is.null(block)) {
-        xargs <- list(x=x, fit.size.factors=fit.size.factors, size.factors=size.factors)
-        output <- do.call(.model_gene_cv2_per_block, c(xargs, args))
-        output$FDR <- p.adjust(output$p.value, method="BH")
-        return(output)
-    }
-
-    collected <- split(seq_along(block), block)
-    if (equiweight) {
-        weights <- rep(1, length(collected))
-    } else {
-        weights <- lengths(collected)
-    }
-
-    for (i in names(collected)) {
-        current <- collected[[i]]
-        cur.args <- list(
-            x=x[,current], 
-            fit.size.factors=fit.size.factors[current],
-            size.factors=size.factors[current]
-        )
-        collected[[i]] <- do.call(.model_gene_cv2_per_block, c(cur.args, args))
-    }
-
-    # Combining statistics with optional weighting.
-    # We taking the geometric mean, which is more natural when the final statistic is a ratio.
-    combined <- list()
-    for (i in c("mean", "cv2", "trend", "ratio")) {
-        extracted <- lapply(collected, "[[", i=i)
-        extracted <- lapply(extracted, log)
-        extracted <- mapply("*", extracted, weights, SIMPLIFY=FALSE, USE.NAMES=FALSE)
-        combined[[i]] <- exp(Reduce("+", extracted)/sum(weights))
-    }
-
-    extracted <- lapply(collected, "[[", i="p.value")
-    combined$p.value <- do.call(combinePValues, c(extracted, list(method=method, weights=weights)))
-    combined$FDR <- p.adjust(combined$p.value, method="BH")
-
-    output <- DataFrame(combined)
-    rownames(output) <- rownames(x)[.subset_to_index(subset.row, x)]
-    output$per.block <- do.call(DataFrame, lapply(collected, I))
-
     output
 }
 
@@ -185,21 +122,11 @@ setMethod("modelGeneCV2", "ANY", .model_gene_cv2)
 
 #' @export
 #' @importFrom SummarizedExperiment assay
-#' @importFrom SingleCellExperiment isSpike
+#' @importFrom BiocGenerics sizeFactors
 #' @rdname modelGeneCV2
-setMethod("modelGeneCV2", "SingleCellExperiment", function(x, ..., subset.fit=NULL, assay.type="counts", use.spikes=TRUE) {
-    size.factors <- sizeFactors(x)
-    if (use.spikes) {
-        subset.fit <- isSpike(x)
-        if (!any(subset.fit)) {
-            stop("no spike-ins to use with 'use.spikes=TRUE'")
-        }
-        fit.size.factors <- sizeFactors(x, spikeNames(x)[1])
-    } else {
-        fit.size.factors <- size.factors
+setMethod("modelGeneCV2", "SingleCellExperiment", function(x, size.factors=NULL, ..., assay.type="counts") {
+    if (is.null(size.factors)) {
+        size.factors <- sizeFactors(x)
     }
-
-    .check_centered_SF(x, assay.type=assay.type)
-    .model_gene_cv2(assay(x, i=assay.type), ..., subset.fit=subset.fit, 
-        fit.size.factors=fit.size.factors, size.factors=size.factors)
+    .model_gene_cv2(assay(x, i=assay.type), ..., size.factors=size.factors)
 }) 
