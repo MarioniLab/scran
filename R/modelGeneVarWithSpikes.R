@@ -30,8 +30,8 @@
 #' @details
 #' For each gene and spike-in transcript, we compute the variance and mean of the log-expression values.
 #' A trend is fitted to the variance against the mean for spike-in transcripts using \code{\link{fitTrendVar}}.
-#' The technical component for each gene is defined as the value of the trend at that gene's mean abundance,
-#' under the assumption that both endogenous genes and spike-in transcripts follow the same mean-variance relationship.
+#' The technical component for each gene is defined as the value of the trend at that gene's mean abundance.
+#' This assumes that a constant amount of spike-in RNA was added to each cell, such that any differences in observed expression of the spike-in transcripts can be wholly attributed to technical noise.
 #' The biological component is then defined as the residual from the trend.
 #'
 #' This function can be considered the same as \code{\link{modelGeneVar}}, with the only theoretical difference being that the trend is fitted on spike-in variances rather than using the means and variances of endogenous genes.
@@ -39,12 +39,11 @@
 #' both methods use \code{\link{fitTrendVar}} to fit the mean-variance trend; 
 #' and both methods allow blocking or regression of uninteresting factors of variation.
 #' 
-#' Practically, \code{modelGeneVarWithSpikes} starts from a count matrix (for both genes and spike-ins) and requires size factors and a pseudo-count specification to compute the log-expression values.
-#' In contrast, \code{\link{modelGeneVar}} simply starts from a log-expression matrix.
-#' This discrepancy is deliberate and necessary to ensure that the log-expression values are comparable between genes and spike-ins.
+#' \code{modelGeneVarWithSpikes} starts from a count matrix (for both genes and spike-ins) and requires size factors and a pseudo-count specification to compute the log-expression values.
+#' This is necessary under the assumption that endogenous genes and spike-in transcripts follow the same mean-variance relationship.
 #' Specifically, the mean size factor for the genes must be the same as the mean size factor for the spike-ins for the trend fitted to the latter to be applicable to the former.
 #' (If \code{block} is specified, this must be true for all cells in each block.)
-#' We enforce this by centering the size factors for both sets of features and recomputing the log-expression values.
+#' We enforce this by centering the size factors for both sets of features and recomputing the log-expression values prior to computing means and variances.
 #'
 #' If no size factors are supplied, they are automatically computed depending on the input type:
 #' \itemize{
