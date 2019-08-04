@@ -57,7 +57,7 @@
 .decompose_log_exprs <- function(x.means, x.vars, fit.means, fit.vars, ...) {
     collected <- vector("list", ncol(x.means))
     for (i in seq_along(collected)) {
-        fit <- .fit_trend_var0(fit.means[,i], fit.vars[,i], ...)
+        fit <- fitTrendVar(fit.means[,i], fit.vars[,i], ...)
 
         xm <- x.means[,i]
         output <- DataFrame(mean=xm, total=x.vars[,i], tech=fit$trend(xm))
