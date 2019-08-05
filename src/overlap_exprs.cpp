@@ -1,4 +1,4 @@
-#include "scran.h"
+#include "Rcpp.h"
 
 #include "beachmat/integer_matrix.h"
 #include "beachmat/numeric_matrix.h"
@@ -10,7 +10,7 @@
 #include <algorithm>
 
 template <typename T, class V, class M>
-SEXP overlap_exprs_internal(const M mat, const Rcpp::List& groups, SEXP subset, const T tol) {
+Rcpp::List overlap_exprs_internal(const M mat, const Rcpp::List& groups, Rcpp::IntegerVector subset, const T tol) {
     /// Checking the subset values.
     auto SS=check_subset_vector(subset, mat->get_nrow());
     const size_t slen=SS.size();
@@ -145,8 +145,8 @@ SEXP overlap_exprs_internal(const M mat, const Rcpp::List& groups, SEXP subset, 
     return Rcpp::List::create(pout, tout);
 }
 
-SEXP overlap_exprs(SEXP exprs, SEXP subset, SEXP bygroup, SEXP tolerance) {
-    BEGIN_RCPP
+// [[Rcpp::export(rng=false)]]
+Rcpp::List overlap_exprs(Rcpp::RObject exprs, Rcpp::IntegerVector subset, Rcpp::List bygroup, Rcpp::RObject tolerance) {
     int rtype=beachmat::find_sexp_type(exprs);
     if (rtype==INTSXP) {
         auto mat=beachmat::create_integer_matrix(exprs);
@@ -157,5 +157,4 @@ SEXP overlap_exprs(SEXP exprs, SEXP subset, SEXP bygroup, SEXP tolerance) {
         const double tol=check_numeric_scalar(tolerance, "tolerance");
         return overlap_exprs_internal<double, Rcpp::NumericVector>(mat.get(), bygroup, subset, tol);
     }
-    END_RCPP
 }

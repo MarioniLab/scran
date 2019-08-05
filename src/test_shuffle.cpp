@@ -1,12 +1,12 @@
-#include "scran.h"
+#include "Rcpp.h"
 
 #include "rand_custom.h"
 #include "utils.h"
 
 #include <algorithm>
 
-SEXP test_shuffle_vector(SEXP incoming, SEXP nits, SEXP seed, SEXP stream) {
-    BEGIN_RCPP
+// [[Rcpp::export(rng=false)]]
+Rcpp::RObject test_shuffle_vector(Rcpp::RObject incoming, Rcpp::RObject nits, Rcpp::RObject seed, Rcpp::RObject stream) {
     const int niters=check_integer_scalar(nits, "number of iterations");
     const Rcpp::NumericVector invec(incoming);
     const size_t N=invec.size();
@@ -24,11 +24,10 @@ SEXP test_shuffle_vector(SEXP incoming, SEXP nits, SEXP seed, SEXP stream) {
     }
 
     return outmat;
-    END_RCPP
 }
 
-SEXP test_shuffle_matrix(SEXP incoming, SEXP seeds, SEXP streams) {
-    BEGIN_RCPP
+// [[Rcpp::export(rng=false)]]
+Rcpp::RObject test_shuffle_matrix(Rcpp::RObject incoming, Rcpp::RObject seeds, Rcpp::RObject streams) {
     const Rcpp::NumericMatrix inmat(incoming);
     Rcpp::List Seeds(seeds);
     Rcpp::IntegerVector Streams(streams);
@@ -46,5 +45,4 @@ SEXP test_shuffle_matrix(SEXP incoming, SEXP seeds, SEXP streams) {
     }
 
     return output;
-    END_RCPP
 }

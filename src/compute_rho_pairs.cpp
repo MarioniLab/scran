@@ -1,12 +1,8 @@
-#include "scran.h"
+#include "Rcpp.h"
 
 #include <stdexcept>
 
-SEXP compute_rho_pairs(SEXP g1, SEXP g2, SEXP rankings) {
-    BEGIN_RCPP
-    Rcpp::IntegerVector gene1(g1), gene2(g2);
-    Rcpp::NumericMatrix ranks(rankings);
-
+Rcpp::NumericVector compute_rho_pairs(Rcpp::IntegerVector gene1, Rcpp::IntegerVector gene2, Rcpp::NumericMatrix ranks) {
     const size_t Ncells=ranks.nrow();
     if (Ncells < 2) {
         throw std::runtime_error("number of cells should be greater than or equal to 2");
@@ -29,5 +25,4 @@ SEXP compute_rho_pairs(SEXP g1, SEXP g2, SEXP rankings) {
     }
 
     return output;
-    END_RCPP
 }

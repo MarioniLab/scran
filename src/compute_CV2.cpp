@@ -1,4 +1,4 @@
-#include "scran.h"
+#include "Rcpp.h"
 
 #include "beachmat/integer_matrix.h"
 #include "beachmat/numeric_matrix.h"
@@ -13,7 +13,7 @@
  * These are converted back to the raw scale without any size factor calculations.
  */
 template <class M>
-SEXP compute_CV2_internal(SEXP incoming, SEXP subset_row, SEXP size_factors, SEXP log_prior) {
+Rcpp::List compute_CV2_internal(SEXP incoming, Rcpp::IntegerVector subset_row, SEXP size_factors, SEXP log_prior) {
     auto mat=beachmat::create_matrix<M>(incoming);
     auto rsubout=check_subset_vector(subset_row, mat->get_nrow());
     const size_t rslen=rsubout.size();
@@ -74,13 +74,12 @@ SEXP compute_CV2_internal(SEXP incoming, SEXP subset_row, SEXP size_factors, SEX
     return output;    
 }
 
-SEXP compute_CV2(SEXP exprs, SEXP subset_row, SEXP size_factors, SEXP log_prior) {
-    BEGIN_RCPP
+// [[Rcpp::export(rng=false)]]
+Rcpp::List compute_CV2(SEXP exprs, Rcpp::IntegerVector subset_row, SEXP size_factors, SEXP log_prior) {
     int rtype=beachmat::find_sexp_type(exprs);
     if (rtype==INTSXP) {
         return compute_CV2_internal<beachmat::integer_matrix>(exprs, subset_row, size_factors, log_prior);
     } else {
         return compute_CV2_internal<beachmat::numeric_matrix>(exprs, subset_row, size_factors, log_prior);
     }
-    END_RCPP
 }

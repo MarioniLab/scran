@@ -1,4 +1,4 @@
-#include "scran.h"
+#include "Rcpp.h"
 
 #include "beachmat/numeric_matrix.h"
 #include "beachmat/utils/const_column.h"
@@ -9,8 +9,8 @@
 
 /*** A function to estimate the pooled size factors and construct the linear equations. ***/
 
-SEXP pool_size_factors (SEXP exprs, SEXP ref, SEXP ordering, SEXP poolsizes) {
-    BEGIN_RCPP
+// [[Rcpp::export(rng=false)]]
+Rcpp::List pool_size_factors (Rcpp::RObject exprs, Rcpp::NumericVector pseudo_cell, Rcpp::IntegerVector order, Rcpp::IntegerVector pool_sizes) {
     auto emat=beachmat::create_numeric_matrix(exprs);
     const size_t ngenes=emat->get_nrow();
     const size_t ncells=emat->get_ncol();
@@ -19,7 +19,6 @@ SEXP pool_size_factors (SEXP exprs, SEXP ref, SEXP ordering, SEXP poolsizes) {
     }
    
     // Checking the input sizes.
-    Rcpp::IntegerVector pool_sizes(poolsizes);
     const size_t nsizes=pool_sizes.size();
     if (nsizes==0) {
         return Rcpp::List::create(Rcpp::IntegerVector(0), Rcpp::IntegerVector(0), Rcpp::NumericVector(0));
@@ -34,11 +33,9 @@ SEXP pool_size_factors (SEXP exprs, SEXP ref, SEXP ordering, SEXP poolsizes) {
     }
 
     // Checking pseudo cell.
-    Rcpp::NumericVector pseudo_cell(ref);
     if (ngenes!=pseudo_cell.size()) { throw std::runtime_error("length of pseudo-cell vector is not the same as the number of cells"); }
 
     // Checking ordering.
-    Rcpp::IntegerVector order(ordering);
     if (order.size() < ncells*2-1)  { throw std::runtime_error("ordering vector is too short for number of cells"); }
     for (auto o : order) { 
         if (o < 0 || static_cast<size_t>(o) >= ncells) { 
@@ -139,5 +136,4 @@ SEXP pool_size_factors (SEXP exprs, SEXP ref, SEXP ordering, SEXP poolsizes) {
     }    
 
     return Rcpp::List::create(row_num, col_num, pool_factor);
-    END_RCPP
 }

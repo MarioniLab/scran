@@ -1,4 +1,4 @@
-#include "scran.h"
+#include "Rcpp.h"
 
 #include "beachmat/numeric_matrix.h"
 #include "utils.h"
@@ -12,7 +12,8 @@
  * a subset of integer indices, and returns a matrix of residuals.
  */
 
-SEXP get_residuals(SEXP exprs, SEXP qr, SEXP qraux, SEXP subset, SEXP lower_bound) {
+// [[Rcpp::export(rng=false)]]
+Rcpp::RObject get_residuals(Rcpp::RObject exprs, SEXP qr, SEXP qraux, SEXP subset, SEXP lower_bound) {
     BEGIN_RCPP
     auto emat=beachmat::create_numeric_matrix(exprs);
     const size_t ncells=emat->get_ncol();

@@ -1,4 +1,4 @@
-#include "scran.h"
+#include "Rcpp.h"
 
 #include "run_dormqr.h"
 #include "rand_custom.h"
@@ -15,18 +15,10 @@ static double rho_mult (double Ncells) {
 
 /*** Null distribution estimation without a design matrix. ***/
 
-SEXP get_null_rho (SEXP cells, SEXP iters, SEXP seeds, SEXP streams) {
-    BEGIN_RCPP
-
-    // Pulling out input values.
-    const int Ncells=check_integer_scalar(cells, "number of cells");
+// [[Rcpp::export(rng=false)]]
+Rcpp::NumericVector get_null_rho (int Ncells, int Niters, Rcpp::List Seeds, Rcpp::IntegerVector Streams) {
     if (Ncells <= 1) { throw std::runtime_error("number of cells should be greater than 2"); }
-
-    const int Niters=check_integer_scalar(iters, "number of iterations");
     if (Niters < 0) { throw std::runtime_error("number of iterations should be non-negative"); }
-
-    Rcpp::List Seeds(seeds);
-    Rcpp::IntegerVector Streams(streams);
     check_pcg_vectors(Seeds, Streams, Niters, "iterations");
 
     // Filling rank vector.
@@ -50,18 +42,13 @@ SEXP get_null_rho (SEXP cells, SEXP iters, SEXP seeds, SEXP streams) {
     }
 
     return output;
-    END_RCPP
 }
 
 /*** Null distribution estimation with a design matrix. ***/
 
-SEXP get_null_rho_design(SEXP qr, SEXP qraux, SEXP iters, SEXP seeds, SEXP streams) {
-    BEGIN_RCPP
-    const int Niters=check_integer_scalar(iters, "number of iterations");
+// [[Rcpp::export(rng=false)]]
+Rcpp::NumericVector get_null_rho_design (SEXP qr, SEXP qraux, int Niters, Rcpp::List Seeds, Rcpp::IntegerVector Streams) {
     if (Niters <= 0) { throw std::runtime_error("number of iterations should be positive"); }
-
-    Rcpp::List Seeds(seeds);
-    Rcpp::IntegerVector Streams(streams);
     check_pcg_vectors(Seeds, Streams, Niters, "iterations");
 
     // Setting up to multiply by the Q matrix.
@@ -117,15 +104,13 @@ SEXP get_null_rho_design(SEXP qr, SEXP qraux, SEXP iters, SEXP seeds, SEXP strea
     }
 
     return output;    
-    END_RCPP
 }
 
-SEXP test_rnorm (SEXP N, SEXP seed, SEXP stream) {
-    BEGIN_RCPP
-    auto generator=create_pcg32(seed, check_integer_scalar(stream, "stream"));
+// [[Rcpp::export(rng=false)]]
+Rcpp::NumericVector test_rnorm (int N, SEXP seed, int stream) {
+    auto generator=create_pcg32(seed, stream);
     boost::random::normal_distribution<double> cpp_rnorm;
-    Rcpp::NumericVector output(check_integer_scalar(N, "number"));
+    Rcpp::NumericVector output(N);
     for (auto& val : output) { val = cpp_rnorm(generator); }
     return output;
-    END_RCPP
 }

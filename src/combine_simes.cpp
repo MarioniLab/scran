@@ -1,4 +1,4 @@
-#include "scran.h"
+#include "Rcpp.h"
 
 #include "utils.h"
 
@@ -7,9 +7,8 @@
 #include <cmath>
 #include <algorithm>
 
-SEXP combine_simes(SEXP pvals, SEXP dolog) {
-    BEGIN_RCPP 
-    Rcpp::List Pvals(pvals);
+// [[Rcpp::export(rng=false)]]
+Rcpp::NumericVector combine_simes(Rcpp::List Pvals, bool logp) {
     const size_t ncon=Pvals.size();
 
     std::vector<Rcpp::NumericVector> individual(ncon);
@@ -23,8 +22,6 @@ SEXP combine_simes(SEXP pvals, SEXP dolog) {
         }
     }
     
-    const bool logp=check_logical_scalar(dolog, "log-transformed specifier");
-
     // Should we process these values as if they were log-transformed?
     Rcpp::NumericVector output(ngenes, (logp ? 0 : 1));
     std::vector<double> collected(ncon);
@@ -67,5 +64,4 @@ SEXP combine_simes(SEXP pvals, SEXP dolog) {
     }
 
     return output;
-    END_RCPP
 }

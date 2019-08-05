@@ -1,4 +1,4 @@
-#include "scran.h"
+#include "Rcpp.h"
 
 #include "beachmat/integer_matrix.h"
 #include "beachmat/numeric_matrix.h"
@@ -54,7 +54,7 @@ double get_proportion (const V& expr, const int minpairs, const Rcpp::IntegerVec
 }
 
 template <class M>
-SEXP cyclone_scores_internal (Rcpp::RObject input, Rcpp::IntegerVector mycells,
+Rcpp::NumericVector cyclone_scores_internal (Rcpp::RObject input, Rcpp::IntegerVector mycells,
         Rcpp::IntegerVector marker1, Rcpp::IntegerVector marker2, Rcpp::IntegerVector used, 
         Rcpp::IntegerVector iter, Rcpp::IntegerVector miniter, Rcpp::IntegerVector minpair,
         Rcpp::List seeds, Rcpp::IntegerVector streams) 
@@ -139,15 +139,17 @@ SEXP cyclone_scores_internal (Rcpp::RObject input, Rcpp::IntegerVector mycells,
     return output;
 }
 
-SEXP cyclone_scores(SEXP mycells, SEXP exprs, SEXP marker1, SEXP marker2, SEXP indices, SEXP iter, SEXP miniter, SEXP minpair, SEXP seeds, SEXP streams) {
-    BEGIN_RCPP
+// [[Rcpp::export(rng=false)]]
+Rcpp::NumericVector cyclone_scores(Rcpp::IntegerVector mycells, SEXP exprs, 
+    SEXP marker1, SEXP marker2, SEXP indices, SEXP iter, SEXP miniter, SEXP minpair, 
+    SEXP seeds, SEXP streams) 
+{
     int rtype=beachmat::find_sexp_type(exprs);
     if (rtype==INTSXP) {
         return cyclone_scores_internal<beachmat::integer_matrix>(exprs, mycells, marker1, marker2, indices, iter, miniter, minpair, seeds, streams);
     } else {
         return cyclone_scores_internal<beachmat::numeric_matrix>(exprs, mycells, marker1, marker2, indices, iter, miniter, minpair, seeds, streams);
     }
-    END_RCPP
 }
 
 /* We could just assign ties random directions; then we'd only have to shuffle

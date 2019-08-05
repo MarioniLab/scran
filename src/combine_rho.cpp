@@ -1,4 +1,4 @@
-#include "scran.h"
+#include "Rcpp.h"
 
 #include "utils.h"
 
@@ -8,37 +8,28 @@
 
 /*** Combining correlated p-values for each gene into a single combined p-value. ***/
 
-SEXP combine_rho (SEXP ng, SEXP g1, SEXP g2, SEXP rho, SEXP pval, SEXP limited, SEXP order) {
-    BEGIN_RCPP
-
+// [[Rcpp::export(rng=false)]]
+Rcpp::List combine_rho (int Ngenes, Rcpp::IntegerVector first, Rcpp::IntegerVector second, 
+    Rcpp::NumericVector Rho, Rcpp::NumericVector Pval, Rcpp::LogicalVector Limited, Rcpp::IntegerVector Order) 
+{
     // Checking inputs.
-    Rcpp::IntegerVector first(g1), second(g2);
     if (first.size()!=second.size()) { 
         throw std::runtime_error("gene index vectors must be of the same length"); 
     }
-
-    Rcpp::NumericVector Rho(rho);
     if (first.size()!=Rho.size()) {
         throw std::runtime_error("'rho' must be a double precision vector of length equal to the number of pairs");
     }
-
-    Rcpp::NumericVector Pval(pval);
     if (first.size()!=Pval.size()) {
         throw std::runtime_error("'pval' must be a double precision vector of length equal to the number of pairs");
     }
-
-    Rcpp::LogicalVector Limited(limited);
     if (first.size()!=Limited.size()) {
         throw std::runtime_error("'limited' must be a logical vector of length equal to the number of pairs");
     }
-
-    Rcpp::IntegerVector Order(order);
     if (first.size()!=Order.size()) {
         throw std::runtime_error("'order' must be an integer vector of length equal to the number of pairs");
     }
 
     const size_t Npairs=first.size();
-    const int Ngenes=check_integer_scalar(ng, "number of genes");
     if (Ngenes < 0) { throw std::runtime_error("number of genes should be non-negative"); }
 
     // Going through and computing the combined p-value for each gene. 
@@ -93,6 +84,4 @@ SEXP combine_rho (SEXP ng, SEXP g1, SEXP g2, SEXP rho, SEXP pval, SEXP limited, 
     }
 
     return Rcpp::List::create(pout, rout, lout);
-    END_RCPP
 }
-

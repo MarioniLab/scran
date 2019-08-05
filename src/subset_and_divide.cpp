@@ -1,4 +1,4 @@
-#include "scran.h"
+#include "Rcpp.h"
 
 #include "beachmat/numeric_matrix.h"
 #include "beachmat/integer_matrix.h"
@@ -14,7 +14,7 @@
  */
 
 template <class M>
-SEXP subset_and_divide_internal(SEXP incoming, SEXP row_subset, SEXP col_subset, SEXP scaling) {
+Rcpp::RObject subset_and_divide_internal(Rcpp::RObject incoming, Rcpp::RObject row_subset, Rcpp::RObject col_subset, Rcpp::RObject scaling) {
     auto in=beachmat::create_matrix<M>(incoming);
     beachmat::const_column<M> col_holder(in.get(), false); // need to index by rows, so turn off sparsity.
 
@@ -99,15 +99,14 @@ SEXP subset_and_divide_internal(SEXP incoming, SEXP row_subset, SEXP col_subset,
     return Rcpp::List::create(outscale, omat->yield(), averaged); 
 }
 
-SEXP subset_and_divide(SEXP matrix, SEXP row_subset, SEXP col_subset, SEXP scaling) {
-    BEGIN_RCPP
+// [[Rcpp::export(rng=false)]]
+Rcpp::RObject subset_and_divide(Rcpp::RObject matrix, Rcpp::RObject row_subset, Rcpp::RObject col_subset, Rcpp::RObject scaling) {
     int rtype=beachmat::find_sexp_type(matrix);
     if (rtype==INTSXP) {
         return subset_and_divide_internal<beachmat::integer_matrix>(matrix, row_subset, col_subset, scaling);
     } else {
         return subset_and_divide_internal<beachmat::numeric_matrix>(matrix, row_subset, col_subset, scaling);
     }
-    END_RCPP
 }
 
 
