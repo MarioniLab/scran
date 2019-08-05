@@ -11,6 +11,7 @@
 #' @param nls.args A list of parameters to pass to \code{\link{nls}}.
 #' @param max.iter Integer scalar specifying the maximum number of robustness iterations to perform.
 #' @param nmads Numeric scalar specifying the number of MADs to use to compute the tricube bandwidth during robustification.
+#' @param simplified Logical scalar indicating whether the function can automatically use a simpler trend if errors are encountered for the usual paramterization.
 #'
 #' @return 
 #' A named list is returned containing:
@@ -36,6 +37,12 @@
 #' The bandwidth of the tricube scheme is defined as \code{nmads} multiplied by the median residual.
 #' Iterations are performed until convergence or \code{max.iters} is reached.
 #'
+#' Occasionally, there are not enough high-abundance points to uniquely determine the \eqn{A} parameter.
+#' In such cases, the function collapses back to fitting a simpler trend
+#' \deqn{y = \frac{B}{x}}{y = B/x}
+#' to avoid errors about singular gradients in \code{\link{nls}}.
+#' If \code{simplified=FALSE}, this simplification is not allowed and the error is directly reported.
+#'
 #' @author Aaron Lun
 #'
 #' @examples
@@ -54,15 +61,21 @@
 #'     xlab="Mean", ylab="CV2", log="xy")
 #' curve(fit$trend(x), add=TRUE, col="dodgerblue", lwd=3)
 #'
+#' # Singular gradients are automatically avoided with simplified=TRUE.
+#' set.seed(100)
+#' cv2.err <- jitter(10/1:10)
+#' m.err <- 1:10
+#' try(fitTrendCV2(m.err, cv2.err, 10, simplified=FALSE))
+#' 
+#' fit <- fitTrendCV2(m.err, cv2.err, 10)
+#' plot(m.err, cv2.err, pch=16, xlab="Mean", ylab="CV2", log="xy")
+#' curve(fit$trend(x), add=TRUE, col="dodgerblue", lwd=3)
 #' @seealso
 #' \code{\link{modelGeneCV2}} and \code{\link{modelGeneCV2WithSpikes}}, where this function is used.
 #' @export
 #' @importFrom stats nls median quantile coef
-fitTrendCV2 <- function(means, cv2, ncells, min.mean=0.1, top.prop=0.01, nls.args=list(), nmads=6, max.iter=50)
-# Fits a spline to the log-CV2 values.
-#
-# written by Aaron Lun
-# created 9 February 2017
+fitTrendCV2 <- function(means, cv2, ncells, min.mean=0.1, top.prop=0.01, nls.args=list(), 
+    simplified=TRUE, nmads=6, max.iter=50)
 {
     # Ignoring maxed CV2 values due to an outlier (caps at the number of cells).
     # Also ignoring means that are too low.
@@ -79,8 +92,13 @@ fitTrendCV2 <- function(means, cv2, ncells, min.mean=0.1, top.prop=0.01, nls.arg
     A <- median(ly[x >= quantile(x, 1-top.prop)])
 
     predFUN <- function(fit) {
-        Aest <- exp(coef(fit)["A"])
-        Best <- exp(coef(fit)["B"])
+        coefs <- coef(fit)
+        if ("A" %in% names(coefs)) {
+            Aest <- exp(coefs["A"])
+        } else {
+            Aest <- 0
+        }
+        Best <- exp(coefs["B"])
         function(x) { Aest  + Best/x }
     }
 
@@ -95,7 +113,20 @@ fitTrendCV2 <- function(means, cv2, ncells, min.mean=0.1, top.prop=0.01, nls.arg
 
     for (i in seq_len(max.iter)) {
         nls.args$weights <- weights
-        fit <- do.call(nls, nls.args)
+
+        # nls() can fail to converge if the trend is just a straight line,
+        # such that 'A' is any arbitrarily small value.
+        fit <- try(do.call(nls, nls.args), silent=TRUE)
+        if (is(fit, "try-error")) {
+            msg <- attr(fit, "condition")$message
+            if (simplified && grepl("singular gradient", msg)) {
+                nls.args$formula <- ly ~ log(B/x)
+                nls.args$start <- list(B=B)
+                fit <- do.call(nls, nls.args)
+            } else {
+                stop(msg)
+            }
+        }
 
         r <- abs(ly - log(predFUN(fit)(x)))
         r <- r/(median(r, na.rm=TRUE) * nmads)
