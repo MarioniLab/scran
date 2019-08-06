@@ -1,7 +1,7 @@
 #' @export
 setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
 
-#' @importFrom BiocParallel SerialParam bplapply
+#' @importFrom BiocParallel SerialParam bplapply bpisup bpstart bpstop
 .cyclone <- function(x, pairs, gene.names=rownames(x), iter=1000, min.iter=100, min.pairs=50, 
     BPPARAM=SerialParam(), verbose=FALSE, subset.row=NULL)
 # Takes trained pairs and test data, and predicts the cell cycle phase from that. 
@@ -44,9 +44,14 @@ setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
             message(sprintf("Number of %s pairs: %d", cl, length(pairs[[cl]][[1]])))
         }
     }
-  
-    # Run the allocation algorithm
+
+    if (!bpisup(BPPARAM)) {
+        bpstart(BPPARAM)
+        on.exit(bpstop(BPPARAM))
+    }
     wout <- .worker_assign(ncol(x), BPPARAM)
+
+    # Run the allocation algorithm.
     all.scores <- vector('list', length(pairs))
     names(all.scores) <- names(pairs)
     for (cl in names(pairs)) { 

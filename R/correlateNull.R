@@ -1,5 +1,5 @@
 #' @export
-#' @importFrom BiocParallel SerialParam bpmapply
+#' @importFrom BiocParallel SerialParam bpmapply bpisup bpstart bpstop
 correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=SerialParam()) 
 # This builds a null distribution for the modified Spearman's rho.
 #
@@ -11,6 +11,11 @@ correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=Se
             stop("cannot specify both 'ncells' and 'block'")
         }
         groupings <- table(block)
+
+        if (!bpisup(BPPARAM)) {
+            bpstart(BPPARAM)
+            on.exit(bpstop(BPPARAM))
+        }
 
         # Estimating the correlation as a weighted mean of the correlations in each group.
         # This avoids the need for the normality assumption in the residual effect simulation.
@@ -32,7 +37,7 @@ correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=Se
         iters.per.core <- .niters_by_nworkers(as.integer(iters), BPPARAM)
         pcg.states <- .setup_pcg_state(iters.per.core)
         out <- bpmapply(Niters=iters.per.core, Seeds=pcg.states$seeds, Streams=pcg.states$streams, 
-            MoreArgs=list(qr=QR$qr, qraux=QR$aux), FUN=get_null_rho_design,
+            MoreArgs=list(qr=QR$qr, qraux=QR$qraux), FUN=get_null_rho_design,
             SIMPLIFY=FALSE, USE.NAMES=FALSE, BPPARAM=BPPARAM)
 
         out <- unlist(out)
