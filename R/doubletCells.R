@@ -20,12 +20,14 @@
     if (is.null(size.factors.norm)) {
         size.factors.norm <- librarySizeFactors(x)
     }
+
+    # Manually controlling the size factor centering here to ensure the final counts are on the same scale.
+    size.factors.norm <- size.factors.norm/mean(size.factors.norm)
     if (!is.null(size.factors.content)) {
-        x <- normalizeCounts(x, size.factors.content, return_log=FALSE, centre_size_factors=FALSE)
+        x <- normalizeCounts(x, size.factors.content, log=FALSE, center_size_factors=FALSE)
         size.factors.norm <- size.factors.norm/size.factors.content
     }
-
-    y <- normalizeCounts(x, size.factors.norm, centre_size_factors=FALSE)
+    y <- normalizeCounts(x, size.factors.norm, center_size_factors=FALSE)
 
     # Running the SVD.
     svd.out <- .centered_SVD(t(y), max.rank=d, keep.left=TRUE, keep.right=TRUE, BSPARAM=BSPARAM, BPPARAM=BPPARAM)
@@ -66,8 +68,11 @@
         left <- sample(ncol(x), to.make, replace=TRUE)
         right <- sample(ncol(x), to.make, replace=TRUE)
         sim.x <- x[,left,drop=FALSE] + x[,right,drop=FALSE]
+
+        # Do not center, otherwise the simulated doublets will always have higher normalized counts
+        # than actual doublets (as the latter will have been normalized to the level of singlets).
         sim.sf <- size.factors[left] + size.factors[right]
-        sim.y <- normalizeCounts(sim.x, sim.sf, centre_size_factors=FALSE)
+        sim.y <- normalizeCounts(sim.x, sim.sf, center_size_factors=FALSE)
 
         # Projecting onto the PC space of the original data.
         sim.pcs <- crossprod(sim.y, V)
