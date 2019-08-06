@@ -39,6 +39,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// calc_log_expected
+Rcpp::List calc_log_expected(Rcpp::NumericVector Means, Rcpp::NumericVector Sizes, double tol, double disp, double pseudo);
+RcppExport SEXP _scran_calc_log_expected(SEXP MeansSEXP, SEXP SizesSEXP, SEXP tolSEXP, SEXP dispSEXP, SEXP pseudoSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Means(MeansSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Sizes(SizesSEXP);
+    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
+    Rcpp::traits::input_parameter< double >::type disp(dispSEXP);
+    Rcpp::traits::input_parameter< double >::type pseudo(pseudoSEXP);
+    rcpp_result_gen = Rcpp::wrap(calc_log_expected(Means, Sizes, tol, disp, pseudo));
+    return rcpp_result_gen;
+END_RCPP
+}
 // calc_log_sqdiff
 Rcpp::List calc_log_sqdiff(Rcpp::NumericVector Means, Rcpp::NumericVector Sizes, double tol, double disp, double pseudo, Rcpp::NumericVector Constants);
 RcppExport SEXP _scran_calc_log_sqdiff(SEXP MeansSEXP, SEXP SizesSEXP, SEXP tolSEXP, SEXP dispSEXP, SEXP pseudoSEXP, SEXP ConstantsSEXP) {
@@ -360,6 +374,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_scran_build_snn_rank", (DL_FUNC) &_scran_build_snn_rank, 1},
     {"_scran_build_snn_number", (DL_FUNC) &_scran_build_snn_number, 1},
     {"_scran_calc_log_count_stats", (DL_FUNC) &_scran_calc_log_count_stats, 5},
+    {"_scran_calc_log_expected", (DL_FUNC) &_scran_calc_log_expected, 5},
     {"_scran_calc_log_sqdiff", (DL_FUNC) &_scran_calc_log_sqdiff, 6},
     {"_scran_combine_rho", (DL_FUNC) &_scran_combine_rho, 7},
     {"_scran_combine_simes", (DL_FUNC) &_scran_combine_simes, 2},

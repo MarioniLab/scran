@@ -13,6 +13,10 @@ calc_log_count_stats <- function(Means, Sizes, tol, disp, pseudo) {
     .Call('_scran_calc_log_count_stats', PACKAGE = 'scran', Means, Sizes, tol, disp, pseudo)
 }
 
+calc_log_expected <- function(Means, Sizes, tol, disp, pseudo) {
+    .Call('_scran_calc_log_expected', PACKAGE = 'scran', Means, Sizes, tol, disp, pseudo)
+}
+
 calc_log_sqdiff <- function(Means, Sizes, tol, disp, pseudo, Constants) {
     .Call('_scran_calc_log_sqdiff', PACKAGE = 'scran', Means, Sizes, tol, disp, pseudo, Constants)
 }
