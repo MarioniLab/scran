@@ -2,7 +2,10 @@
 \alias{multiBlockVar}
 
 \title{Per-block variance statistics}
-\description{Fit a mean-dependent trend to the per-gene variances for each blocking level, and decompose them to biological and technical components.}
+\description{Fit a mean-dependent trend to the per-gene variances for each blocking level, and decompose them to biological and technical components.
+
+This has now been deprecated in favor of the \code{block} argument in \code{\link{modelGeneVar}} and related functions.
+}
 
 \usage{
 multiBlockVar(x, block, make.tech.trend=FALSE, trend.args=list(), 

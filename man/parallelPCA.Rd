@@ -4,7 +4,10 @@
 \alias{parallelPCA,SingleCellExperiment-method}
 
 \title{Parallel analysis for PCA}
-\description{Perform a parallel analysis to choose the number of principal components.}
+\description{Perform a parallel analysis to choose the number of principal components.
+
+This is now deprecated in favor of \code{parallelPCA} from the \pkg{PCAtools} package.
+}
 
 \usage{
 \S4method{parallelPCA}{ANY}(x, subset.row=NULL, value=c("pca", "n", "lowrank"), 

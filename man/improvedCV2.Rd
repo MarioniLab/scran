@@ -6,7 +6,8 @@
 \title{Stably model the technical coefficient of variation}
 \description{
 Model the technical coefficient of variation as a function of the mean, and determine the significance of highly variable genes.
-This is intended to be a more stable version of \code{\link{technicalCV2}}.
+
+This has been deprecated in favor of the \code{\link{modelGeneCV2}} function.
 }
 
 \usage{

@@ -7,6 +7,8 @@
 # written by Aaron Lun
 # created 9 February 2017
 {
+    .Deprecated(old="improvedCV2", new="modelGeneCV2")
+
     # Figuring out what rows to fit to.
     all.genes <- seq_len(nrow(x))
     if (any(is.na(is.spike))) { 

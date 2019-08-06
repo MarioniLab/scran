@@ -7,6 +7,7 @@ multiBlockVar <- function(x, block, make.tech.trend=FALSE, trend.args=list(), de
 # written by Aaron Lun
 # created 23 April 2018
 {
+    .Deprecated(new="modelGeneVar")
     .check_centered_SF(x, assay.type=assay.type, block)
 
     by.block <- split(seq_len(ncol(x)), block)

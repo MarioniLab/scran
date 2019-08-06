@@ -9,6 +9,8 @@
 # based on code by Brennecke et al. (2013).
 # created 11 July 2016
 {
+    .Deprecated(old="technicalCV2", new="modelGeneCV2")
+
     if (any(!is.na(is.spike))) { 
         if (any(is.na(is.spike))) { 
             stop("missing values in 'is.spike'")

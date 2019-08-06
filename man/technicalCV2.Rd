@@ -4,7 +4,10 @@
 \alias{technicalCV2,SingleCellExperiment-method}
 
 \title{Model the technical coefficient of variation}
-\description{Model the technical coefficient of variation as a function of the mean, and determine the significance of highly variable genes.}
+\description{Model the technical coefficient of variation as a function of the mean, and determine the significance of highly variable genes.
+
+This has been deprecated in favor of the \code{\link{modelGeneCV2}} function.
+}
 
 \usage{
 \S4method{technicalCV2}{ANY}(x, is.spike, sf.cell=NULL, sf.spike=NULL, 

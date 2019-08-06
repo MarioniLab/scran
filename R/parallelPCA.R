@@ -11,6 +11,8 @@
 # written by Aaron Lun
 # created 27 March 2018
 {
+    .Deprecated(old="parallelPCA", new="PCAtools::parallelPCA")
+
     # Subsetting the matrix.
     x0 <- x
     if (!is.null(subset.row)) {
