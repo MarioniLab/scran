@@ -116,6 +116,7 @@
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     wout <- .worker_assign(length(subset.row), BPPARAM)
     by.core <- .split_vector_by_workers(subset.row, wout)
+    by.core <- lapply(by.core, FUN="-", y=1L)
     recorder <- list()
 
     if (!is.null(block)) { 
@@ -132,7 +133,7 @@
         }
 
         # Calculating the statistics for each block. 
-        raw.stats <- bplapply(by.core, FUN=.fit_oneway, by.block=by.block, x=x, BPPARAM=BPPARAM)
+        raw.stats <- bplapply(by.core, FUN=fit_oneway, grouping=by.block, exprs=x, BPPARAM=BPPARAM)
         means <- do.call(rbind, lapply(raw.stats, FUN="[[", i=1))
         vars <- do.call(rbind, lapply(raw.stats, FUN="[[", i=2))
         dimnames(means) <- dimnames(vars) <- list(rownames(x)[subset.row], names(by.block))
@@ -153,7 +154,7 @@
             }
 
             # Calculating the statistics for each level of design, and then summing them.
-            raw.stats <- bplapply(by.core, FUN=.fit_oneway, by.block=by.design, x=x, BPPARAM=BPPARAM)
+            raw.stats <- bplapply(by.core, FUN=fit_oneway, grouping=by.design, exprs=x, BPPARAM=BPPARAM)
             means <- unlist(lapply(raw.stats, FUN=function(stat) { stat[[1]] %*% N }))/sum(N)
             to.use <- resid.df > 0
             vars <- unlist(lapply(raw.stats, FUN=function(stat) { stat[[2]][,to.use,drop=FALSE] %*% resid.df[to.use] })) / sum(resid.df)
@@ -189,7 +190,7 @@
         }
 
         by.block <- list(seq_len(ncol(x))-1L)
-        raw.stats <- bplapply(by.core, FUN=fit_oneway, groupings=by.block, exprs=x, BPPARAM=BPPARAM)
+        raw.stats <- bplapply(by.core, FUN=fit_oneway, grouping=by.block, exprs=x, BPPARAM=BPPARAM)
         means <- unlist(lapply(raw.stats, FUN="[[", i=1))
         vars <- unlist(lapply(raw.stats, FUN="[[", i=2))
         names(means) <- names(vars) <- rownames(x)[subset.row]

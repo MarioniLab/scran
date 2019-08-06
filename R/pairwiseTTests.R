@@ -71,10 +71,11 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
     all.blocks <- split(seq_along(all.clusters) - 1L, all.clusters)
     wout <- .worker_assign(length(subset.row), BPPARAM)
     by.core <- .split_vector_by_workers(subset.row, wout)
-    
-    raw.stats <- bplapply(by.core, FUN=.fit_oneway, x=x, by.block=all.blocks, BPPARAM=BPPARAM)
-    all.means <- do.call(rbind, lapply(raw.stats, FUN="[[", i=1))
-    all.vars <- do.call(rbind, lapply(raw.stats, FUN="[[", i=2))
+    by.core <- .split_matrix_by_workers(x, by.core)
+
+    raw.stats <- bplapply(by.core, FUN=compute_blocked_stats_none, bygroup=all.blocks, BPPARAM=BPPARAM)
+    all.means <- do.call(rbind, lapply(raw.stats, FUN=function(x) t(x[[1]])))
+    all.vars <- do.call(rbind, lapply(raw.stats, FUN=function(x) t(x[[2]])))
     all.n <- table(all.clusters)
 
     clust.vals <- levels(clusters)

@@ -53,7 +53,7 @@ setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
         pcg.state <- .setup_pcg_state(ncol(x))
         pairings <- pairs[[cl]]
         cur.scores <- bplapply(wout, FUN=cyclone_scores, exprs=x, iter=iter, miniter=min.iter, 
-            minpair=min.pairs, gene1=pairings$first, gene2=pairings$second,
+            minpair=min.pairs, marker1=pairings$first, marker2=pairings$second, indices=pairings$index,
             seeds=pcg.state$seeds[[1]], streams=pcg.state$streams[[1]], BPPARAM=BPPARAM)
         all.scores[[cl]] <- unlist(cur.scores)
     }
