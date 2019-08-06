@@ -137,6 +137,7 @@ Rcpp::List calc_log_count_stats (Rcpp::NumericVector Means, Rcpp::NumericVector 
     return Rcpp::List::create(outputm, outputv);
 }
 
+// [[Rcpp::export(rng=false)]]
 Rcpp::List calc_log_expected (Rcpp::NumericVector Means, Rcpp::NumericVector Sizes, 
     double tol, double disp, double pseudo) 
 {

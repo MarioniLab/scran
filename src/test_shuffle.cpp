@@ -13,7 +13,8 @@ Rcpp::RObject test_shuffle_vector(Rcpp::RObject incoming, Rcpp::RObject nits, Rc
     const size_t N=invec.size();
     
     Rcpp::NumericMatrix outmat(N, niters);
-    auto source=invec.begin(), oIt=source;
+    const double* source=invec.begin();
+    double* oIt=outmat.begin();
 
     auto generator=create_pcg32(seed, check_integer_scalar(stream, "stream"));
     for (int i=0; i<niters; ++i) {

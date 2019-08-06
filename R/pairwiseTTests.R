@@ -181,8 +181,8 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
     }
 
     wout <- .worker_assign(length(subset.row), BPPARAM)
-    by.core <- .split_vector_by_workers(subset.row, wout)
-    raw.stats <- bplapply(by.core, FUN=.fit_linear_model, qr=QR$qr, qraux=QR$qraux, x=x, get.coef=TRUE, BPPARAM=BPPARAM)
+    by.core <- .split_vector_by_workers(subset.row-1L, wout)
+    raw.stats <- bplapply(by.core, FUN=fit_linear_model, qr=QR$qr, qraux=QR$qraux, exprs=x, get_coefs=TRUE, BPPARAM=BPPARAM)
     coefficients <- do.call(cbind, lapply(raw.stats, "[[", i=1))
     coefficients[QR$pivot,] <- coefficients
     sigma2 <- unlist(lapply(raw.stats, "[[", i=3))

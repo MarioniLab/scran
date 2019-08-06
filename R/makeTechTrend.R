@@ -35,7 +35,7 @@ makeTechTrend <- function(means, size.factors=1, tol=1e-6, dispersion=0, pseudo.
 
     to.core <- .worker_assign(length(means), BPPARAM)
     by.core <- .split_vector_by_workers(means, to.core)
-    args <- list(tol=tol, disp=disp, pseudo=pseudo)
+    args <- list(tol=tol, disp=dispersion, pseudo=pseudo.count)
 
     if (is.finite(approx.npts)) {
         if (approx.npts < 2) {
