@@ -105,7 +105,9 @@ double get_var (double m, double s, double p, double grand_mean, FUN * ptr) {
  */
 
 // [[Rcpp::export(rng=false)]]
-Rcpp::List calc_log_count_stats (Rcpp::NumericVector Means, Rcpp::NumericVector Sizes, double tol, double disp, double pseudo) {
+Rcpp::List calc_log_count_stats (Rcpp::NumericVector Means, Rcpp::NumericVector Sizes, 
+    double tol, double disp, double pseudo) 
+{
     auto ptr=choose_dist(tol, disp);
     const size_t Nmeans = Means.size();
     Rcpp::NumericVector outputm(Nmeans), outputv(Nmeans);
@@ -135,7 +137,9 @@ Rcpp::List calc_log_count_stats (Rcpp::NumericVector Means, Rcpp::NumericVector 
     return Rcpp::List::create(outputm, outputv);
 }
 
-Rcpp::List calc_log_expected (Rcpp::NumericVector Means, Rcpp::NumericVector Sizes, double tol, double disp, double pseudo) {
+Rcpp::List calc_log_expected (Rcpp::NumericVector Means, Rcpp::NumericVector Sizes, 
+    double tol, double disp, double pseudo) 
+{
     auto ptr=choose_dist(tol, disp);
     const size_t Nmeans = Means.size(), Nsizes = Sizes.size();
     Rcpp::List outputm(Nmeans);
@@ -153,9 +157,11 @@ Rcpp::List calc_log_expected (Rcpp::NumericVector Means, Rcpp::NumericVector Siz
 }
 
 // [[Rcpp::export(rng=false)]]
-Rcpp::List calc_log_sqdiff (Rcpp::NumericVector Means, Rcpp::NumericVector Sizes, double tol, double disp, double pseudo, Rcpp::NumericVector Constants) {
+Rcpp::List calc_log_sqdiff (Rcpp::NumericVector Means, Rcpp::NumericVector Sizes, 
+    double tol, double disp, double pseudo, Rcpp::NumericVector Constants) 
+{
     if (Constants.size()!=Means.size()) {
-        throw std::runtime_error("'constant' and 'means' should be of the same length");
+        throw std::runtime_error("'Constant' and 'Means' should be of the same length");
     }
     auto ptr=choose_dist(tol, disp);
     const size_t Nmeans = Means.size(), Nsizes = Sizes.size();

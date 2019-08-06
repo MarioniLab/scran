@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 
+// [[Rcpp::export(rng=false)]]
 Rcpp::NumericVector compute_rho_pairs(Rcpp::IntegerVector gene1, Rcpp::IntegerVector gene2, Rcpp::NumericMatrix ranks) {
     const size_t Ncells=ranks.nrow();
     if (Ncells < 2) {

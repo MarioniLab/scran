@@ -195,6 +195,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// compute_rho_pairs
+Rcpp::NumericVector compute_rho_pairs(Rcpp::IntegerVector gene1, Rcpp::IntegerVector gene2, Rcpp::NumericMatrix ranks);
+RcppExport SEXP _scran_compute_rho_pairs(SEXP gene1SEXP, SEXP gene2SEXP, SEXP ranksSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type gene1(gene1SEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type gene2(gene2SEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type ranks(ranksSEXP);
+    rcpp_result_gen = Rcpp::wrap(compute_rho_pairs(gene1, gene2, ranks));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cyclone_scores
 Rcpp::NumericVector cyclone_scores(Rcpp::IntegerVector mycells, SEXP exprs, SEXP marker1, SEXP marker2, SEXP indices, SEXP iter, SEXP miniter, SEXP minpair, SEXP seeds, SEXP streams);
 RcppExport SEXP _scran_cyclone_scores(SEXP mycellsSEXP, SEXP exprsSEXP, SEXP marker1SEXP, SEXP marker2SEXP, SEXP indicesSEXP, SEXP iterSEXP, SEXP miniterSEXP, SEXP minpairSEXP, SEXP seedsSEXP, SEXP streamsSEXP) {
@@ -344,27 +356,6 @@ BEGIN_RCPP
 END_RCPP
 }
 
-RcppExport SEXP build_snn_number(SEXP);
-RcppExport SEXP build_snn_rank(SEXP);
-RcppExport SEXP calc_log_count_stats(SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP calc_log_expected(SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP calc_log_sqdiff(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP combine_rho(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP combine_simes(SEXP, SEXP);
-RcppExport SEXP compute_CV2(SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP compute_rho_pairs(SEXP, SEXP, SEXP);
-RcppExport SEXP cyclone_scores(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP fit_linear_model(SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP fit_oneway(SEXP, SEXP, SEXP);
-RcppExport SEXP get_null_rho(SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP get_null_rho_design(SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP get_residuals(SEXP, SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP get_scaled_ranks(SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP overlap_exprs(SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP pool_size_factors(SEXP, SEXP, SEXP, SEXP);
-RcppExport SEXP shuffle_matrix(SEXP, SEXP, SEXP);
-RcppExport SEXP subset_and_divide(SEXP, SEXP, SEXP, SEXP);
-
 static const R_CallMethodDef CallEntries[] = {
     {"_scran_build_snn_rank", (DL_FUNC) &_scran_build_snn_rank, 1},
     {"_scran_build_snn_number", (DL_FUNC) &_scran_build_snn_number, 1},
@@ -381,6 +372,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_scran_get_null_rho", (DL_FUNC) &_scran_get_null_rho, 4},
     {"_scran_get_null_rho_design", (DL_FUNC) &_scran_get_null_rho_design, 5},
     {"_scran_test_rnorm", (DL_FUNC) &_scran_test_rnorm, 3},
+    {"_scran_compute_rho_pairs", (DL_FUNC) &_scran_compute_rho_pairs, 3},
     {"_scran_cyclone_scores", (DL_FUNC) &_scran_cyclone_scores, 10},
     {"_scran_fit_linear_model", (DL_FUNC) &_scran_fit_linear_model, 5},
     {"_scran_fit_oneway", (DL_FUNC) &_scran_fit_oneway, 3},
