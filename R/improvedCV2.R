@@ -1,7 +1,7 @@
 #' @importFrom S4Vectors DataFrame
 #' @importFrom stats pnorm predict median
 .improvedCV2 <- function(x, is.spike, sf.cell=NULL, sf.spike=NULL, log.prior=NULL, 
-    use.spikes=FALSE, bw.adjust=1, top.prop=0.01, max.iter=50)
+    df=4, robust=FALSE, use.spikes=FALSE)
 # Fits a spline to the log-CV2 values and computes a p-value for its deviation.
 #
 # written by Aaron Lun
@@ -52,32 +52,40 @@
         vars <- all.stats[[2]]
     }
     cv2 <- vars/means^2
+    log.means <- log(means)
+    log.cv2 <- log(cv2)
 
     # Pulling out spike-in values.
-    ok.means <- is.finite(means) & means > 0
-    to.use <- ok.means & is.finite(cv2) & cv2 > 0
+    ok.means <- is.finite(log.means)
+    to.use <- ok.means & is.finite(log.cv2)
     to.use[-is.spike] <- FALSE
+    use.log.means <- log.means[to.use]
+    use.log.cv2 <- log.cv2[to.use]
 
-    # Ignoring maxed CV2 values due to an outlier (caps at the number of cells).
-    ignored <- cv2 >= ncol(x) - 1e-8
-    to.use[ignored] <- FALSE
-    use.means <- means[to.use]
-    use.cv2 <- cv2[to.use]
-
-    .fit_trend_improved(use.means, use.cv2, adjust=bw.adjust, top.prop=top.prop, max.iter=max.iter)
-    tech.cv2 <- tech.FUN(means)
-    log.cv2 <- log(cv2)
-    log.tech.cv2 <- log(tech.cv2)
-    tech.sd <- median(abs(log.cv2[to.use] - log.tech.cv2[to.use])) * 1.4826
+    # Fit a spline to the log-variances.
+    # We need to use predict() to get fitted values, as fitted() can be NA for repeated values.
+    if (robust) {
+        fit <- aroma.light::robustSmoothSpline(use.log.means, use.log.cv2, df=df)
+        fitted.val <- predict(fit, use.log.means)$y
+        tech.var <- sum((fitted.val - use.log.cv2)^2)/(length(use.log.cv2)-fit$df)
+        tech.sd <- sqrt(tech.var)
+    } else {
+        fit <- smooth.spline(use.log.means, use.log.cv2, df=df)
+        fitted.val <- predict(fit, use.log.means)$y
+        tech.sd <- median(abs(fitted.val - use.log.cv2)) * 1.4826
+    }
+    tech.log.cv2 <- predict(fit, log.means[ok.means])$y
 
     # Compute p-values.
     p <- rep(1, length(ok.means))
-    p[ok.means] <- pnorm(log.cv2[ok.means], mean=log.tech.cv2[ok.means], sd=tech.sd, lower.tail=FALSE)
+    p[ok.means] <- pnorm(log.cv2[ok.means], mean=tech.log.cv2, sd=tech.sd, lower.tail=FALSE)
     if (!use.spikes) {
         p[is.spike] <- NA
     }
 
-    DataFrame(mean=means, cv2=cv2, trend=tech.cv2, ratio=cv2/tech.cv2,
+    tech.cv2 <- rep(NA_real_, length(ok.means))
+    tech.cv2[ok.means] <- exp(tech.log.cv2 + tech.sd^2/2) # correcting for variance
+    DataFrame(mean=means, var=vars, cv2=cv2, trend=tech.cv2,
         p.value=p, FDR=p.adjust(p, method="BH"), row.names=rownames(x))
 }
 
