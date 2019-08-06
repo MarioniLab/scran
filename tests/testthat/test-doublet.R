@@ -186,25 +186,40 @@ test_that("doubletCells PC spawning works correctly", {
 
 set.seed(9900003)
 test_that("size factor variations in doubletCells work correctly", {
-    sf1 <- runif(ncol(counts))
-    sf2 <- runif(ncol(counts))
-
+    # Library sizes get used.
     set.seed(12345)
     out <- doubletCells(counts)
     set.seed(12345)
     ref <- doubletCells(counts, size.factors.norm=scater::librarySizeFactors(counts))
     expect_equal(out, ref)
 
+    # Normalization size factors get centered.
+    sf1 <- runif(ncol(counts))
     set.seed(23456)
     out <- doubletCells(counts, size.factors.norm=sf1)
     set.seed(23456)
-    ref <- doubletCells(t(t(counts)/sf1), size.factors.norm=rep(1, ncol(counts)), size.factors.content=1/sf1)
+    ref <- doubletCells(counts, size.factors.norm=sf1/mean(sf1))
     expect_equal(out, ref)
 
-    set.seed(34567)
-    out <- doubletCells(counts, size.factors.norm=sf1, size.factors.content=sf2)
-    set.seed(34567)
-    ref <- doubletCells(t(t(counts)/sf2), size.factors.norm=sf1/sf2)
+    # Reacts correctly to size.factors.content.
+    sf1 <- sf1/mean(sf1)
+    sf2 <- runif(ncol(counts))
+
+    set.seed(23456)
+    ref <- doubletCells(counts, size.factors.norm=sf1)
+
+    set.seed(23456)
+    out <- doubletCells(t(t(counts)/sf1), size.factors.norm=rep(1, ncol(counts)), size.factors.content=1/sf1)
+    expect_equal(out, ref)
+
+    set.seed(23456)
+    prod <- sf1*sf2 # take the product, which gets divided out by 's2' to give back 's1' during the actual normalization.
+    scaled <- t(t(counts)*sf2)/mean(prod) 
+    out <- doubletCells(scaled, size.factors.norm=prod, size.factors.content=sf2)
+    expect_equal(out, ref)
+
+    set.seed(23456)
+    out <- doubletCells(scaled, size.factors.norm=prod, size.factors.content=sf2*5) # scaling of content size factors don't matter.
     expect_equal(out, ref)
 })
 

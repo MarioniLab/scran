@@ -97,11 +97,11 @@ test_that("correlatePairs works with a design matrix", {
     # Test the residual calculator.
     QR <- qr(design, LAPACK=TRUE)
     ref.resid <- t(lm.fit(y=t(X), x=design)$residuals)
-    out.resid <- .Call(scran:::cxx_get_residuals, X, QR$qr, QR$qraux, seq_len(nrow(X))-1L, NA_real_) 
+    out.resid <- scran:::get_residuals(X, QR$qr, QR$qraux, seq_len(nrow(X))-1L, NA_real_) 
     expect_equal(unname(ref.resid), out.resid)
     
     subset.chosen <- sample(nrow(X), 10)
-    out.resid.sub <- .Call(scran:::cxx_get_residuals, X, QR$qr, QR$qraux, subset.chosen-1L, NA_real_) 
+    out.resid.sub <- scran:::get_residuals(X, QR$qr, QR$qraux, subset.chosen-1L, NA_real_) 
     expect_equal(unname(ref.resid[subset.chosen,]), out.resid.sub)
 
     # Manual calculation (note; using out.resid as ties are slightly different with ref.resid).
@@ -127,7 +127,7 @@ test_that("correlatePairs works with lower bounds on the residuals", {
     alt.resid[is.smaller] <- smallest.per.row[arrayInd(which(is.smaller), dim(is.smaller))[,1]]
 
     QR <- qr(design, LAPACK=TRUE)
-    out.resid <- .Call(scran:::cxx_get_residuals, X, QR$qr, QR$qraux, seq_len(nrow(X))-1L, 0)
+    out.resid <- scran:::get_residuals(X, QR$qr, QR$qraux, seq_len(nrow(X))-1L, 0)
     expect_equal(unname(alt.resid), out.resid)
    
     # Checking for correct calculation of statistics for bounded residuals.

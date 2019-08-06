@@ -60,21 +60,21 @@ test_that("parallelPCA respects the seed", {
 set.seed(1002)
 test_that("parallelPCA's C++ code works as expected", {
     trans <- t(lcounts)
-    shuffled <- .Call(scran:::cxx_shuffle_matrix, trans, 1, 1L)
+    shuffled <- scran:::shuffle_matrix(trans, 1, 1L)
     expect_false(identical(shuffled, trans))
     expect_identical(apply(shuffled, 2, sort), apply(trans, 2, sort))
 
     # Is reproducible.
-    shuffled2 <- .Call(scran:::cxx_shuffle_matrix, trans, 1, 1L)
+    shuffled2 <- scran:::shuffle_matrix(trans, 1, 1L)
     expect_identical(shuffled, shuffled2)
 
     # Responds to the seed.
-    shuffled3 <- .Call(scran:::cxx_shuffle_matrix, trans, 2, 1L)
+    shuffled3 <- scran:::shuffle_matrix(trans, 2, 1L)
     expect_false(identical(shuffled, shuffled3))
     expect_identical(apply(shuffled, 2, sort), apply(shuffled3, 2, sort))
 
     # Responds to the stream.
-    shuffled4 <- .Call(scran:::cxx_shuffle_matrix, trans, 1, 2L)
+    shuffled4 <- scran:::shuffle_matrix(trans, 1, 2L)
     expect_false(identical(shuffled, shuffled4))
     expect_identical(apply(shuffled, 2, sort), apply(shuffled4, 2, sort))
 
@@ -84,7 +84,7 @@ test_that("parallelPCA's C++ code works as expected", {
         seed <- i*100
         stream <- i
         expect_identical(
-            .Call(scran:::cxx_shuffle_matrix, vals, seed, stream),
+            scran:::shuffle_matrix(vals, seed, stream),
             scramble_matrix(vals, seed=seed, stream=stream)
         )
     }

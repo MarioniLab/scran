@@ -14,13 +14,13 @@ is.spike[seq_len(500)] <- TRUE
 
 test_that("CV2 calculations are correct", {
     chosen <- which(is.spike)
-    stuff <- .Call(scran:::cxx_compute_CV2, counts, chosen - 1L, sf, NULL)
+    stuff <- scran:::compute_CV2(counts, chosen - 1L, sf, NULL)
     normed <- t(t(counts[chosen,])/sf)
     expect_equal(stuff[[1]], rowMeans(normed))
     expect_equal(stuff[[2]], apply(normed, 1, var))
     
     chosen <- sample(ngenes, 1000)
-    stuff <- .Call(scran:::cxx_compute_CV2, counts, chosen - 1L, sf, NULL)
+    stuff <- scran:::compute_CV2(counts, chosen - 1L, sf, NULL)
     normed <- t(t(counts[chosen,])/sf)
     expect_equal(stuff[[1]], rowMeans(normed))
     expect_equal(stuff[[2]], apply(normed, 1, var))
@@ -28,7 +28,7 @@ test_that("CV2 calculations are correct", {
     # Testing its ability to antilog.
     prior.count <- 1
     logged <- log2(t(t(counts)/sf) + prior.count) 
-    restuff <- .Call(scran:::cxx_compute_CV2, logged, chosen - 1L, NULL, prior.count)
+    restuff <- scran:::compute_CV2(logged, chosen - 1L, NULL, prior.count)
     expect_equal(stuff, restuff)
 })
 
@@ -195,6 +195,6 @@ test_that("improvedCV2 is robust to zeroes", {
     out <- improvedCV2(counts, is.spike=NA)
     expect_identical(out$mean[1], 0)
     expect_identical(out$cv2[1], NaN)
-    expect_identical(out$trend[1], Inf)
+    expect_identical(out$trend[1], NA_real_)
     expect_equivalent(out[1,], out[501,])
 })

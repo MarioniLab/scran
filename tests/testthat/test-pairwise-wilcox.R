@@ -4,7 +4,7 @@
 REFFUN <- function(y, grouping, direction="any") 
 # A reference function using the t.test function.
 { 
-    output <- pairwiseWilcox(y, grouping, direction=direction)
+    output <- pairwiseWilcox(y, grouping, direction=direction, tol=0)
     grouping <- factor(grouping)
     clust.vals <- levels(grouping)
     alt.hyp <- switch(direction, any="two.sided", up="greater", down="less")

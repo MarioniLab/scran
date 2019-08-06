@@ -27,16 +27,16 @@ test_that("null distribution of correlations is correctly calculated", {
 
 set.seed(200010) 
 test_that("C++ rnorm works correctly", {
-    vals <- .Call(scran:::cxx_test_rnorm, 20000, 1, 1)
+    vals <- scran:::test_rnorm(20000, 1, 1)
     expect_identical(length(vals), 20000L)
     expect_equal(mean(vals), 0, tol=0.01)
     expect_equal(var(vals), 1, tol=0.01)
     expect_identical(anyDuplicated(vals), 0L)
 
-    vals2 <- .Call(scran:::cxx_test_rnorm, 20000, 2, 1)
+    vals2 <- scran:::test_rnorm(20000, 2, 1)
     expect_false(identical(vals, vals2))
 
-    vals3 <- .Call(scran:::cxx_test_rnorm, 20000, 1, 2)
+    vals3 <- scran:::test_rnorm(20000, 1, 2)
     expect_false(identical(vals, vals3))
 })
 
@@ -53,7 +53,7 @@ test_that("correlateNull works with a design matrix", {
         streams <- rand.state$streams[[1]]
 
         for (x in seq_along(seeds)) {
-            vals <- .Call(scran:::cxx_test_rnorm, df*2L, seeds[[x]], streams[x])
+            vals <- scran:::test_rnorm(df*2L, seeds[[x]], streams[x])
             expect_identical(length(vals), df*2L)
     
             first.half <- qr.qy(QR, c(0,0, head(vals, df)))

@@ -3,13 +3,13 @@ all_positive_integers <- function(N) sample(.Machine$integer.max, N, replace=TRU
 scramble_vector <- function(x, N, seed=all_positive_integers(1L), stream=1) 
 # Iteratively shuffle the vector 'x', using C++'s PRNG.
 {
-    .Call(scran:::cxx_test_shuffle_vector, x, N, seed, stream)
+    scran:::test_shuffle_vector(x, N, seed, stream)
 }
 
 scramble_matrix <- function(x, seed=all_positive_integers(ncol(x)), stream=seq_len(ncol(x))) 
 # Shuffle each column of 'x', after setting the seed.
 {
-    .Call(scran:::cxx_test_shuffle_matrix, x, seed, stream)
+    scran:::test_shuffle_matrix(x, seed, stream)
 }
 
 

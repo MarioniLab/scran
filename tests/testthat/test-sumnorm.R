@@ -49,7 +49,7 @@ test_that("subset and division is correct", {
     x <- matrix(rpois(ngenes*ncells, lambda=10), nrow=ngenes, ncol=ncells)
     subset.row <- sample(ngenes, 500)
     subset.col <- sample(ncells, 100)
-    cur.out <- .Call(scran:::cxx_subset_and_divide, x, subset.row-1L, subset.col-1L, NULL)
+    cur.out <- scran:::subset_and_divide(x, subset.row-1L, subset.col-1L, NULL)
 
     chosen <- x[subset.row,subset.col]
     expect_equal(cur.out[[1]], colSums(chosen))
@@ -62,7 +62,7 @@ test_that("subset and division is correct", {
     y <- as(y, "dgCMatrix")
     subset.row <- sample(ngenes, 500)
     subset.col <- sample(ncells, 100)
-    cur.out <- .Call(scran:::cxx_subset_and_divide, y, subset.row-1L, subset.col-1L, NULL)
+    cur.out <- scran:::subset_and_divide(y, subset.row-1L, subset.col-1L, NULL)
 
     chosen <- y[subset.row,subset.col]
     expect_equal(cur.out[[1]], Matrix::colSums(chosen))
@@ -74,7 +74,7 @@ test_that("subset and division is correct", {
     # Check scaling behaviour.
     truth <- runif(ncells)
     truth <- truth/mean(truth)
-    cur.out <- .Call(scran:::cxx_subset_and_divide, x, subset.row-1L, subset.col-1L, truth)
+    cur.out <- scran:::subset_and_divide(x, subset.row-1L, subset.col-1L, truth)
 
     chosen <- x[subset.row,subset.col]
     subtruth <- truth[subset.col]

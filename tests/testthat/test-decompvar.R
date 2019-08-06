@@ -73,12 +73,6 @@ test_that("decomposeVar behaves correctly with subsetting", {
     expect_identical(out.ref2, out2)
 })
 
-test_that("decomposeVar checks size factor centering", {
-    subX <- X[,1:10] # Checking that it raises a warning upon subsetting (where the size factors are no longer centered).
-    expect_warning(decomposeVar(subX, fit), "size factors not centred")
-    expect_warning(decomposeVar(normalize(subX), fit), NA)
-})
-
 test_that("decomposeVar works with all genes", {
     # Using all genes for trend fitting.
     all.fit <- trendVar(X, use.spikes=NA)
