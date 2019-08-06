@@ -3,6 +3,7 @@
 #include "beachmat/integer_matrix.h"
 #include "beachmat/numeric_matrix.h"
 #include "beachmat/utils/const_column.h"
+#include "boost/range/algorithm.hpp"
 #include "utils.h"
 #include "rand_custom.h"
 
@@ -123,7 +124,7 @@ Rcpp::NumericVector cyclone_scores_internal (Rcpp::RObject input, Rcpp::IntegerV
         int below=0, total=0;
         auto generator=create_pcg32(seeds[curcell], streams[curcell]);
         for (int it=0; it < nit; ++it) {
-            shuffle_custom(current_exprs.begin(), current_exprs.end(), generator);
+            boost::range::random_shuffle(current_exprs, generator);
             const double newscore=get_proportion(current_exprs, minp, marker1, marker2, curscore);
             if (!ISNA(newscore)) { 
                 if (newscore < 0) { ++below; }

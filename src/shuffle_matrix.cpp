@@ -2,6 +2,7 @@
 
 #include "beachmat/numeric_matrix.h"
 #include "beachmat/integer_matrix.h"
+#include "boost/range/algorithm.hpp"
 
 #include "utils.h"
 #include "rand_custom.h"
@@ -16,7 +17,7 @@ Rcpp::RObject shuffle_matrix_internal(Rcpp::RObject incoming, Rcpp::IntegerVecto
     auto gen=create_pcg32(seed, stream);
     for (size_t c=0; c<NC; ++c) {
         in->get_col(c, tmp.begin());
-        shuffle_custom(tmp.begin(), tmp.end(), gen);
+        boost::range::random_shuffle(tmp, gen);
         out->set_col(c, tmp.begin());
     }
 

@@ -1,5 +1,6 @@
 #include "Rcpp.h"
 
+#include "boost/range/algorithm.hpp"
 #include "rand_custom.h"
 #include "utils.h"
 
@@ -10,15 +11,15 @@ Rcpp::RObject test_shuffle_vector(Rcpp::RObject incoming, Rcpp::RObject nits, Rc
     const int niters=check_integer_scalar(nits, "number of iterations");
     const Rcpp::NumericVector invec(incoming);
     const size_t N=invec.size();
+    
     Rcpp::NumericMatrix outmat(N, niters);
-
-    Rcpp::NumericVector::const_iterator source=invec.begin();
-    Rcpp::NumericVector::iterator oIt=outmat.begin();
+    auto source=invec.begin(), oIt=source;
 
     auto generator=create_pcg32(seed, check_integer_scalar(stream, "stream"));
     for (int i=0; i<niters; ++i) {
-        std::copy(source, source+N, oIt);
-        shuffle_custom(oIt, oIt+N, generator);
+        auto outcol=outmat.column(i);
+        std::copy(source, source+N, outcol.begin());
+        boost::range::random_shuffle(outcol, generator);
         source=oIt;
         oIt+=N;
     }
@@ -41,7 +42,7 @@ Rcpp::RObject test_shuffle_matrix(Rcpp::RObject incoming, Rcpp::RObject seeds, R
         std::copy(incol.begin(), incol.end(), outcol.begin());
 
         auto generator=create_pcg32(Seeds[i], Streams[i]);
-        shuffle_custom(outcol.begin(), outcol.end(), generator);
+        boost::range::random_shuffle(outcol, generator);
     }
 
     return output;

@@ -2,6 +2,7 @@
 
 #include "run_dormqr.h"
 #include "rand_custom.h"
+#include "boost/range/algorithm.hpp"
 #include "utils.h"
 
 #include <stdexcept>
@@ -30,7 +31,7 @@ Rcpp::NumericVector get_null_rho (int Ncells, int Niters, Rcpp::List Seeds, Rcpp
         std::iota(rankings.begin(), rankings.end(), 0);
 
         auto generator=create_pcg32(Seeds[it], Streams[it]);
-        shuffle_custom(rankings.begin(), rankings.end(), generator);
+        boost::range::random_shuffle(rankings, generator);
 
         double tmp=0;
         for (int cell=0; cell<Ncells; ++cell) {
