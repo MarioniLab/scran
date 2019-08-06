@@ -3,7 +3,7 @@ setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
 
 #' @importFrom BiocParallel SerialParam bplapply
 .cyclone <- function(x, pairs, gene.names=rownames(x), iter=1000, min.iter=100, min.pairs=50, 
-                     BPPARAM=SerialParam(), verbose=FALSE, subset.row=NULL)
+    BPPARAM=SerialParam(), verbose=FALSE, subset.row=NULL)
 # Takes trained pairs and test data, and predicts the cell cycle phase from that. 
 #
 # written by Antonio Scialdone
@@ -51,9 +51,10 @@ setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
     names(all.scores) <- names(pairs)
     for (cl in names(pairs)) { 
         pcg.state <- .setup_pcg_state(ncol(x))
-        cur.scores <- bplapply(wout, FUN=.get_phase_score, exprs=x, iter=iter, min.iter=min.iter, 
-            min.pairs=min.pairs, pairings=pairs[[cl]], seeds=pcg.state$seeds[[1]], 
-            streams=pcg.state$streams[[1]], BPPARAM=BPPARAM)
+        pairings <- pairs[[cl]]
+        cur.scores <- bplapply(wout, FUN=cyclone_scores, exprs=x, iter=iter, miniter=min.iter, 
+            minpair=min.pairs, gene1=pairings$first, gene2=pairings$second,
+            seeds=pcg.state$seeds[[1]], streams=pcg.state$streams[[1]], BPPARAM=BPPARAM)
         all.scores[[cl]] <- unlist(cur.scores)
     }
 
@@ -66,13 +67,6 @@ setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
     phases[scores$G1 < 0.5 & scores$G2M < 0.5] <- "S"
 
     list(phases=phases, scores=scores, normalized.scores=scores.normalised)
-}
-
-.get_phase_score <- function(to.use, exprs, pairings, iter, min.iter, min.pairs, seeds, streams) 
-# Pass all arguments explicitly rather than via function environment
-# (avoid duplication of memory in bplapply).
-{
-    .Call(cxx_cyclone_scores, to.use, exprs, pairings$first, pairings$second, pairings$index, iter, min.iter, min.pairs, seeds, streams) 
 }
 
 #' @export

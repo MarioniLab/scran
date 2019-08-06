@@ -38,8 +38,8 @@ combinePValues <- function(..., method=c("fisher", "z", "simes", "berger"), weig
             pchisq(-2*X, df=2*n, lower.tail=FALSE, log.p=log.p)
         },
         simes={
-            .Call(cxx_combine_simes, input, log.p)
-        }, 
+            combine_simes(input, log.p)
+        },
         z={
             if (is.null(weights)) {
                 weights <- rep(1, length(input))

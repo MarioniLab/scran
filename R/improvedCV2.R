@@ -35,8 +35,8 @@
         sf.spike <- rep(sf.spike, length.out=ncol(x))
         sf.spike <- sf.spike/mean(sf.spike)
 
-        spike.stats <- .Call(cxx_compute_CV2, x, is.spike-1L, sf.spike, NULL)
-        cell.stats <- .Call(cxx_compute_CV2, x, is.cell-1L, sf.cell, NULL)
+        spike.stats <- compute_CV2(x, is.spike-1L, sf.spike, NULL)
+        cell.stats <- compute_CV2(x, is.cell-1L, sf.cell, NULL)
 
         means <- vars <- numeric(nrow(x))
         means[is.cell] <- cell.stats[[1]]
@@ -45,7 +45,7 @@
         vars[is.spike] <- spike.stats[[2]]
     } else {
         log.prior <- as.numeric(log.prior)
-        all.stats <- .Call(cxx_compute_CV2, x, all.genes-1L, NULL, log.prior)
+        all.stats <- compute_CV2(x, all.genes-1L, NULL, log.prior)
         means <- all.stats[[1]]
         vars <- all.stats[[2]]
     }
@@ -62,7 +62,7 @@
     use.means <- means[to.use]
     use.cv2 <- cv2[to.use]
 
-    tech.FUN <- .fit_trend_improved(use.means, use.cv2, adjust=bw.adjust, top.prop=top.prop, max.iter=max.iter)
+    .fit_trend_improved(use.means, use.cv2, adjust=bw.adjust, top.prop=top.prop, max.iter=max.iter)
     tech.cv2 <- tech.FUN(means)
     log.cv2 <- log(cv2)
     log.tech.cv2 <- log(tech.cv2)

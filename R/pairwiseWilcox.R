@@ -67,7 +67,7 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
         names(all.n[[b]]) <- clust.vals
         
         cur.groups <- split(chosen - 1L, cur.clusters)
-        bpl.out <- bplapply(by.core, FUN=.find_overlap_exprs, x=x, by.group=cur.groups, tol=tol, BPPARAM=BPPARAM)
+        bpl.out <- bplapply(by.core, FUN=overlap_exprs, exprs=x, bygroup=cur.groups, tolerance=tol, BPPARAM=BPPARAM)
         raw.stats <- lapply(bpl.out, "[[", i=1)
         raw.ties <- lapply(bpl.out, "[[", i=2)
 
@@ -111,11 +111,4 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
 
     .pairwise_blocked_template(x, clust.vals, nblocks=length(block), direction=direction, 
         gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, FLIPFUN=function(x) 1-x, effect.name="AUC")
-}
-
-.find_overlap_exprs <- function(x, subset.row, by.group, tol) 
-# Pass all arguments explicitly rather than via function environment
-# (preserve scran namespace, avoid duplication of memory in bplapply).
-{
-    .Call(cxx_overlap_exprs, x, subset.row, by.group, tol)
 }

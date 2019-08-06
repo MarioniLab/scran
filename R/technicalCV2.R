@@ -46,8 +46,8 @@
     sf.spike <- sf.spike/mean(sf.spike)
 
     # Computing the statistics.
-    cell.out <- .Call(cxx_compute_CV2, x, is.cell-1L, sf.cell, NULL)
-    spike.out <- .Call(cxx_compute_CV2, x, is.spike-1L, sf.spike, NULL)
+    cell.out <- compute_CV2(x, is.cell-1L, sf.cell, NULL)
+    spike.out <- compute_CV2(x, is.spike-1L, sf.spike, NULL)
 
     means.cell <- cell.out[[1]]
     vars.cell <- cell.out[[2]]

@@ -21,9 +21,9 @@
     # Building the SNN graph.
     type <- match.arg(type)
     if (type=="rank") {
-        g.out <- .Call(cxx_build_snn_rank, nn.out$index)
+        g.out <- build_snn_rank(nn.out$index)
     } else {
-        g.out <- .Call(cxx_build_snn_number, nn.out$index)
+        g.out <- build_snn_number(nn.out$index)
     }
 
     edges <- g.out[[1]] 

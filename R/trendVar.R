@@ -173,7 +173,8 @@
             # Calculating the residual variance of the fitted linear model.
             QR <- .ranksafe_qr(design)
 
-            raw.stats <- bplapply(by.core, FUN=.fit_linear_model, qr=QR$qr, qraux=QR$qraux, x=x, BPPARAM=BPPARAM)
+            raw.stats <- bplapply(by.core, FUN=fit_linear_model, qr=QR$qr, qraux=QR$qraux, 
+                exprs=x, get_coefs=FALSE, BPPARAM=BPPARAM)
             means <- unlist(lapply(raw.stats, FUN="[[", i=1))
             vars <- unlist(lapply(raw.stats, FUN="[[", i=2))
 
@@ -188,23 +189,14 @@
         }
 
         by.block <- list(seq_len(ncol(x))-1L)
-        raw.stats <- bplapply(by.core, FUN=.fit_oneway, by.block=by.block, x=x, BPPARAM=BPPARAM)
+        raw.stats <- bplapply(by.core, FUN=fit_oneway, groupings=by.block, exprs=x, BPPARAM=BPPARAM)
         means <- unlist(lapply(raw.stats, FUN="[[", i=1))
         vars <- unlist(lapply(raw.stats, FUN="[[", i=2))
         names(means) <- names(vars) <- rownames(x)[subset.row]
 
     }
 
-    return(c(list(vars=vars, means=means, resid.df=resid.df), recorder))
-}
-
-# Helper functions to ensure that the scran namespace is carried into bplapply.
-.fit_oneway <- function(by.block, x, chosen) {
-    .Call(cxx_fit_oneway, by.block, x, chosen - 1L)
-}
-
-.fit_linear_model <- function(qr, qraux, x, chosen, get.coef=FALSE) {
-    .Call(cxx_fit_linear_model, qr, qraux, x, chosen - 1L, get.coef)
+    c(list(vars=vars, means=means, resid.df=resid.df), recorder)
 }
 
 #########################################################

@@ -31,11 +31,12 @@ correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=Se
         QR <- .ranksafe_qr(design)
         iters.per.core <- .niters_by_nworkers(as.integer(iters), BPPARAM)
         pcg.states <- .setup_pcg_state(iters.per.core)
-        out <- bpmapply(iters=iters.per.core, seeds=pcg.states$seeds, streams=pcg.states$streams, 
-            MoreArgs=list(QR=QR), FUN=.with_design_null, SIMPLIFY=FALSE, USE.NAMES=FALSE)
+        out <- bpmapply(Niters=iters.per.core, Seeds=pcg.states$seeds, Streams=pcg.states$streams, 
+            MoreArgs=list(qr=QR$qr, qraux=QR$aux), FUN=get_null_rho_design,
+            SIMPLIFY=FALSE, USE.NAMES=FALSE, BPPARAM=BPPARAM)
+
         out <- unlist(out)
         attrib <- list(design=design)
-
     } else {
         out <- .within_block_null(iters=as.integer(iters), ncells=as.integer(ncells), BPPARAM=BPPARAM)
         attrib <- NULL
@@ -53,18 +54,10 @@ correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=Se
 .within_block_null <- function(iters, ncells, BPPARAM) {
     iters.per.core <- .niters_by_nworkers(as.integer(iters), BPPARAM)
     pcg.state <- .setup_pcg_state(iters.per.core)
-    out <- bpmapply(iters=iters.per.core, seeds=pcg.state$seeds, streams=pcg.state$streams,
-        MoreArgs=list(ncells=as.integer(ncells)), FUN=.no_design_null, 
+    out <- bpmapply(Niters=iters.per.core, Seeds=pcg.state$seeds, Streams=pcg.state$streams,
+        MoreArgs=list(Ncells=as.integer(ncells)), FUN=get_null_rho,
         SIMPLIFY=FALSE, USE.NAMES=FALSE, BPPARAM=BPPARAM)
     unlist(out)
-}
-
-.no_design_null <- function(ncells, iters, seeds, streams) {
-    .Call(cxx_get_null_rho, ncells, iters, seeds, streams)
-}
-
-.with_design_null <- function(iters, QR, seeds, streams) {
-    .Call(cxx_get_null_rho_design, QR$qr, QR$qraux, iters, seeds, streams)
 }
 
 #' @importFrom BiocParallel bpnworkers

@@ -10,7 +10,7 @@ correlateGenes <- function(stats)
     pool <- union(stats$gene1, stats$gene2)
     m1 <- match(stats$gene1, pool)
     m2 <- match(stats$gene2, pool)
-    by.gene <- .Call(cxx_combine_rho, length(pool), m1 - 1L, m2 - 1L,
+    by.gene <- combine_rho(length(pool), m1 - 1L, m2 - 1L,
         stats$rho, stats$p.value, stats$limited, order(stats$p.value) - 1L)
     
     out <- DataFrame(gene=pool, rho=by.gene[[2]], p.value=by.gene[[1]], 

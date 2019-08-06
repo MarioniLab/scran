@@ -46,7 +46,8 @@
     gene1 <- final.names[gene1]
     gene2 <- final.names[gene2]
 
-    out <- DataFrame(gene1=gene1, gene2=gene2, rho=all.rho, p.value=all.pval, FDR=p.adjust(all.pval, method="BH"), limited=all.lim)
+    out <- DataFrame(gene1=gene1, gene2=gene2, rho=all.rho, p.value=all.pval, 
+        FDR=p.adjust(all.pval, method="BH"), limited=all.lim)
     if (reorder) {
         out <- out[order(out$p.value, -abs(out$rho)),]
         rownames(out) <- NULL
@@ -97,13 +98,6 @@
     return(list(null=null.dist, blocks=blocks))
 }
 
-.get_correlation <- function(gene1, gene2, ranked.exprs) 
-# Pass all arguments explicitly rather than through the function environments
-# (avoid duplicating memory in bplapply).
-{
-    .Call(cxx_compute_rho_pairs, gene1, gene2, ranked.exprs)
-}
-
 #' @importFrom BiocParallel bpmapply 
 #' @importFrom DelayedMatrixStats rowRanks rowVars rowMeans2
 #' @importFrom DelayedArray DelayedArray
@@ -136,9 +130,8 @@
         ranks <- t(ranks)
         ranks <- as.matrix(ranks) 
 
-        out <- bpmapply(FUN=.get_correlation, gene1=sgene1, gene2=sgene2, 
-            MoreArgs=list(ranked.exprs=ranks), 
-            BPPARAM=BPPARAM, SIMPLIFY=FALSE)
+        out <- bpmapply(FUN=compute_rho_pairs, gene1=sgene1, gene2=sgene2, 
+            MoreArgs=list(ranks=ranks), BPPARAM=BPPARAM, SIMPLIFY=FALSE)
         current.rho <- unlist(out)
 
         # Weighted by the number of cells in this block.
