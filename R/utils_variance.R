@@ -1,9 +1,14 @@
-#' @importFrom BiocParallel bplapply
+#' @importFrom BiocParallel bplapply bpisup bpstart bpstop
 .compute_mean_var <- function(x, block, design, subset.row, block.FUN, residual.FUN, BPPARAM, ...) {
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     wout <- .worker_assign(length(subset.row), BPPARAM)
     by.core <- .split_vector_by_workers(subset.row, wout)
     by.core <- .split_matrix_by_workers(x, by.core)
+
+    if (!bpisup(BPPARAM)) {
+        bpstart(BPPARAM)
+        on.exit(bpstop(BPPARAM))
+    }
 
     if (!is.null(block)) { 
         if (ncol(x)!=length(block)) {
@@ -46,13 +51,15 @@
             means[[i]] <- unlist(lapply(raw.stats, FUN="[[", i=1))
             vars[[i]] <- unlist(lapply(raw.stats, FUN="[[", i=2))
         }
+        means <- do.call(cbind, means)
+        vars <- do.call(cbind, vars)
     }
 
 	dimnames(means) <- dimnames(vars) <- list(rownames(x)[subset.row], names(by.block))
     list(means=means, vars=vars, ncells=lengths(by.block))
 }
 
-#' @importFrom stats pnorm
+#' @importFrom stats pnorm p.adjust
 #' @importFrom S4Vectors DataFrame metadata<-
 .decompose_log_exprs <- function(x.means, x.vars, fit.means, fit.vars, ...) {
     collected <- vector("list", ncol(x.means))
@@ -65,11 +72,13 @@
         output <- DataFrame(mean=xm, total=x.vars[,i], tech=fit$trend(xm))
         output$bio <- output$total - output$tech
         output$p.value <- pnorm(output$bio/output$tech, sd=fit$std.dev, lower.tail=FALSE)
+        output$FDR <- p.adjust(output$p.value, method="BH")
 
         rownames(output) <- rownames(x.means)
         metadata(output) <- c(list(mean=fm, var=fv), fit)
         collected[[i]] <- output
     }
+    names(collected) <- colnames(x.means)
     collected
 }
 
@@ -213,12 +222,11 @@
     combined <- list()
     for (i in fields) {
         extracted <- lapply(collected, "[[", i=i)
-        extracted <- mapply("*", extracted, weights, SIMPLIFY=FALSE, USE.NAMES=FALSE)
 
         if (geometric) {
             extracted <- lapply(extracted, log)
         }
-        extracted <- mapply("*", extracted, weights, SIMPLIFY=FALSE)
+        extracted <- mapply("*", extracted, weights, SIMPLIFY=FALSE, USE.NAMES=FALSE)
         averaged <- Reduce("+", extracted)/sum(weights)
         if (geometric) {
             averaged <- exp(averaged)            

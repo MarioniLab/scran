@@ -139,7 +139,7 @@ NULL
     FUN <- function(s) {
         .compute_mean_var(x, block=block, design=design, subset.row=s, 
             block.FUN=compute_blocked_stats_none, 
-            residual.FUN=compute_residuals_stats_none, 
+            residual.FUN=compute_residual_stats_none, 
             BPPARAM=BPPARAM)
     }
     x.stats <- FUN(subset.row)
