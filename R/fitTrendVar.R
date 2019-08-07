@@ -63,7 +63,7 @@
 #'
 #' @export
 #' @importFrom limma weightedLowess
-#' @importFrom stats nls predict fitted
+#' @importFrom stats nls predict fitted approxfun
 fitTrendVar <- function(means, vars, min.mean=0.1, parametric=TRUE, nls.args=list(), ...) {
     # Filtering out zero-variance and low-abundance genes.
     is.okay <- !is.na(vars) & vars > 1e-8 & means >= min.mean 
@@ -83,11 +83,11 @@ fitTrendVar <- function(means, vars, min.mean=0.1, parametric=TRUE, nls.args=lis
     # This is of the form y = a*x/(x^n + b), but each coefficent is actually set
     # to exp(*) to avoid needing to set lower bounds.
     if (parametric) { 
-        attempt <- try({
-            if (length(v) <= 3L) {
-                stop("need at least 4 points for non-linear curve fitting")
-            } 
+        if (length(v) <= 3L) {
+            stop("need at least 4 points for non-linear curve fitting")
+        } 
 
+        attempt <- try({
             nls.args <- .setup_nls_args(nls.args, start.args=list(vars=v, means=m))
             nls.args$formula <- v ~ (exp(A)*m)/(m^(1+exp(N)) + exp(B))
             nls.args$weights <- w
