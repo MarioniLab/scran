@@ -58,7 +58,7 @@
 #' fit <- fitTrendVar(means, vars)
 #' 
 #' # Comparing the two trend fits:
-#' plot(fit$mean, fit$var, pch=16, cex=0.5, xlab="Mean", ylab="Variance")
+#' plot(means, vars, pch=16, cex=0.5, xlab="Mean", ylab="Variance")
 #' curve(fit$trend(x), add=TRUE, col="dodgerblue", lwd=3)
 #'
 #' @export
