@@ -32,9 +32,8 @@ If this is not specified, counts for the spike-in transcripts are assumed to alr
 This is ignored if \code{log.prior!=NULL}.}
 \item{log.prior}{A numeric scalar specifying the pseudo-count added prior to log-transformation.
 If this is set, \code{x} is assumed to contain normalized log-expression values, otherwise it is assumed to contain counts.}
+\item{df}{An integer scalar indicating the number of degrees of freedom for the spline fit with \code{\link[stats]{smooth.spline}}.}
 \item{use.spikes}{A logical scalar indicating whether p-values should be returned for spike-in transcripts.}
-\item{top.prop}{A numeric scalar in (0, 1), specifying the top percentage of high-abundance genes to use for estimating the initial value of the plateau parameter of the fitted trend.}
-\item{max.iter}{An integer scalar specifying the maximum number of robustness iterations to use for trend fitting.}
 \item{spike.type}{A character vector containing the names of the spike-in sets to use.}
 \item{...}{Additional arguments to pass to \code{improvedCV2,ANY-method}.}
 \item{assay.type}{A string specifying which assay values to use.}
@@ -120,11 +119,6 @@ head(out)
 
 plot(out$mean, out$cv2, log="xy")
 points(out$mean, out$trend, col="red", pch=16, cex=0.5)
-
-# Again, but without the spike.ins.
-out2 <- improvedCV2(sce, spike.type=NA, assay.type="counts")
-plot(out2$mean, out2$cv2, log="xy")
-points(out2$mean, out2$trend, col="red", pch=16, cex=0.5)
 }
 
 \keyword{variance}

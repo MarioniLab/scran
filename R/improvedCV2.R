@@ -1,5 +1,5 @@
 #' @importFrom S4Vectors DataFrame
-#' @importFrom stats pnorm predict median
+#' @importFrom stats pnorm predict median smooth.spline
 .improvedCV2 <- function(x, is.spike, sf.cell=NULL, sf.spike=NULL, log.prior=NULL, 
     df=4, robust=FALSE, use.spikes=FALSE)
 # Fits a spline to the log-CV2 values and computes a p-value for its deviation.
