@@ -89,34 +89,6 @@
         p.value=p, FDR=p.adjust(p, method="BH"), row.names=rownames(x))
 }
 
-#' @importFrom stats nls median quantile coef
-.fit_trend_improved <- function(x, y, adjust=1, max.iter=50, top.prop=0.01) {
-    y <- log(y)
-    w <- .inverse_density_weights(log(x), adjust=adjust)
-
-    # Rough estimation of initial parameters.
-    B <- median(y + log(x), na.rm=TRUE)
-    A <- median(y[x >= quantile(x, 1-top.prop)])
-
-    fitFUN <- function(X, Y, W) {
-        nls(Y ~ log(exp(A) + exp(B)/X), start=list(A=A, B=B), weights=W)
-    }
-
-    predFUN <- function(fit) {
-        Aest <- exp(coef(fit)["A"])
-        Best <- exp(coef(fit)["B"])
-        function(x) { Aest  + Best/x }
-    }
-
-    logpredFUN <- function(fit) {
-        FUN <- predFUN(fit)
-        function(x) log(FUN(x))
-    }
-
-    fit <- .robustify_fit(x, y, fitFUN, logpredFUN, weights=w, max.iter=max.iter)
-    predFUN(fit) 
-}
-
 #' @export
 setGeneric("improvedCV2", function(x, ...) standardGeneric("improvedCV2"))
 
