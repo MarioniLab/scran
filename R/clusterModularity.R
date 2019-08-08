@@ -34,6 +34,7 @@
 #' This is because the modularity is proportional to the number of cells, so larger clusters will naturally have a large score regardless of separation.
 #' An alternative approach is to set \code{as.ratio=TRUE}, which returns the (log-)ratio of the observed to expected weights for each entry of the matrix.
 #' 
+#' Directed graphs are treated as undirected inputs with \code{mode="each"} in \code{\link{as.undirected}}.
 #' @author
 #' Aaron Lun
 #' 
@@ -47,46 +48,90 @@
 #' 
 #' # Examining the modularity values directly.
 #' out <- clusterModularity(g, clusters)
-#' image(out)
+#' out
 #' 
-#' # Alternatively, compare the ratio of observed:expected.
+#' # Alternatively, get the edge weights:
 #' out <- clusterModularity(g, clusters, get.weights=TRUE)
+#' out
+#'
+#' # And use them to compute the log-ratio:
 #' log.ratio <- log2(out$observed/out$expected + 1)
-#' image(log.ratio)
+#' log.ratio
 #' 
 #' @export
-clusterModularity <- function(graph, clusters, get.values=FALSE) 
-# Computes the cluster-wise modularity scores, for use in 
-# assessing the quality of graph-based clustering.
-#
-# written by Aaron Lun
-# created 2 January 2018
-{
+#' @importFrom Matrix diag diag<-
+#' @importFrom igraph is.directed
+clusterModularity <- function(graph, clusters, get.weights=FALSE, get.values=NULL, as.ratio=FALSE) {
     by.clust <- split(seq_along(clusters), clusters)
     uclust <- names(by.clust)
     nclust <- length(uclust)
+
     mod.mat <- matrix(0, nclust, nclust)
-    rownames(mod.mat) <- colnames(mod.mat) <- uclust
+    dimnames(mod.mat) <- list(uclust, uclust)
+    clust.total <- numeric(nclust)
+    names(clust.total) <- uclust
 
     # Calculating the observed weight within/between clusters.
-    grmat <- graph[]
     for (x in seq_along(by.clust)) {
+        current <- by.clust[[x]] 
         for (y in seq_len(x)) { 
-            current <- by.clust[[x]] 
             other <- by.clust[[y]]
-            mod.mat[y,x] <- mod.mat[x,y] <- sum(grmat[current,other])
+            grmat <- graph[current,other,drop=FALSE]
+            grsum <- sum(grmat)
+                
+            if (x==y) {
+                old.diag <- sum(diag(grmat))
+                diag(grmat) <- 0
+
+                self.sum <- sum(grmat)
+                if (!is.directed(graph)) {
+                    # Only count undirected edges within a cluster once. 
+                    self.sum <- self.sum/2
+                } else {
+                    # Need to count directed edges between different nodes twice.
+                    grsum <- grsum + self.sum
+                }
+
+                # Self-edges contribute twice to total node weight,
+                # according to igraph::modularity.
+                grsum <- grsum + old.diag
+
+                mod.mat[x,y] <- self.sum + old.diag 
+            } else {
+                if (is.directed(graph)) {
+                    grsum <- grsum + sum(graph[other,current])
+                }
+                mod.mat[y,x] <- grsum
+            }
+
+            # If x==y, this is equivalent to adding edge weights for each node twice.
+            # THIS IS DELIBERATE; the total per-node weight is that for all edges 
+            # involving each node, so edges between nodes in the same cluster are 
+            # allowed to be double-counted here when aggregating node weights per cluster.
+            clust.total[x] <- clust.total[x] + grsum
+            if (x!=y) {
+                clust.total[y] <- clust.total[y] + grsum
+            }
         }
     }
 
     # Calcuating the expected weight if they were randomly distributed. 
+    # Note some effort is involved in 'folding' it into an upper triangular.
     total.weight <- sum(mod.mat)
-    clust.prop <- colSums(mod.mat)/total.weight
+    clust.prop <- clust.total/sum(clust.total)
     expected.mat <- tcrossprod(clust.prop) * total.weight
 
-    if (get.values){
-        return(list(observed=mod.mat, expected=expected.mat))
+    expected.mat[lower.tri(expected.mat)] <- 0
+    old.diag <- diag(expected.mat)
+    expected.mat <- expected.mat * 2
+    diag(expected.mat) <- old.diag
+
+    get.weights <- .switch_arg_names(get.values, get.weights)
+    if (get.weights) {
+        list(observed=mod.mat, expected=expected.mat)
+    } else if (as.ratio) {
+            
     } else {
-        return(1/total.weight * (mod.mat - expected.mat))
+        1/total.weight * (mod.mat - expected.mat)
     }
 }
-
