@@ -170,3 +170,156 @@ test_that("modelGeneVar works with SingleCellExperiment objects", {
     X <- SingleCellExperiment(list(whee=dummy))
     expect_equal(modelGeneVar(X, assay.type="whee"), modelGeneVar(dummy))
 })
+
+#######################################
+#######################################
+#######################################
+
+set.seed(201001)
+ncells <- 200
+ngenes <- 1000
+means <- 2^runif(ngenes, -1, 5)
+dummy <- matrix(rnbinom(ngenes*ncells, mu=means, size=5), ncol=ncells, nrow=ngenes)
+rownames(dummy) <- paste0("X", seq_len(ngenes))
+
+nspikes <- 100
+smeans <- 2^runif(nspikes, -1, 5)
+spikes <- matrix(rnbinom(nspikes*ncells, mu=smeans, size=5), ncol=ncells, nrow=nspikes)
+rownames(spikes) <- paste0("X", seq_len(nspikes))
+
+test_that("modelGeneVarWithSpikes works correctly in the basic case", {
+    out <- modelGeneVarWithSpikes(dummy, spikes)
+    ref <- modelGeneVar(scater::normalizeCounts(dummy))
+    expect_equal(out$mean, ref$mean)
+    expect_equal(out$total, ref$total)
+
+    lspikes <- scater::normalizeCounts(spikes)
+    expect_equal(metadata(out)$mean, rowMeans(lspikes))
+    expect_equal(unname(metadata(out)$var), DelayedMatrixStats::rowVars(lspikes))
+
+    fit <- fitTrendVar(metadata(out)$mean, metadata(out)$var)
+    expect_identical(fit$std.dev, metadata(out)$std.dev)
+
+    expect_equal(out$tech, fit$trend(ref$mean))
+    expect_equal(out$bio, out$total - out$tech)
+})
+
+test_that("modelGeneVarWithSpikes works correctly with blocking", {
+    block <- sample(LETTERS[1:5], ncells, replace=TRUE)
+    out <- modelGeneVarWithSpikes(dummy, spikes, block=block)
+
+    ref <- modelGeneVar(scater::normalizeCounts(dummy), block=block)
+    expect_equal(out$mean, ref$mean)
+    expect_equal(out$total, ref$total)
+
+    accumulated.mean <- accumulated.total <- accumulated.tech <- 0
+    sf1 <- scater::librarySizeFactors(dummy)
+    sf2 <- scater::librarySizeFactors(spikes)
+
+    for (i in unique(block)) {
+        current <- i==block
+
+        # Forcibly avoid auto-centering of size.factors, to use as a reference here. 
+        ssf1 <- sf1[current]
+        ssf2 <- sf2[current]
+        ssf2 <- ssf2/mean(ssf2) * mean(ssf1)
+
+        ref <- modelGeneVarWithSpikes(t(t(dummy[,current])/ssf1),
+            size.factors=rep(1, sum(current)), 
+            spikes=t(t(spikes[,current])/ssf2),
+            spike.size.factors=rep(1, sum(current)))
+        subout <- out$per.block[[i]]
+
+        expect_equal(ref$mean, subout$mean)
+        expect_equal(ref$total, subout$total)
+        expect_equal(ref$tech, subout$tech)
+        expect_equal(ref$bio, subout$bio)
+        expect_equal(ref$p.value, subout$p.value)
+
+        accumulated.mean <- accumulated.mean + ref$mean
+        accumulated.total <- accumulated.total + ref$total
+        accumulated.tech <- accumulated.tech + ref$tech
+    }
+
+    # Check combining statistics works correctly.
+    n <- length(unique(block))
+    expect_equal(out$mean, accumulated.mean/n)
+    expect_equal(out$total, accumulated.total/n)
+    expect_equal(out$tech, accumulated.tech/n)
+    expect_equal(out$bio, out$total - out$tech)
+
+    all.p <- lapply(out$per.block, "[[", i="p.value")
+    expect_equal(out$p.value, do.call(combinePValues, all.p))
+})
+
+test_that("modelGeneVarWithSpikes centers size factors correctly", {
+    # Without blocking.
+    sf1 <- 2^rnorm(ncells, 0.05)
+    sf2 <- 2^rnorm(ncells, 0.05)
+    out <- modelGeneVarWithSpikes(dummy, size.factors=sf1, spikes=spikes, spike.size.factors=sf2)
+
+    msf1 <- sf1/mean(sf1)
+    msf2 <- sf2/mean(sf2)
+    ref <- modelGeneVarWithSpikes(t(t(dummy)/msf1), size.factors=rep(1, ncells), 
+        spikes=t(t(spikes)/msf2), spike.size.factors=rep(1, ncells))
+
+    expect_equal(ref$mean, out$mean)
+    expect_equal(ref$total, out$total)
+    expect_equal(ref$tech, out$tech)
+    expect_equal(ref$bio, out$bio)
+    expect_equal(ref$p.value, out$p.value)
+
+    # With blocking.
+    block <- sample(LETTERS[1:5], ncells, replace=TRUE)
+    out <- modelGeneVarWithSpikes(dummy, size.factors=sf1, spikes=spikes, spike.size.factors=sf2, block=block)
+
+    for (i in unique(block)) {
+        current <- i==block
+
+        ssf1 <- msf1[current]
+        ssf2 <- msf2[current]
+        ssf2 <- ssf2/mean(ssf2) * mean(ssf1)
+
+        ref <- modelGeneVarWithSpikes(t(t(dummy[,current])/ssf1),
+            size.factors=rep(1, sum(current)), 
+            spikes=t(t(spikes[,current])/ssf2),
+            spike.size.factors=rep(1, sum(current)))
+        subout <- out$per.block[[i]]
+
+        expect_equal(ref$mean, subout$mean)
+        expect_equal(ref$total, subout$total)
+        expect_equal(ref$tech, subout$tech)
+        expect_equal(ref$bio, subout$bio)
+        expect_equal(ref$p.value, subout$p.value)
+    }
+})
+
+test_that("modelGeneVarWithSpikes works with design matrices", {
+    Y <- runif(ncol(dummy))
+    design <- model.matrix(~Y)
+
+    genes <- modelGeneVar(scater::normalizeCounts(dummy), design=design)
+    spiked <- modelGeneVar(scater::normalizeCounts(spikes), design=design)
+    out <- modelGeneVarWithSpikes(dummy, spikes, design=design)
+
+    expect_equal(out$mean, genes$mean)
+    expect_equal(out$total, genes$total)
+    expect_equal(metadata(out)$mean, spiked$mean)
+    expect_equal(metadata(out)$var, spiked$total)
+})
+
+test_that("modelGeneVar works with SingleCellExperiment objects", {
+    X <- SingleCellExperiment(list(counts=dummy))
+    altExp(X, "spikes") <- SingleCellExperiment(list(counts=spikes))
+    expect_equal(modelGeneVarWithSpikes(X, spikes="spikes"), modelGeneVarWithSpikes(dummy, spikes))
+
+    X <- SingleCellExperiment(list(whee=dummy))
+    altExp(X, "spikes") <- SingleCellExperiment(list(whee=spikes))
+    expect_equal(modelGeneVarWithSpikes(X, "spikes", assay.type="whee"), modelGeneVarWithSpikes(dummy, spikes))
+
+    X <- SingleCellExperiment(list(whee=dummy))
+    sizeFactors(X) <- sf1 <- 2^rnorm(ncells, 0.1)
+    altExp(X, "spikes") <- SingleCellExperiment(list(whee=spikes))
+    sizeFactors(altExp(X)) <- sf2 <- 2^rnorm(ncells, 0.1)
+    expect_equal(modelGeneVarWithSpikes(X, "spikes", assay.type="whee"), modelGeneVarWithSpikes(dummy, size.factors=sf1, spikes, spike.size.factors=sf2))
+})
