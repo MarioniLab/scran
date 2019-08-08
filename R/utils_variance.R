@@ -250,7 +250,10 @@
     subset.row=NULL, block=NULL, BPPARAM=SerialParam(), ...)
 {
     if (is.null(size.factors)) {
-        size.factors <- librarySizeFactors(x, subset_row=subset.row)        
+        size.factors <- librarySizeFactors(x, subset_row=subset.row)
+    } else {
+        # Centering just in case; this should almost certainly be true anyway.
+        size.factors <- size.factors/mean(size.factors)
     }
     stats.out <- .compute_mean_var(x, block=block, subset.row=subset.row, 
         BPPARAM=BPPARAM, sf=size.factors, ...)
@@ -259,9 +262,13 @@
         spike.size.factors <- librarySizeFactors(spikes) # no subset_row here, as that only applies to 'x'.
     }
 
-    # Rescaling so that the mean spike.size.factors is the same as each size.factors in each block.
+    # Rescaling so that the mean spike.size.factors is the same as each
+    # size.factors in each block.  Note that we do not recenter the
+    # size.factors themselves within each block, so as to ensure we are
+    # modelling the variance in the same log-expression values that will be
+    # used in downstream analyses.
     if (is.null(block)) {
-        spike.size.factors <- spike.size.factors / mean(spike.size.factors) * mean(size.factors)
+        spike.size.factors <- spike.size.factors / mean(spike.size.factors) # assume mean(size.factors)=1, see above.
     } else {
         by.block <- split(seq_along(block), block)
         for (i in by.block) {
