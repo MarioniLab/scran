@@ -209,28 +209,6 @@ test_that("buildKNNGraph works correctly", {
     expect_equal(g[], KMAKE(t(pc.out$x), k=20))
 })
 
-# Checking that the clusterModularity function computes the right value.
-
-set.seed(20004)
-test_that("clusterModularity computes the correct values", {
-    exprs <- matrix(rnorm(100000), ncol=100)
-    g <- buildSNNGraph(exprs)
-
-    random <- sample(5, ncol(exprs), replace=TRUE)
-    out <- clusterModularity(g, random) 
-    expect_equal(sum(diag(out)), modularity(g, random, weight=E(g)$weight))
-
-    # Repeating again on some actual clusters.
-    actual <- cluster_fast_greedy(g)
-    out <- clusterModularity(g, actual$membership) 
-    expect_equal(sum(diag(out)), modularity(g, actual$membership, weight=E(g)$weight))
-
-    # Some basic checks on the expected values.
-    out <- clusterModularity(g, random, get.values=TRUE)
-    expect_equal(sum(out$observed), sum(out$expected))
-    expect_equal(sum(out$observed), sum(g[]))
-})
-
 # Avoid normalize() overwriting scater's normalize() in other files.
 
 detach("package:igraph", character.only=TRUE)
