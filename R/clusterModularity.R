@@ -3,16 +3,18 @@
 #' Calculate the modularity of each cluster from a graph, based on a null model of random connections between nodes.
 #' 
 #' @param graph A \link{graph} object from \pkg{igraph}, usually where each node represents a cell.
-#' @param clusters A factor specifying the cluster identity for each node.
-#' @param get.weights A logical scalar indicating whether the observed and expected edge weights should be returned, rather than the modularity.
+#' @param clusters Factor specifying the cluster identity for each node.
+#' @param get.weights Logical scalar indicating whether the observed and expected edge weights should be returned, rather than the modularity.
 #' @param get.values Deprecated, same as \code{get.weights}.
+#' @param as.ratio Logical scalar indicating whether the log-ratio of observed to expected weights should be returned.
 #' 
 #' @return
 #' By default, an upper triangular numeric matrix of order equal to the number of clusters is returned.
 #' Each entry corresponds to a pair of clusters and is proportional to the difference between the observed and expected edge weights between those clusters.
 #' 
 #' If \code{as.ratio=TRUE}, an upper triangular numeric matrix is again returned.
-#' Here, each entry is equal to the log-ratio between the observed and expected edge weights.
+#' Here, each entry is equal to the log2-ratio between the observed and expected edge weights.
+#' A value of 1 is added to each ratio prior to log-transformation.
 #' 
 #' If \code{get.weights=TRUE}, a list is returned containing two upper triangular numeric matrices. 
 #' The \code{observed} matrix contains the observed sum of edge weights between and within clusters,
@@ -32,9 +34,12 @@
 #'
 #' In practice, the modularity may not the most effective metric for evaluating cluster separatedness.
 #' This is because the modularity is proportional to the number of cells, so larger clusters will naturally have a large score regardless of separation.
-#' An alternative approach is to set \code{as.ratio=TRUE}, which returns the (log-)ratio of the observed to expected weights for each entry of the matrix.
+#' An alternative approach is to set \code{as.ratio=TRUE}, which returns the log-ratio of the observed to expected weights for each entry of the matrix.
+#' This adjusts for differences in cluster size and improves resolution of differences between clusters.
+#' A pseudo-count of 1 is added to stabilize the ratios by shrinking them towards 1 (or the log-ratio towards zero).
 #' 
 #' Directed graphs are treated as undirected inputs with \code{mode="each"} in \code{\link{as.undirected}}.
+#' In the rare case that self-loops are present, these will also be handled correctly.
 #' @author
 #' Aaron Lun
 #' 
@@ -50,14 +55,14 @@
 #' out <- clusterModularity(g, clusters)
 #' out
 #' 
-#' # Alternatively, get the edge weights:
+#' # Compute the log-ratio intsead.
+#' out <- clusterModularity(g, clusters, as.ratio=TRUE)
+#' out
+#' 
+#' # Alternatively, get the edge weights directly:
 #' out <- clusterModularity(g, clusters, get.weights=TRUE)
 #' out
 #'
-#' # And use them to compute the log-ratio:
-#' log.ratio <- log2(out$observed/out$expected + 1)
-#' log.ratio
-#' 
 #' @export
 #' @importFrom Matrix diag diag<-
 #' @importFrom igraph is.directed
@@ -130,7 +135,9 @@ clusterModularity <- function(graph, clusters, get.weights=FALSE, get.values=NUL
     if (get.weights) {
         list(observed=mod.mat, expected=expected.mat)
     } else if (as.ratio) {
-            
+        output <- log2(mod.mat/expected.mat + 1)
+        output[is.na(output)] <- 0
+        output
     } else {
         1/total.weight * (mod.mat - expected.mat)
     }
