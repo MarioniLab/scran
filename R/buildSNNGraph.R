@@ -48,9 +48,11 @@
 #' In particular, it avoids the need to construct a distance matrix for all pairs of cells.
 #' Only the identities of nearest neighbours are required, which can be obtained quickly with methods in the \pkg{BiocNeighbors} package.
 #' 
-#' The choice of \code{k} can be roughly interpreted as the minimum cluster size.
-#' Smaller values of \code{k} will generally yield smaller, more resolved clusters upon running community detection algorithms.
-#' By comparison, increasing \code{k} will increase the connectivity of the graph and make it more difficult to resolve different communities.
+#' The choice of \code{k} controls the connectivity of the graph and the resolution of community detection algorithms.
+#' Smaller values of \code{k} will generally yield smaller, finer clusters, while increasing \code{k} will increase the connectivity of the graph and make it more difficult to resolve different communities.
+#' The value of \code{k} can be roughly interpreted as the anticipated size of the smallest subpopulation.
+#' If a subpopulation in the data has fewer than \code{k+1} cells, \code{buildSNNGraph} and \code{buildKNNGraph} will forcibly construct edges between cells in that subpopulation and cells in other subpopulations. 
+#' This increases the risk that the subpopulation will not form its own cluster as it is more interconnected with the rest of the cells in the dataset.
 #' 
 #' Note that the setting of \code{k} here is slightly different from that used in SNN-Cliq.
 #' The original implementation considers each cell to be its first nearest neighbor that contributes to \code{k}.
