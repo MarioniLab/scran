@@ -7,7 +7,6 @@
 #' @param cv2 A numeric vector containing the squared coefficient of variation computed from normalized expression values for all genes.
 #' @param ncells Integer scalar specifying the number of cells used to compute \code{cv2} and \code{means}.
 #' @param min.mean Numeric scalar specifying the minimum mean to use for trend fitting.
-#' @param top.prop A numeric scalar in (0, 1), specifying the top percentage of high-abundance genes to use for estimating the initial value of the plateau parameter of the fitted trend.
 #' @param nls.args A list of parameters to pass to \code{\link{nls}}.
 #' @param max.iter Integer scalar specifying the maximum number of robustness iterations to perform.
 #' @param nmads Numeric scalar specifying the number of MADs to use to compute the tricube bandwidth during robustification.
@@ -24,17 +23,16 @@
 #' This function fits a mean-dependent trend to the CV2 of normalized expression values for the selected features.
 #' Specifically, it fits a trend of the form
 #' \deqn{y = A + \frac{B}{x}}{y = A + B/x}
-#' using \code{\link{nls}}.
-#' An initial value for \eqn{A} is estimated by obtaining the location of the asymptote at large means,
-#' using \code{top.prop} to obtain a definition of \dQuote{large}.
+#' using an iteratively reweighted least-squares approach implemented via \code{\link{nls}}.
+#' This trend is based on a similar formulation from \pkg{DESeq2} and generally captures the mean-CV2 trend well.
 #'
 #' Trend fitting is performed after weighting each observation according to the inverse of the density of observations at the same mean.
 #' This avoids problems with differences in the distribution of means that would otherwise favor good fits in highly dense intervals at the expense of sparser intervals.
-#' Low-abundance genes with mean log-expression below \code{min.mean} are also removed prior to fitting, to avoid problems with discreteness and the upper bound on the CV2 at low counts.
+#' Low-abundance genes with means below \code{min.mean} are also removed prior to fitting, to avoid problems with discreteness and the upper bound on the CV2 at low counts.
 #' 
 #' Robustness iterations are also performed to protect against outliers. 
-#' An initial fit is performed and each observation is weighted using tricube-transformed residuals (in addition to the existing inverse-density weights).
-#' The bandwidth of the tricube scheme is defined as \code{nmads} multiplied by the median residual.
+#' An initial fit is performed and each observation is weighted using tricube-transformed standardized residuals (in addition to the existing inverse-density weights).
+#' The bandwidth of the tricube scheme is defined as \code{nmads} multiplied by the median standardized residual.
 #' Iterations are performed until convergence or \code{max.iters} is reached.
 #'
 #' Occasionally, there are not enough high-abundance points to uniquely determine the \eqn{A} parameter.
@@ -70,11 +68,18 @@
 #' fit <- fitTrendCV2(m.err, cv2.err, 10)
 #' plot(m.err, cv2.err, pch=16, xlab="Mean", ylab="CV2", log="xy")
 #' curve(fit$trend(x), add=TRUE, col="dodgerblue", lwd=3)
+#'
+#' @references
+#' Brennecke P, Anders S, Kim JK et al. (2013).
+#' Accounting for technical noise in single-cell RNA-seq experiments.
+#' \emph{Nat. Methods} 10:1093-95
+#' 
 #' @seealso
 #' \code{\link{modelGeneCV2}} and \code{\link{modelGeneCV2WithSpikes}}, where this function is used.
 #' @export
-#' @importFrom stats nls median quantile coef
-fitTrendCV2 <- function(means, cv2, ncells, min.mean=0.1, top.prop=0.01, nls.args=list(), 
+#' @importFrom stats nls median coef
+#' @importFrom statmod glmgam.fit
+fitTrendCV2 <- function(means, cv2, ncells, min.mean=0.1, nls.args=list(), 
     simplified=TRUE, nmads=6, max.iter=50)
 {
     # Ignoring maxed CV2 values due to an outlier (caps at the number of cells).
@@ -83,36 +88,34 @@ fitTrendCV2 <- function(means, cv2, ncells, min.mean=0.1, top.prop=0.01, nls.arg
 
     y <- cv2[to.use]
     x <- means[to.use]
-    ly <- log(y)
     w <- .inverse_density_weights(log(x))
 
-    # Rough estimation of initial parameters.
-    # This is based on what happens as X->Inf (for A) or X->0 (for B).
-    B <- median(ly + log(x), na.rm=TRUE)
-    A <- median(ly[x >= quantile(x, 1-top.prop)])
+    # Rough estimation of initial parameters, assuming that var \propto mean^2
+    # in terms of the distribution around the trend.
+    out <- glmgam.fit(y=y, X=cbind(1, 1/x))
+    coefs <- log(pmax(1e-8, out$coefficients))
+    names(coefs) <- c("logA", "logB")
 
-    predFUN <- function(fit) {
-        coefs <- coef(fit)
-        if ("A" %in% names(coefs)) {
-            Aest <- exp(coefs["A"])
-        } else {
-            Aest <- 0
-        }
-        Best <- exp(coefs["B"])
-        function(x) { Aest  + Best/x }
+    predFUN <- function(coefs) {
+        Aest <- exp(coefs["logA"])
+        Best <- exp(coefs["logB"])
+        function(x) Aest  + Best/x
     }
 
     # Robustness iterations until convergence. 
-    # Weights are computed using residuals in the *log* space,
-    # as we are currently fitting on the log-CV2 values.
-    weights <- w
+    # Every iteration should update 'coefs', 'fitted' and 'weights'.
     tol <- 1e-8
-
-    nls.args$formula <- ly ~ log(exp(A) + exp(B)/x)
-    nls.args$start <- list(A=A, B=B)
+    weights <- w 
+    fitted <- predFUN(coefs)(x)
+    nls.args$formula <- y ~ exp(logA) + exp(logB)/x
 
     for (i in seq_len(max.iter)) {
-        nls.args$weights <- weights
+        nls.args$start <- as.list(coefs)
+
+        # Weights are always scaled by fitted values to adjust for mean-variance
+        # relationship _of the estimates around the trend_. This means that we 
+        # effectively perform IRLS via nls().
+        nls.args$weights <- weights / fitted^2
 
         # nls() can fail to converge if the trend is just a straight line,
         # such that 'A' is any arbitrarily small value.
@@ -120,24 +123,35 @@ fitTrendCV2 <- function(means, cv2, ncells, min.mean=0.1, top.prop=0.01, nls.arg
         if (is(fit, "try-error")) {
             msg <- attr(fit, "condition")$message
             if (simplified && grepl("singular gradient", msg)) {
-                nls.args$formula <- ly ~ log(B/x)
-                nls.args$start <- list(B=B)
+                simplified <- FALSE # can't get here again.
+
+                nls.args$formula <- y ~ exp(logB)/x
+                nls.args$start$logA <- NULL
                 fit <- do.call(nls, nls.args)
+                predFUN <- function(coefs) {
+                    Best <- exp(coefs["logB"])
+                    function(x) Best/x
+                }
             } else {
                 stop(msg)
             }
         }
 
-        r <- abs(ly - log(predFUN(fit)(x)))
+        coefs <- coef(fit)
+        fitted <- predFUN(coefs)(x)
+        r <- abs(y/fitted - 1)
         r <- r/(median(r, na.rm=TRUE) * nmads)
         r <- pmin(r, 1)
 
-        new.weights <- (1 - r^3)^3 * w
+        new.weights <- (1 - r^3)^3 * w 
         if (max(abs(new.weights - weights)) < tol) {
             break
         }
         weights <- new.weights
     }
 
-    .correct_logged_expectation(x, y, w, predFUN(fit))
+    FUN <- predFUN(coefs)
+    leftovers <- y/FUN(x)
+    std.dev <- unname(weighted.median(abs(leftovers - 1), w, na.rm=TRUE)) * 1.4826
+    list(trend=FUN, std.dev=std.dev)
 }
