@@ -13,6 +13,7 @@ setMethod("computeSpikeFactors", "SingleCellExperiment",
 # written by Aaron Lun
 # created 17 February 2016
 {
+    .Deprecated(msg="'computeSpikeFactors' is not necessary if spike-ins are stored as 'altExps'")
     if (is.null(type)) { 
         is.spike <- isSpike(x)
     } else {
