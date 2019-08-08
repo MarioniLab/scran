@@ -18,10 +18,10 @@
 #' @param ... For the \code{calculateSumFactors} generic, additional arguments to pass to each method.
 #' For the \linkS4class{SummarizedExperiment} method, additional methods to pass to the ANY method.
 #' 
-#' For the \code{computeSumFactors} function, additional arguments to pass to the \code{calculateSumFactors} SummarizedExperiment method.
+#' For the \code{computeSumFactors} function, additional arguments to pass to \code{calculateSumFactors}.
 #' @param assay.type A string specifying which assay values to use when \code{x} is a SummarizedExperiment or SingleCellExperiment.
 #' @param get.spikes See \code{?"\link{scran-gene-selection}"}.
-#' @param sf.out A logical scalar indicating whether only size factors should be returned.
+#' @param sf.out Deprecated, a logical scalar indicating whether only size factors should be returned.
 #' 
 #' @section Overview of the deconvolution method:
 #' The \code{computeSumFactors} function implements the deconvolution strategy (Lun et al., 2016) for scaling normalization of sparse count data.
@@ -143,10 +143,9 @@
 #' Standard errors can then be calculated as the standard deviation of the size factor estimates across simulation iterations.
 #' 
 #' @return
-#' For \code{computeSumFactors,ANY-method}, a numeric vector of size factors for all cells in \code{x} is returned.
+#' For \code{calculateSumFactors}, a numeric vector of size factors for all cells in \code{x} is returned.
 #' 
-#' For \code{computeSumFactors,SingleCellExperiment-method}, an object of class \code{x} is returned containing the vector of size factors in \code{sizeFactors(x)}, if \code{sf.out=FALSE}.
-#' Otherwise, the vector of size factors is returned directly.
+#' For \code{computeSumFactors}, an object of class \code{x} is returned containing the vector of size factors in \code{\link{sizeFactors}(x)}.
 #' 
 #' @author
 #' Aaron Lun and Karsten Bach
@@ -178,15 +177,11 @@
 NULL
 
 #' @importFrom BiocParallel bplapply SerialParam
-.computeSumFactors <- function(x, sizes=seq(21, 101, 5), clusters=NULL, ref.clust=NULL, max.cluster.size=3000, 
+.calculate_sum_factors <- function(x, sizes=seq(21, 101, 5), clusters=NULL, ref.clust=NULL, max.cluster.size=3000, 
     positive=TRUE, scaling=NULL, min.mean=1, subset.row=NULL, BPPARAM=SerialParam())
 # This contains the function that performs normalization on the summed counts.
 # It also provides support for normalization within clusters, and then between
-# clusters to make things comparable. It can also switch to linear inverse models
-# to ensure that the estimates are non-negative.
-#
-# written by Aaron Lun
-# created 23 November 2015
+# clusters to make things comparable. 
 {
     ncells <- ncol(x)
     if (is.null(clusters)) {
@@ -421,26 +416,35 @@ LOWWEIGHT <- 0.000001
 
 #' @export
 #' @rdname computeSumFactors
-setGeneric("computeSumFactors", function(x, ...) standardGeneric("computeSumFactors"))
+setGeneric("calculateSumFactors", function(x, ...) standardGeneric("calculateSumFactors"))
 
 #' @export
 #' @rdname computeSumFactors
-setMethod("computeSumFactors", "ANY", .computeSumFactors)
+setMethod("calculateSumFactors", "ANY", .calculate_sum_factors)
 
+#' @export
+#' @rdname computeSumFactors
+#' @importFrom SummarizedExperiment assay
+setMethod("calculateSumFactors", "SummarizedExperiment", function(x, ..., assay.type="counts") {
+    .calculate_sum_factors(assay(x, i=assay.type), ...)
+})
+
+#' @export
+#' @rdname computeSumFactors
 #' @importFrom SummarizedExperiment assay 
 #' @importFrom BiocGenerics "sizeFactors<-"
-#' @export
-#' @rdname computeSumFactors
-setMethod("computeSumFactors", "SingleCellExperiment", function(x, ..., subset.row=NULL, assay.type="counts", get.spikes=FALSE, sf.out=FALSE) 
-{ 
-    subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
-    sf <- .computeSumFactors(assay(x, i=assay.type), subset.row=subset.row, ...) 
+computeSumFactors <- function(x, ..., subset.row=NULL, assay.type="counts", get.spikes=FALSE, sf.out=FALSE) { 
+    if (!is(x, "SingleCellExperiment")) {
+        .Deprecated(msg="use 'calculateSumFactors' for any 'x' that is not a SingleCellExperiment")
+        return(.calculate_sum_factors(x, ..., subset.row=subset.row))
+    }
 
+    subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
+    sf <- .calculate_sum_factors(assay(x, i=assay.type), subset.row=subset.row, ...) 
     if (sf.out) { 
         .Deprecated(old="'sf.out=TRUE'", new="calculateSumFactors")
         return(sf) 
     }
     sizeFactors(x) <- sf
     x
-})
-    
+}
