@@ -141,26 +141,9 @@ test_that("modelGeneVar works with design matrices", {
 
     expect_equal(ref$mean, out3$mean)
     expect_equivalent(out3$total, test.var)
-})
 
-test_that("modelGeneVar works with design and blocking", {
-    block <- sample(LETTERS[1:5], ncells, replace=TRUE)
-    Y <- runif(ncol(dummy))
-    design <- model.matrix(~Y)
-    out <- modelGeneVar(dummy, design, block=block)
-
-    accumulated.mean <- accumulated.total <- accumulated.tech <- 0
-    for (i in unique(block)) {
-        chosen <- i==block
-        ref <- modelGeneVar(dummy[,chosen], design=design[chosen,])
-        subout <- out$per.block[[i]]
-
-        expect_identical(ref$mean, subout$mean)
-        expect_identical(ref$total, subout$total)
-        expect_identical(ref$tech, subout$tech)
-        expect_identical(ref$bio, subout$bio)
-        expect_identical(ref$p.value, subout$p.value)
-    }
+    # Flips out if the design matrix is specified with block.
+    expect_error(modelGeneVar(dummy, design, block=sample(LETTERS[1:3], ncol(dummy), replace=TRUE)), "cannot specify 'design'")
 })
 
 test_that("modelGeneVar works with SingleCellExperiment objects", {

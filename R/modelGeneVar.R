@@ -61,6 +61,9 @@
 #' Alternatively, uninteresting factors can be used to construct a design matrix to pass to the function via \code{design}.
 #' In this case, a linear model is fitted to the expression profile for each gene and the residual variance is calculated.
 #' This approach is useful for covariates or additive models that cannot be expressed as a one-way layout for use in \code{block}.
+#' However, it assumes that the error is normally distributed with equal variance for all observations of a given gene.
+#' 
+#' Use of \code{block} and \code{design} together is currently not supported and will lead to an error.
 #'
 #' @section Computing p-values:
 #' The p-value for each gene is computed by assuming that the variance estimates are normally distributed around the trend, and that the standard deviation of the variance distribution is proportional to the value of the trend.

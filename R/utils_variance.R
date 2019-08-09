@@ -31,28 +31,23 @@
         means <- do.call(rbind, lapply(raw.stats, FUN=function(x) t(x[[1]])))
         vars <- do.call(rbind, lapply(raw.stats, FUN=function(x) t(x[[2]])))
     } else {
-        # Put linear modelling section here.
-        means <- vars <- vector("list", length(by.block))
-
-        for (i in seq_along(by.block)) {
-            current <- by.block[[i]] + 1L
-            curdesign <- design[current,,drop=FALSE]
-            cur.core <- lapply(by.core, "[", , j=current, drop=FALSE)
-
-            # Checking residual d.f.
-            resid.df <- nrow(curdesign) - ncol(curdesign)
-            if (resid.df <= 0L) {
-                stop("no residual d.f. in 'design' for variance estimation")
-            }
-            QR <- .ranksafe_qr(curdesign)
-
-            # Calculating the residual variance of the fitted linear model.
-            raw.stats <- bplapply(cur.core, FUN=residual.FUN, qr=QR$qr, qraux=QR$qraux, ..., BPPARAM=BPPARAM)
-            means[[i]] <- unlist(lapply(raw.stats, FUN="[[", i=1))
-            vars[[i]] <- unlist(lapply(raw.stats, FUN="[[", i=2))
+        if (length(by.block) > 1L) {
+            stop("cannot specify 'design' with multi-level 'block'")
         }
-        means <- do.call(cbind, means)
-        vars <- do.call(cbind, vars)
+
+        # Checking residual d.f.
+        resid.df <- nrow(design) - ncol(design)
+        if (resid.df <= 0L) {
+            stop("no residual d.f. in 'design' for variance estimation")
+        }
+        QR <- .ranksafe_qr(design)
+
+        # Calculating the residual variance of the fitted linear model.
+        raw.stats <- bplapply(by.core, FUN=residual.FUN, qr=QR$qr, qraux=QR$qraux, ..., BPPARAM=BPPARAM)
+        means <- unlist(lapply(raw.stats, FUN="[[", i=1))
+        vars <- unlist(lapply(raw.stats, FUN="[[", i=2))
+        means <- matrix(means)
+        vars <- matrix(vars)
     }
 
 	dimnames(means) <- dimnames(vars) <- list(rownames(x)[subset.row], names(by.block))
