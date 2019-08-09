@@ -3,7 +3,7 @@
 
 set.seed(20000)
 test_that("null distribution of correlations looks okay", {
-    for (ncells in c(20, 50, 100)) {
+    for (ncells in c(10, 20, 50, 100)) {
         out <- correlateNull(ncells, iters=1e5)
         expect_equal(length(out), 1e5)
         expect_lte(max(out), 1)
@@ -61,8 +61,11 @@ test_that("correlateNull works with a blocking factor", {
 set.seed(20002)
 test_that("correlateNull works with a design matrix", {
     for (design in list(
+        oneway=model.matrix(~factor(rep(c(1,2), each=5))),
         oneway=model.matrix(~factor(rep(c(1,2), each=10))),
-        covariate=model.matrix(~seq_len(10))
+        covariate=model.matrix(~seq_len(10)),
+        covariate=model.matrix(~seq_len(20)),
+        added=model.matrix(~gl(10, 2) + seq_len(20))
         ))
     {
         out <- correlateNull(design=design, iters=1e5)
