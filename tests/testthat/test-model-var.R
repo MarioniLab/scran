@@ -94,6 +94,20 @@ test_that("modelGeneVar works correctly with blocking and weighting", {
     expect_equal(out2$p.value, do.call(combinePValues, c(all.p, list(method='z', weights=w))))
 })
 
+test_that("modelGeneVar handles blocks with no residual d.f.", {
+    out <- modelGeneVar(dummy, block=rep(1:2, c(1, ncells-1)))
+    ref <- modelGeneVar(dummy[,-1])
+    expect_identical(out$mean, ref$mean)
+    expect_identical(out$total, ref$total)
+
+    out <- modelGeneVar(dummy, block=rep(1:3, c(1, 1, ncells-2)))
+    ref <- modelGeneVar(dummy[,-c(1,2)])
+    expect_identical(out$mean, ref$mean)
+    expect_identical(out$total, ref$total)
+
+    expect_error(modelGeneVar(dummy[,1,drop=FALSE]), "no residual d.f. in any level")
+})
+
 test_that("modelGeneVar works with subsetting options", {
     chosen <- sample(ngenes, ngenes/2)
     out <- modelGeneVar(dummy, subset.row=chosen)
@@ -142,8 +156,9 @@ test_that("modelGeneVar works with design matrices", {
     expect_equal(ref$mean, out3$mean)
     expect_equivalent(out3$total, test.var)
 
-    # Flips out if the design matrix is specified with block.
+    # Flips out correctly.
     expect_error(modelGeneVar(dummy, design, block=sample(LETTERS[1:3], ncol(dummy), replace=TRUE)), "cannot specify 'design'")
+    expect_error(modelGeneVar(dummy, design=diag(ncol(design))), "no residual d.f.")
 })
 
 test_that("modelGeneVar works with SingleCellExperiment objects", {

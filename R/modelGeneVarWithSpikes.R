@@ -124,7 +124,8 @@ NULL
         residual.FUN=compute_residual_stats_lognorm, 
         pseudo=pseudo.count, design=design)
 
-    collected <- .decompose_log_exprs(all$x$means, all$x$vars, all$spikes$means, all$spikes$vars, ...)
+    collected <- .decompose_log_exprs(all$x$means, all$x$vars, all$spikes$means, all$spikes$vars, 
+        all$x$ncells, ...)
     output <- .combine_blocked_statistics(collected, method, equiweight, all$x$ncells)
     rownames(output) <- rownames(x)[.subset_to_index(subset.row, x)]
     output

@@ -155,7 +155,8 @@ NULL
         fit.stats <- FUN(subset.fit)
     }
 
-    collected <- .decompose_log_exprs(x.stats$means, x.stats$vars, fit.stats$means, fit.stats$vars, ...)
+    collected <- .decompose_log_exprs(x.stats$means, x.stats$vars, fit.stats$means, fit.stats$vars, 
+        x.stats$ncells, ...)
     output <- .combine_blocked_statistics(collected, method, equiweight, x.stats$ncells)
     rownames(output) <- rownames(x)[.subset_to_index(subset.row, x)]
     output

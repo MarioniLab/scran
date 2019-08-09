@@ -10,28 +10,30 @@
         on.exit(bpstop(BPPARAM))
     }
 
-    if (!is.null(block)) { 
-        if (ncol(x)!=length(block)) {
-            stop("length of 'block' should be the same as 'ncol(x)'")
+    if (is.null(design)) {
+        if (!is.null(block)) { 
+            if (ncol(x)!=length(block)) {
+                stop("length of 'block' should be the same as 'ncol(x)'")
+            }
+
+            # Checking residual d.f.
+            by.block <- split(seq_len(ncol(x))-1L, block, drop=TRUE)
+        } else {
+            by.block <- list(seq_len(ncol(x))-1L)
         }
 
-        # Checking residual d.f.
-        by.block <- split(seq_len(ncol(x))-1L, block, drop=TRUE)
-	} else {
-        by.block <- list(seq_len(ncol(x))-1L)
-	}
+        resid.df <- lengths(by.block) - 1L
+        if (all(resid.df<=0L)){ 
+            stop("no residual d.f. in any level of 'block' for variance estimation")
+        }
 
-    resid.df <- lengths(by.block) - 1L
-	if (all(resid.df<=0L)){ 
-		stop("no residual d.f. in any level of 'block' for variance estimation")
-	}
-
-    if (is.null(design)) {
 	    raw.stats <- bplapply(by.core, FUN=block.FUN, bygroup=by.block, ..., BPPARAM=BPPARAM)
         means <- do.call(rbind, lapply(raw.stats, FUN=function(x) t(x[[1]])))
         vars <- do.call(rbind, lapply(raw.stats, FUN=function(x) t(x[[2]])))
+        ncells <- lengths(by.block)
+        colnames(means) <- colnames(vars) <- names(ncells) <- names(by.block)
     } else {
-        if (length(by.block) > 1L) {
+        if (!is.null(block)) {
             stop("cannot specify 'design' with multi-level 'block'")
         }
 
@@ -44,24 +46,29 @@
 
         # Calculating the residual variance of the fitted linear model.
         raw.stats <- bplapply(by.core, FUN=residual.FUN, qr=QR$qr, qraux=QR$qraux, ..., BPPARAM=BPPARAM)
-        means <- unlist(lapply(raw.stats, FUN="[[", i=1))
-        vars <- unlist(lapply(raw.stats, FUN="[[", i=2))
-        means <- matrix(means)
-        vars <- matrix(vars)
+        means <- matrix(unlist(lapply(raw.stats, FUN="[[", i=1)))
+        vars <- matrix(unlist(lapply(raw.stats, FUN="[[", i=2)))
+        ncells <- nrow(design)
     }
 
-	dimnames(means) <- dimnames(vars) <- list(rownames(x)[subset.row], names(by.block))
-    list(means=means, vars=vars, ncells=lengths(by.block))
+	rownames(means) <- rownames(vars) <- rownames(x)[subset.row]
+    list(means=means, vars=vars, ncells=ncells)
 }
+
+dummy.trend.fit <- list(trend=function(x) { rep(NA_real_, length(x)) }, std.dev=NA_real_)
 
 #' @importFrom stats pnorm p.adjust
 #' @importFrom S4Vectors DataFrame metadata<-
-.decompose_log_exprs <- function(x.means, x.vars, fit.means, fit.vars, ...) {
+.decompose_log_exprs <- function(x.means, x.vars, fit.means, fit.vars, ncells, ...) {
     collected <- vector("list", ncol(x.means))
     for (i in seq_along(collected)) {
         fm <- fit.means[,i]
         fv <- fit.vars[,i]
-        fit <- fitTrendVar(fm, fv, ...)
+        if (ncells[i] >= 2L) {
+            fit <- fitTrendVar(fm, fv, ...)
+        } else {
+            fit <- dummy.trend.fit
+        }
 
         xm <- x.means[,i]
         output <- DataFrame(mean=xm, total=x.vars[,i], tech=fit$trend(xm))
@@ -84,7 +91,11 @@
     for (i in seq_along(collected)) {
         fm <- fit.means[,i]
         fcv2 <- fit.vars[,i]/fm^2
-        fit <- fitTrendCV2(fm, fcv2, ncells[i], ...)
+        if (ncells[i] >= 2L) {
+            fit <- fitTrendCV2(fm, fcv2, ncells[i], ...)
+        } else {
+            fit <- dummy.trend.fit
+        }
 
         xm <- x.means[,i]
         xcv2 <- x.vars[,i]/xm^2
@@ -214,6 +225,11 @@
         weights <- ncells
     }
 
+    original <- collected
+    keep <- ncells >= 2L
+    collected <- collected[keep]
+    weights <- weights[keep]
+
     combined <- list()
     for (i in fields) {
         extracted <- lapply(collected, "[[", i=i)
@@ -234,7 +250,7 @@
     combined$FDR <- p.adjust(combined$p.value, method="BH")
 
     output <- DataFrame(combined)
-    output$per.block <- do.call(DataFrame, lapply(collected, I))
+    output$per.block <- do.call(DataFrame, lapply(original, I))
 
     output
 }
