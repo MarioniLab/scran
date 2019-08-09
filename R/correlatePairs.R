@@ -1,18 +1,163 @@
+#' Test for significant correlations
+#' 
+#' Identify pairs of genes that are significantly correlated in their expression profiles, based on Spearman's rank correlation.
+#'
+#' @param block A factor specifying the blocking level for each cell.
+#' @param design A numeric design matrix containing uninteresting factors to be ignored.
+#' @param BPPARAM A \linkS4class{BiocParallelParam} object that specifies the manner of parallel processing to use.
+#' @param x 
+#'     A numeric matrix-like object of log-normalized expression values, where rows are genes and columns are cells.
+#'     Alternatively, a \linkS4class{SingleCellExperiment} object containing such a matrix.
+#' 
+#' @param null.dist A numeric vector of rho values under the null hypothesis.
+#' @param ties.method String specifying how tied ranks should be handled.
+#' @param use.names 
+#'     A logical scalar specifying whether the row names of \code{x} should be used in the output.
+#'     Alternatively, a character vector containing the names to use.
+#' @param subset.row See \code{?"\link{scran-gene-selection}"}.
+#' @param pairings A \code{NULL} value indicating that all pairwise correlations should be computed;
+#' or a list of 2 vectors of genes between which correlations are to be computed;
+#' or a integer/character matrix with 2 columns of specific gene pairs - see below for details.
+#' @param cache.size Deprecated argument, ignored.
+#' @param ... Additional arguments to pass to \code{correlatePairs,ANY-method}.
+#' @param assay.type A string specifying which assay values to use.
+#' @param get.spikes See \code{?"\link{scran-gene-selection}"}.
+#' 
+#' @details
+#' The \code{correlatePairs} function identifies significant correlations between all pairs of genes in \code{x}.
+#' This allows prioritization of genes that are driving systematic substructure in the data set.
+#' By definition, such genes should be correlated as they are behaving in the same manner across cells.
+#' In contrast, genes driven by random noise should not exhibit any correlations with other genes.
+#' 
+#' We use Spearman's rho to quantify correlations robustly based on ranked gene expression.
+#' To identify correlated gene pairs, the significance of non-zero correlations is assessed using a permutation test.
+#' The null hypothesis is that the ranking of normalized expression across cells should be independent between genes.
+#' This allows us to construct a null distribution by randomizing the ranks within each gene.
+#' A pre-computed empirical distribution can be supplied as \code{null.dist}, which saves some time by avoiding repeated calls to \code{\link{correlateNull}}.
+#' 
+#' The p-value for each gene pair is defined as the tail probability of this distribution at the observed correlation (with some adjustment to avoid zero p-values).
+#' Correction for multiple testing is done using the BH method.
+#' The lower bound of the p-values is determined by the value of \code{iters}.
+#' If the \code{limited} field is \code{TRUE} in the returned dataframe, it may be possible to obtain lower p-values by increasing \code{iters}.
+#' This should be examined for non-significant pairs, in case some correlations are overlooked due to computational limitations.
+#' The function will automatically raise a warning if any genes are limited in their significance at a FDR of 5\%.
+#'
+#' For the SingleCellExperiment method, correlations should be computed for normalized expression values in the specified \code{assay.type}. 
+#' 
+#' @return
+#' A \linkS4class{DataFrame} is returned with one row per gene pair and the following fields:
+#' \describe{
+#' \item{\code{gene1, gene2}:}{
+#'     Character or integer fields specifying the genes in the pair.
+#'     If \code{use.names=FALSE}, integers are returned representing row indices of \code{x}, otherwise gene names are returned.
+#' }
+#' \item{\code{rho}:}{A numeric field containing the approximate Spearman's rho.}
+#' \item{\code{p.value, FDR}:}{Numeric fields containing the permutation p-value and its BH-corrected equivalent.}
+#' \item{\code{limited}:}{A logical scalar indicating whether the p-value is at its lower bound, defined by \code{iters}.}
+#' } 
+#' Rows are sorted by increasing \code{p.value} and, if tied, decreasing absolute size of \code{rho}.
+#' The exception is if \code{subset.row} is a matrix, in which case each row in the dataframe correspond to a row of \code{subset.row}.
+#' 
+#' @section Accounting for uninteresting variation:
+#' If the experiment has known (and uninteresting) factors of variation, these can be included in \code{design} or \code{block}.
+#' \code{correlatePairs} will then attempt to ensure that these factors do not drive strong correlations between genes.
+#' Examples might be to block on batch effects or cell cycle phase, which may have substantial but uninteresting effects on expression.
+#' 
+#' The approach used to remove these factors depends on whether \code{design} or \code{block} is used.
+#' If there is only one factor, e.g., for plate or animal of origin, \code{block} should be used.
+#' Each level of the factor is defined as a separate group of cells.
+#' For each pair of genes, correlations are computed within each group, and a weighted mean based on the group size) of the correlations is taken across all groups.
+#' The same strategy is used to generate the null distribution where ranks are computed and shuffled within each group.
+#' 
+#' For experiments containing multiple factors or covariates, a design matrix should be passed into \code{design}.
+#' The \code{correlatePairs} function will fit a linear model to the (log-normalized) expression values.
+#' The correlation between a pair of genes is then computed from the residuals of the fitted model.
+#' Similarly, to obtain a null distribution of rho values, normally-distributed random errors are simulated in a fitted model based on \code{design};
+#'     the corresponding residuals are generated from these errors; and the correlation between sets of residuals is computed at each iteration.
+#' 
+#' We recommend using \code{block} wherever possible.
+#' While \code{design} can also be used for one-way layouts, this is not ideal as it assumes normality of errors and deals poorly with ties.
+#' Specifically, zero counts within or across groups may no longer be tied when converted to residuals, potentially resulting in spuriously large correlations.
+#' 
+#' @section Gene selection:
+#' The \code{pairings} argument specifies the pairs of genes to compute correlations for:
+#' \itemize{
+#' \item By default, correlations will be computed between all pairs of genes with \code{pairings=NULL}.
+#' Genes that occur earlier in \code{x} are labelled as \code{gene1} in the output DataFrame.
+#' Redundant permutations are not reported.
+#' \item If \code{pairings} is a list of two vectors, correlations will be computed between one gene in the first vector and another gene in the second vector.
+#' This improves efficiency if the only correlations of interest are those between two pre-defined sets of genes.
+#' Genes in the first vector are always reported as \code{gene1}.
+#' \item If \code{pairings} is an integer/character matrix of two columns, each row is assumed to specify a gene pair.
+#' Correlations will then be computed for only those gene pairs, and the returned dataframe will \emph{not} be sorted by p-value.
+#' Genes in the first column of the matrix are always reported as \code{gene1}.
+#' }
+#' 
+#' If \code{subset.row} is not \code{NULL}, only the genes in the selected subset are used to compute correlations - see \code{?"\link{scran-gene-selection}"}.
+#' This will interact properly with \code{pairings}, such that genes in \code{pairings} and not in \code{subset.row} will be ignored.
+#' Rows corresponding to spike-in transcripts are also removed by default with \code{get.spikes=FALSE}.
+#' This avoids picking up strong technical correlations between pairs of spike-in transcripts.
+#' 
+#' We recommend setting  \code{subset.row} and/or \code{pairings} to contain only the subset of genes of interest.
+#' This reduces computational time and memory usage by only computing statistics for the gene pairs of interest.
+#' For example, we could select only HVGs to focus on genes contributing to cell-to-cell heterogeneity (and thus more likely to be involved in driving substructure).
+#' There is no need to account for HVG pre-selection in multiple testing, because rank correlations are unaffected by the variance.
+#' 
+#' @section Handling tied values:
+#' By default, \code{ties.method="expected"} which uses the expectation of the pairwise correlation from randomly broken ties.
+#' Imagine obtaining unique ranks by randomly breaking ties in expression values, e.g., by addition of some very small random jitter.
+#' The reported value of the correlation is simply the expected value across all possible permutations of broken ties.
+#' 
+#' With \code{ties.method="average"}, each set of tied observations is assigned the average rank across all tied values.
+#' This yields the standard value of Spearman's rho as computed by \code{\link{cor}}.
+#' 
+#' We use the expected rho by default as avoids inflated correlations in the presence of many ties.
+#' This is especially relevant for single-cell data containing many zeroes that remain tied after scaling normalization.
+#' An extreme example is that of two genes that are only expressed in the same cell, for which the standard rho is 1 while the expected rho is close to zero.
+#' 
+#' Note that the p-value calculations are not accurate in the presence of ties, as tied ranks are not considered by \code{correlateNull}.
+#' With \code{ties.method="expected"}, the p-values are probably a bit conservative.
+#' With \code{ties.method="average"}, they will be very anticonservative.
+#' 
+#' @author
+#' Aaron Lun
+#' 
+#' @seealso
+#' Compare to \code{\link{cor}} for the standard Spearman's calculation.
+#' 
+#' Use \code{\link{correlateGenes}} to get per-gene correlation statistics.
+#' 
+#' @references
+#' Lun ATL (2019).
+#' Some thoughts on testing for correlations.
+#' \url{https://ltla.github.io/SingleCellThoughts/software/correlations/corsim.html}
+#' 
+#' Phipson B and Smyth GK (2010).
+#' Permutation P-values should never be zero: calculating exact P-values when permutations are randomly drawn.
+#' \emph{Stat. Appl. Genet. Mol. Biol.} 9:Article 39.
+#' 
+#' @examples
+#' set.seed(0)
+#' ncells <- 100
+#' null.dist <- correlateNull(ncells, iters=100000)
+#' exprs <- matrix(rpois(ncells*100, lambda=10), ncol=ncells)
+#' out <- correlatePairs(exprs, null.dist=null.dist)
+#' hist(out$p.value) 
+#' 
+#' @name correlatePairs
+NULL
+
 #' @importFrom BiocParallel SerialParam
 #' @importFrom S4Vectors DataFrame
 #' @importFrom stats p.adjust
-.correlate_pairs <- function(x, null.dist=NULL, ties.method=c("expected", "average"), tol=1e-8, 
-    iters=1e6, block=NULL, design=NULL, lower.bound=NULL, use.names=TRUE, subset.row=NULL, 
+.correlate_pairs <- function(x, null.dist=NULL, ties.method=c("expected", "average"), 
+    iters=1e6, block=NULL, design=NULL, equiweight=TRUE, use.names=TRUE, subset.row=NULL, 
     pairings=NULL, cache.size=100L, BPPARAM=SerialParam())
 # This calculates a (modified) Spearman's rho for each pair of genes.
 #
 # written by Aaron Lun
 # created 10 February 2016
 {
-    null.out <- .check_null_dist(x, block=block, design=design, iters=iters, null.dist=null.dist, BPPARAM=BPPARAM)
-    null.dist <- null.out$null
-    by.block <- null.out$blocks
-
     # Checking which pairwise correlations should be computed.
     pair.out <- .construct_pair_indices(subset.row=subset.row, x=x, pairings=pairings)
     subset.row <- pair.out$subset.row
@@ -20,14 +165,27 @@
     gene2 <- pair.out$gene2
     reorder <- pair.out$reorder
 
-    # Computing residuals (setting values that were originally zero to a lower bound).
+    # Computing residuals.
     # Also replacing the subset vector, as it'll already be subsetted.
-    if (!is.null(design) && is.null(block)) {
-        use.x <- .calc_residuals_wt_zeroes(x, design, subset.row=subset.row, lower.bound=lower.bound) 
+    if (!is.null(design)) {
+        if (!is.null(block)) {
+            stop("cannot specify both 'block' and 'design'")
+        }
+        QR <- .ranksafe_qr(design)
+        use.x <- get_residuals(x, QR$qr, QR$qraux, subset.row - 1L, NA_real_)
         use.subset.row <- seq_len(nrow(use.x))
     } else {
         use.x <- x
         use.subset.row <- subset.row
+    }
+
+    null.dist <- .check_null_dist(x, block=block, design=design, iters=iters, 
+        equiweight=equiweight, null.dist=null.dist, BPPARAM=BPPARAM)
+
+    if (!is.null(block)) {
+        by.block <- split(seq_len(ncol(x)), block)
+    } else {
+        by.block <- list(seq_len(ncol(x)))
     }
 
     # Splitting up gene pairs into jobs for multicore execution, converting to 0-based indices.
@@ -36,7 +194,7 @@
     sgene2 <- .split_vector_by_workers(gene2 - 1L, wout)
 
     all.rho <- .calc_blocked_rho(sgene1, sgene2, x=use.x, subset.row=use.subset.row, by.block=by.block, 
-        tol=tol, ties.method=match.arg(ties.method), BPPARAM=BPPARAM)
+        ties.method=match.arg(ties.method), BPPARAM=BPPARAM)
     stats <- .rho_to_pval(all.rho, null.dist)
     all.pval <- stats$p
     all.lim <- stats$limited
@@ -61,41 +219,24 @@
 ### INTERNAL (correlation calculation) ###
 ##########################################
 
-.check_null_dist <- function(x, block, design, iters, null.dist, BPPARAM) 
+.check_null_dist <- function(x, block, design, iters, equiweight, null.dist, BPPARAM) 
 # This makes sure that the null distribution is in order.
 {
-    if (!is.null(block)) { 
-        blocks <- split(seq_len(ncol(x)), block)
-        if (is.null(null.dist)) { 
-            null.dist <- correlateNull(block=block, iters=iters, BPPARAM=BPPARAM)
+    if (is.null(null.dist)) { 
+        if (!is.null(block)) { 
+            null.dist <- correlateNull(block=block, iters=iters, equiweight=equiweight, BPPARAM=BPPARAM)
+        } else if (!is.null(design)) { 
+            null.dist <- correlateNull(design=design, iters=iters, equiweight=equiweight, BPPARAM=BPPARAM)
+        } else {
+            null.dist <- correlateNull(ncol(x), iters=iters, equiweight=equiweight, BPPARAM=BPPARAM)
         }
-
-    } else if (!is.null(design)) { 
-        blocks <- list(seq_len(ncol(x)))
-        if (is.null(null.dist)) { 
-            null.dist <- correlateNull(design=design, iters=iters, BPPARAM=BPPARAM)
-        }
-
-    } else {
-        blocks <- list(seq_len(ncol(x)))
-        if (is.null(null.dist)) { 
-            null.dist <- correlateNull(ncol(x), iters=iters, BPPARAM=BPPARAM)
-        } 
     }
 
-    # Checking that the null distribution is sensible.
-    if (!identical(block, attr(null.dist, "block"))) { 
-        warning("'block' is not the same as that used to generate 'null.dist'")
-    }
-    if (!identical(design, attr(null.dist, "design"))) { 
-        warning("'design' is not the same as that used to generate 'null.dist'")
-    }
     null.dist <- as.double(null.dist)
     if (is.unsorted(null.dist)) { 
         null.dist <- sort(null.dist)
     }
-    
-    return(list(null=null.dist, blocks=blocks))
+    null.dist
 }
 
 #' @importFrom BiocParallel bpmapply 
@@ -103,7 +244,7 @@
 #' @importFrom DelayedArray DelayedArray
 #' @importFrom Matrix t
 #' @importFrom stats var
-.calc_blocked_rho <- function(sgene1, sgene2, x, subset.row, by.block, tol, ties.method, BPPARAM)
+.calc_blocked_rho <- function(sgene1, sgene2, x, subset.row, by.block, ties.method, BPPARAM)
 # Iterating through all blocking levels (for one-way layouts; otherwise, this is a loop of length 1).
 # Computing correlations between gene pairs, and adding a weighted value to the final average.
 {
@@ -258,19 +399,21 @@
 #############################
 
 #' @export
+#' @rdname correlatePairs
 setGeneric("correlatePairs", function(x, ...) standardGeneric("correlatePairs"))
 
-##' @export
+#' @export
+#' @rdname correlatePairs
 setMethod("correlatePairs", "ANY", .correlate_pairs)
 
-#' @importFrom SummarizedExperiment assay
 #' @export
+#' @rdname correlatePairs
+#' @importFrom SummarizedExperiment assay
 setMethod("correlatePairs", "SingleCellExperiment", function(x, ..., use.names=TRUE, subset.row=NULL, 
-    lower.bound=NULL, assay.type="logcounts", get.spikes=FALSE)
+    assay.type="logcounts", get.spikes=FALSE)
 {
     subset.row <- .SCE_subset_genes(subset.row, x=x, get.spikes=get.spikes)              
-    lower.bound <- .guess_lower_bound(x, assay.type, lower.bound)
     .correlate_pairs(assay(x, i=assay.type), subset.row=subset.row, 
-        use.names=use.names, lower.bound=lower.bound, ...)
+        use.names=use.names, ...)
 })
 
