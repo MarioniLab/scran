@@ -4,8 +4,8 @@
 set.seed(20000)
 test_that("null distribution of correlations looks okay", {
     for (ncells in c(20, 50, 100)) {
-        out <- correlateNull(ncells, iters=1e3)
-        expect_equal(length(out), 1e3)
+        out <- correlateNull(ncells, iters=1e5)
+        expect_equal(length(out), 1e5)
         expect_lte(max(out), 1)
         expect_gte(min(out), -1)
 
@@ -107,7 +107,7 @@ test_that("correlateNull is unaffected by the number of cores", {
 test_that("correlateNull works correctly on silly inputs", {
     expect_identical(correlateNull(ncells=100, iters=0), numeric(0))
     expect_identical(correlateNull(ncells=0, iters=1), NaN)
-    expect_identical(correlateNull(design=diag(10), iters=1), NaN)
+    expect_identical(correlateNull(design=diag(10), iters=10), rep(NA_real_, 10))
 
     expect_error(correlateNull(200, block=rep(1, 20)), "cannot specify")
     expect_error(correlateNull(200, design=cbind(rep(1, 20))), "cannot specify")

@@ -16,11 +16,13 @@
 #' This is done by shuffling the ranks, calculating the correlation and repeating until \code{iters} values are obtained.
 #' No consideration is given to tied ranks, which has implications for the accuracy of p-values in \code{\link{correlatePairs}}.
 #'
-#' If \code{design} is specified, the same process is performed on ranks derived from simulated residuals computed by fitting the linear model to a vector of normally distributed values.
-#'
 #' If \code{block} is specified, a null correlation is created within each level of \code{block} using the shuffled ranks.
 #' The final correlation is then defined as the average of the per-level correlations, 
 #' weighted by the number of cells in that level if \code{equiweight=FALSE}.
+#' Levels with fewer than 3 cells are ignored.
+#'
+#' If \code{design} is specified, the same process is performed on ranks derived from simulated residuals computed by fitting the linear model to a vector of normally distributed values.
+#' This cannot be used at the same time as \code{block}.
 #' 
 #' % Yeah, we could use a t-distribution for this, but the empirical distribution is probably more robust if you have few cells (or effects, after batch correction).
 #'
@@ -42,33 +44,26 @@
 #' @export
 #' @importFrom BiocParallel SerialParam bpmapply bpisup bpstart bpstop
 correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, equiweight=TRUE, BPPARAM=SerialParam()) {
+    iters.per.core <- .niters_by_nworkers(as.integer(iters), BPPARAM)
     if (!bpisup(BPPARAM)) {
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))
     }
 
-    if (is.null(block)) {
-        if (is.null(design)) {
+    if (is.null(design)) { 
+        if (is.null(block)) {
             block <- rep(1L, ncells)
-        } else {
-            block <- rep(1L, nrow(design))
-        }
-    } else {
-        if (!missing(ncells)) { 
+        } else if (!missing(ncells)) { 
             stop("cannot specify both 'ncells' and 'block'")
         }
-    }
 
-    groupings <- split(seq_along(block), block)
-    if (equiweight) {
-        weights <- rep(1, length(groupings))
-    } else {
-        weights <- lengths(groupings)
-    }
+        groupings <- split(seq_along(block), block)
+        if (equiweight) {
+            weights <- rep(1, length(groupings))
+        } else {
+            weights <- lengths(groupings)
+        }
 
-    iters.per.core <- .niters_by_nworkers(as.integer(iters), BPPARAM)
-
-    if (is.null(design)) { 
         # Estimating the correlation as a weighted mean of the correlations in each group.
         # This avoids the need for the normality assumption in the residual effect simulation.
         out <- total <- 0
@@ -87,33 +82,31 @@ correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, equiweight
             out <- out + unlist(out.g) * w
             total <- total + w
         }
+        out <- out/total
 
     } else if (!is.null(design)) { 
         if (!missing(ncells)) { 
             stop("cannot specify both 'ncells' and 'design'")
+        } else if (!is.null(block)) {
+            stop("cannot specify both 'block' and 'design'")
         }
 
-        # Using residual effects to compute the correlations.
-        out <- total <- 0
-        for (g in seq_along(groupings)) {
-            cur.design <- design[groupings[[g]],,drop=FALSE]
-            QR <- .ranksafe_qr(cur.design)
-            if (nrow(cur.design)==ncol(cur.design)) { # skipping if the residuals are all zero.
-                next
-            }
-
+        # Using residual effects to create the residuals to compute the correlations.
+        # Needs at least three residual d.f. (i.e., equivalent to three independent 
+        # residual effects) to actually be meaningful.
+        if (nrow(design) - ncol(design) > 2L) {
+            QR <- .ranksafe_qr(design)
             pcg.state <- .setup_pcg_state(iters.per.core)
             out.g <- bpmapply(Niters=iters.per.core, Seeds=pcg.state$seeds, Streams=pcg.state$streams, 
                 MoreArgs=list(qr=QR$qr, qraux=QR$qraux), FUN=get_null_rho_design,
                 SIMPLIFY=FALSE, USE.NAMES=FALSE, BPPARAM=BPPARAM)
-
-            w <- weights[g]
-            out <- out + unlist(out.g) * w
-            total <- total + w
+            out <- unlist(out.g) 
+        } else {
+            out <- rep(NA_real_, iters)
         }
     }
 
-    out/total
+    out
 }
 
 #' @importFrom BiocParallel bpnworkers
