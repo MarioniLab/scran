@@ -106,12 +106,3 @@ Rcpp::NumericVector get_null_rho_design (SEXP qr, SEXP qraux, int Niters, Rcpp::
 
     return output;    
 }
-
-// [[Rcpp::export(rng=false)]]
-Rcpp::NumericVector test_rnorm (int N, SEXP seed, int stream) {
-    auto generator=create_pcg32(seed, stream);
-    boost::random::normal_distribution<double> cpp_rnorm;
-    Rcpp::NumericVector output(N);
-    for (auto& val : output) { val = cpp_rnorm(generator); }
-    return output;
-}

@@ -61,10 +61,6 @@ get_null_rho_design <- function(qr, qraux, Niters, Seeds, Streams) {
     .Call('_scran_get_null_rho_design', PACKAGE = 'scran', qr, qraux, Niters, Seeds, Streams)
 }
 
-test_rnorm <- function(N, seed, stream) {
-    .Call('_scran_test_rnorm', PACKAGE = 'scran', N, seed, stream)
-}
-
 compute_rho_pairs <- function(gene1, gene2, ranks) {
     .Call('_scran_compute_rho_pairs', PACKAGE = 'scran', gene1, gene2, ranks)
 }
@@ -103,13 +99,5 @@ shuffle_matrix <- function(incoming, seed, stream) {
 
 subset_and_divide <- function(matrix, row_subset, col_subset, scaling) {
     .Call('_scran_subset_and_divide', PACKAGE = 'scran', matrix, row_subset, col_subset, scaling)
-}
-
-test_shuffle_vector <- function(incoming, nits, seed, stream) {
-    .Call('_scran_test_shuffle_vector', PACKAGE = 'scran', incoming, nits, seed, stream)
-}
-
-test_shuffle_matrix <- function(incoming, seeds, streams) {
-    .Call('_scran_test_shuffle_matrix', PACKAGE = 'scran', incoming, seeds, streams)
 }
 

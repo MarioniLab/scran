@@ -197,18 +197,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// test_rnorm
-Rcpp::NumericVector test_rnorm(int N, SEXP seed, int stream);
-RcppExport SEXP _scran_test_rnorm(SEXP NSEXP, SEXP seedSEXP, SEXP streamSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< int >::type N(NSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type seed(seedSEXP);
-    Rcpp::traits::input_parameter< int >::type stream(streamSEXP);
-    rcpp_result_gen = Rcpp::wrap(test_rnorm(N, seed, stream));
-    return rcpp_result_gen;
-END_RCPP
-}
 // compute_rho_pairs
 Rcpp::NumericVector compute_rho_pairs(Rcpp::IntegerVector gene1, Rcpp::IntegerVector gene2, Rcpp::NumericMatrix ranks);
 RcppExport SEXP _scran_compute_rho_pairs(SEXP gene1SEXP, SEXP gene2SEXP, SEXP ranksSEXP) {
@@ -344,31 +332,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// test_shuffle_vector
-Rcpp::RObject test_shuffle_vector(Rcpp::RObject incoming, Rcpp::RObject nits, Rcpp::RObject seed, Rcpp::RObject stream);
-RcppExport SEXP _scran_test_shuffle_vector(SEXP incomingSEXP, SEXP nitsSEXP, SEXP seedSEXP, SEXP streamSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type incoming(incomingSEXP);
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type nits(nitsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type seed(seedSEXP);
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type stream(streamSEXP);
-    rcpp_result_gen = Rcpp::wrap(test_shuffle_vector(incoming, nits, seed, stream));
-    return rcpp_result_gen;
-END_RCPP
-}
-// test_shuffle_matrix
-Rcpp::RObject test_shuffle_matrix(Rcpp::RObject incoming, Rcpp::RObject seeds, Rcpp::RObject streams);
-RcppExport SEXP _scran_test_shuffle_matrix(SEXP incomingSEXP, SEXP seedsSEXP, SEXP streamsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type incoming(incomingSEXP);
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type seeds(seedsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type streams(streamsSEXP);
-    rcpp_result_gen = Rcpp::wrap(test_shuffle_matrix(incoming, seeds, streams));
-    return rcpp_result_gen;
-END_RCPP
-}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_scran_build_snn_rank", (DL_FUNC) &_scran_build_snn_rank, 1},
@@ -386,7 +349,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_scran_compute_residual_stats_none", (DL_FUNC) &_scran_compute_residual_stats_none, 3},
     {"_scran_get_null_rho", (DL_FUNC) &_scran_get_null_rho, 4},
     {"_scran_get_null_rho_design", (DL_FUNC) &_scran_get_null_rho_design, 5},
-    {"_scran_test_rnorm", (DL_FUNC) &_scran_test_rnorm, 3},
     {"_scran_compute_rho_pairs", (DL_FUNC) &_scran_compute_rho_pairs, 3},
     {"_scran_cyclone_scores", (DL_FUNC) &_scran_cyclone_scores, 10},
     {"_scran_fit_linear_model", (DL_FUNC) &_scran_fit_linear_model, 5},
@@ -397,8 +359,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_scran_pool_size_factors", (DL_FUNC) &_scran_pool_size_factors, 4},
     {"_scran_shuffle_matrix", (DL_FUNC) &_scran_shuffle_matrix, 3},
     {"_scran_subset_and_divide", (DL_FUNC) &_scran_subset_and_divide, 4},
-    {"_scran_test_shuffle_vector", (DL_FUNC) &_scran_test_shuffle_vector, 4},
-    {"_scran_test_shuffle_matrix", (DL_FUNC) &_scran_test_shuffle_matrix, 3},
     {NULL, NULL, 0}
 };
 
