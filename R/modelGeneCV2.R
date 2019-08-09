@@ -111,6 +111,7 @@ NULL
     if (is.null(size.factors)) {
         size.factors <- librarySizeFactors(x, subset_row=subset.row)
     }
+    size.factors <- size.factors/mean(size.factors)
 
     FUN <- function(s) {
         .compute_mean_var(x, block=block, design=NULL, subset.row=s,

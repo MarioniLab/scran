@@ -108,6 +108,7 @@ dummy.trend.fit <- list(trend=function(x) { rep(NA_real_, length(x)) }, std.dev=
         metadata(output) <- c(list(mean=fm, cv2=fcv2), fit)
         collected[[i]] <- output
     }
+    names(collected) <- colnames(x.means)
     collected
 }
 
