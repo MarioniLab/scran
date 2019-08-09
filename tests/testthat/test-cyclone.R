@@ -1,6 +1,39 @@
 # This checks the cyclone implementation against a reference R-based implementation.
 # require(scran); require(testthat); source("setup.R"); source("test-cyclone.R")
 
+####################################################################################################
+
+scramble_vector_src <- '
+#include "Rcpp.h"
+#include "boost/range/algorithm.hpp"
+#include "pcg_random.hpp"
+#include "convert_seed.h"
+#include <algorithm>
+
+// [[Rcpp::depends(BH, dqrng)]]
+// [[Rcpp::export(rng=FALSE)]]
+Rcpp::RObject scramble_vector(Rcpp::NumericVector invec, int niters, Rcpp::IntegerVector seed, int stream) {
+    const size_t N=invec.size();
+    Rcpp::NumericMatrix outmat(N, niters);
+    const double* source=invec.begin();
+    double* oIt=outmat.begin();
+
+    auto generator=pcg32(dqrng::convert_seed<uint64_t>(seed), stream);
+    for (int i=0; i<niters; ++i) {
+        auto outcol=outmat.column(i);
+        std::copy(source, source+N, outcol.begin());
+        boost::range::random_shuffle(outcol, generator);
+        source=oIt;
+        oIt+=N;
+    }
+
+    return outmat;
+}'
+
+Rcpp::sourceCpp(code=scramble_vector_src)
+
+####################################################################################################
+
 classif.single <- function(cell, markers,Nmin.couples) { 
     left <- cell[markers[,1]]
     right <- cell[markers[,2]]
