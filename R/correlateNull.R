@@ -19,10 +19,11 @@
 #' If \code{block} is specified, a null correlation is created within each level of \code{block} using the shuffled ranks.
 #' The final correlation is then defined as the average of the per-level correlations, 
 #' weighted by the number of cells in that level if \code{equiweight=FALSE}.
-#' Levels with fewer than 3 cells are ignored.
+#' Levels with fewer than 3 cells are ignored, and if no level has 3 or more cells, all returned correlations will be \code{NA}.
 #'
 #' If \code{design} is specified, the same process is performed on ranks derived from simulated residuals computed by fitting the linear model to a vector of normally distributed values.
-#' This cannot be used at the same time as \code{block}.
+#' If there are not at least 3 residual d.f., all returned correlations will be \code{NA}.
+#' The \code{design} argument cannot be used at the same time as \code{block}.
 #' 
 #' % Yeah, we could use a t-distribution for this, but the empirical distribution is probably more robust if you have few cells (or effects, after batch correction).
 #'

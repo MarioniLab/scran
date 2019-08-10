@@ -78,7 +78,11 @@
 #' We recommend using \code{block} wherever possible.
 #' While \code{design} can also be used for one-way layouts, this is not ideal as it assumes normality of errors and deals poorly with ties.
 #' Specifically, zero counts within or across groups may no longer be tied when converted to residuals, potentially resulting in spuriously large correlations.
-#' 
+#'
+#' If any level of \code{block} has fewer than 3 cells, it is ignored.
+#' If all levels of \code{block} have fewer than 3 cells, all output statistics are set to \code{NA}.
+#' Similarly, if \code{design} has fewer than 3 residual d.f., all output statistics are set to \code{NA}.
+#'
 #' @section Gene selection:
 #' The \code{pairings} argument specifies the pairs of genes to compute correlations for:
 #' \itemize{
