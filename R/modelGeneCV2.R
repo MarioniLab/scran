@@ -49,6 +49,7 @@
 #' \item Per-level p-values are combined using \code{\link{combinePValues}} according to \code{method}.
 #' By default, Fisher's method is used to identify genes that are highly variable in any batch.
 #' Whether or not this is responsive to \code{equiweight} depends on the chosen method.
+#' \item Blocks with fewer than 2 cells are completely ignored and do not contribute to the combined mean, variance component or p-value.
 #' }
 #' 
 #' @return 
