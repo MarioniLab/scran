@@ -44,17 +44,50 @@
 #' @export
 #' @importFrom BiocParallel SerialParam bpmapply bpisup bpstart bpstop
 correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, equiweight=TRUE, BPPARAM=SerialParam()) {
-    iters.per.core <- .niters_by_nworkers(as.integer(iters), BPPARAM)
     if (!bpisup(BPPARAM)) {
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))
     }
 
+    iters <- as.integer(iters)
+    iters.per.core <- .niters_by_nworkers(iters, BPPARAM)
+
+    blockFUN <- function(group) {
+        pcg.state <- .setup_pcg_state(iters.per.core)
+        out.g <- bpmapply(Niters=iters.per.core, Seeds=pcg.state$seeds, Streams=pcg.state$streams,
+            MoreArgs=list(Ncells=length(group)), FUN=get_null_rho,
+            SIMPLIFY=FALSE, USE.NAMES=FALSE, BPPARAM=BPPARAM)
+        unlist(out.g) 
+    }
+
+    designFUN <- function(QR) {
+        pcg.state <- .setup_pcg_state(iters.per.core)
+        out.g <- bpmapply(Niters=iters.per.core, Seeds=pcg.state$seeds, Streams=pcg.state$streams, 
+            MoreArgs=list(qr=QR$qr, qraux=QR$qraux), FUN=get_null_rho_design,
+            SIMPLIFY=FALSE, USE.NAMES=FALSE, BPPARAM=BPPARAM)
+        unlist(out.g) 
+    }
+
+    # Additional error messages.
+    if (is.null(design)) {
+        if (!is.null(block) && !missing(ncells)) { 
+            stop("cannot specify both 'ncells' and 'block'")
+        }
+    } else {
+        if (!missing(ncells)) { 
+            stop("cannot specify both 'ncells' and 'design'")
+        } else if (!is.null(block)) {
+            stop("cannot specify both 'block' and 'design'")
+        }
+    }
+
+    .correlator_base(ncells, block, design, equiweight, blockFUN, designFUN, BPPARAM, iters)
+}
+
+.correlator_base <- function(ncells, block, design, equiweight, blockFUN, designFUN, BPPARAM, outlen) {
     if (is.null(design)) { 
         if (is.null(block)) {
             block <- rep(1L, ncells)
-        } else if (!missing(ncells)) { 
-            stop("cannot specify both 'ncells' and 'block'")
         }
 
         groupings <- split(seq_along(block), block)
@@ -73,36 +106,19 @@ correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, equiweight
                 next            
             }
 
-            pcg.state <- .setup_pcg_state(iters.per.core)
-            out.g <- bpmapply(Niters=iters.per.core, Seeds=pcg.state$seeds, Streams=pcg.state$streams,
-                MoreArgs=list(Ncells=ngr), FUN=get_null_rho,
-                SIMPLIFY=FALSE, USE.NAMES=FALSE, BPPARAM=BPPARAM)
-
+            out.g <- blockFUN(groupings[[g]])
             w <- weights[g]
             out <- out + unlist(out.g) * w
             total <- total + w
         }
         out <- out/total
 
-    } else if (!is.null(design)) { 
-        if (!missing(ncells)) { 
-            stop("cannot specify both 'ncells' and 'design'")
-        } else if (!is.null(block)) {
-            stop("cannot specify both 'block' and 'design'")
-        }
-
-        # Using residual effects to create the residuals to compute the correlations.
-        # Needs at least three residual d.f. (i.e., equivalent to three independent 
-        # residual effects) to actually be meaningful.
+    } else {
+        QR <- .ranksafe_qr(design)
         if (nrow(design) - ncol(design) > 2L) {
-            QR <- .ranksafe_qr(design)
-            pcg.state <- .setup_pcg_state(iters.per.core)
-            out.g <- bpmapply(Niters=iters.per.core, Seeds=pcg.state$seeds, Streams=pcg.state$streams, 
-                MoreArgs=list(qr=QR$qr, qraux=QR$qraux), FUN=get_null_rho_design,
-                SIMPLIFY=FALSE, USE.NAMES=FALSE, BPPARAM=BPPARAM)
-            out <- unlist(out.g) 
+            out <- designFUN(QR)
         } else {
-            out <- rep(NA_real_, iters)
+            out <- rep(NA_real_, outlen)
         }
     }
 
