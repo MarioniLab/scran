@@ -193,8 +193,8 @@ NULL
     if (!is.null(block) && !is.null(design)) {
         stop("cannot specify both 'block' and 'design'")
     }
-
-    all.rho <- .correlator_base(ncells, block, design, equiweight, blockFUN, designFUN, BPPARAM, length(gene1))
+    all.rho <- .correlator_base(ncol(x), block, design, equiweight, 
+        blockFUN, designFUN, BPPARAM, length(gene1))
 
     # Computing p-values and formatting the output.
     stats <- .rho_to_pval(all.rho, null.dist)
@@ -220,16 +220,16 @@ NULL
 ### INTERNAL (correlation calculation) ###
 ##########################################
 
-.check_null_dist <- function(x, block, design, iters, equiweight, null.dist, BPPARAM) 
+.check_null_dist <- function(x, block, design, ..., null.dist) 
 # This makes sure that the null distribution is in order.
 {
     if (is.null(null.dist)) { 
         if (!is.null(block)) { 
-            null.dist <- correlateNull(block=block, iters=iters, equiweight=equiweight, BPPARAM=BPPARAM)
+            null.dist <- correlateNull(block=block, ...)
         } else if (!is.null(design)) { 
-            null.dist <- correlateNull(design=design, iters=iters, equiweight=equiweight, BPPARAM=BPPARAM)
+            null.dist <- correlateNull(design=design, ...)
         } else {
-            null.dist <- correlateNull(ncol(x), iters=iters, equiweight=equiweight, BPPARAM=BPPARAM)
+            null.dist <- correlateNull(ncol(x), ...)
         }
     }
 
@@ -256,11 +256,11 @@ NULL
     if (ties.method=="average") {
         rank.scale <- rowVars(ranks)
     } else {
-        rank.scale <- var(seq_along(subset.col))
+        rank.scale <- var(seq_len(ncol(ranks)))
     }
 
-    N <- length(subset.col)
-    rank.scale <- rank.scale * (N-1)/N # var -> sum of squares from mean
+    N <- ncol(ranks)
+    rank.scale <- rank.scale * (N-1)/N # convert from var to mean square.
     ranks <- ranks/sqrt(rank.scale)
 
     # Transposing for easier C++ per-gene access.
@@ -379,7 +379,7 @@ NULL
 }
 
 .is_sig_limited <- function(results, threshold=0.05) {
-    if (any(results$FDR > threshold & results$limited)) { 
+    if (any(results$FDR > threshold & results$limited, na.rm=TRUE)) { 
         warning(sprintf("lower bound on p-values at a FDR of %s, increase 'iter'", as.character(threshold)))
     }
     invisible(NULL)
