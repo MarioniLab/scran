@@ -16,6 +16,7 @@
 #' @param output.field A string specifying the prefix of the field names containing the effect sizes.
 #' Defaults to \code{"stats"} if \code{full.stats=TRUE}, otherwise it is set to \code{effect.field}.
 #' @param full.stats A logical scalar indicating whether all statistics in \code{de.lists} should be stored in the output for each pairwise comparison.
+#' @param sorted Logical scalar indicating whether each output DataFrame should be sorted by a statistic relevant to \code{pval.type}.
 #' 
 #' @return
 #' A named \linkS4class{List} of \linkS4class{DataFrame}s where each DataFrame contains the consolidated results for the cluster of the same name.
@@ -44,9 +45,9 @@
 #' This contains the same fields in the corresponding entry of \code{de.lists} for the X versus Y comparison.
 #' The name of this field can be altered by setting \code{output.field}.}
 #' }
-#' Genes are ranked by the \code{Top} column (if available) and then the \code{p.value} column.
+#' If \code{sorted=TRUE}, genes are ranked by the \code{Top} column (if available) and then the \code{p.value} column.
 #' 
-#' DataFrames are sorted according to the order of cluster IDs in \code{pairs[,1]}.
+#' The DataFrames themselves are sorted according to the order of cluster IDs in \code{pairs[,1]}.
 #' The \code{logFC.Y} columns are sorted according to the order of cluster IDs in \code{pairs[,2]} within the corresponding level of the first cluster.
 #' 
 #' Note that DataFrames are only created for clusters present in \code{pairs[,1]}.
@@ -132,7 +133,7 @@
 #' @importFrom methods as
 combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="logFC", 
     pval.type=c("any", "all"), log.p.in=FALSE, log.p.out=log.p.in, 
-    output.field=NULL, full.stats=FALSE)
+    output.field=NULL, full.stats=FALSE, sorted=TRUE)
 {
     if (length(de.lists)!=nrow(pairs)) {
         stop("'nrow(pairs)' must be equal to 'length(de.lists)'")
@@ -216,7 +217,9 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
 
         # Producing the output object.
         marker.set <- cbind(preamble, stat.df)
-        marker.set <- marker.set[gene.order,,drop=FALSE]
+        if (sorted) {
+            marker.set <- marker.set[gene.order,,drop=FALSE]
+        }
         output[[host]] <- marker.set
     }
 

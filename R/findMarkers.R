@@ -87,9 +87,9 @@ NULL
 
 #' @importFrom BiocParallel SerialParam
 .findMarkers <- function(x, clusters, test.type=c("t", "wilcox", "binom"),
-    ..., pval.type=c("any", "all"), log.p=FALSE, full.stats=FALSE, BPPARAM=SerialParam()) 
+    ..., pval.type=c("any", "all"), log.p=FALSE, full.stats=FALSE, sorted=TRUE, BPPARAM=SerialParam()) 
 {
-    type <- match.arg(type)
+    test.type <- match.arg(test.type)
     if (test.type=="t") {
         FUN <- pairwiseTTests
         effect.field <- "logFC"
@@ -103,7 +103,7 @@ NULL
 
     fit <- FUN(x, clusters, ..., log.p=TRUE)
     combineMarkers(fit$statistics, fit$pairs, pval.type=pval.type, log.p.in=TRUE, log.p.out=log.p, 
-        full.stats=full.stats, pval.field="log.p.value", effect.field=effect.field)
+        full.stats=full.stats, pval.field="log.p.value", effect.field=effect.field, sorted=sorted)
 }
 
 #' @export
