@@ -69,7 +69,6 @@
 #' In particular, the function will attempt to merge the smallest cluster with each other cluster.
 #' The merge that maximizes the modularity score is selected, and a new merged cluster is formed.
 #' This process is repeated until all (merged) clusters are larger than \code{min.size}.
-#' }
 #' 
 #' @section Gene selection:
 #' Spike-in transcripts are not used by default as they provide little information on the biological similarities between cells.
@@ -91,7 +90,6 @@
 #' \code{\link{buildSNNGraph}}, for additional arguments to customize the clustering.
 #' 
 #' \code{\link{scaledColRanks}}, to get the rank matrix directly.
-#' }
 #' 
 #' @examples
 #' set.seed(100)
