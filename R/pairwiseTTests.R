@@ -82,17 +82,19 @@
 #' This may not be the case with \code{block} if a pair of clusters never co-occur in a single blocking level. 
 #' 
 #' @section Weighting across blocking levels:
-#' When \code{block} is specified, the weight for the p-value in a particular level is defined as \eqn{(1/Nx + 1/Ny)^{-1}}, 
+#' When \code{block} is specified, the weight for the p-value in a particular level is defined as \eqn{(1/N_x + 1/N_y)^{-1}}, 
 #' where \eqn{Nx} and \eqn{Ny} are the number of cells in clusters X and Y, respectively, for that level. 
 #' This is inversely proportional to the expected variance of the log-fold change, provided that all clusters and blocking levels have the same variance.
 #' 
-#' In theory, a better weighting scheme would be to use the estimated standard error of the log-fold change to compute the weight.
-#' This would be more responsive to differences in variance between blocking levels, focusing on levels with low variance and high power.
-#' However, this is not safe in practice as genes with many zeroes can have very low standard errors, dominating the results inappropriately.
+#' % In theory, a better weighting scheme would be to use the estimated standard error of the log-fold change to compute the weight.
+#' % This would be more responsive to differences in variance between blocking levels, focusing on levels with low variance and high power.
+#' % However, this is not safe in practice as genes with many zeroes can have very low standard errors, dominating the results inappropriately.
 #' 
-#' Like the p-values, the reported log-fold change for each gene is a weighted average of log-fold changes from all levels of the blocking factor. 
-#' The weight for each log-fold change is inversely proportional to the expected variance of the log-fold change in that level.
-#' Unlike p-values, though, this calculation will use blocking levels where both clusters contain only one cell.
+#' The reported log-fold change for each gene is also a weighted average of log-fold changes across levels.
+#' The weighting scheme used is the same as that described for the p-values.
+#'
+#' Levels that only contain one cell for either cluster are ignored as they cannot yield a p-value from the Welch t-test.
+#' These levels do not contribute to the combined p-value or log-fold change. 
 #' 
 #' @return
 #' A list is returned containing \code{statistics} and \code{pairs}.
@@ -124,17 +126,18 @@
 #' \url{https://ltla.github.io/SingleCellThoughts/software/marker_detection/comments.html}
 #' 
 #' @examples
-#' # Using the mocked-up data 'y2' from this example.
-#' example(computeSpikeFactors) 
-#' y2 <- normalize(y2)
-#' kout <- kmeans(t(logcounts(y2)), centers=2) # Any clustering method is okay.
+#' data(example.sce)
+#'
+#' # Any clustering method is okay.
+#' kout <- kmeans(t(logcounts(example.sce)), centers=3) 
 #' 
 #' # Vanilla application:
-#' out <- pairwiseTTests(logcounts(y2), clusters=kout$cluster)
+#' out <- pairwiseTTests(logcounts(example.sce), clusters=kout$cluster)
 #' out
 #' 
 #' # Directional with log-fold change threshold:
-#' out <- pairwiseTTests(logcounts(y2), clusters=kout$cluster, direction="up", lfc=0.2)
+#' out <- pairwiseTTests(logcounts(example.sce), clusters=kout$cluster, 
+#'     direction="up", lfc=0.2)
 #' out
 #' 
 #' @export
@@ -165,11 +168,11 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
 
     if (!is.null(block) && !is.null(design)) {
         stop("cannot specify both 'block' and 'design'")
-    } else if (!is.null(block)) {
-        results <- .test_block_internal(x, subset.row, clusters, block=block, direction=direction, lfc=lfc, 
+    } else if (!is.null(design)) {
+        results <- .fit_lm_internal(x, subset.row, clusters, design=design, direction=direction, lfc=lfc, 
             std.lfc=std.lfc, gene.names=gene.names, log.p=log.p, BPPARAM=BPPARAM)
     } else {
-        results <- .fit_lm_internal(x, subset.row, clusters, design=design, direction=direction, lfc=lfc, 
+        results <- .test_block_internal(x, subset.row, clusters, block=block, direction=direction, lfc=lfc, 
             std.lfc=std.lfc, gene.names=gene.names, log.p=log.p, BPPARAM=BPPARAM)
     }
 
@@ -249,7 +252,7 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
             effect.size <- effect.size / sqrt(pooled.s2)
         }
         
-        list(effect=effect.size, left=p.out$left, right=p.out$right, 
+        list(up=effect.size, down=-effect.size, left=p.out$left, right=p.out$right, 
 
             # Weights are inversely proportional to the squared error of the log-fold change,
             # _assuming equal variance_ across blocks and groups for simplicity.
@@ -263,7 +266,7 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
     }
 
     .pairwise_blocked_template(x, clust.vals, nblocks, direction=direction,
-        gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, FLIPFUN=function(x) -x, effect.name="logFC")
+        gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, effect.name="logFC")
 }
 
 .get_t_test_stats <- function(host.s2, target.s2, host.n, target.n)
