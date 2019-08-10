@@ -31,8 +31,8 @@
                 hvt.p <- .choose_leftright_pvalues(com.left, com.right, direction=direction)
                 tvh.p <- .choose_leftright_pvalues(com.right, com.left, direction=direction)
 
-                up.effect <- .weighted_average_vals(all.up[valid.test], all.weight, weighted=TRUE)
-                down.effect <- .weighted_average_vals(all.down[valid.test], all.weight, weighted=TRUE)
+                up.effect <- .weighted_average_vals(all.up[valid.test], all.weight)
+                down.effect <- .weighted_average_vals(all.down[valid.test], all.weight)
             } else {
                 hvt.p <- tvh.p <- up.effect <- down.effect <- rep(NA_real_, length(all.left[[1]]))
                 warning(paste("no within-block comparison between", host, "and", target))
@@ -102,4 +102,19 @@
     repval <- rev(cummin(rev(repval)))
     repval[o] <- repval
     return(repval)
+}
+
+.weighted_average_vals <- function(vals, weights) {
+    combined <- total.weight <- 0
+    for (x in seq_along(vals)) {
+        cur.weights <- weights[[x]]
+        product <- vals[[x]] * cur.weights
+
+        # avoid problems with NA values that have zero weight.
+        product[is.na(product) & cur.weights==0] <- 0
+
+        combined <- combined + product
+        total.weight <- total.weight + cur.weights
+    }
+    combined/total.weight
 }
