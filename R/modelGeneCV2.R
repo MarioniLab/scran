@@ -30,7 +30,7 @@
 #' \item If \code{size.factors=NULL} for the \linkS4class{SingleCellExperiment} method, \code{\link{sizeFactors}(x)} is used if available.
 #' Otherwise, it defaults to library size-derived size factors.
 #' }
-#' If \code{size.factors} or \code{spike.size.factors} are supplied, they will override any size factors present in \code{x}.
+#' If \code{size.factors} are supplied, they will override any size factors present in \code{x}.
 #'
 #' @section Computing p-values:
 #' The p-value for each gene is computed by assuming that the CV2 estimates are normally distributed around the trend, and that the standard deviation of the CV2 distribution is proportional to the value of the trend.
