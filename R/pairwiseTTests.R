@@ -58,13 +58,24 @@
 #' Standardized log-fold changes may be more appealing for visualization as it avoids large fold changes due to large variance.
 #' The choice of \code{std.lfc} does not affect the calculation of the p-values.
 #' 
-#' @section Handling uninteresting variation:
+#' @section Blocking on uninteresting factors:
 #' If \code{block} is specified, t-tests are performed between clusters within each level of \code{block}.
-#' For each pair of clusters, the p-values for each gene across all levels of \code{block} are combined using Stouffer's Z-score method.
-#' The p-value for each level is assigned a weight inversely proportional to the expected variance of the log-fold change estimate for that level.
-#' Blocking levels are ignored if no p-value was reported, e.g., if there were insufficient cells for a cluster in a particular level. 
-#' Comparisons may also yield \code{NA} p-values (along with a warning about the lack of d.f.) if the two clusters do not co-occur in the same block.
+#' For each pair of clusters, the p-values for each gene across all levels of \code{block} are combined using Stouffer's weighted Z-score method.
+#' The reported log-fold change for each gene is also a weighted average of log-fold changes across levels.
 #' 
+#' The weight for a particular level is defined as \eqn{(1/N_x + 1/N_y)^{-1}}, 
+#' where \eqn{Nx} and \eqn{Ny} are the number of cells in clusters X and Y, respectively, for that level. 
+#' This is inversely proportional to the expected variance of the log-fold change, provided that all clusters and blocking levels have the same variance.
+#' 
+#' % In theory, a better weighting scheme would be to use the estimated standard error of the log-fold change to compute the weight.
+#' % This would be more responsive to differences in variance between blocking levels, focusing on levels with low variance and high power.
+#' % However, this is not safe in practice as genes with many zeroes can have very low standard errors, dominating the results inappropriately.
+#' 
+#' When comparing two clusters, blocking levels are ignored if no p-value was reported, e.g., if there were insufficient cells for a cluster in a particular level. 
+#' This includes levels that contain fewer than two cells for either cluster, as this cannot yield a p-value from the Welch t-test.
+#' If all levels are ignored in this manner, the entire comparison will only contain \code{NA} p-values and a warning will be emitted.
+#' 
+#' @section Regressing out unwanted factors:
 #' If \code{design} is specified, a linear model is instead fitted to the expression profile for each gene.
 #' This linear model will include the \code{clusters} as well as any blocking factors in \code{design}.
 #' A t-test is then performed to identify DEGs between pairs of clusters, using the values of the relevant coefficients and the gene-wise residual variance.
@@ -80,21 +91,6 @@
 #' It is also useful for ensuring that log-fold changes/p-values are computed for comparisons between all pairs of clusters
 #' (assuming that \code{design} is not confounded with the cluster identities).
 #' This may not be the case with \code{block} if a pair of clusters never co-occur in a single blocking level. 
-#' 
-#' @section Weighting across blocking levels:
-#' When \code{block} is specified, the weight for the p-value in a particular level is defined as \eqn{(1/N_x + 1/N_y)^{-1}}, 
-#' where \eqn{Nx} and \eqn{Ny} are the number of cells in clusters X and Y, respectively, for that level. 
-#' This is inversely proportional to the expected variance of the log-fold change, provided that all clusters and blocking levels have the same variance.
-#' 
-#' % In theory, a better weighting scheme would be to use the estimated standard error of the log-fold change to compute the weight.
-#' % This would be more responsive to differences in variance between blocking levels, focusing on levels with low variance and high power.
-#' % However, this is not safe in practice as genes with many zeroes can have very low standard errors, dominating the results inappropriately.
-#' 
-#' The reported log-fold change for each gene is also a weighted average of log-fold changes across levels.
-#' The weighting scheme used is the same as that described for the p-values.
-#'
-#' Levels that only contain one cell for either cluster are ignored as they cannot yield a p-value from the Welch t-test.
-#' These levels do not contribute to the combined p-value or log-fold change. 
 #' 
 #' @return
 #' A list is returned containing \code{statistics} and \code{pairs}.
@@ -124,6 +120,9 @@
 #' Lun ATL (2018).
 #' Comments on marker detection in \emph{scran}.
 #' \url{https://ltla.github.io/SingleCellThoughts/software/marker_detection/comments.html}
+#'
+#' @seealso
+#' \code{\link{t.test}}, on which this function is based.
 #' 
 #' @examples
 #' data(example.sce)

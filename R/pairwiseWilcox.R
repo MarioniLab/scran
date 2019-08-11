@@ -30,15 +30,6 @@
 #' For example, the i.i.d. assumptions are unlikely to hold after scaling normalization due to differences in variance.
 #' Also note that we approximate the distribution of the Wilcoxon rank sum statistic to deal with large numbers of cells and ties.
 #' 
-#' @section Blocking on uninteresting factors:
-#' If \code{block} is specified, Wilcoxon tests are performed between clusters within each level of \code{block}.
-#' For each pair of clusters, the p-values for each gene across all levels of \code{block} are combined using Stouffer's Z-score method.
-#' Blocking levels are ignored if no p-value was reported, e.g., if there were insufficient cells for a cluster in a particular level. 
-#' 
-#' The weight for the p-value in a particular level of \code{block} is defined as \eqn{N_xN_y},
-#' where \eqn{N_x} and \eqn{N_y} are the number of cells in clusters X and Y, respectively, for that level. 
-#' This means that p-values from blocks with more cells will have a greater contribution to the combined p-value for each gene.
-#' 
 #' @section Direction and magnitude of the effect:
 #' If \code{direction="any"}, two-sided Wilcoxon rank sum tests will be performed for each pairwise comparisons between clusters.
 #' Otherwise, one-sided tests in the specified direction will be used to compute p-values for each gene.
@@ -63,6 +54,22 @@
 #' The AUC is computed after shifting X's expression values to the right by \code{lfc}.
 #' }
 #' The fact that the AUC depends on \code{lfc} is necessary to preserve its relationship with the p-value.
+#'
+#' @section Blocking on uninteresting factors:
+#' If \code{block} is specified, Wilcoxon tests are performed between clusters within each level of \code{block}.
+#' For each pair of clusters, the p-values for each gene across all levels of \code{block} are combined using Stouffer's Z-score method.
+#' The reported AUC is also a weighted average of the AUCs across all levels.
+#' 
+#' The weight for a particular level of \code{block} is defined as \eqn{N_xN_y},
+#' where \eqn{N_x} and \eqn{N_y} are the number of cells in clusters X and Y, respectively, for that level. 
+#' This means that p-values from blocks with more cells will have a greater contribution to the combined p-value for each gene.
+#' 
+#' When combining across batches, one-sided p-values in the same direction are combined first.
+#' Then, if \code{direction="any"}, the two combined p-values from both directions are combined.
+#' This ensures that a gene only receives a low overall p-value if it changes in the same direction across batches.
+#'
+#' When comparing two clusters, blocking levels are ignored if no p-value was reported, e.g., if there were insufficient cells for a cluster in a particular level. 
+#' If all levels are ignored in this manner, the entire comparison will only contain \code{NA} p-values and a warning will be emitted.
 #' 
 #' @return 
 #' A list is returned containing \code{statistics} and \code{pairs}.
@@ -88,6 +95,9 @@
 #' Soneson C and Robinson MD (2018). 
 #' Bias, robustness and scalability in single-cell differential expression analysis. 
 #' \emph{Nat. Methods}
+#'
+#' @seealso
+#' \code{\link{wilcox.test}}, on which this function is based.
 #' 
 #' @examples
 #' # Using the mocked-up data 'y2' from this example.

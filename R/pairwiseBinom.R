@@ -60,12 +60,12 @@
 #' where \eqn{N_x} and \eqn{N_y} are the number of cells in clusters X and Y, respectively, for that level. 
 #' This means that p-values from blocks with more cells will have a greater contribution to the combined p-value for each gene.
 #' 
-#' Blocking levels are ignored if no p-value was reported for a particular pair of clusters, 
-#' e.g., if there were no cells for either cluster in a particular level. 
-#' 
 #' When combining across batches, one-sided p-values in the same direction are combined first.
 #' Then, if \code{direction="any"}, the two combined p-values from both directions are combined.
 #' This ensures that a gene only receives a low overall p-value if it changes in the same direction across batches.
+#'
+#' When comparing two clusters, blocking levels are ignored if no p-value was reported, e.g., if there were insufficient cells for a cluster in a particular level. 
+#' If all levels are ignored in this manner, the entire comparison will only contain \code{NA} p-values and a warning will be emitted.
 #' 
 #' @return
 #' A list is returned containing \code{statistics} and \code{pairs}.
