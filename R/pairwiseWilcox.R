@@ -226,7 +226,9 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
 .generate_nolfc_wilcox <- function(all.n, all.stats, all.ties, direction) {
     force(all.n)
     force(all.stats)
+    force(all.ties)
     force(direction)
+
     function(b, host, target) {
         host.n <- as.double(all.n[[b]][[host]]) # numeric conversion to avoid overflow.
         target.n <- as.double(all.n[[b]][[target]])
@@ -257,7 +259,9 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
 .generate_lfc_wilcox <- function(all.n, all.stats, all.ties, direction) {
     force(all.n)
     force(all.stats)
+    force(all.ties)
     force(direction)
+
     function(b, host, target) {
         host.n <- as.double(all.n[[b]][[host]]) # numeric conversion to avoid overflow.
         target.n <- as.double(all.n[[b]][[target]])
