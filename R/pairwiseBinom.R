@@ -50,6 +50,16 @@
 #' If \code{direction="up"}, genes will only be significant in this DataFrame if they are upregulated in cluster X compared to Y.
 #' If \code{direction="down"}, genes will only be significant if they are downregulated in cluster X compared to Y.
 #' See \code{?\link{binom.test}} for more details on the interpretation of one-sided Wilcoxon rank sum tests.
+#'
+#' The magnitude of the log-fold change in the proportion of expressing cells can also be tested by setting \code{lfc}.
+#' By default, \code{lfc=0} meaning that we will reject the null upon detecting any difference in proportions.
+#' If this is set to some other positive value, the null hypothesis will change depending on \code{direction}:
+#' \itemize{
+#' \item If \code{direction="any"}, the null hypothesis is that the true log-fold change in proportions is either \code{-lfc} or \code{lfc} with equal probability.
+#' A two-sided p-value is computed against this composite null.
+#' \item If \code{direction="up"}, the null hypothesis is that the true log-fold change is \code{lfc}, and a one-sided p-value is computed.
+#' \item If \code{direction="down"}, the null hypothesis is that the true log-fold change is \code{-lfc}, and a one-sided p-value is computed.
+#' }
 #' 
 #' @section Blocking on uninteresting factors:
 #' If \code{block} is specified, binomial tests are performed between clusters within each level of \code{block}.
@@ -90,30 +100,29 @@
 #' 
 #' @examples
 #' # Using the mocked-up data 'y2' from this example.
-#' example(computeSpikeFactors) 
-#' y2 <- normalize(y2)
-#' kout <- kmeans(t(logcounts(y2)), centers=2) # Any clustering method is okay.
+#' data(example.sce)
+#'
+#' # Any clustering method is okay.
+#' kout <- kmeans(t(logcounts(example.sce)), centers=2) 
 #' 
 #' # Vanilla application:
-#' out <- pairwiseBinom(logcounts(y2), clusters=kout$cluster)
+#' out <- pairwiseBinom(logcounts(example.sce), clusters=kout$cluster)
 #' out
 #' 
 #' # Directional:
-#' out <- pairwiseBinom(logcounts(y2), clusters=kout$cluster, direction="up")
+#' out <- pairwiseBinom(logcounts(example.sce), clusters=kout$cluster, 
+#'     direction="up", lfc=1)
 #' out
 #'
 #' @seealso
-#' \code{\link{binom.test}}, which this function aims to mimic.
+#' \code{\link{binom.test}}, on which this function is based.
 #'
 #' @export
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel SerialParam
 pairwiseBinom <- function(x, clusters, block=NULL, direction=c("any", "up", "down"),
-    log.p=FALSE, gene.names=rownames(x), subset.row=NULL, threshold=1e-8, BPPARAM=SerialParam())
-# Performs binomial tests between clusters.
-#
-# written by Aaron Lun
-# created 15 September 2018
+    log.p=FALSE, gene.names=rownames(x), subset.row=NULL, threshold=1e-8, lfc=0, 
+    BPPARAM=SerialParam())
 {
     ncells <- ncol(x)
     clusters <- as.factor(clusters)
@@ -135,7 +144,7 @@ pairwiseBinom <- function(x, clusters, block=NULL, direction=c("any", "up", "dow
 
     direction <- match.arg(direction)
     results <- .blocked_binom(x, subset.row, clusters, block=block, direction=direction, 
-        gene.names=gene.names, log.p=log.p, threshold=threshold, BPPARAM=BPPARAM)
+        gene.names=gene.names, log.p=log.p, threshold=threshold, lfc=lfc, BPPARAM=BPPARAM)
 
     first <- rep(names(results), lengths(results))
     second <- unlist(lapply(results, names), use.names=FALSE)
@@ -148,7 +157,7 @@ pairwiseBinom <- function(x, clusters, block=NULL, direction=c("any", "up", "dow
 #' @importFrom BiocParallel bplapply SerialParam bpisup bpstart bpstop
 #' @importFrom stats pbinom
 .blocked_binom <- function(x, subset.row, clusters, block=NULL, direction="any", gene.names=NULL, log.p=TRUE, 
-	threshold=1e-8, BPPARAM=SerialParam())
+	threshold=1e-8, lfc=0, BPPARAM=SerialParam())
 # This looks at every level of the blocking factor and performs
 # binomial tests between pairs of clusters within each blocking level.
 {
@@ -182,30 +191,46 @@ pairwiseBinom <- function(x, clusters, block=NULL, direction=c("any", "up", "dow
         names(all.n[[b]]) <- clust.vals
         
         cur.groups <- split(chosen, cur.clusters)
-        raw.nzero <- bplapply(by.core, FUN=.compute_nzero_stat, x=x, by.group=cur.groups, threshold=threshold, BPPARAM=BPPARAM)
+        raw.nzero <- bplapply(by.core, FUN=.compute_nzero_stat, x=x, by.group=cur.groups, 
+            threshold=threshold, BPPARAM=BPPARAM)
         cons.nzero <- do.call(rbind, raw.nzero)
         colnames(cons.nzero) <- clust.vals
         all.nzero[[b]] <- cons.nzero
     }
 
-    # Not exactly equal to binom.test(); the two-sided p-value from binom.test()
-    # cannot be performed by any combination of the one-sided p-values. This 
-    # makes it impossible to behave with directional Stouffer's method in 
-    # .pairwise_blocking_template(), and just generally gums up the works.
-    STATFUN <- function(b, host, target) {    
+    if (lfc==0) {
+        STATFUN <- .generate_nolfc_binom(all.n, all.nzero)
+    } else {
+        STATFUN <- .generate_lfc_binom(all.n, all.nzero, direction, lfc)
+    }
+
+    .pairwise_blocked_template(x, clust.vals, nblocks=length(block), direction=direction, 
+        gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, effect.name="logFC")
+}
+
+##########################
+### Internal functions ###
+##########################
+
+#' @importFrom stats pbinom
+.generate_nolfc_binom <- function(all.n, all.nzero) {
+    force(all.n)
+    force(all.nzero)
+
+    function(b, host, target) {    
         host.nzero <- all.nzero[[b]][,host]
         target.nzero <- all.nzero[[b]][,target]
         host.n <- all.n[[b]][[host]]
         target.n <- all.n[[b]][[target]]
 
-        size <- host.nzero + target.nzero
         p <- host.n/(host.n + target.n)
-        mean.lib <- mean(c(host.n, target.n))
-        pseudo.host <- 1 * host.n/mean.lib
-        pseudo.target <- 1 * target.n/mean.lib
+        size <- host.nzero + target.nzero
+        effect <- .compute_binom_effect(host.nzero, host.n, target.nzero, target.n)
 
-        effect <- unname(log2((host.nzero + pseudo.host)/(host.n + 2 * pseudo.host))
-            - log2((target.nzero + pseudo.target)/(target.n + 2 * pseudo.target))), # mimic edgeR::cpm().
+        # Not exactly equal to binom.test(); the two-sided p-value from binom.test()
+        # cannot be performed by any combination of the one-sided p-values. This 
+        # makes it impossible to behave with directional Stouffer's method in 
+        # .pairwise_blocking_template(), and just generally gums up the works.
         list(
             forward=effect, 
             reverse=-effect,
@@ -215,9 +240,61 @@ pairwiseBinom <- function(x, clusters, block=NULL, direction=c("any", "up", "dow
             right=pbinom(host.nzero - 1, size, p, lower.tail=FALSE, log.p=TRUE)
         )
     }
+}
 
-    .pairwise_blocked_template(x, clust.vals, nblocks=length(block), direction=direction, 
-        gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, effect.name="logFC")
+# Log-fold change in proportions, mimic edgeR::cpm().
+.compute_binom_effect <- function(host.nzero, host.n, target.nzero, target.n) {
+    mean.lib <- mean(c(host.n, target.n))
+    pseudo.host <- 1 * host.n/mean.lib
+    pseudo.target <- 1 * target.n/mean.lib
+    unname(log2((host.nzero + pseudo.host)/(host.n + 2 * pseudo.host))
+        - log2((target.nzero + pseudo.target)/(target.n + 2 * pseudo.target)))
+}
+
+#' @importFrom stats pbinom
+.generate_lfc_binom <- function(all.n, all.nzero, direction, lfc) {
+    force(all.n)
+    force(all.nzero)
+    force(direction)
+    fold <- 2^lfc
+
+    function(b, host, target) {    
+        host.nzero <- all.nzero[[b]][,host]
+        target.nzero <- all.nzero[[b]][,target]
+        host.n <- all.n[[b]][[host]]
+        target.n <- all.n[[b]][[target]]
+
+        # Log-fold change in the ratios.
+        p.left <- host.n/fold / (target.n + host.n/fold)
+        p.right <- host.n*fold / (target.n + host.n*fold)
+        size <- host.nzero + target.nzero
+        effect <- .compute_binom_effect(host.nzero, host.n, target.nzero, target.n)
+
+        output <- list(
+            forward=effect, 
+            reverse=-effect,
+            weight=as.double(host.n) + as.double(target.n),
+            valid=host.n > 0L && target.n > 0L
+        )
+
+        left.lower <- pbinom(host.nzero, size, p.left, log.p=TRUE)
+        right.upper <- pbinom(host.nzero - 1, size, p.right, lower.tail=FALSE, log.p=TRUE)
+
+        if (direction=="any") {
+            left.upper <- pbinom(host.nzero, size, p.right, log.p=TRUE)
+            right.lower <- pbinom(host.nzero - 1, size, p.left, lower.tail=FALSE, log.p=TRUE)
+
+            # Here, the null hypothesis is that the shift is evenly distributed at 50%
+            # probability for -lfc and lfc, hence we take the average of the two p-values.
+            output$left <- .add_log_values(left.lower, left.upper) - log(2)
+            output$right <- .add_log_values(right.lower, right.upper) - log(2)
+        } else {
+            output$left <- left.lower
+            output$right <- right.upper
+        }
+
+        output
+    }
 }
 
 #' @importFrom scater nexprs
