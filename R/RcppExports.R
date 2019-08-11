@@ -85,8 +85,8 @@ get_scaled_ranks <- function(exprs, subset, transpose, as_sparse) {
     .Call('_scran_get_scaled_ranks', PACKAGE = 'scran', exprs, subset, transpose, as_sparse)
 }
 
-overlap_exprs <- function(exprs, subset, bygroup, tolerance) {
-    .Call('_scran_overlap_exprs', PACKAGE = 'scran', exprs, subset, bygroup, tolerance)
+overlap_exprs <- function(exprs, subset, bygroup, lfc) {
+    .Call('_scran_overlap_exprs', PACKAGE = 'scran', exprs, subset, bygroup, lfc)
 }
 
 pool_size_factors <- function(exprs, pseudo_cell, order, pool_sizes) {

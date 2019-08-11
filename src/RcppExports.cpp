@@ -282,15 +282,15 @@ BEGIN_RCPP
 END_RCPP
 }
 // overlap_exprs
-Rcpp::List overlap_exprs(Rcpp::RObject exprs, Rcpp::IntegerVector subset, Rcpp::List bygroup, Rcpp::RObject tolerance);
-RcppExport SEXP _scran_overlap_exprs(SEXP exprsSEXP, SEXP subsetSEXP, SEXP bygroupSEXP, SEXP toleranceSEXP) {
+Rcpp::List overlap_exprs(Rcpp::RObject exprs, Rcpp::IntegerVector subset, Rcpp::List bygroup, Rcpp::RObject lfc);
+RcppExport SEXP _scran_overlap_exprs(SEXP exprsSEXP, SEXP subsetSEXP, SEXP bygroupSEXP, SEXP lfcSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::RObject >::type exprs(exprsSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type subset(subsetSEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type bygroup(bygroupSEXP);
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type tolerance(toleranceSEXP);
-    rcpp_result_gen = Rcpp::wrap(overlap_exprs(exprs, subset, bygroup, tolerance));
+    Rcpp::traits::input_parameter< Rcpp::RObject >::type lfc(lfcSEXP);
+    rcpp_result_gen = Rcpp::wrap(overlap_exprs(exprs, subset, bygroup, lfc));
     return rcpp_result_gen;
 END_RCPP
 }
