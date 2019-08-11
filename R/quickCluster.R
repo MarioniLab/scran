@@ -169,10 +169,10 @@ NULL
         y <- .create_rank_matrix(x, deferred=deferred, subset.row=subset.row, min.mean=min.mean)
     } else {
         sf <- librarySizeFactors(x, subset_row=subset.row)
-        y <- normalizeCounts(x, size_factors=sf, return_log=TRUE, subset_row=subset.row)
+        y <- normalizeCounts(x, size_factors=sf, subset_row=subset.row)
         if (is.null(d)) {
-            fit <- trendVar(y)
-            y <- denoisePCA(y, technical=fit$trend, BSPARAM=BSPARAM)
+            fit <- modelGeneVar(y)
+            y <- getDenoisedPCs(y, technical=fit, BSPARAM=BSPARAM)$components
             d <- NA
         } else {
             y <- t(y)
