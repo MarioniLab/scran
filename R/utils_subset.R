@@ -4,8 +4,9 @@
 # if depending on whether or not we want to keep the spike-ins.
 {
     if (!get.spikes) {
-        nokeep <- isSpike(x)
+        suppressWarnings(nokeep <- isSpike(x))
         if (!is.null(nokeep) && any(nokeep)) {
+            .Deprecated(msg="handling of spike-ins via 'isSpike()' is deprecated.\nStore spike-ins in 'altExps' instead.")
             return(!nokeep)
         }
     } 
