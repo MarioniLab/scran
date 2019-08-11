@@ -7,14 +7,14 @@
         targets <- clust.vals[seq_len(i-1L)]
 
         for (target in targets) {
-            all.up <- all.down <- all.left <- all.right <- vector("list", nblocks)
+            all.forward <- all.reverse <- all.left <- all.right <- vector("list", nblocks)
             valid.test <- logical(nblocks)
             all.weight <- numeric(nblocks)
 
             for (b in seq_len(nblocks)) {
                 out <- STATFUN(b, host, target)
-                all.up[[b]] <- out$up
-                all.down[[b]] <- out$down
+                all.forward[[b]] <- out$forward
+                all.reverse[[b]] <- out$reverse
                 all.weight[b] <- out$weight
                 valid.test[b] <- out$valid
                 all.left[[b]] <- out$left
@@ -31,16 +31,16 @@
                 hvt.p <- .choose_leftright_pvalues(com.left, com.right, direction=direction)
                 tvh.p <- .choose_leftright_pvalues(com.right, com.left, direction=direction)
 
-                up.effect <- .weighted_average_vals(all.up[valid.test], all.weight)
-                down.effect <- .weighted_average_vals(all.down[valid.test], all.weight)
+                forward.effect <- .weighted_average_vals(all.forward[valid.test], all.weight)
+                reverse.effect <- .weighted_average_vals(all.reverse[valid.test], all.weight)
             } else {
-                hvt.p <- tvh.p <- up.effect <- down.effect <- rep(NA_real_, length(all.left[[1]]))
+                hvt.p <- tvh.p <- forward.effect <- reverse.effect <- rep(NA_real_, length(all.left[[1]]))
                 warning(paste("no within-block comparison between", host, "and", target))
             }
 
-            out.stats[[host]][[target]] <- .create_full_stats(effect=up.effect, p=hvt.p, 
+            out.stats[[host]][[target]] <- .create_full_stats(effect=forward.effect, p=hvt.p, 
                 gene.names=gene.names, log.p=log.p, effect.name=effect.name)
-            out.stats[[target]][[host]] <- .create_full_stats(effect=down.effect, p=tvh.p, 
+            out.stats[[target]][[host]] <- .create_full_stats(effect=reverse.effect, p=tvh.p, 
                 gene.names=gene.names, log.p=log.p, effect.name=effect.name)
         }
     }

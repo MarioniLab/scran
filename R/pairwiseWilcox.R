@@ -224,7 +224,7 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
 
         effect <- all.stats[[b]][[host]][,target]
         auc <- effect/cur.prod
-        output <- list(up=auc, down=1 - auc, weight=cur.prod)
+        output <- list(forward=auc, reverse=1 - auc, weight=cur.prod)
 
         # 'cur.prod' is still nominally integer; we use 1.5 to avoid
         # numerical imprecision upon an exact comparison.
@@ -253,8 +253,10 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
         target.n <- as.double(all.n[[b]][[target]])
         cur.prod <- host.n * target.n
 
-        up.effect <- all.stats[[b]][[host]][,target]
-        down.effect <- all.stats[[b]][[target]][,host]
+        # Minus, in that host's values have 'lfc' subtracted from them (i.e., null is +lfc).
+        # Added, in that host's values have 'lfc' added to them (i.e., null is -lfc).
+        minus.effect <- all.stats[[b]][[host]][,target]
+        added.effect <- all.stats[[b]][[target]][,host]
 
         # Taking the average assuming that the shift is 50% distributed at -lfc and lfc.
         # This has the benefit that the effect size is agnostic to the setting of direction
@@ -262,13 +264,13 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
         # of choosing a different effect value according to the direction of change).
         # Also see Details for an interpretation of what this actually means.
         if (direction=="any") {
-            effect <- up.effect/2 + down.effect/2
+            effect <- minus.effect/2 + added.effect/2
             auc <- effect/cur.prod
-            output <- list(up=auc, down=1-auc)
+            output <- list(forward=auc, reverse=1-auc)
         } else if (direction=="up") {
-            output <- list(up=up.effect/cur.prod, down=1-down.effect/cur.prod)
+            output <- list(forward=minus.effect/cur.prod, reverse=1-added.effect/cur.prod)
         } else {
-            output <- list(up=down.effect/cur.prod, down=1-up.effect/cur.prod)
+            output <- list(forward=added.effect/cur.prod, reverse=1-minus.effect/cur.prod)
         }
         output$weight <- cur.prod
 
@@ -276,18 +278,18 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
         # numerical imprecision upon an exact comparison.
         output$valid <- cur.prod > 1.5
 
-        up.z <- up.effect - cur.prod/2
-        up.SIGMA <- .get_sigma(host.n, target.n, all.ties[[b]][[host]][,target])
-        down.z <- down.effect - cur.prod/2
-        down.SIGMA <- .get_sigma(host.n, target.n, all.ties[[b]][[target]][,host])
+        minus.z <- minus.effect - cur.prod/2
+        minus.SIGMA <- .get_sigma(host.n, target.n, all.ties[[b]][[host]][,target])
+        added.z <- added.effect - cur.prod/2
+        added.SIGMA <- .get_sigma(host.n, target.n, all.ties[[b]][[target]][,host])
 
         CORRECTION <- 0.5
-        left.lower <- pnorm((down.z + CORRECTION)/down.SIGMA, log.p=TRUE)
-        right.upper <- pnorm((up.z - CORRECTION)/up.SIGMA, log.p=TRUE, lower.tail=FALSE)
+        left.lower <- pnorm((added.z + CORRECTION)/added.SIGMA, log.p=TRUE)
+        right.upper <- pnorm((minus.z - CORRECTION)/minus.SIGMA, log.p=TRUE, lower.tail=FALSE)
 
         if (direction=="any") {
-            left.upper <- pnorm((up.z + CORRECTION)/up.SIGMA, log.p=TRUE)
-            right.lower <- pnorm((down.z - CORRECTION)/down.SIGMA, log.p=TRUE, lower.tail=FALSE)
+            left.upper <- pnorm((minus.z + CORRECTION)/minus.SIGMA, log.p=TRUE)
+            right.lower <- pnorm((added.z - CORRECTION)/added.SIGMA, log.p=TRUE, lower.tail=FALSE)
 
             # Here, the null hypothesis is that the shift is evenly distributed at 50%
             # probability for -lfc and lfc, hence we take the average of the two p-values.

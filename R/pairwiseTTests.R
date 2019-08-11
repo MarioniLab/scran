@@ -252,7 +252,7 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
             effect.size <- effect.size / sqrt(pooled.s2)
         }
         
-        list(up=effect.size, down=-effect.size, left=p.out$left, right=p.out$right, 
+        list(forward=effect.size, reverse=-effect.size, left=p.out$left, right=p.out$right, 
 
             # Weights are inversely proportional to the squared error of the log-fold change,
             # _assuming equal variance_ across blocks and groups for simplicity.
