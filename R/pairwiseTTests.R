@@ -125,17 +125,19 @@
 #' \code{\link{t.test}}, on which this function is based.
 #' 
 #' @examples
-#' data(example.sce)
+#' library(scater)
+#' sce <- mockSCE()
+#' sce <- logNormCounts(sce)
 #'
 #' # Any clustering method is okay.
-#' kout <- kmeans(t(logcounts(example.sce)), centers=3) 
+#' kout <- kmeans(t(logcounts(sce)), centers=3) 
 #' 
 #' # Vanilla application:
-#' out <- pairwiseTTests(logcounts(example.sce), clusters=kout$cluster)
+#' out <- pairwiseTTests(logcounts(sce), clusters=kout$cluster)
 #' out
 #' 
 #' # Directional with log-fold change threshold:
-#' out <- pairwiseTTests(logcounts(example.sce), clusters=kout$cluster, 
+#' out <- pairwiseTTests(logcounts(sce), clusters=kout$cluster, 
 #'     direction="up", lfc=0.2)
 #' out
 #' 

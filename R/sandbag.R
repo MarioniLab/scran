@@ -51,15 +51,13 @@
 #' \code{\link{cyclone}}, to perform the classification on a test dataset.
 #' 
 #' @examples
-#' ncells <- 50
-#' ngenes <- 20
-#' training <- matrix(rnorm(ncells*ngenes), ncol=ncells)
-#' rownames(training) <- paste0("X", seq_len(ngenes))
+#' library(scater)
+#' sce <- mockSCE(ncells=50, ngenes=200)
 #' 
 #' is.G1 <- 1:20
 #' is.S <- 21:30
 #' is.G2M <- 31:50
-#' out <- sandbag(training, list(G1=is.G1, S=is.S, G2M=is.G2M))
+#' out <- sandbag(sce, list(G1=is.G1, S=is.S, G2M=is.G2M))
 #' str(out)
 #' 
 #' # Getting pre-trained marker sets

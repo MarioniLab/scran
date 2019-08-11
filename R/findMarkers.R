@@ -65,21 +65,25 @@
 #' \code{\link{combineMarkers}}, to combine pairwise statistics into a single marker list per cluster.
 #' 
 #' @examples
-#' data(example.sce) 
+#' library(scater)
+#' sce <- mockSCE()
+#' sce <- logNormCounts(sce)
 #'
 #' # Any clustering method is okay, only using k-means for convenience.
-#' kout <- kmeans(t(logcounts(example.sce)), centers=4) 
+#' kout <- kmeans(t(logcounts(sce)), centers=4) 
 #'
-#' out <- findMarkers(example.sce, clusters=kout$cluster)
+#' out <- findMarkers(sce, clusters=kout$cluster)
 #' names(out)
 #' out[[1]]
 #'
 #' # More customization of the tests:
-#' out <- findMarkers(example.sce, clusters=kout$cluster, 
-#'     lfc=1, direction="up")
+#' out <- findMarkers(sce, clusters=kout$cluster, type="wilcox")
 #' out[[1]]
 #'
-#' out <- findMarkers(example.sce, clusters=kout$cluster, pval.type="all")
+#' out <- findMarkers(sce, clusters=kout$cluster, lfc=1, direction="up")
+#' out[[1]]
+#'
+#' out <- findMarkers(sce, clusters=kout$cluster, pval.type="all")
 #' out[[1]]
 #'
 #' @name findMarkers

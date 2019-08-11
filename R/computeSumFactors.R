@@ -156,18 +156,21 @@
 #' \code{\link{logNormCounts}}, which uses the computed size factors to compute normalized expression values.
 #'
 #' @examples
-#' # Mocking up some data.
-#' set.seed(100)
-#' popsize <- 200
-#' ngenes <- 10000
-#' all.facs <- 2^rnorm(popsize, sd=0.5)
-#' counts <- matrix(rnbinom(ngenes*popsize, mu=all.facs*10, size=1), ncol=popsize, byrow=TRUE)
+#' library(scater)
+#' sce <- mockSCE(ncells=500)
 #' 
 #' # Computing the size factors.
-#' out.facs <- computeSumFactors(counts)
-#' head(out.facs)
-#' plot(colSums(counts), out.facs, log="xy")
+#' sce <- computeSumFactors(sce)
+#' head(sizeFactors(sce))
+#' plot(librarySizeFactors(sce), sizeFactors(sce), log="xy")
+#'
+#' # Using pre-clustering.
+#' preclusters <- quickCluster(sce)
+#' table(preclusters)
 #' 
+#' sce2 <- computeSumFactors(sce, clusters=preclusters)
+#' head(sizeFactors(sce2))
+#'
 #' @references
 #' Lun ATL, Bach K and Marioni JC (2016).
 #' Pooling across cells to normalize single-cell RNA sequencing data with many zero counts.

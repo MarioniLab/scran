@@ -83,20 +83,22 @@
 #' \code{\link{runSVD}}, for the underlying SVD algorithm(s).
 #' 
 #' @examples
-#' data(example.sce)
+#' library(scater)
+#' sce <- mockSCE()
+#' sce <- logNormCounts(sce)
 #' 
 #' # Modelling the variance:
-#' var.stats <- modelGeneVar(example.sce)
+#' var.stats <- modelGeneVar(sce)
 #' 
 #' # Denoising:
-#' pcs <- getDenoisedPCs(example.sce, technical=var.stats)
+#' pcs <- getDenoisedPCs(sce, technical=var.stats)
 #' head(pcs$components)
 #' head(pcs$rotation)
 #' head(pcs$percent.var)
 #'
 #' # Automatically storing the results.
-#' example.sce <- denoisePCA(example.sce, technical=var.stats)
-#' reducedDimNames(example.sce)
+#' sce <- denoisePCA(sce, technical=var.stats)
+#' reducedDimNames(sce)
 #' @references
 #' Lun ATL (2018).
 #' Discussion of PC selection methods for scRNA-seq data.

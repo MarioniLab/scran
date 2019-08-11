@@ -37,11 +37,12 @@
 #' @author Aaron Lun
 #'
 #' @examples
+#' # Mocking up means and size factors:
 #' sf <- 2^rnorm(1000, sd=0.1)
 #' sf <- sf/mean(sf)
-#'
 #' means <- rexp(100, 0.1)
-#' 
+#'
+#' # Using these to construct a Poisson trend:
 #' out <- fitTrendPoisson(means, sf)
 #' curve(out$trend(x), xlim=c(0, 10))
 #'

@@ -31,16 +31,18 @@
 #' \code{\link[monocle]{newCellDataSet}}, for specific class constructors.
 #' 
 #' @examples
-#' data(example.sce)
-#' y <- example.sce
-#' sizeFactors(y) <- 2^rnorm(ncol(y)) # Adding some additional embellishments.
-#' rowData(y)$SYMBOL <- paste0("X", seq_len(nrow(y)))
-#' y$other <- sample(LETTERS, ncells, replace=TRUE)
+#' library(scater)
+#' sce <- mockSCE()
+#' 
+#' # Adding some additional embellishments.
+#' sizeFactors(sce) <- 2^rnorm(ncol(sce)) 
+#' rowData(sce)$SYMBOL <- paste0("X", seq_len(nrow(sce)))
+#' sce$other <- sample(LETTERS, ncells, replace=TRUE)
 #' 
 #' # Converting to various objects.
-#' convertTo(y, type="edgeR")
-#' convertTo(y, type="DESeq2")
-#' convertTo(y, type="monocle")
+#' convertTo(sce, type="edgeR")
+#' convertTo(sce, type="DESeq2")
+#' convertTo(sce, type="monocle")
 #' 
 #' @export
 #' @importFrom BiocGenerics sizeFactors as.data.frame "sizeFactors<-"

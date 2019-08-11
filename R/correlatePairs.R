@@ -141,12 +141,21 @@
 #' \emph{Stat. Appl. Genet. Mol. Biol.} 9:Article 39.
 #' 
 #' @examples
-#' set.seed(0)
-#' ncells <- 100
-#' null.dist <- correlateNull(ncells, iters=100000)
-#' exprs <- matrix(rpois(ncells*100, lambda=10), ncol=ncells)
-#' out <- correlatePairs(exprs, null.dist=null.dist)
-#' hist(out$p.value) 
+#' library(scater)
+#' sce <- mockSCE()
+#' sce <- logNormCounts(sce)
+#'
+#' # Basic pairwise application (turning down iters for speed).
+#' out <- correlatePairs(sce, subset.row=1:100, iters=1e5)
+#' head(out)
+#'
+#' # Computing between specific subsets of genes:
+#' out <- correlatePairs(sce, pairings=list(1:10, 110:120), iters=1e5)
+#' head(out)
+#'
+#' # Computing between specific pairs:
+#' out <- correlatePairs(sce, pairings=rbind(c(1,10), c(2, 50)), iters=1e5)
+#' head(out)
 #' 
 #' @name correlatePairs
 NULL

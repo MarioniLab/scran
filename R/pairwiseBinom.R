@@ -99,8 +99,9 @@
 #' \emph{J. Evol. Biol.} 18, 5:1368-73.
 #' 
 #' @examples
-#' # Using the mocked-up data 'y2' from this example.
-#' data(example.sce)
+#' library(scater)
+#' sce <- mockSCE()
+#' sce <- logNormCounts(sce)
 #'
 #' # Any clustering method is okay.
 #' kout <- kmeans(t(logcounts(example.sce)), centers=2) 
@@ -109,7 +110,7 @@
 #' out <- pairwiseBinom(logcounts(example.sce), clusters=kout$cluster)
 #' out
 #' 
-#' # Directional:
+#' # Directional and with a minimum log-fold change:
 #' out <- pairwiseBinom(logcounts(example.sce), clusters=kout$cluster, 
 #'     direction="up", lfc=1)
 #' out

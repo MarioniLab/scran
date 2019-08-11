@@ -62,10 +62,11 @@
 #' @author Aaron Lun
 #' 
 #' @examples
-#' data(example.sce)
+#' library(scater)
+#' sce <- mockSCE()
 #'
 #' # Using spike-ins.
-#' pois <- modelGeneVarByPoisson(example.sce)
+#' pois <- modelGeneVarByPoisson(sce)
 #' pois
 #' 
 #' plot(pois$mean, pois$total, ylim=c(0, 10))
@@ -73,8 +74,8 @@
 #' curve(metadata(pois)$trend(x), add=TRUE, col="dodgerblue")
 #'
 #' # With blocking.
-#' block <- sample(LETTERS[1:2], ncol(example.sce), replace=TRUE)
-#' blk <- modelGeneVarByPoisson(example.sce, block=block)
+#' block <- sample(LETTERS[1:2], ncol(sce), replace=TRUE)
+#' blk <- modelGeneVarByPoisson(sce, block=block)
 #' blk
 #'
 #' par(mfrow=c(1,2))

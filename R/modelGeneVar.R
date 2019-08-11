@@ -95,17 +95,19 @@
 #' @author Aaron Lun
 #' 
 #' @examples
-#' data(example.sce)
+#' library(scater)
+#' sce <- mockSCE()
+#' sce <- logNormCounts(sce)
 #'
 #' # Fitting to all features.
-#' allf <- modelGeneVar(example.sce)
+#' allf <- modelGeneVar(sce)
 #' allf
 #' 
 #' plot(allf$mean, allf$total)
 #' curve(metadata(allf)$trend(x), add=TRUE, col="dodgerblue")
 #'
-#' # Using a subset of features.
-#' subf <- modelGeneVar(example.sce, subset.fit=1:100)
+#' # Using a subset of features for fitting.
+#' subf <- modelGeneVar(sce, subset.fit=1:100)
 #' subf 
 #' 
 #' plot(subf$mean, subf$total)
@@ -113,8 +115,8 @@
 #' points(metadata(subf)$mean, metadata(subf)$var, col="red", pch=16)
 #'
 #' # With blocking. 
-#' block <- sample(LETTERS[1:2], ncol(example.sce), replace=TRUE)
-#' blk <- modelGeneVar(example.sce, block=block)
+#' block <- sample(LETTERS[1:2], ncol(sce), replace=TRUE)
+#' blk <- modelGeneVar(sce, block=block)
 #' blk
 #'
 #' par(mfrow=c(1,2))

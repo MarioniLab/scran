@@ -92,18 +92,20 @@
 #' \code{\link{scaledColRanks}}, to get the rank matrix directly.
 #' 
 #' @examples
-#' set.seed(100)
-#' popsize <- 200
-#' ngenes <- 1000
-#' all.facs <- 2^rnorm(popsize, sd=0.5)
-#' counts <- matrix(rnbinom(ngenes*popsize, mu=all.facs, size=1), ncol=popsize, byrow=TRUE)
+#' library(scater)
+#' sce <- mockSCE()
 #' 
-#' clusters <- quickCluster(counts, min.size=20)
+#' # Basic application (lowering min.size for this small demo):
+#' clusters <- quickCluster(sce, min.size=50)
 #' table(clusters)
 #' 
-#' clusters2 <- quickCluster(counts, use.ranks=TRUE)
+#' # Operating on ranked expression values:
+#' clusters2 <- quickCluster(sce, min.size=50, use.ranks=TRUE)
 #' table(clusters2)
 #' 
+#' # Using hierarchical clustering:
+#' clusters <- quickCluster(sce, min.size=50, method="hclust")
+#' table(clusters)
 #' @references
 #' van Dongen S and Enright AJ (2012).
 #' Metric distances derived from cosine similarity and Pearson and Spearman correlations.

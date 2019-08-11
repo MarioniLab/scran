@@ -39,7 +39,20 @@
 #' @examples
 #' set.seed(0)
 #' ncells <- 100
-#' null.dist <- correlateNull(ncells, iters=100000)
+#'
+#' # Simplest case:
+#' null.dist <- correlateNull(ncells, iters=10000)
+#' hist(null.dist)
+#'
+#' # With a blocking factor:
+#' block <- sample(LETTERS[1:3], ncells, replace=TRUE)
+#' null.dist <- correlateNull(block=block, iters=10000)
+#' hist(null.dist)
+#'
+#' # With a design matrix.
+#' cov <- runif(ncells)
+#' X <- model.matrix(~cov)
+#' null.dist <- correlateNull(design=X, iters=10000)
 #' hist(null.dist)
 #' 
 #' @export

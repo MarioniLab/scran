@@ -49,12 +49,14 @@
 #' \code{\link{modelGeneVar}} and \code{\link{modelGeneVarWithSpikes}}, where this function is used.
 #'
 #' @examples
-#' data(example.sce)
+#' library(scater)
+#' sce <- mockSCE()
+#' sce <- logNormCounts(sce)
 #'
 #' # Fitting a trend:
 #' library(DelayedMatrixStats)
-#' means <- rowMeans(logcounts(example.sce))
-#' vars <- rowVars(logcounts(example.sce))
+#' means <- rowMeans(logcounts(sce))
+#' vars <- rowVars(logcounts(sce))
 #' fit <- fitTrendVar(means, vars)
 #' 
 #' # Comparing the two trend fits:

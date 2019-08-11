@@ -53,10 +53,11 @@
 #' @author Aaron Lun
 #' 
 #' @examples
-#' data(example.sce)
+#' library(scater)
+#' sce <- mockSCE()
 #'
 #' # Using spike-ins.
-#' spk <- modelGeneCV2WithSpikes(example.sce, "Spike")
+#' spk <- modelGeneCV2WithSpikes(sce, "Spike")
 #' spk
 #' 
 #' plot(spk$mean, spk$total)
@@ -64,8 +65,8 @@
 #' curve(metadata(spk)$trend(x), add=TRUE, col="dodgerblue")
 #'
 #' # With blocking (and spike-ins).
-#' block <- sample(LETTERS[1:2], ncol(example.sce), replace=TRUE)
-#' blk <- modelGeneCV2WithSpikes(example.sce, "Spike", block=block)
+#' block <- sample(LETTERS[1:2], ncol(sce), replace=TRUE)
+#' blk <- modelGeneCV2WithSpikes(sce, "Spike", block=block)
 #' blk
 #'
 #' par(mfrow=c(1,2))

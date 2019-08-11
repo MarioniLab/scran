@@ -26,13 +26,12 @@
 #' Aaron Lun
 #' 
 #' @examples
-#' set.seed(0)
-#' ncells <- 100
-#' null.dist <- correlateNull(ncells, iters=100000)
-#' exprs <- matrix(rpois(ncells*100, lambda=10), ncol=ncells)
-#' out <- correlatePairs(exprs, null.dist=null.dist)
-#' 
-#' g.out <- correlateGenes(out)
+#' library(scater)
+#' sce <- mockSCE()
+#' sce <- logNormCounts(sce)
+#' pairs <- correlatePairs(sce, iters=1e5, subset.row=1:100)
+#'
+#' g.out <- correlateGenes(pairs)
 #' head(g.out)
 #' 
 #' @references

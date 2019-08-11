@@ -30,18 +30,22 @@
 #' \code{\link{combineMarkers}}, for another function that consolidates pairwise DE comparisons.
 #'
 #' @examples
-#' data(example.sce)
+#' library(scater)
+#' sce <- mockSCE()
+#' sce <- logNormCounts(sce)
 #'
 #' # Any clustering method is okay.
 #' kout <- kmeans(t(logcounts(example.sce)), centers=3) 
 #' 
 #' out <- pairwiseTTests(logcounts(example.sce), 
 #'      clusters=paste0("Cluster", kout$cluster))
-#' 
+#'
+#' # Getting top pairwise markers:
 #' top <- getTopMarkers(out$statistics, out$pairs)
 #' top[[1]]
 #' top[[1]][[2]]
 #' 
+#' # Getting top per-cluster markers:
 #' top <- getTopMarkers(out$statistics, out$pairs, pairwise=FALSE)
 #' top[[1]]
 #' @export

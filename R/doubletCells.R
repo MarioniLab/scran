@@ -69,9 +69,9 @@
 #' mu1 <- 2^rexp(ngenes)
 #' mu2 <- 2^rnorm(ngenes)
 #' 
-#' counts.1 <- matrix(rpois(ngenes*100, mu1), nrow=ngenes)
-#' counts.2 <- matrix(rpois(ngenes*100, mu2), nrow=ngenes)
-#' counts.m <- matrix(rpois(ngenes*20, mu1+mu2), nrow=ngenes) # doublets
+#' counts.1 <- matrix(rpois(ngenes*100, mu1), nrow=ngenes) # Pure type 1
+#' counts.2 <- matrix(rpois(ngenes*100, mu2), nrow=ngenes) # Pure type 2
+#' counts.m <- matrix(rpois(ngenes*20, mu1+mu2), nrow=ngenes) # Doublets
 #' 
 #' counts <- cbind(counts.1, counts.2, counts.m)
 #' clusters <- rep(1:3, c(ncol(counts.1), ncol(counts.2), ncol(counts.m)))

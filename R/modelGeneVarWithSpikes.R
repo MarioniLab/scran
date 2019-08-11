@@ -74,10 +74,12 @@
 #' @author Aaron Lun
 #' 
 #' @examples
-#' data(example.sce)
+#' library(scater)
+#' sce <- mockSCE()
+#' sce <- logNormCounts(sce)
 #'
 #' # Using spike-ins.
-#' spk <- modelGeneVarWithSpikes(example.sce, "Spike")
+#' spk <- modelGeneVarWithSpikes(sce, "Spike")
 #' spk
 #' 
 #' plot(spk$mean, spk$total, log="xy")
@@ -85,8 +87,8 @@
 #' curve(metadata(spk)$trend(x), add=TRUE, col="dodgerblue")
 #'
 #' # With blocking (and spike-ins).
-#' block <- sample(LETTERS[1:2], ncol(example.sce), replace=TRUE)
-#' blk <- modelGeneVarWithSpikes(example.sce, "Spike", block=block)
+#' block <- sample(LETTERS[1:2], ncol(sce), replace=TRUE)
+#' blk <- modelGeneVarWithSpikes(sce, "Spike", block=block)
 #' blk
 #'
 #' par(mfrow=c(1,2))

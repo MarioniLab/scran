@@ -45,8 +45,8 @@
 #'
 #' @examples
 #' library(scater)
-#' data(example.sce)
-#' normcounts <- normalizeCounts(example.sce, log=FALSE)
+#' sce <- mockSCE()
+#' normcounts <- normalizeCounts(sce, log=FALSE)
 #'
 #' # Fitting a trend:
 #' library(DelayedMatrixStats)
@@ -57,16 +57,6 @@
 #' # Examining the trend fit:
 #' plot(means, cv2, pch=16, cex=0.5,
 #'     xlab="Mean", ylab="CV2", log="xy")
-#' curve(fit$trend(x), add=TRUE, col="dodgerblue", lwd=3)
-#'
-#' # Singular gradients are automatically avoided with simplified=TRUE.
-#' set.seed(100)
-#' cv2.err <- jitter(10/1:10)
-#' m.err <- 1:10
-#' try(fitTrendCV2(m.err, cv2.err, 10, simplified=FALSE))
-#' 
-#' fit <- fitTrendCV2(m.err, cv2.err, 10)
-#' plot(m.err, cv2.err, pch=16, xlab="Mean", ylab="CV2", log="xy")
 #' curve(fit$trend(x), add=TRUE, col="dodgerblue", lwd=3)
 #'
 #' @references

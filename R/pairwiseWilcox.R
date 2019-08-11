@@ -100,19 +100,20 @@
 #' \code{\link{wilcox.test}}, on which this function is based.
 #' 
 #' @examples
-#' # Using the mocked-up data 'y2' from this example.
-#' data(example.sce)
+#' library(scater)
+#' sce <- mockSCE()
+#' sce <- logNormCounts(sce)
 #'
 #' # Any clustering method is okay.
-#' kout <- kmeans(t(logcounts(example.sce)), centers=2) 
+#' kout <- kmeans(t(logcounts(sce)), centers=2) 
 #' 
 #' # Vanilla application:
-#' out <- pairwiseWilcox(logcounts(example.sce), clusters=kout$cluster)
+#' out <- pairwiseWilcox(logcounts(sce), clusters=kout$cluster)
 #' out
 #' 
-#' # Directional:
-#' out <- pairwiseWilcox(logcounts(example.sce), clusters=kout$cluster, 
-#'     direction="up")
+#' # Directional and with a minimum log-fold change:
+#' out <- pairwiseWilcox(logcounts(sce), clusters=kout$cluster, 
+#'     direction="up", lfc=0.2)
 #' out
 #' 
 #' @export

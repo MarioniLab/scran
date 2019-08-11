@@ -30,13 +30,9 @@
 #' \code{\link{quickCluster}}, where this function is used.
 #' 
 #' @examples
-#' set.seed(100)
-#' popsize <- 200
-#' ngenes <- 100
-#' all.facs <- 2^rnorm(popsize, sd=0.5)
-#' counts <- matrix(rnbinom(ngenes*popsize, mu=all.facs, size=1), ncol=popsize, byrow=TRUE)
-#' 
-#' rout <- scaledColRanks(counts, transposed=TRUE)
+#' library(scater)
+#' sce <- mockSCE()
+#' rout <- scaledColRanks(counts(sce), transposed=TRUE)
 #' 
 #' # For use in clustering:
 #' d <- dist(rout)

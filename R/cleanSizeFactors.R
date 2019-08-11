@@ -41,8 +41,13 @@
 #' set.seed(100)    
 #' counts <- matrix(rpois(20000, lambda=1), ncol=100)
 #' 
-#' # Adding negative values:
-#' cleanSizeFactors(c(-1, colSums(counts)), c(100, colSums(counts>0)))
+#' library(scater)
+#' sf <- librarySizeFactors(counts)
+#' ngenes <- nexprs(counts, byrow=FALSE)
+#' 
+#' # Adding negative size factor values to be cleaned.
+#' out <- cleanSizeFactors(c(-1, -1, sf), c(100, 50, ngenes))
+#' head(out)
 #'
 #' @export
 #' @importFrom stats nls residuals median coef lm

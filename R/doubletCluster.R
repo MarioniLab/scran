@@ -96,14 +96,16 @@
 #' counts <- cbind(counts.1, counts.2, counts.m)
 #' clusters <- rep(1:3, c(ncol(counts.1), ncol(counts.2), ncol(counts.m)))
 #' 
-#' # Find potential doublets...
+#' # Compute doublet-ness of each cluster:
 #' dbl <- doubletCluster(counts, clusters)
 #' dbl
 #' 
+#' # Narrow this down to clusters with very low 'N':
 #' library(scater)
-#' isOutlier(dbl$N, log=TRUE, type="lower") # based on "N"...
+#' isOutlier(dbl$N, log=TRUE, type="lower") 
 #' 
-#' dbl$lib.size1 < 1 & dbl$lib.size2 < 1 # with help from "lib.size"
+#' # Get help from "lib.size" below 1.
+#' dbl$lib.size1 < 1 & dbl$lib.size2 < 1 
 #' 
 #' @name doubletCluster
 NULL

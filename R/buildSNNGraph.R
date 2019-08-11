@@ -109,9 +109,26 @@
 #' \emph{Bioinformatics} 31:1974-80
 #' 
 #' @examples
-#' exprs <- matrix(rnorm(100000), ncol=100)
-#' g <- buildSNNGraph(exprs)
-#' 
+#' library(scater)
+#' sce <- mockSCE(ncells=500)
+#' sce <- logNormCounts(sce)
+#'
+#' g <- buildSNNGraph(sce)
+#' clusters <- igraph::cluster_fast_greedy(g)$membership
+#' table(clusters)
+#'
+#' # Any clustering method from igraph can be used:
+#' clusters <- igraph::cluster_walktrap(g)$membership
+#' table(clusters)
+#'
+#' # Smaller 'k' usually yields finer clusters:
+#' g <- buildSNNGraph(sce, k=5)
+#' clusters <- igraph::cluster_walktrap(g)$membership
+#' table(clusters)
+#'
+#' # Graph can be built off existing reducedDims results:
+#' sce <- runPCA(sce)
+#' g <- buildSNNGraph(sce, use.dimred="PCA")
 #' clusters <- igraph::cluster_fast_greedy(g)$membership
 #' table(clusters)
 #' 

@@ -108,22 +108,25 @@
 #' Aaron Lun
 #' 
 #' @examples
-#' # Using the mocked-up data 'y2' from this example.
-#' example(computeSpikeFactors) 
-#' y2 <- normalize(y2)
-#' kout <- kmeans(t(logcounts(y2)), centers=2) # Any clustering method is okay.
+#' library(scater)
+#' sce <- mockSCE()
+#' sce <- logNormCounts(sce)
 #' 
-#' out <- pairwiseTTests(logcounts(y2), clusters=paste0("Cluster", kout$cluster))
+#' # Any clustering method is okay.
+#' kout <- kmeans(t(logcounts(sce)), centers=3)
+#' clusters <- paste0("Cluster", kout$cluster)
+#' 
+#' out <- pairwiseTTests(logcounts(sce), clusters=clusters)
 #' comb <- combineMarkers(out$statistics, out$pairs)
 #' comb[["Cluster1"]]
 #' 
-#' out <- pairwiseWilcox(logcounts(y2), clusters=paste0("Cluster", kout$cluster))
+#' out <- pairwiseWilcox(logcounts(sce), clusters=clusters)
 #' comb <- combineMarkers(out$statistics, out$pairs, effect.field="AUC")
-#' comb[["Cluster1"]]
+#' comb[["Cluster2"]]
 #' 
-#' out <- pairwiseBinom(logcounts(y2), clusters=paste0("Cluster", kout$cluster))
+#' out <- pairwiseBinom(logcounts(sce), clusters=clusters)
 #' comb <- combineMarkers(out$statistics, out$pairs)
-#' comb[["Cluster1"]]
+#' comb[["Cluster3"]]
 #'
 #' @export
 #' @importFrom S4Vectors DataFrame

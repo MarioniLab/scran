@@ -44,14 +44,14 @@
 #' Aaron Lun
 #' 
 #' @examples
-#' data(example.sce)
-#' 
 #' library(scater)
-#' y1 <- example.sce[,1:100] 
+#' sce <- mockSCE()
+#' 
+#' y1 <- sce[,1:100] 
 #' y1 <- logNormCounts(y1) # normalize separately after subsetting.
 #' results1 <- modelGeneVar(y1)
 #' 
-#' y2 <- example.sce[,1:100 + 100] 
+#' y2 <- sce[,1:100 + 100] 
 #' y2 <- logNormCounts(y2) # normalize separately after subsetting.
 #' results2 <- modelGeneVar(y2)
 #' 

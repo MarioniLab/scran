@@ -77,20 +77,21 @@
 #' \code{\link{sandbag}}, to generate the pairs from reference data.
 #' 
 #' @examples
-#' example(sandbag) # Using the mocked-up data in this example.
+#' set.seed(1000)
+#' library(scater)
+#' sce <- mockSCE(ncells=1000, ngenes=1000)
 #' 
-#' # Classifying (note: test.data!=training.data in real cases)
-#' test <- training 
+#' # Constructing a classifier:
+#' is.G1 <- which(sce$Cell_Cycle %in% c("G1", "G0"))
+#' is.S <- which(sce$Cell_Cycle=="S")
+#' is.G2M <- which(sce$Cell_Cycle=="G2M")
+#' out <- sandbag(sce, list(G1=is.G1, S=is.S, G2M=is.G2M))
+#' 
+#' # Classifying a new dataset:
+#' test <- mockSCE(ncells=50)
 #' assignments <- cyclone(test, out)
 #' head(assignments$scores)
-#' head(assignments$phases)
-#' 
-#' # Visualizing
-#' col <- character(ncells)
-#' col[is.G1] <- "red"
-#' col[is.G2M] <- "blue"
-#' col[is.S] <- "darkgreen"
-#' plot(assignments$score$G1, assignments$score$G2M, col=col, pch=16)
+#' table(assignments$phases)
 #' 
 #' @references
 #' Scialdone A, Natarajana KN, Saraiva LR et al. (2015). 

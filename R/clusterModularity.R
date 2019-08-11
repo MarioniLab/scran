@@ -49,7 +49,11 @@
 #' \code{\link{modularity}}, for the calculation of the entire graph modularity.
 #' 
 #' @examples
-#' example(buildSNNGraph) # using the mocked-up graph in this example.
+#' library(scater)
+#' sce <- mockSCE()
+#' sce <- logNormCounts(sce)
+#' g <- buildSNNGraph(sce)
+#' clusters <- igraph::cluster_walktrap(g)$membership
 #' 
 #' # Examining the modularity values directly.
 #' out <- clusterModularity(g, clusters)
