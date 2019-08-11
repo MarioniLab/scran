@@ -2,7 +2,9 @@
 \alias{testVar}
 
 \title{Test for significantly large variances}
-\description{Test for whether the total variance exceeds that expected under some null hypothesis, for sample variances estimated from normally distributed observations.}
+\description{Test for whether the total variance exceeds that expected under some null hypothesis, for sample variances estimated from normally distributed observations.
+
+This function is deprecated.}
 
 \usage{
 testVar(total, null, df, design=NULL, test=c("chisq", "f"), second.df=NULL, log.p=FALSE)

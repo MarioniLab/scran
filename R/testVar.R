@@ -11,6 +11,7 @@ testVar <- function(total, null, df, design=NULL, test=c("chisq", "f"), second.d
     if (missing(df)) { 
         df <- nrow(design) - qr(design)$rank 
     }
+    .Deprecated()
 
     test <- match.arg(test)
     if (test=="chisq") {
