@@ -85,6 +85,8 @@
 #' Detecting doublet cells with \emph{scran}.
 #' \url{https://ltla.github.io/SingleCellThoughts/software/doublet_detection/bycell.html}
 #'
+#' @seealso
+#' \code{\link{doubletCluster}}, to detect doublet clusters.
 #' @name doubletCells
 NULL
 
