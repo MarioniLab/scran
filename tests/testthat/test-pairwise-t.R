@@ -15,6 +15,7 @@ REFFUN <- function(y, grouping, direction="any", lfc=0)
             target.y <- y[,grouping==target,drop=FALSE]
 
             if (ncol(host.y)>1L && ncol(target.y)>1L) {
+                effect <- rowMeans(host.y) - rowMeans(target.y)
                 pval <- numeric(nrow(y))
                 for (i in seq_along(pval)) {
 
@@ -38,12 +39,12 @@ REFFUN <- function(y, grouping, direction="any", lfc=0)
                     pval[i] <- cur.p
                 }
             } else {
-                pval <- rep(NA_real_, nrow(y))
+                pval <- effect <- rep(NA_real_, nrow(y))
             }
             
 			currow <- which(output$pairs[,1]==host & output$pairs[,2]==target)
             curres <- output$statistics[[currow]]
-			expect_equal(unname(curres$logFC), unname(rowMeans(host.y) - rowMeans(target.y)))
+			expect_equal(unname(curres$logFC), unname(effect))
             expect_equal(pval, curres$p.value)
             expect_equal(p.adjust(pval, method="BH"), curres$FDR)
             expect_identical(rownames(y), rownames(curres))

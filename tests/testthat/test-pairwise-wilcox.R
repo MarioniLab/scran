@@ -1,10 +1,10 @@
 # Tests the pairwiseWilcox() function.
 # library(scran); library(testthat); source("setup.R"); source("test-pairwise-wilcox.R")
 
-REFFUN <- function(y, grouping, direction="any") 
+REFFUN <- function(y, grouping, direction="any", lfc=0) 
 # A reference function using the t.test function.
 { 
-    output <- pairwiseWilcox(y, grouping, direction=direction, tol=0)
+    output <- pairwiseWilcox(y, grouping, direction=direction, lfc=lfc)
     grouping <- factor(grouping)
     clust.vals <- levels(grouping)
     alt.hyp <- switch(direction, any="two.sided", up="greater", down="less")
@@ -16,16 +16,41 @@ REFFUN <- function(y, grouping, direction="any")
 
             if (ncol(host.y) * ncol(target.y) > 1L) {
                 auc <- pval <- numeric(nrow(y))
-                for (i in seq_along(pval)) {
-                    result <- wilcox.test(host.y[i,], target.y[i,], alternative=alt.hyp, exact=FALSE)
-                    auc[i] <- result$statistic / (ncol(host.y) * ncol(target.y))
-                    pval[i] <- result$p.value
+                if (lfc==0) { 
+                    for (i in seq_along(pval)) {
+                        result <- wilcox.test(host.y[i,], target.y[i,], alternative=alt.hyp, exact=FALSE)
+                        auc[i] <- result$statistic 
+                        pval[i] <- result$p.value
+                    }
+                } else {
+                    for (i in seq_along(pval)) {
+                        host.vals <- host.y[i,]
+                        target.vals <- target.y[i,]
+                        if (direction=="any") {
+                            left.result1 <- wilcox.test(host.vals, target.vals, alternative="less", mu=-lfc, exact=FALSE)
+                            left.result2 <- wilcox.test(host.vals, target.vals, alternative="less", mu=lfc, exact=FALSE)
+                            left.p <- (left.result1$p.value + left.result2$p.value) / 2
+
+                            right.result1 <- wilcox.test(host.vals, target.vals, alternative="greater", mu=-lfc, exact=FALSE)
+                            right.result2 <- wilcox.test(host.vals, target.vals, alternative="greater", mu=lfc, exact=FALSE)
+                            right.p <- (right.result1$p.value + right.result2$p.value) / 2
+
+                            auc[i] <- (left.result1$statistic + left.result2$statistic) / 2
+                            pval[i] <- pmin(left.p, right.p, 1) * 2
+                        } else if (direction=="up") {
+                            result <- wilcox.test(host.vals, target.vals, alternative=alt.hyp, mu=lfc, exact=FALSE)
+                            auc[i] <- result$statistic
+                            pval[i] <- result$p.value
+                        } else {
+                            result <- wilcox.test(host.vals, target.vals, alternative=alt.hyp, mu=-lfc, exact=FALSE)
+                            auc[i] <- result$statistic 
+                            pval[i] <- result$p.value
+                        }
+                    }
                 }
+                auc <- auc / (ncol(host.y) * ncol(target.y))
             } else {
                 pval <- auc <- rep(NA_real_, nrow(y))
-                if (ncol(host.y) && ncol(target.y)) {
-                    auc <- unname(1 + sign(host.y[,1] - target.y[,1])) / 2
-                }
             }
             
 			currow <- which(output$pairs[,1]==host & output$pairs[,2]==target)
@@ -78,6 +103,18 @@ test_that("pairwiseWilcox works as expected without blocking", {
         paste0(out$pairs$first, ".", out$pairs$second))
     expect_false(any(is.na(subset)))
     expect_equal(out$statistics[subset], ref$statistics)
+})
+
+set.seed(80000011)
+test_that("pairwiseWilcox works with a log-fold change threshold", {
+    clust <- kmeans(t(X), centers=3)
+    clusters <- as.factor(clust$cluster)
+
+    # Note that some numerical imprecision means that the p-values 
+    # may be slightly off, depending on the clustering.
+    REFFUN(X, clusters, lfc=0.5)
+    REFFUN(X, clusters, direction="up", lfc=0.5)
+    REFFUN(X, clusters, direction="down", lfc=0.5)
 })
 
 FACTORCHECK <- function(left, right) {
@@ -183,12 +220,17 @@ BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
 set.seed(8000002)
 test_that("pairwiseWilcox works as expected with blocking", {
     clust <- kmeans(t(X), centers=3)
-    clusters <- as.factor(clust$cluster)
+    clusters <- as.character(clust$cluster)
     block <- sample(3, ncol(X), replace=TRUE)
 
     BLOCKFUN(X, clusters, block)
     BLOCKFUN(X, clusters, block, direction="up")
     BLOCKFUN(X, clusters, block, direction="down")
+
+    # Not checking direction='any', because we can't easily recover one-sided
+    # p-values when we need to account for the discreteness of the test statistic.
+    BLOCKFUN(X, clusters, block, direction="up", lfc=0.5)
+    BLOCKFUN(X, clusters, block, direction="down", lfc=0.5)
 
     # Checking what happens to a block-specific group.
     re.clust <- clust$cluster
