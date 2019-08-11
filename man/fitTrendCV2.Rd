@@ -4,8 +4,8 @@
 \alias{fitTrendCV2}
 \title{Fit a trend to the CV2}
 \usage{
-fitTrendCV2(means, cv2, ncells, min.mean = 0.1, top.prop = 0.01,
-  nls.args = list(), simplified = TRUE, nmads = 6, max.iter = 50)
+fitTrendCV2(means, cv2, ncells, min.mean = 0.1, nls.args = list(),
+  simplified = TRUE, nmads = 6, max.iter = 50)
 }
 \arguments{
 \item{means}{A numeric vector containing mean normalized expression values for all genes.}
@@ -15,8 +15,6 @@ fitTrendCV2(means, cv2, ncells, min.mean = 0.1, top.prop = 0.01,
 \item{ncells}{Integer scalar specifying the number of cells used to compute \code{cv2} and \code{means}.}
 
 \item{min.mean}{Numeric scalar specifying the minimum mean to use for trend fitting.}
-
-\item{top.prop}{A numeric scalar in (0, 1), specifying the top percentage of high-abundance genes to use for estimating the initial value of the plateau parameter of the fitted trend.}
 
 \item{nls.args}{A list of parameters to pass to \code{\link{nls}}.}
 
@@ -41,17 +39,16 @@ computed from count data after size factor normalization.
 This function fits a mean-dependent trend to the CV2 of normalized expression values for the selected features.
 Specifically, it fits a trend of the form
 \deqn{y = A + \frac{B}{x}}{y = A + B/x}
-using \code{\link{nls}}.
-An initial value for \eqn{A} is estimated by obtaining the location of the asymptote at large means,
-using \code{top.prop} to obtain a definition of \dQuote{large}.
+using an iteratively reweighted least-squares approach implemented via \code{\link{nls}}.
+This trend is based on a similar formulation from \pkg{DESeq2} and generally captures the mean-CV2 trend well.
 
 Trend fitting is performed after weighting each observation according to the inverse of the density of observations at the same mean.
 This avoids problems with differences in the distribution of means that would otherwise favor good fits in highly dense intervals at the expense of sparser intervals.
-Low-abundance genes with mean log-expression below \code{min.mean} are also removed prior to fitting, to avoid problems with discreteness and the upper bound on the CV2 at low counts.
+Low-abundance genes with means below \code{min.mean} are also removed prior to fitting, to avoid problems with discreteness and the upper bound on the CV2 at low counts.
 
 Robustness iterations are also performed to protect against outliers. 
-An initial fit is performed and each observation is weighted using tricube-transformed residuals (in addition to the existing inverse-density weights).
-The bandwidth of the tricube scheme is defined as \code{nmads} multiplied by the median residual.
+An initial fit is performed and each observation is weighted using tricube-transformed standardized residuals (in addition to the existing inverse-density weights).
+The bandwidth of the tricube scheme is defined as \code{nmads} multiplied by the median standardized residual.
 Iterations are performed until convergence or \code{max.iters} is reached.
 
 Occasionally, there are not enough high-abundance points to uniquely determine the \eqn{A} parameter.
@@ -62,8 +59,8 @@ If \code{simplified=FALSE}, this simplification is not allowed and the error is 
 }
 \examples{
 library(scater)
-data(example.sce)
-normcounts <- normalizeCounts(example.sce, log=FALSE)
+sce <- mockSCE()
+normcounts <- normalizeCounts(sce, log=FALSE)
 
 # Fitting a trend:
 library(DelayedMatrixStats)
@@ -76,15 +73,11 @@ plot(means, cv2, pch=16, cex=0.5,
     xlab="Mean", ylab="CV2", log="xy")
 curve(fit$trend(x), add=TRUE, col="dodgerblue", lwd=3)
 
-# Singular gradients are automatically avoided with simplified=TRUE.
-set.seed(100)
-cv2.err <- jitter(10/1:10)
-m.err <- 1:10
-try(fitTrendCV2(m.err, cv2.err, 10, simplified=FALSE))
-
-fit <- fitTrendCV2(m.err, cv2.err, 10)
-plot(m.err, cv2.err, pch=16, xlab="Mean", ylab="CV2", log="xy")
-curve(fit$trend(x), add=TRUE, col="dodgerblue", lwd=3)
+}
+\references{
+Brennecke P, Anders S, Kim JK et al. (2013).
+Accounting for technical noise in single-cell RNA-seq experiments.
+\emph{Nat. Methods} 10:1093-95
 }
 \seealso{
 \code{\link{modelGeneCV2}} and \code{\link{modelGeneCV2WithSpikes}}, where this function is used.

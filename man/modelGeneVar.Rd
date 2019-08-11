@@ -98,6 +98,7 @@ By default, all levels are equally weighted when combining statistics.
 \item Per-level p-values are combined using \code{\link{combinePValues}} according to \code{method}.
 By default, Fisher's method is used to identify genes that are highly variable in any batch.
 Whether or not this is responsive to \code{equiweight} depends on the chosen method.
+\item Blocks with fewer than 2 cells are completely ignored and do not contribute to the combined mean, variance component or p-value.
 }
 
 Use of \code{block} is the recommended approach for accounting for any uninteresting categorical factor of variation.
@@ -107,6 +108,9 @@ it also accommodates differences in the mean-variance relationships.
 Alternatively, uninteresting factors can be used to construct a design matrix to pass to the function via \code{design}.
 In this case, a linear model is fitted to the expression profile for each gene and the residual variance is calculated.
 This approach is useful for covariates or additive models that cannot be expressed as a one-way layout for use in \code{block}.
+However, it assumes that the error is normally distributed with equal variance for all observations of a given gene.
+
+Use of \code{block} and \code{design} together is currently not supported and will lead to an error.
 }
 
 \section{Computing p-values}{
@@ -118,17 +122,19 @@ This is estimated from the spread of per-gene variance estimates around the tren
 }
 
 \examples{
-data(example.sce)
+library(scater)
+sce <- mockSCE()
+sce <- logNormCounts(sce)
 
 # Fitting to all features.
-allf <- modelGeneVar(example.sce)
+allf <- modelGeneVar(sce)
 allf
 
 plot(allf$mean, allf$total)
 curve(metadata(allf)$trend(x), add=TRUE, col="dodgerblue")
 
-# Using a subset of features.
-subf <- modelGeneVar(example.sce, subset.fit=1:100)
+# Using a subset of features for fitting.
+subf <- modelGeneVar(sce, subset.fit=1:100)
 subf 
 
 plot(subf$mean, subf$total)
@@ -136,8 +142,8 @@ curve(metadata(subf)$trend(x), add=TRUE, col="dodgerblue")
 points(metadata(subf)$mean, metadata(subf)$var, col="red", pch=16)
 
 # With blocking. 
-block <- sample(LETTERS[1:2], ncol(example.sce), replace=TRUE)
-blk <- modelGeneVar(example.sce, block=block)
+block <- sample(LETTERS[1:2], ncol(sce), replace=TRUE)
+blk <- modelGeneVar(sce, block=block)
 blk
 
 par(mfrow=c(1,2))

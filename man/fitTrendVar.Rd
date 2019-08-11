@@ -59,16 +59,18 @@ This avoids problems with differences in the distribution of means that would ot
 Note that these densities are computed after filtering on \code{min.mean}.
 }
 \examples{
-data(example.sce)
+library(scater)
+sce <- mockSCE()
+sce <- logNormCounts(sce)
 
 # Fitting a trend:
 library(DelayedMatrixStats)
-means <- rowMeans(logcounts(example.sce))
-vars <- rowVars(logcounts(example.sce))
+means <- rowMeans(logcounts(sce))
+vars <- rowVars(logcounts(sce))
 fit <- fitTrendVar(means, vars)
 
 # Comparing the two trend fits:
-plot(fit$mean, fit$var, pch=16, cex=0.5, xlab="Mean", ylab="Variance")
+plot(means, vars, pch=16, cex=0.5, xlab="Mean", ylab="Variance")
 curve(fit$trend(x), add=TRUE, col="dodgerblue", lwd=3)
 
 }
