@@ -26,7 +26,6 @@ Imports:
     scater, 
     edgeR, 
     limma, 
-    dynamicTreeCut, 
     BiocNeighbors, 
     igraph, 
     statmod, 
@@ -40,13 +39,12 @@ Suggests:
     knitr, 
     beachmat, 
     HDF5Array, 
-    irlba, 
     org.Mm.eg.db, 
+    dynamicTreeCut, 
     DESeq2, 
     monocle, 
     Biobase, 
-    aroma.light,
-    scRNAseq
+    aroma.light
 biocViews: 
     ImmunoOncology, 
     Normalization, 

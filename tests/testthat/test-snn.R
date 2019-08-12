@@ -132,21 +132,6 @@ test_that("buildSNNGraph with PCA works correctly", {
     alt <- buildSNNGraph(dummy, k=10, d=50)
     are_graphs_same(ref, alt)
 
-    # Testing with IRLBA.
-    set.seed(100)
-    ipc <- irlba::prcomp_irlba(t(dummy - rowMeans(dummy)), n=10, center=FALSE)
-    refi <- buildSNNGraph(t(ipc$x), k=10, d=NA)
-    set.seed(100)
-    alti <- buildSNNGraph(dummy, k=10, d=10, BSPARAM=BiocSingular::IrlbaParam())
-    are_graphs_same(refi, alti)
-
-    set.seed(200)
-    ipc <- irlba::prcomp_irlba(t(dummy - rowMeans(dummy)), n=20, center=FALSE)
-    refi <- buildSNNGraph(t(ipc$x), k=10, d=NA)
-    set.seed(200)
-    alti <- buildSNNGraph(dummy, k=10, d=20, BSPARAM=BiocSingular::IrlbaParam())
-    are_graphs_same(refi, alti)
-
     # Checking that it correctly extracts stuff from the reducedDimension slot.
     X <- SingleCellExperiment(list(logcounts=dummy))
     reducedDim(X, "PCA") <- pc$x[,1:50]
