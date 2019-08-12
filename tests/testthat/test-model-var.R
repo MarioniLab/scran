@@ -275,7 +275,7 @@ test_that("modelGeneVarWithSpikes centers size factors correctly", {
         current <- i==block
 
         ssf1 <- msf1[current]
-        ssf2 <- msf2[current]
+        ssf2 <- sf2[current]
         ssf2 <- ssf2/mean(ssf2) * mean(ssf1)
 
         ref <- modelGeneVarWithSpikes(t(t(dummy[,current])/ssf1),
@@ -286,9 +286,11 @@ test_that("modelGeneVarWithSpikes centers size factors correctly", {
 
         expect_equal(ref$mean, subout$mean)
         expect_equal(ref$total, subout$total)
-        expect_equal(ref$tech, subout$tech)
-        expect_equal(ref$bio, subout$bio)
-        expect_equal(ref$p.value, subout$p.value)
+
+        # Weird error propagation
+        expect_equal(ref$tech, subout$tech, tol=1e-7)
+        expect_equal(ref$bio, subout$bio, tol=1e-7)
+        expect_equal(ref$p.value, subout$p.value, tol=1e-7)
     }
 })
 

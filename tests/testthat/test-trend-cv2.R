@@ -1,5 +1,5 @@
 # This tests the various trendCV2() options.
-# require(scran); require(testthat); source("test-trend-var.R")
+# require(scran); require(testthat); source("test-trend-cv2.R")
 
 set.seed(20002)
 ncells <- 200

@@ -1,4 +1,4 @@
-# This tests the various trendVar() options.
+# This tests the various fitTrendVar() options.
 # require(scran); require(testthat); source("test-trend-var.R")
 
 set.seed(20000)
@@ -14,7 +14,7 @@ library(DelayedMatrixStats)
 means <- rowMeans(out)
 vars <- rowVars(out)
 
-test_that("trendVar works on a basic scenario", {
+test_that("fitTrendVar works on a basic scenario", {
     out <- fitTrendVar(means, vars)
     expect_true(out$std.dev > 0)
     expect_is(out$trend, "function")
@@ -33,7 +33,7 @@ test_that("trendVar works on a basic scenario", {
     expect_false(isTRUE(all.equal(out$trend(mx), out$trend(mx+1))))
 })
 
-test_that("trendVar works when parametric mode is turned off", {
+test_that("fitTrendVar works when parametric mode is turned off", {
     mx <- max(means)
     out <- fitTrendVar(means, vars, parametric=FALSE)
     expect_equal(out$trend(0), 0)
@@ -49,7 +49,10 @@ test_that("trendVar works when parametric mode is turned off", {
     expect_equal(out$trend(mx), out$trend(mx+1))
 })
 
-test_that("trendVar handles nls errors gracefully",  {
+set.seed(91919)
+test_that("fitTrendVar handles nls errors gracefully",  {
+    # This requires the set.seed(), as sometimes it *doesn't* fail. 
+    # Damn the robustness of this algorithm!
     X <- runif(100)
     Y <- runif(100)
     expect_warning(out <- fitTrendVar(X, Y), "defaulting to loess-only")
