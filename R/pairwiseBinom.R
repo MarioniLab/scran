@@ -9,6 +9,7 @@
 #' @param block A factor specifying the blocking level for each cell.
 #' @param direction A string specifying the direction of effects to be considered for each cluster.
 #' @param log.p A logical scalar indicating if log-transformed p-values/FDRs should be returned.
+#' @param lfc Numeric scalar specifying the minimum absolute log-ratio in the proportion of expressing genes between clusters.
 #' @param gene.names A character vector of gene names with one value for each row of \code{x}.
 #' @param subset.row See \code{?"\link{scran-gene-selection}"}.
 #' @param threshold Numeric scalar specifying the value below which a gene is presumed to be not expressed.

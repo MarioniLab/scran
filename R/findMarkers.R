@@ -13,6 +13,7 @@
 #' or a binomial test with \code{"binom"}.
 #' @inheritParams combineMarkers
 #' @param log.p A logical scalar indicating if log-transformed p-values/FDRs should be returned.
+#' @param subset.row See \code{?"\link{scran-gene-selection}"}.
 #' @param ... For the generic, further arguments to pass to specific methods.
 #'
 #' For the ANY method:
@@ -22,7 +23,7 @@
 #' \item For \code{test.type="binom"}, further arguments to pass to \code{\link{pairwiseBinom}}.
 #' }
 #' Common arguments for all testing functions include \code{gene.names}, \code{direction}, 
-#' \code{block}, \code{subset.row} and \code{BPPARAM}.
+#' \code{block} and \code{BPPARAM}.
 #' Test-specific arguments are also supported for the appropriate \code{test.type}.
 #' 
 #' For the SingleCellExperiment method, further arguments to pass to the ANY method.
@@ -77,7 +78,7 @@
 #' out[[1]]
 #'
 #' # More customization of the tests:
-#' out <- findMarkers(sce, clusters=kout$cluster, type="wilcox")
+#' out <- findMarkers(sce, clusters=kout$cluster, test.type="wilcox")
 #' out[[1]]
 #'
 #' out <- findMarkers(sce, clusters=kout$cluster, lfc=1, direction="up")
@@ -91,7 +92,7 @@ NULL
 
 #' @importFrom BiocParallel SerialParam
 .findMarkers <- function(x, clusters, test.type=c("t", "wilcox", "binom"),
-    ..., pval.type=c("any", "all"), log.p=FALSE, full.stats=FALSE, sorted=TRUE, BPPARAM=SerialParam()) 
+    ..., pval.type=c("any", "all"), log.p=FALSE, full.stats=FALSE, sorted=TRUE) 
 {
     test.type <- match.arg(test.type)
     if (test.type=="t") {

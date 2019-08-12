@@ -9,6 +9,7 @@
 #' @param pseudo.count A numeric scalar specifying the pseudo-count to be added to the scaled counts before log-transformation.
 #' @param npts An integer scalar specifying the number of interpolation points to use.
 #' @param ... Further arguments to pass to \code{\link{fitTrendVar}} for trend fitting.
+#' @param BPPARAM A \linkS4class{BiocParallelParam} object indicating how parallelization should be performed across interpolation points.
 #'
 #' @return A named list is returned containing:
 #' \describe{

@@ -2,7 +2,6 @@
 #' 
 #' Identify pairs of genes that are significantly correlated in their expression profiles, based on Spearman's rank correlation.
 #'
-#' @param block A factor specifying the blocking level for each cell.
 #' @param design A numeric design matrix containing uninteresting factors to be ignored.
 #' @param BPPARAM A \linkS4class{BiocParallelParam} object that specifies the manner of parallel processing to use.
 #' @param x 
@@ -19,6 +18,12 @@
 #' or a list of 2 vectors of genes between which correlations are to be computed;
 #' or a integer/character matrix with 2 columns of specific gene pairs - see below for details.
 #' @param cache.size Deprecated argument, ignored.
+#' @param block A factor specifying the blocking level for each cell in \code{x}.
+#' If specified, correlations are computed separately within each block and statistics are combined across blocks.
+#' @param equiweight A logical scalar indicating whether statistics from each block should be given equal weight.
+#' Otherwise, each block is weighted according to its number of cells.
+#' Only used if \code{block} is specified.
+#' @param iters Integer scalar specifying the number of iterations to use in \code{\link{correlateNull}} to build the null distribution.
 #' @param ... Additional arguments to pass to \code{correlatePairs,ANY-method}.
 #' @param assay.type A string specifying which assay values to use.
 #' @param get.spikes See \code{?"\link{scran-gene-selection}"}.

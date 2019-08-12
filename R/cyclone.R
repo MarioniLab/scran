@@ -79,7 +79,7 @@
 #' @examples
 #' set.seed(1000)
 #' library(scater)
-#' sce <- mockSCE(ncells=1000, ngenes=1000)
+#' sce <- mockSCE(ncells=200, ngenes=1000)
 #' 
 #' # Constructing a classifier:
 #' is.G1 <- which(sce$Cell_Cycle %in% c("G1", "G0"))

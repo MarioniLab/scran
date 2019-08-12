@@ -52,7 +52,7 @@
 #' library(DelayedMatrixStats)
 #' means <- rowMeans(normcounts)
 #' cv2 <- rowVars(normcounts)/means^2
-#' fit <- fitTrendCV2(means, cv2, ncol(example.sce))
+#' fit <- fitTrendCV2(means, cv2, ncol(sce))
 #' 
 #' # Examining the trend fit:
 #' plot(means, cv2, pch=16, cex=0.5,

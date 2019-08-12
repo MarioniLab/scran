@@ -30,7 +30,7 @@
 #' For the ANY method, additional arguments to be passed to \code{\link{cutreeDynamic}} for \code{method="hclust"}, 
 #' or to \code{\link{buildSNNGraph}} for \code{method="igraph"}.
 #' 
-#' For the \linkS4class{SingleCellExperiment-method}, additional arguments to pass to the ANY method.
+#' For the \linkS4class{SingleCellExperiment} method, additional arguments to pass to the ANY method.
 #' @param assay.type A string specifying which assay values to use. 
 #' @param get.spikes See \code{?"\link{scran-gene-selection}"}.
 #' 

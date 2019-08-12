@@ -37,7 +37,7 @@
 #' # Adding some additional embellishments.
 #' sizeFactors(sce) <- 2^rnorm(ncol(sce)) 
 #' rowData(sce)$SYMBOL <- paste0("X", seq_len(nrow(sce)))
-#' sce$other <- sample(LETTERS, ncells, replace=TRUE)
+#' sce$other <- sample(LETTERS, ncol(sce), replace=TRUE)
 #' 
 #' # Converting to various objects.
 #' convertTo(sce, type="edgeR")
@@ -46,7 +46,7 @@
 #' 
 #' @export
 #' @importFrom BiocGenerics sizeFactors as.data.frame "sizeFactors<-"
-#' @importFrom SummarizedExperiment rowData colData assay
+#' @importFrom SummarizedExperiment rowData colData assay rowData<-
 #' @importFrom SingleCellExperiment isSpike
 #' @importFrom S4Vectors "mcols<-" 
 #' @importFrom edgeR DGEList "[.DGEList" scaleOffset.DGEList
