@@ -105,14 +105,14 @@
 #' sce <- logNormCounts(sce)
 #'
 #' # Any clustering method is okay.
-#' kout <- kmeans(t(logcounts(example.sce)), centers=2) 
+#' kout <- kmeans(t(logcounts(sce)), centers=2) 
 #' 
 #' # Vanilla application:
-#' out <- pairwiseBinom(logcounts(example.sce), clusters=kout$cluster)
+#' out <- pairwiseBinom(logcounts(sce), clusters=kout$cluster)
 #' out
 #' 
 #' # Directional and with a minimum log-fold change:
-#' out <- pairwiseBinom(logcounts(example.sce), clusters=kout$cluster, 
+#' out <- pairwiseBinom(logcounts(sce), clusters=kout$cluster, 
 #'     direction="up", lfc=1)
 #' out
 #'
