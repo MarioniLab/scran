@@ -1,4 +1,4 @@
-#include "scran.h"
+#include "Rcpp.h"
 
 #include "beachmat/numeric_matrix.h"
 #include "beachmat/integer_matrix.h"
@@ -130,13 +130,12 @@ SEXP average_ranks_internal(SEXP input, SEXP subset, SEXP transpose, SEXP as_spa
     return omat->yield();
 }
 
-SEXP get_scaled_ranks(SEXP exprs, SEXP subset, SEXP transpose, SEXP as_sparse) {
-    BEGIN_RCPP
+// [[Rcpp::export(rng=false)]]
+Rcpp::RObject get_scaled_ranks(Rcpp::RObject exprs, Rcpp::RObject subset, Rcpp::RObject transpose, Rcpp::RObject as_sparse) {
     int rtype=beachmat::find_sexp_type(exprs);
     if (rtype==INTSXP) { 
         return average_ranks_internal<beachmat::integer_matrix>(exprs, subset, transpose, as_sparse);
     } else {
         return average_ranks_internal<beachmat::numeric_matrix>(exprs, subset, transpose, as_sparse);
     }
-    END_RCPP
 }

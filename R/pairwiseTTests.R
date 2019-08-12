@@ -1,12 +1,151 @@
+#' Perform pairwise t-tests
+#' 
+#' Perform pairwise Welch t-tests between groups of cells, possibly after blocking on uninteresting factors of variation.
+#' 
+#' @param x A numeric matrix-like object of normalized log-expression values, 
+#' where each column corresponds to a cell and each row corresponds to an endogenous gene.
+#' @param clusters A vector of cluster identities for all cells.
+#' @param block A factor specifying the blocking level for each cell.
+#' @param design A numeric matrix containing blocking terms for uninteresting factors.
+#' Note that these should not be confounded with \code{clusters} or contain an intercept, see Details.
+#' @param direction A string specifying the direction of log-fold changes to be considered for each cluster.
+#' @param lfc A positive numeric scalar specifying the log-fold change threshold to be tested against.
+#' @param std.lfc A logical scalar indicating whether log-fold changes should be standardized.
+#' @param log.p A logical scalar indicating if log-transformed p-values/FDRs should be returned.
+#' @param gene.names A character vector of gene names with one value for each row of \code{x}.
+#' @param subset.row See \code{?"\link{scran-gene-selection}"}.
+#' @param BPPARAM A \linkS4class{BiocParallelParam} object indicating whether and how parallelization should be performed across genes.
+#' 
+#' @details
+#' This function performs Welch t-tests to identify differentially expressed genes (DEGs) between pairs of clusters.
+#' The aim is to use the DEGs to determine cluster identity based on expression of marker genes with known biological activity.
+#' A list of tables is returned where each table contains the statistics for all genes for a comparison between each pair of clusters.
+#' This can be examined directly or used as input to \code{\link{combineMarkers}} for marker gene detection.
+#' 
+#' The Welch t-test is simple, fast and performs reasonably well for single-cell count data (Soneson and Robinson, 2018).
+#' However, if one of the clusters contains fewer than two cells, no p-value will be reported for comparisons involving that cluster.
+#' A warning will also be raised about insufficient degrees of freedom (d.f.) in such cases.
+#' 
+#' When \code{log.p=TRUE}, the log-transformed p-values and FDRs are reported using the natural base.
+#' This is useful in cases with many cells such that reporting the p-values directly would lead to double-precision underflow.
+#' 
+#' @section Direction and magnitude of the log-fold change:
+#' Log-fold changes are reported as differences in the values of \code{x}.
+#' Thus, all log-fold changes have the same base as whatever was used to perform the log-transformation in \code{x}.
+#' If \code{\link{logNormCounts}} was used, this would be base 2.
+#' 
+#' If \code{direction="any"}, two-sided tests will be performed for each pairwise comparisons between clusters.
+#' Otherwise, one-sided tests in the specified direction will be used to compute p-values for each gene.
+#' This can be used to focus on genes that are upregulated in each cluster of interest, which is often easier to interpret.
+#' 
+#' To interpret the setting of \code{direction}, consider the DataFrame for cluster X, in which we are comparing to another cluster Y.
+#' If \code{direction="up"}, genes will only be significant in this DataFrame if they are upregulated in cluster X compared to Y.
+#' If \code{direction="down"}, genes will only be significant if they are downregulated in cluster X compared to Y.
+#' 
+#' The magnitude of the log-fold changes can also be tested by setting \code{lfc}.
+#' By default, \code{lfc=0} meaning that we will reject the null upon detecting any differential expression.
+#' If this is set to some other positive value, the null hypothesis will change depending on \code{direction}:
+#' \itemize{
+#' \item If \code{direction="any"}, the null hypothesis is that the true log-fold change is either \code{-lfc} or \code{lfc} with equal probability.
+#' A two-sided p-value is computed against this composite null.
+#' \item If \code{direction="up"}, the null hypothesis is that the true log-fold change is \code{lfc}, and a one-sided p-value is computed.
+#' \item If \code{direction="down"}, the null hypothesis is that the true log-fold change is \code{-lfc}, and a one-sided p-value is computed.
+#' }
+#' This is similar to the approach used in \code{\link[limma:eBayes]{treat}} and allows users to focus on genes with strong log-fold changes.
+#' 
+#' If \code{std.lfc=TRUE}, the log-fold change for each gene is standardized by the variance.
+#' When the Welch t-test is being used, this is equivalent to Cohen's d.
+#' Standardized log-fold changes may be more appealing for visualization as it avoids large fold changes due to large variance.
+#' The choice of \code{std.lfc} does not affect the calculation of the p-values.
+#' 
+#' @section Blocking on uninteresting factors:
+#' If \code{block} is specified, t-tests are performed between clusters within each level of \code{block}.
+#' For each pair of clusters, the p-values for each gene across all levels of \code{block} are combined using Stouffer's weighted Z-score method.
+#' The reported log-fold change for each gene is also a weighted average of log-fold changes across levels.
+#' 
+#' The weight for a particular level is defined as \eqn{(1/N_x + 1/N_y)^{-1}}, 
+#' where \eqn{Nx} and \eqn{Ny} are the number of cells in clusters X and Y, respectively, for that level. 
+#' This is inversely proportional to the expected variance of the log-fold change, provided that all clusters and blocking levels have the same variance.
+#' 
+#' % In theory, a better weighting scheme would be to use the estimated standard error of the log-fold change to compute the weight.
+#' % This would be more responsive to differences in variance between blocking levels, focusing on levels with low variance and high power.
+#' % However, this is not safe in practice as genes with many zeroes can have very low standard errors, dominating the results inappropriately.
+#' 
+#' When comparing two clusters, blocking levels are ignored if no p-value was reported, e.g., if there were insufficient cells for a cluster in a particular level. 
+#' This includes levels that contain fewer than two cells for either cluster, as this cannot yield a p-value from the Welch t-test.
+#' If all levels are ignored in this manner, the entire comparison will only contain \code{NA} p-values and a warning will be emitted.
+#' 
+#' @section Regressing out unwanted factors:
+#' If \code{design} is specified, a linear model is instead fitted to the expression profile for each gene.
+#' This linear model will include the \code{clusters} as well as any blocking factors in \code{design}.
+#' A t-test is then performed to identify DEGs between pairs of clusters, using the values of the relevant coefficients and the gene-wise residual variance.
+#' Note that \code{design} must be full rank when combined with the \code{clusters} terms, i.e., there should not be any confounding variables.
+#' Similarly, any intercept column should be removed beforehand.
+#' 
+#' We recommend using \code{block} instead of \code{design} for uninteresting categorical factors of variation.
+#' The former accommodates differences in the variance of expression in each cluster via Welch's t-test.
+#' As a result, it is more robust to misspecification of the clusters, as misspecified clusters (and inflated variances) do not affect the inferences for other clusters.
+#' Use of \code{block} also avoids assuming additivity of effects between the blocking factors and the cluster identities.
+#' 
+#' Nonetheless, use of \code{design} is unavoidable when blocking on real-valued covariates.
+#' It is also useful for ensuring that log-fold changes/p-values are computed for comparisons between all pairs of clusters
+#' (assuming that \code{design} is not confounded with the cluster identities).
+#' This may not be the case with \code{block} if a pair of clusters never co-occur in a single blocking level. 
+#' 
+#' @return
+#' A list is returned containing \code{statistics} and \code{pairs}.
+#' 
+#' The \code{statistics} element is itself a list of \linkS4class{DataFrame}s.
+#' Each DataFrame contains the statistics for a comparison between a pair of clusters,
+#' including the log-fold changes, p-values and false discovery rates.
+#' 
+#' The \code{pairs} element is a DataFrame where each row corresponds to an entry of \code{statistics}.
+#' This contains the fields \code{first} and \code{second}, 
+#' specifying the two clusters under comparison in the corresponding DataFrame in \code{statistics}.
+#' 
+#' In each DataFrame in \code{statistics}, the log-fold change represents the change in the \code{first} cluster compared to the \code{second} cluster.
+#' 
+#' @author
+#' Aaron Lun
+#' 
+#' @references
+#' Whitlock MC (2005). 
+#' Combining probability from independent tests: the weighted Z-method is superior to Fisher's approach. 
+#' \emph{J. Evol. Biol.} 18, 5:1368-73.
+#' 
+#' Soneson C and Robinson MD (2018). 
+#' Bias, robustness and scalability in single-cell differential expression analysis. 
+#' \emph{Nat. Methods}
+#' 
+#' Lun ATL (2018).
+#' Comments on marker detection in \emph{scran}.
+#' \url{https://ltla.github.io/SingleCellThoughts/software/marker_detection/comments.html}
+#'
+#' @seealso
+#' \code{\link{t.test}}, on which this function is based.
+#' 
+#' @examples
+#' library(scater)
+#' sce <- mockSCE()
+#' sce <- logNormCounts(sce)
+#'
+#' # Any clustering method is okay.
+#' kout <- kmeans(t(logcounts(sce)), centers=3) 
+#' 
+#' # Vanilla application:
+#' out <- pairwiseTTests(logcounts(sce), clusters=kout$cluster)
+#' out
+#' 
+#' # Directional with log-fold change threshold:
+#' out <- pairwiseTTests(logcounts(sce), clusters=kout$cluster, 
+#'     direction="up", lfc=0.2)
+#' out
+#' 
 #' @export
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel SerialParam
 pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("any", "up", "down"),
     lfc=0, std.lfc=FALSE, log.p=FALSE, gene.names=rownames(x), subset.row=NULL, BPPARAM=SerialParam())
-# Performs pairwise Welch t-tests between clusters.
-#
-# written by Aaron Lun
-# created 15 September 2018
 {
     ncells <- ncol(x)
     clusters <- as.factor(clusters)
@@ -28,11 +167,13 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
 
     direction <- match.arg(direction)
 
-    if (!is.null(block) || is.null(design)) {
-        results <- .test_block_internal(x, subset.row, clusters, block=block, direction=direction, lfc=lfc, 
+    if (!is.null(block) && !is.null(design)) {
+        stop("cannot specify both 'block' and 'design'")
+    } else if (!is.null(design)) {
+        results <- .fit_lm_internal(x, subset.row, clusters, design=design, direction=direction, lfc=lfc, 
             std.lfc=std.lfc, gene.names=gene.names, log.p=log.p, BPPARAM=BPPARAM)
     } else {
-        results <- .fit_lm_internal(x, subset.row, clusters, design=design, direction=direction, lfc=lfc, 
+        results <- .test_block_internal(x, subset.row, clusters, block=block, direction=direction, lfc=lfc, 
             std.lfc=std.lfc, gene.names=gene.names, log.p=log.p, BPPARAM=BPPARAM)
     }
 
@@ -71,10 +212,11 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
     all.blocks <- split(seq_along(all.clusters) - 1L, all.clusters)
     wout <- .worker_assign(length(subset.row), BPPARAM)
     by.core <- .split_vector_by_workers(subset.row, wout)
-    
-    raw.stats <- bplapply(by.core, FUN=.fit_oneway, x=x, by.block=all.blocks, BPPARAM=BPPARAM)
-    all.means <- do.call(rbind, lapply(raw.stats, FUN="[[", i=1))
-    all.vars <- do.call(rbind, lapply(raw.stats, FUN="[[", i=2))
+    by.core <- .split_matrix_by_workers(x, by.core)
+
+    raw.stats <- bplapply(by.core, FUN=compute_blocked_stats_none, bygroup=all.blocks, BPPARAM=BPPARAM)
+    all.means <- do.call(rbind, lapply(raw.stats, FUN=function(x) t(x[[1]])))
+    all.vars <- do.call(rbind, lapply(raw.stats, FUN=function(x) t(x[[2]])))
     all.n <- table(all.clusters)
 
     clust.vals <- levels(clusters)
@@ -111,10 +253,7 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
             effect.size <- effect.size / sqrt(pooled.s2)
         }
         
-        list(
-            effect=effect.size,
-            left=p.out$left,
-            right=p.out$right,
+        list(forward=effect.size, reverse=-effect.size, left=p.out$left, right=p.out$right, 
 
             # Weights are inversely proportional to the squared error of the log-fold change,
             # _assuming equal variance_ across blocks and groups for simplicity.
@@ -128,7 +267,7 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
     }
 
     .pairwise_blocked_template(x, clust.vals, nblocks, direction=direction,
-        gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, FLIPFUN=function(x) -x, effect.name="logFC")
+        gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, effect.name="logFC")
 }
 
 .get_t_test_stats <- function(host.s2, target.s2, host.n, target.n)
@@ -183,8 +322,8 @@ pairwiseTTests <- function(x, clusters, block=NULL, design=NULL, direction=c("an
     }
 
     wout <- .worker_assign(length(subset.row), BPPARAM)
-    by.core <- .split_vector_by_workers(subset.row, wout)
-    raw.stats <- bplapply(by.core, FUN=.fit_linear_model, qr=QR$qr, qraux=QR$qraux, x=x, get.coef=TRUE, BPPARAM=BPPARAM)
+    by.core <- .split_vector_by_workers(subset.row-1L, wout)
+    raw.stats <- bplapply(by.core, FUN=fit_linear_model, qr=QR$qr, qraux=QR$qraux, exprs=x, get_coefs=TRUE, BPPARAM=BPPARAM)
     coefficients <- do.call(cbind, lapply(raw.stats, "[[", i=1))
     coefficients[QR$pivot,] <- coefficients
     sigma2 <- unlist(lapply(raw.stats, "[[", i=3))

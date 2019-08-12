@@ -1,5 +1,5 @@
 .pairwise_blocked_template <- function(x, clust.vals, nblocks, direction="any", 
-    gene.names=NULL, log.p=TRUE, STATFUN, FLIPFUN, effect.name) 
+    gene.names=NULL, log.p=TRUE, STATFUN, effect.name) 
 {
     out.stats <- .create_output_container(clust.vals)
     for (i in seq_along(clust.vals)) {
@@ -7,13 +7,14 @@
         targets <- clust.vals[seq_len(i-1L)]
 
         for (target in targets) {
-            all.effect <- all.left <- all.right <- vector("list", nblocks)
+            all.forward <- all.reverse <- all.left <- all.right <- vector("list", nblocks)
             valid.test <- logical(nblocks)
             all.weight <- numeric(nblocks)
 
             for (b in seq_len(nblocks)) {
                 out <- STATFUN(b, host, target)
-                all.effect[[b]] <- out$effect
+                all.forward[[b]] <- out$forward
+                all.reverse[[b]] <- out$reverse
                 all.weight[b] <- out$weight
                 valid.test[b] <- out$valid
                 all.left[[b]] <- out$left
@@ -22,23 +23,24 @@
 
             # Combining the p-values for each side across blocks.
             if (any(valid.test)) { 
-                comb.args <- list(method="z", weights=all.weight[valid.test], log.p=TRUE)
+                all.weight <- all.weight[valid.test]
+                comb.args <- list(method="z", weights=all.weight, log.p=TRUE)
                 com.left <- do.call(combinePValues, c(all.left[valid.test], comb.args))
                 com.right <- do.call(combinePValues, c(all.right[valid.test], comb.args))
+
+                hvt.p <- .choose_leftright_pvalues(com.left, com.right, direction=direction)
+                tvh.p <- .choose_leftright_pvalues(com.right, com.left, direction=direction)
+
+                forward.effect <- .weighted_average_vals(all.forward[valid.test], all.weight)
+                reverse.effect <- .weighted_average_vals(all.reverse[valid.test], all.weight)
             } else {
-                com.left <- com.right <- rep(NA_real_, length(all.left[[1]]))
+                hvt.p <- tvh.p <- forward.effect <- reverse.effect <- rep(NA_real_, length(all.left[[1]]))
                 warning(paste("no within-block comparison between", host, "and", target))
             }
 
-            # Flipping left/right to get the p-value from the reversed comparison.
-            hvt.p <- .choose_leftright_pvalues(com.left, com.right, direction=direction)
-            tvh.p <- .choose_leftright_pvalues(com.right, com.left, direction=direction)
-
-            # Flipping the effect.
-            com.effect <- .weighted_average_vals(all.effect, all.weight, weighted=TRUE)
-            out.stats[[host]][[target]] <- .create_full_stats(effect=com.effect, p=hvt.p, 
+            out.stats[[host]][[target]] <- .create_full_stats(effect=forward.effect, p=hvt.p, 
                 gene.names=gene.names, log.p=log.p, effect.name=effect.name)
-            out.stats[[target]][[host]] <- .create_full_stats(effect=FLIPFUN(com.effect), p=tvh.p, 
+            out.stats[[target]][[host]] <- .create_full_stats(effect=reverse.effect, p=tvh.p, 
                 gene.names=gene.names, log.p=log.p, effect.name=effect.name)
         }
     }
@@ -100,4 +102,19 @@
     repval <- rev(cummin(rev(repval)))
     repval[o] <- repval
     return(repval)
+}
+
+.weighted_average_vals <- function(vals, weights) {
+    combined <- total.weight <- 0
+    for (x in seq_along(vals)) {
+        cur.weights <- weights[[x]]
+        product <- vals[[x]] * cur.weights
+
+        # avoid problems with NA values that have zero weight.
+        product[is.na(product) & cur.weights==0] <- 0
+
+        combined <- combined + product
+        total.weight <- total.weight + cur.weights
+    }
+    combined/total.weight
 }

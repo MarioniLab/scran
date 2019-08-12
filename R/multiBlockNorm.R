@@ -11,6 +11,7 @@ multiBlockNorm <- function(x, block, ...)
 # written by Aaron Lun
 # created 4 June 2018
 {
+    .Deprecated(new="modelGeneVarWithSpikes")
     ref <- sizeFactors(x)
     if (is.null(ref)) {
         ref <- librarySizeFactors(x)

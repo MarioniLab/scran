@@ -14,6 +14,48 @@
 \item Added the pairwiseBinom() function for pairwise binomial tests of gene expression.
 
 \item Renamed output fields of pairwiseWilcox() to use AUC for less confusion.
+Added the lfc= argument to test against a log-fold change.
+
+\item Added the fitTrendVar(), fitTrendCV2(), modelGeneVar(), modelGeneVarWithSpikes(),
+modelGeneCV2(), modelCV2WithSpikes(), fitTrendPoisson() and modelGeneVarByPoisson() functions to model variability.
+
+\item Deprecated the trendVar(), technicalCV2(), improvedCV2(), decomposeVar(), trendVar(), testVar(),
+makeTechTrend(), multiBlockVar() and multiBlockNorm() functions.
+
+\item Modified combineVar() to not weight by residual d.f. unless specifically instructed.
+
+\item Added the combineCV2() function to combine separate CV2 modelling results.
+
+\item Added the test.type= argument in findMarkers() to switch between pairwise DE tests.
+
+\item Added the getTopMarkers() function to easily retrieve marker lists from pairwise DE results.
+
+\item In all functions that accept a block= argument,
+any level of the blocking factor that cannot yield a result (e.g., due to insufficient degrees of freedom)
+will now be completely ignored and not contribute to any statistic.
+
+\item Added the getDenoisedPCs() function for general-purpose PCA-based denoising on non-SingleCellExperiment inputs.
+
+\item Converted denoisePCA() to a normal function, removed the method for ANY matrix.
+
+\item Added the calculateSumFactors() function for general-purpose calculation of deconvolution factors 
+on non-SingleCellExperiment inputs.
+
+\item Converted computeSumFactors() to a normal function, removed the method for ANY input.
+
+\item Deprecated all special handling of spike-in rows,
+which are no longer necessary when spike-ins are stored as alternative experiments.
+
+\item Deprecated computeSpikeFactors(), which is no longer necessary when spike-ins are stored as alternative experiments.
+
+\item Deprecated overlapExprs(), which is replaced by type="wilcox" in findMarkers().
+
+\item Deprecated parallelPCA(), which has been moved to the PCAtools package.
+
+\item Modified clusterModularity() to return upper-triangular matrices,
+fixing a bug where the off-diagonal weights were split into two entries across the diagonal.
+Added the as.ratio= argument to return a matrix of log-ratios.
+Renamed the get.values= argument to get.weights=.
 }}
 
 \section{Version 1.12.0}{\itemize{

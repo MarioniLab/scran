@@ -1,3 +1,117 @@
+#' @importFrom BiocParallel bplapply bpisup bpstart bpstop
+.compute_mean_var <- function(x, block, design, subset.row, block.FUN, residual.FUN, BPPARAM, ...) {
+    subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
+    wout <- .worker_assign(length(subset.row), BPPARAM)
+    by.core <- .split_vector_by_workers(subset.row, wout)
+    by.core <- .split_matrix_by_workers(x, by.core)
+
+    if (!bpisup(BPPARAM)) {
+        bpstart(BPPARAM)
+        on.exit(bpstop(BPPARAM))
+    }
+
+    if (is.null(design)) {
+        if (!is.null(block)) { 
+            if (ncol(x)!=length(block)) {
+                stop("length of 'block' should be the same as 'ncol(x)'")
+            }
+
+            # Checking residual d.f.
+            by.block <- split(seq_len(ncol(x))-1L, block, drop=TRUE)
+        } else {
+            by.block <- list(seq_len(ncol(x))-1L)
+        }
+
+        resid.df <- lengths(by.block) - 1L
+        if (all(resid.df<=0L)){ 
+            stop("no residual d.f. in any level of 'block' for variance estimation")
+        }
+
+	    raw.stats <- bplapply(by.core, FUN=block.FUN, bygroup=by.block, ..., BPPARAM=BPPARAM)
+        means <- do.call(rbind, lapply(raw.stats, FUN=function(x) t(x[[1]])))
+        vars <- do.call(rbind, lapply(raw.stats, FUN=function(x) t(x[[2]])))
+        ncells <- lengths(by.block)
+        colnames(means) <- colnames(vars) <- names(ncells) <- names(by.block)
+    } else {
+        if (!is.null(block)) {
+            stop("cannot specify 'design' with multi-level 'block'")
+        }
+
+        # Checking residual d.f.
+        resid.df <- nrow(design) - ncol(design)
+        if (resid.df <= 0L) {
+            stop("no residual d.f. in 'design' for variance estimation")
+        }
+        QR <- .ranksafe_qr(design)
+
+        # Calculating the residual variance of the fitted linear model.
+        raw.stats <- bplapply(by.core, FUN=residual.FUN, qr=QR$qr, qraux=QR$qraux, ..., BPPARAM=BPPARAM)
+        means <- matrix(unlist(lapply(raw.stats, FUN="[[", i=1)))
+        vars <- matrix(unlist(lapply(raw.stats, FUN="[[", i=2)))
+        ncells <- nrow(design)
+    }
+
+	rownames(means) <- rownames(vars) <- rownames(x)[subset.row]
+    list(means=means, vars=vars, ncells=ncells)
+}
+
+dummy.trend.fit <- list(trend=function(x) { rep(NA_real_, length(x)) }, std.dev=NA_real_)
+
+#' @importFrom stats pnorm p.adjust
+#' @importFrom S4Vectors DataFrame metadata<-
+.decompose_log_exprs <- function(x.means, x.vars, fit.means, fit.vars, ncells, ...) {
+    collected <- vector("list", ncol(x.means))
+    for (i in seq_along(collected)) {
+        fm <- fit.means[,i]
+        fv <- fit.vars[,i]
+        if (ncells[i] >= 2L) {
+            fit <- fitTrendVar(fm, fv, ...)
+        } else {
+            fit <- dummy.trend.fit
+        }
+
+        xm <- x.means[,i]
+        output <- DataFrame(mean=xm, total=x.vars[,i], tech=fit$trend(xm))
+        output$bio <- output$total - output$tech
+        output$p.value <- pnorm(output$bio/output$tech, sd=fit$std.dev, lower.tail=FALSE)
+        output$FDR <- p.adjust(output$p.value, method="BH")
+
+        rownames(output) <- rownames(x.means)
+        metadata(output) <- c(list(mean=fm, var=fv), fit)
+        collected[[i]] <- output
+    }
+    names(collected) <- colnames(x.means)
+    collected
+}
+
+#' @importFrom stats pnorm
+#' @importFrom S4Vectors DataFrame metadata<-
+.decompose_cv2 <- function(x.means, x.vars, fit.means, fit.vars, ncells, ...) {
+    collected <- vector("list", ncol(x.means))
+    for (i in seq_along(collected)) {
+        fm <- fit.means[,i]
+        fcv2 <- fit.vars[,i]/fm^2
+        if (ncells[i] >= 2L) {
+            fit <- fitTrendCV2(fm, fcv2, ncells[i], ...)
+        } else {
+            fit <- dummy.trend.fit
+        }
+
+        xm <- x.means[,i]
+        xcv2 <- x.vars[,i]/xm^2
+        output <- DataFrame(mean=xm, total=xcv2, trend=fit$trend(xm))
+
+        output$ratio <- output$total/output$trend
+        output$p.value <- pnorm(output$ratio, mean=1, sd=fit$std.dev, lower.tail=FALSE)
+
+        rownames(output) <- rownames(x.means)
+        metadata(output) <- c(list(mean=fm, cv2=fcv2), fit)
+        collected[[i]] <- output
+    }
+    names(collected) <- colnames(x.means)
+    collected
+}
+
 #' @importFrom SummarizedExperiment assayNames
 #' @importFrom scater librarySizeFactors
 #' @importFrom SingleCellExperiment sizeFactorNames
@@ -96,6 +210,91 @@
     list(is.spike=is.spike, sf.cell=sf.cell, sf.spike=sf.spike)
 }
 
+#' @importFrom stats p.adjust
+#' @importFrom S4Vectors DataFrame
+.combine_blocked_statistics <- function(collected, method, equiweight, ncells, geometric=FALSE,
+    fields=c("mean", "total", "tech", "bio"), pval="p.value")
+{
+    if (length(collected)==1L) {
+        return(collected[[1]])
+    }
+
+    # Combining statistics with optional weighting.
+    if (equiweight) {
+        weights <- rep(1, length(collected))
+    } else {
+        weights <- ncells
+    }
+
+    original <- collected
+    keep <- ncells >= 2L
+    collected <- collected[keep]
+    weights <- weights[keep]
+
+    combined <- list()
+    for (i in fields) {
+        extracted <- lapply(collected, "[[", i=i)
+
+        if (geometric) {
+            extracted <- lapply(extracted, log)
+        }
+        extracted <- mapply("*", extracted, weights, SIMPLIFY=FALSE, USE.NAMES=FALSE)
+        averaged <- Reduce("+", extracted)/sum(weights)
+        if (geometric) {
+            averaged <- exp(averaged)            
+        }
+        combined[[i]] <- averaged 
+    }
+
+    extracted <- lapply(collected, "[[", i=pval)
+    combined$p.value <- do.call(combinePValues, c(extracted, list(method=method, weights=weights)))
+    combined$FDR <- p.adjust(combined$p.value, method="BH")
+
+    output <- DataFrame(combined)
+    output$per.block <- do.call(DataFrame, lapply(original, I))
+
+    output
+}
+
+#' @importFrom BiocParallel SerialParam
+#' @importFrom scater librarySizeFactors
+.compute_var_stats_with_spikes <- function(x, spikes, size.factors=NULL, spike.size.factors=NULL, 
+    subset.row=NULL, block=NULL, BPPARAM=SerialParam(), ...)
+{
+    if (is.null(size.factors)) {
+        size.factors <- librarySizeFactors(x, subset_row=subset.row)
+    } else {
+        # Centering just in case; this should almost certainly be true anyway.
+        size.factors <- size.factors/mean(size.factors)
+    }
+    stats.out <- .compute_mean_var(x, block=block, subset.row=subset.row, 
+        BPPARAM=BPPARAM, sf=size.factors, ...)
+
+    if (is.null(spike.size.factors)) {
+        spike.size.factors <- librarySizeFactors(spikes) # no subset_row here, as that only applies to 'x'.
+    }
+
+    # Rescaling so that the mean spike.size.factors is the same as each
+    # size.factors in each block.  Note that we do not recenter the
+    # size.factors themselves within each block, so as to ensure we are
+    # modelling the variance in the same log-expression values that will be
+    # used in downstream analyses.
+    if (is.null(block)) {
+        spike.size.factors <- spike.size.factors / mean(spike.size.factors) # assume mean(size.factors)=1, see above.
+    } else {
+        by.block <- split(seq_along(block), block)
+        for (i in by.block) {
+            current <- spike.size.factors[i]
+            spike.size.factors[i] <- current / mean(current) * mean(size.factors[i])
+        }
+    }
+
+    spike.stats <- .compute_mean_var(spikes, block=block, subset.row=subset.row, 
+        BPPARAM=BPPARAM, sf=spike.size.factors, ...)
+
+    list(x=stats.out, spikes=spike.stats)
+}
+
 #' @importFrom stats density approx
 .inverse_density_weights <- function(x, adjust=1) {
     out <- density(x, adjust=adjust, from=min(x), to=max(x))
@@ -103,22 +302,26 @@
     w/mean(w)
 }
 
-#' @importFrom stats median
-.robustify_fit <- function(x, y, fitFUN, predFUN, weights, max.iter=50, nmads=6, tol=1e-8) {
-    original <- weights
-    for (i in seq_len(max.iter)) {
-        fit <- fitFUN(x, y, weights)
+#' @importFrom limma weighted.median
+.correct_logged_expectation <- function(x, y, w, FUN) 
+# Adjusting for any scale shift due to fitting to the log-values.
+# The expectation of the log-values should be the log-expectation
+# plus a factor that is dependent on the variance of the raw values
+# divided by the squared mean, using a second-order Taylor approximation. 
+# If we assume that the standard deviation of the variances is proportional
+# to the mean variances with the same constant across all abundances,
+# we should be able to correct the discrepancy with a single rescaling factor. 
+{
+    leftovers <- y/FUN(x)
+    med <- weighted.median(leftovers, w, na.rm=TRUE)
 
-        r <- abs(y - predFUN(fit)(x))
-        r <- r/(median(r, na.rm=TRUE) * nmads)
-        r <- pmin(r, 1)
-
-        new.weights <- (1 - r^3)^3 * original
-        if (max(abs(new.weights - weights)) < tol) {
-            break
-        }
-        weights <- new.weights
+    OUT <- function(x) { 
+        output <- FUN(x) * med
+        names(output) <- names(x)
+        output
     }
-    
-    fit
+
+    # We assume ratios are normally distributed around 1 with some standard deviation.
+    std.dev <- unname(weighted.median(abs(leftovers/med - 1), w, na.rm=TRUE)) * 1.4826 
+    list(trend=OUT, std.dev=std.dev)
 }

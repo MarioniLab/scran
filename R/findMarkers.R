@@ -1,27 +1,127 @@
+#' Find marker genes
+#' 
+#' Find candidate marker genes for clusters of cells by testing for differential expression between pairs of clusters.
+#' 
+#' @param x A numeric matrix-like object of expression values, 
+#' where each column corresponds to a cell and each row corresponds to an endogenous gene.
+#' This is expected to be normalized log-expression values for most tests - see Details.
+#'
+#' Alternatively, a \linkS4class{SingleCellExperiment} object containing such a matrix.
+#' @param clusters A vector of cluster identities for all cells.
+#' @param test.type String specifying the type of pairwise test to perform -
+#' a t-test with \code{"t"}, a Wilcoxon rank sum test with \code{"wilcox"}, 
+#' or a binomial test with \code{"binom"}.
+#' @inheritParams combineMarkers
+#' @param log.p A logical scalar indicating if log-transformed p-values/FDRs should be returned.
+#' @param subset.row See \code{?"\link{scran-gene-selection}"}.
+#' @param ... For the generic, further arguments to pass to specific methods.
+#'
+#' For the ANY method:
+#' \itemize{
+#' \item For \code{test.type="t"}, further arguments to pass to \code{\link{pairwiseTTests}}.
+#' \item For \code{test.type="wilcox"}, further arguments to pass to \code{\link{pairwiseWilcox}}.
+#' \item For \code{test.type="binom"}, further arguments to pass to \code{\link{pairwiseBinom}}.
+#' }
+#' Common arguments for all testing functions include \code{gene.names}, \code{direction}, 
+#' \code{block} and \code{BPPARAM}.
+#' Test-specific arguments are also supported for the appropriate \code{test.type}.
+#' 
+#' For the SingleCellExperiment method, further arguments to pass to the ANY method.
+#' @param assay.type A string specifying which assay values to use, usually \code{"logcounts"}.
+#' @param get.spikes See \code{?"\link{scran-gene-selection}"}.
+#' 
+#' @details
+#' This function provides a convenience wrapper for marker gene identification,
+#' based on running \code{\link{pairwiseTTests}} or related functions and passing the result to \code{\link{combineMarkers}}.
+#' All of the arguments above are supplied directly to one of these two functions -
+#' refer to the relevant function's documentation for more details.
+#' 
+#' If \code{x} contains log-normalized expression values generated with a pseudo-count of 1,
+#' it can be used in any of the pairwise testing procedures.
+#' If \code{x} is scale-normalized but not log-transformed, it can be used with \code{test.type="wilcox"} and \code{test.type="binom"}.
+#' If \code{x} contains raw countrs, it can only be used with \code{test.type="binom"}.
+#' 
+#' Note that \code{log.p} only affects the combined p-values and FDRs.
+#' If \code{full.stats=TRUE}, the p-values for each individual pairwise comparison will always be log-transformed,
+#' regardless of the value of \code{log.p}.
+#' Log-transformed p-values and FDRs are reported using the natural base.
+#' 
+#' @return 
+#' A named list of \linkS4class{DataFrame}s, each of which contains a sorted marker gene list for the corresponding cluster.
+#' In each DataFrame, the top genes are chosen to enable separation of that cluster from all other clusters.
+#' Log-fold changes are reported as differences in average \code{x} between clusters
+#' (usually in base 2, depending on the transformation applied to \code{x}).
+#' 
+#' See \code{?\link{combineMarkers}} for more details on the output format.
+#' 
+#' @author
+#' Aaron Lun
+#' 
+#' @seealso
+#' \code{\link{pairwiseTTests}},
+#' \code{\link{pairwiseWilcox}},
+#' \code{\link{pairwiseBinom}},
+#' for the underlying functions that compute the pairwise DE statistics.
+#'
+#' \code{\link{combineMarkers}}, to combine pairwise statistics into a single marker list per cluster.
+#' 
+#' @examples
+#' library(scater)
+#' sce <- mockSCE()
+#' sce <- logNormCounts(sce)
+#'
+#' # Any clustering method is okay, only using k-means for convenience.
+#' kout <- kmeans(t(logcounts(sce)), centers=4) 
+#'
+#' out <- findMarkers(sce, clusters=kout$cluster)
+#' names(out)
+#' out[[1]]
+#'
+#' # More customization of the tests:
+#' out <- findMarkers(sce, clusters=kout$cluster, test.type="wilcox")
+#' out[[1]]
+#'
+#' out <- findMarkers(sce, clusters=kout$cluster, lfc=1, direction="up")
+#' out[[1]]
+#'
+#' out <- findMarkers(sce, clusters=kout$cluster, pval.type="all")
+#' out[[1]]
+#'
+#' @name findMarkers
+NULL
+
 #' @importFrom BiocParallel SerialParam
-.findMarkers <- function(x, clusters, gene.names=rownames(x), block=NULL, design=NULL, 
-    pval.type=c("any", "all"), direction=c("any", "up", "down"), 
-    lfc=0, std.lfc=FALSE, log.p=FALSE, full.stats=FALSE, subset.row=NULL, BPPARAM=SerialParam())
-# Uses limma to find the markers that are differentially expressed between clusters,
-# given a log-expression matrix and some blocking factors in 'design' or 'block'.
-#
-# written by Aaron Lun
-# created 22 March 2017
+.findMarkers <- function(x, clusters, test.type=c("t", "wilcox", "binom"),
+    ..., pval.type=c("any", "all"), log.p=FALSE, full.stats=FALSE, sorted=TRUE) 
 {
-    fit <- pairwiseTTests(x, clusters, block=block, design=design, direction=direction, lfc=lfc, 
-        std.lfc=std.lfc, gene.names=gene.names, log.p=TRUE, subset.row=subset.row, BPPARAM=BPPARAM)
+    test.type <- match.arg(test.type)
+    if (test.type=="t") {
+        FUN <- pairwiseTTests
+        effect.field <- "logFC"
+    } else if (test.type=="wilcox") {
+        FUN <- pairwiseWilcox
+        effect.field <- "AUC"
+    } else {
+        FUN <- pairwiseBinom
+        effect.field <- "logFC"
+    }
+
+    fit <- FUN(x, clusters, ..., log.p=TRUE)
     combineMarkers(fit$statistics, fit$pairs, pval.type=pval.type, log.p.in=TRUE, log.p.out=log.p, 
-        full.stats=full.stats, pval.field="log.p.value")
+        full.stats=full.stats, pval.field="log.p.value", effect.field=effect.field, sorted=sorted)
 }
 
 #' @export
+#' @rdname findMarkers
 setGeneric("findMarkers", function(x, ...) standardGeneric("findMarkers"))
 
 #' @export
+#' @rdname findMarkers
 setMethod("findMarkers", "ANY", .findMarkers)
 
-#' @importFrom SummarizedExperiment assay
 #' @export
+#' @rdname findMarkers
+#' @importFrom SummarizedExperiment assay
 setMethod("findMarkers", "SingleCellExperiment", function(x, ..., subset.row=NULL, assay.type="logcounts", get.spikes=FALSE) {
     subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
     .findMarkers(assay(x, i=assay.type), ..., subset.row=subset.row)

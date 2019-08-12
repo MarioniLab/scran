@@ -132,21 +132,6 @@ test_that("buildSNNGraph with PCA works correctly", {
     alt <- buildSNNGraph(dummy, k=10, d=50)
     are_graphs_same(ref, alt)
 
-    # Testing with IRLBA.
-    set.seed(100)
-    ipc <- irlba::prcomp_irlba(t(dummy - rowMeans(dummy)), n=10, center=FALSE)
-    refi <- buildSNNGraph(t(ipc$x), k=10, d=NA)
-    set.seed(100)
-    alti <- buildSNNGraph(dummy, k=10, d=10, BSPARAM=BiocSingular::IrlbaParam())
-    are_graphs_same(refi, alti)
-
-    set.seed(200)
-    ipc <- irlba::prcomp_irlba(t(dummy - rowMeans(dummy)), n=20, center=FALSE)
-    refi <- buildSNNGraph(t(ipc$x), k=10, d=NA)
-    set.seed(200)
-    alti <- buildSNNGraph(dummy, k=10, d=20, BSPARAM=BiocSingular::IrlbaParam())
-    are_graphs_same(refi, alti)
-
     # Checking that it correctly extracts stuff from the reducedDimension slot.
     X <- SingleCellExperiment(list(logcounts=dummy))
     reducedDim(X, "PCA") <- pc$x[,1:50]
@@ -207,28 +192,6 @@ test_that("buildKNNGraph works correctly", {
     pc.out <- prcomp(t(dummy), rank.=10)
     g <- buildKNNGraph(dummy, k=20, d=10)
     expect_equal(g[], KMAKE(t(pc.out$x), k=20))
-})
-
-# Checking that the clusterModularity function computes the right value.
-
-set.seed(20004)
-test_that("clusterModularity computes the correct values", {
-    exprs <- matrix(rnorm(100000), ncol=100)
-    g <- buildSNNGraph(exprs)
-
-    random <- sample(5, ncol(exprs), replace=TRUE)
-    out <- clusterModularity(g, random) 
-    expect_equal(sum(diag(out)), modularity(g, random, weight=E(g)$weight))
-
-    # Repeating again on some actual clusters.
-    actual <- cluster_fast_greedy(g)
-    out <- clusterModularity(g, actual$membership) 
-    expect_equal(sum(diag(out)), modularity(g, actual$membership, weight=E(g)$weight))
-
-    # Some basic checks on the expected values.
-    out <- clusterModularity(g, random, get.values=TRUE)
-    expect_equal(sum(out$observed), sum(out$expected))
-    expect_equal(sum(out$observed), sum(g[]))
 })
 
 # Avoid normalize() overwriting scater's normalize() in other files.

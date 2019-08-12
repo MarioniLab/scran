@@ -1,4 +1,4 @@
-#include "scran.h"
+#include "Rcpp.h"
 
 #include "utils.h"
 
@@ -39,9 +39,7 @@ protected:
     double size;
 };
 
-std::unique_ptr<FUN> choose_dist (SEXP tol, SEXP disp) {
-    const double lim=check_numeric_scalar(tol, "tolerance");    
-    const double phi=check_numeric_scalar(disp, "dispersion");    
+std::unique_ptr<FUN> choose_dist (double lim, double phi) {
     if (lim <= 0) {
         throw std::runtime_error("tolerance must be a positive double-precision value");
     }
@@ -106,13 +104,11 @@ double get_var (double m, double s, double p, double grand_mean, FUN * ptr) {
  *  - calc_log_sqdiff computes the expected squared difference from a per-gene constant.
  */
 
-SEXP calc_log_count_stats (SEXP means, SEXP sf, SEXP tol, SEXP disp, SEXP offset) {
-    BEGIN_RCPP
-    Rcpp::NumericVector Means(means), Sizes(sf);
-    const auto pseudo=get_pseudo(offset);
+// [[Rcpp::export(rng=false)]]
+Rcpp::List calc_log_count_stats (Rcpp::NumericVector Means, Rcpp::NumericVector Sizes, 
+    double tol, double disp, double pseudo) 
+{
     auto ptr=choose_dist(tol, disp);
-
-    // Setting up the output.
     const size_t Nmeans = Means.size();
     Rcpp::NumericVector outputm(Nmeans), outputv(Nmeans);
 
@@ -139,42 +135,36 @@ SEXP calc_log_count_stats (SEXP means, SEXP sf, SEXP tol, SEXP disp, SEXP offset
     }    
 
     return Rcpp::List::create(outputm, outputv);
-    END_RCPP
 }
 
-SEXP calc_log_expected (SEXP means, SEXP sf, SEXP tol, SEXP disp, SEXP offset) {
-    BEGIN_RCPP
-    Rcpp::NumericVector Means(means), Sizes(sf);
-    const auto pseudo=get_pseudo(offset);
+// [[Rcpp::export(rng=false)]]
+Rcpp::List calc_log_expected (Rcpp::NumericVector Means, Rcpp::NumericVector Sizes, 
+    double tol, double disp, double pseudo) 
+{
     auto ptr=choose_dist(tol, disp);
-
     const size_t Nmeans = Means.size(), Nsizes = Sizes.size();
     Rcpp::List outputm(Nmeans);
 
     for (size_t i=0; i < Nmeans; ++i) { 
         const auto& m=Means[i];
-
         Rcpp::NumericVector curm(Nsizes);
         for (size_t j=0; j < Nsizes; ++j) {
             curm[j] = get_mean(m, Sizes[j], pseudo, ptr.get()) / M_LN2;
         }
-
         outputm[i]=curm;
     }
     
     return outputm;
-    END_RCPP
 }
 
-SEXP calc_log_sqdiff (SEXP means, SEXP sf, SEXP tol, SEXP disp, SEXP offset, SEXP constant) {
-    BEGIN_RCPP
-    Rcpp::NumericVector Means(means), Sizes(sf), Constants(constant);
+// [[Rcpp::export(rng=false)]]
+Rcpp::List calc_log_sqdiff (Rcpp::NumericVector Means, Rcpp::NumericVector Sizes, 
+    double tol, double disp, double pseudo, Rcpp::NumericVector Constants) 
+{
     if (Constants.size()!=Means.size()) {
-        throw std::runtime_error("'constant' and 'means' should be of the same length");
+        throw std::runtime_error("'Constant' and 'Means' should be of the same length");
     }
-    const auto pseudo=get_pseudo(offset);
     auto ptr=choose_dist(tol, disp);
-        
     const size_t Nmeans = Means.size(), Nsizes = Sizes.size();
     Rcpp::List outputv(Nmeans);
 
@@ -190,7 +180,4 @@ SEXP calc_log_sqdiff (SEXP means, SEXP sf, SEXP tol, SEXP disp, SEXP offset, SEX
     }
     
     return outputv;
-    END_RCPP
 }
-
-

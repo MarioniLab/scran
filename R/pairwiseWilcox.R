@@ -1,8 +1,126 @@
+#' Perform pairwise Wilcoxon rank sum tests
+#' 
+#' Perform pairwise Wilcoxon rank sum tests between groups of cells, possibly after blocking on uninteresting factors of variation.
+#' 
+#' @param x A numeric matrix-like object of normalized log-expression values, where each column corresponds to a cell and each row corresponds to an endogenous gene.
+#' @param clusters A vector of cluster identities for all cells.
+#' @param block A factor specifying the blocking level for each cell.
+#' @param direction A string specifying the direction of effects to be considered for each cluster.
+#' @param log.p A logical scalar indicating if log-transformed p-values/FDRs should be returned.
+#' @param gene.names A character vector of gene names with one value for each row of \code{x}.
+#' @param subset.row See \code{?"\link{scran-gene-selection}"}.
+#' @param lfc Numeric scalar specifying the minimum log-fold change for one observation to be considered to be \dQuote{greater} than another.
+#' @param BPPARAM A \linkS4class{BiocParallelParam} object indicating whether and how parallelization should be performed across genes.
+#' 
+#' @details
+#' This function performs Wilcoxon rank sum tests to identify differentially expressed genes (DEGs) between pairs of clusters.
+#' A list of tables is returned where each table contains the statistics for all genes for a comparison between each pair of clusters.
+#' This can be examined directly or used as input to \code{\link{combineMarkers}} for marker gene detection.
+#' 
+#' The effect size for each gene in each comparison is reported as the area under the curve (AUC).
+#' Consider the distribution of expression values for gene X within each of two groups A and B.
+#' The AUC is the probability that a randomly selected cell in A has a greater expression of X than a randomly selected cell in B. 
+#' (Ties are assumed to be randomly broken.)
+#' Concordance probabilities near 0 indicate that most observations in A are lower than most observations in B;
+#' conversely, probabilities near 1 indicate that most observations in A are higher than those in B.
+#' The Wilcoxon rank sum test effectively tests for significant deviations from an AUC of 0.5.
+#' 
+#' Wilcoxon rank sum tests are more robust to outliers and insensitive to non-normality, in contrast to t-tests in \code{\link{pairwiseTTests}}.
+#' However, they take longer to run, the effect sizes are less interpretable, and there are more subtle violations of its assumptions in real data.
+#' For example, the i.i.d. assumptions are unlikely to hold after scaling normalization due to differences in variance.
+#' Also note that we approximate the distribution of the Wilcoxon rank sum statistic to deal with large numbers of cells and ties.
+#' 
+#' @section Direction and magnitude of the effect:
+#' If \code{direction="any"}, two-sided Wilcoxon rank sum tests will be performed for each pairwise comparisons between clusters.
+#' Otherwise, one-sided tests in the specified direction will be used to compute p-values for each gene.
+#' This can be used to focus on genes that are upregulated in each cluster of interest, which is often easier to interpret.
+#' 
+#' To interpret the setting of \code{direction}, consider the DataFrame for cluster X, in which we are comparing to another cluster Y.
+#' If \code{direction="up"}, genes will only be significant in this DataFrame if they are upregulated in cluster X compared to Y.
+#' If \code{direction="down"}, genes will only be significant if they are downregulated in cluster X compared to Y.
+#' See \code{?\link{wilcox.test}} for more details on the interpretation of one-sided Wilcoxon rank sum tests.
+#'
+#' Users can also specify a log-fold change threshold in \code{lfc} to focus on genes that exhibit large shifts in location.
+#' This is equivalent to specifying the \code{mu} parameter in \code{\link{wilcox.test}}, 
+#' with some additional subtleties depending on \code{direction}:
+#' \itemize{
+#' \item If \code{direction="any"}, the null hypothesis is that the true shift is either \code{-lfc} or \code{lfc} with equal probability.
+#' A two-sided p-value is computed against this composite null.
+#' The AUC is computed by averaging the AUCs obtained when X's expression values are shifted to the left or right by \code{lfc}.
+#' This can be very roughly interpreted as considering an observation of Y to be tied with an observation of X if they differ by less than \code{lfc}.
+#' \item If \code{direction="up"}, the null hypothesis is that the true shift is \code{lfc}, and a one-sided p-value is computed.
+#' The AUC is computed after shifting X's expression values to the left by \code{lfc}.
+#' \item If \code{direction="down"}, the null hypothesis is that the true shift is \code{-lfc}, and a one-sided p-value is computed.
+#' The AUC is computed after shifting X's expression values to the right by \code{lfc}.
+#' }
+#' The fact that the AUC depends on \code{lfc} is necessary to preserve its relationship with the p-value.
+#'
+#' @section Blocking on uninteresting factors:
+#' If \code{block} is specified, Wilcoxon tests are performed between clusters within each level of \code{block}.
+#' For each pair of clusters, the p-values for each gene across all levels of \code{block} are combined using Stouffer's Z-score method.
+#' The reported AUC is also a weighted average of the AUCs across all levels.
+#' 
+#' The weight for a particular level of \code{block} is defined as \eqn{N_xN_y},
+#' where \eqn{N_x} and \eqn{N_y} are the number of cells in clusters X and Y, respectively, for that level. 
+#' This means that p-values from blocks with more cells will have a greater contribution to the combined p-value for each gene.
+#' 
+#' When combining across batches, one-sided p-values in the same direction are combined first.
+#' Then, if \code{direction="any"}, the two combined p-values from both directions are combined.
+#' This ensures that a gene only receives a low overall p-value if it changes in the same direction across batches.
+#'
+#' When comparing two clusters, blocking levels are ignored if no p-value was reported, e.g., if there were insufficient cells for a cluster in a particular level. 
+#' If all levels are ignored in this manner, the entire comparison will only contain \code{NA} p-values and a warning will be emitted.
+#' 
+#' @return 
+#' A list is returned containing \code{statistics} and \code{pairs}.
+#' 
+#' The \code{statistics} element is itself a list of \linkS4class{DataFrame}s.
+#' Each DataFrame contains the statistics for a comparison between a pair of clusters,
+#' including the overlap proportions, p-values and false discovery rates.
+#' 
+#' The \code{pairs} element is a DataFrame with one row corresponding to each entry of \code{statistics}.
+#' This contains the fields \code{first} and \code{second}, 
+#' specifying the two clusters under comparison in the corresponding DataFrame in \code{statistics}.
+#' 
+#' In each DataFrame in \code{statistics}, the AUC represents the probability of sampling a value in the \code{first} cluster greater than a random value from the \code{second} cluster.
+#' 
+#' @author
+#' Aaron Lun
+#' 
+#' @references
+#' Whitlock MC (2005). 
+#' Combining probability from independent tests: the weighted Z-method is superior to Fisher's approach. 
+#' \emph{J. Evol. Biol.} 18, 5:1368-73.
+#' 
+#' Soneson C and Robinson MD (2018). 
+#' Bias, robustness and scalability in single-cell differential expression analysis. 
+#' \emph{Nat. Methods}
+#'
+#' @seealso
+#' \code{\link{wilcox.test}}, on which this function is based.
+#' 
+#' @examples
+#' library(scater)
+#' sce <- mockSCE()
+#' sce <- logNormCounts(sce)
+#'
+#' # Any clustering method is okay.
+#' kout <- kmeans(t(logcounts(sce)), centers=2) 
+#' 
+#' # Vanilla application:
+#' out <- pairwiseWilcox(logcounts(sce), clusters=kout$cluster)
+#' out
+#' 
+#' # Directional and with a minimum log-fold change:
+#' out <- pairwiseWilcox(logcounts(sce), clusters=kout$cluster, 
+#'     direction="up", lfc=0.2)
+#' out
+#' 
 #' @export
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel SerialParam
 pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "down"),
-    log.p=FALSE, gene.names=rownames(x), subset.row=NULL, tol=1e-8, BPPARAM=SerialParam())
+    lfc=0, log.p=FALSE, gene.names=rownames(x), subset.row=NULL, BPPARAM=SerialParam())
 # Performs pairwise Wilcoxon rank sum tests between clusters.
 #
 # written by Aaron Lun
@@ -28,7 +146,7 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
 
     direction <- match.arg(direction)
     results <- .blocked_wilcox(x, subset.row, clusters, block=block, direction=direction, 
-        gene.names=gene.names, log.p=log.p, tol=tol, BPPARAM=BPPARAM)
+        lfc=lfc, gene.names=gene.names, log.p=log.p, BPPARAM=BPPARAM)
 
     first <- rep(names(results), lengths(results))
     second <- unlist(lapply(results, names), use.names=FALSE)
@@ -37,10 +155,10 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
     list(statistics=results, pairs=DataFrame(first=first, second=second))
 }
 
-#' @importFrom BiocParallel bplapply SerialParam
+#' @importFrom BiocParallel bplapply SerialParam bpisup bpstart bpstop
 #' @importFrom stats pnorm 
 .blocked_wilcox <- function(x, subset.row, clusters, block=NULL, direction="any", gene.names=NULL, 
-    log.p=TRUE, tol=1e-8, BPPARAM=SerialParam())
+    lfc=0, log.p=TRUE, BPPARAM=SerialParam())
 {
     if (is.null(block)) {
         block <- list(`1`=seq_len(ncol(x)))
@@ -55,6 +173,11 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
     wout <- .worker_assign(length(subset.row), BPPARAM)
     by.core <- .split_vector_by_workers(subset.row - 1L, wout)
 
+    if (!bpisup(BPPARAM)) {
+        bpstart(BPPARAM)
+        on.exit(bpstop(BPPARAM))
+    }
+
     # Computing across blocks.
     clust.vals <- levels(clusters)
     nblocks <- length(block)
@@ -67,7 +190,7 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
         names(all.n[[b]]) <- clust.vals
         
         cur.groups <- split(chosen - 1L, cur.clusters)
-        bpl.out <- bplapply(by.core, FUN=.find_overlap_exprs, x=x, by.group=cur.groups, tol=tol, BPPARAM=BPPARAM)
+        bpl.out <- bplapply(by.core, FUN=overlap_exprs, exprs=x, bygroup=cur.groups, lfc=lfc, BPPARAM=BPPARAM)
         raw.stats <- lapply(bpl.out, "[[", i=1)
         raw.ties <- lapply(bpl.out, "[[", i=2)
 
@@ -76,30 +199,53 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
         for (i in seq_along(cons.stats)) {
             cons.stats[[i]] <- do.call(rbind, lapply(raw.stats, "[[", i=i))
             cons.ties[[i]] <- do.call(rbind, lapply(raw.ties, "[[", i=i))
-            colnames(cons.stats[[i]]) <- colnames(cons.ties[[i]]) <- clust.vals[seq_len(i-1L)]
+            ncols <- ncol(cons.stats[[i]])
+            colnames(cons.stats[[i]]) <- colnames(cons.ties[[i]]) <- clust.vals[seq_len(ncols)]
         }
 
         all.stats[[b]] <- cons.stats
         all.ties[[b]] <- cons.ties
     }
 
+    if (lfc==0) {
+        STATFUN <- .generate_nolfc_wilcox(all.n, all.stats, all.ties, direction)
+    } else {
+        STATFUN <- .generate_lfc_wilcox(all.n, all.stats, all.ties, direction)
+    }
+
     # This looks at every level of the blocking factor and performs
     # Wilcoxon tests between pairs of clusters within each blocking level.
-    STATFUN <- function(b, host, target) {
-        cur.effect <- all.stats[[b]][[host]][,target]
+    .pairwise_blocked_template(x, clust.vals, nblocks=length(block), direction=direction, 
+        gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, effect.name="AUC")
+}
+
+##########################
+### Internal functions ###
+##########################
+
+#' @importFrom stats pnorm
+.generate_nolfc_wilcox <- function(all.n, all.stats, all.ties, direction) {
+    force(all.n)
+    force(all.stats)
+    force(all.ties)
+    force(direction)
+
+    function(b, host, target) {
         host.n <- as.double(all.n[[b]][[host]]) # numeric conversion to avoid overflow.
         target.n <- as.double(all.n[[b]][[target]])
         cur.prod <- host.n * target.n
 
-        output <- list(effect=cur.effect / cur.prod, weight=cur.prod)
+        effect <- all.stats[[b]][[host]][,target]
+        auc <- effect/cur.prod
+        output <- list(forward=auc, reverse=1 - auc, weight=cur.prod)
 
-        # 'cur.prod' is still nominally integer; we use 1.5 to avoid numerical imprecision upon an exact comparison.
+        # 'cur.prod' is still nominally integer; we use 1.5 to avoid
+        # numerical imprecision upon an exact comparison.
         output$valid <- cur.prod > 1.5
 
         # Approximate Wilcoxon with continuity correction: ripped straight from wilcox.test() in stats.
-        TIESUM <- all.ties[[b]][[host]][,target]
-        z <- cur.effect - cur.prod/2
-        SIGMA <- sqrt((host.n * target.n/12) * ((host.n + target.n + 1) - TIESUM/((host.n + target.n) * (host.n + target.n - 1))))
+        z <- effect - cur.prod/2
+        SIGMA <- .get_sigma(host.n, target.n, all.ties[[b]][[host]][,target])
 
         # using 0.25 to avoid numerical imprecision; z should go up in units of 0.5's.
         CORRECTION <- if (direction=="any") ifelse(abs(z) < 0.25, 0, 0.5) else 0.5 
@@ -108,14 +254,75 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
 
         output
     }
-
-    .pairwise_blocked_template(x, clust.vals, nblocks=length(block), direction=direction, 
-        gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, FLIPFUN=function(x) 1-x, effect.name="AUC")
 }
 
-.find_overlap_exprs <- function(x, subset.row, by.group, tol) 
-# Pass all arguments explicitly rather than via function environment
-# (preserve scran namespace, avoid duplication of memory in bplapply).
-{
-    .Call(cxx_overlap_exprs, x, subset.row, by.group, tol)
+#' @importFrom stats pnorm
+.generate_lfc_wilcox <- function(all.n, all.stats, all.ties, direction) {
+    force(all.n)
+    force(all.stats)
+    force(all.ties)
+    force(direction)
+
+    function(b, host, target) {
+        host.n <- as.double(all.n[[b]][[host]]) # numeric conversion to avoid overflow.
+        target.n <- as.double(all.n[[b]][[target]])
+        cur.prod <- host.n * target.n
+
+        # Minus, in that host's values have 'lfc' subtracted from them (i.e., null is +lfc).
+        # Added, in that host's values have 'lfc' added to them (i.e., null is -lfc).
+        minus.effect <- all.stats[[b]][[host]][,target]
+        added.effect <- all.stats[[b]][[target]][,host]
+
+        # Taking the average assuming that the shift is 50% distributed at -lfc and lfc.
+        # This has the benefit that the effect size is agnostic to the setting of direction
+        # (which is necessary, as .pairwise_blocked_template() doesn't have any concept
+        # of choosing a different effect value according to the direction of change).
+        # Also see Details for an interpretation of what this actually means.
+        if (direction=="any") {
+            effect <- minus.effect/2 + added.effect/2
+            auc <- effect/cur.prod
+            output <- list(forward=auc, reverse=1-auc)
+        } else if (direction=="up") {
+            output <- list(forward=minus.effect/cur.prod, reverse=1-added.effect/cur.prod)
+        } else {
+            output <- list(forward=added.effect/cur.prod, reverse=1-minus.effect/cur.prod)
+        }
+        output$weight <- cur.prod
+
+        # 'cur.prod' is still nominally integer; we use 1.5 to avoid
+        # numerical imprecision upon an exact comparison.
+        output$valid <- cur.prod > 1.5
+
+        minus.z <- minus.effect - cur.prod/2
+        minus.SIGMA <- .get_sigma(host.n, target.n, all.ties[[b]][[host]][,target])
+        added.z <- added.effect - cur.prod/2
+        added.SIGMA <- .get_sigma(host.n, target.n, all.ties[[b]][[target]][,host])
+
+        CORRECTION <- 0.5
+        left.lower <- pnorm((added.z + CORRECTION)/added.SIGMA, log.p=TRUE)
+        right.upper <- pnorm((minus.z - CORRECTION)/minus.SIGMA, log.p=TRUE, lower.tail=FALSE)
+
+        if (direction=="any") {
+            left.upper <- pnorm((minus.z + CORRECTION)/minus.SIGMA, log.p=TRUE)
+            right.lower <- pnorm((added.z - CORRECTION)/added.SIGMA, log.p=TRUE, lower.tail=FALSE)
+
+            # Here, the null hypothesis is that the shift is evenly distributed at 50%
+            # probability for -lfc and lfc, hence we take the average of the two p-values.
+            output$left <- .add_log_values(left.lower, left.upper) - log(2)
+            output$right <- .add_log_values(right.lower, right.upper) - log(2)
+        } else {
+            # For one-sided tests, testing against the lfc threshold in the specified direction.
+            # Note that if direction='up', only 'right' is used; nonetheless, 'left' is still calculated
+            # so as to allow quick calculation of the p-value for the reversed contrast,
+            # by simply swapping 'left' and 'right'. The same applies when direction='down'.
+            output$left <- left.lower 
+            output$right <- right.upper
+        }
+
+        output
+    }
+}
+
+.get_sigma <- function(host.n, target.n, cur.ties) {
+    sqrt((host.n * target.n/12) * ((host.n + target.n + 1) - cur.ties/((host.n + target.n) * (host.n + target.n - 1))))
 }

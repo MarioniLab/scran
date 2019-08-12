@@ -3,7 +3,11 @@
 \alias{computeSpikeFactors,SingleCellExperiment-method}
 
 \title{Normalization with spike-in counts}
-\description{Compute size factors based on the coverage of spike-in transcripts.}
+\description{Compute size factors based on the coverage of spike-in transcripts.
+
+This is a deprecated function that is no longer necessary if spike-in transcripts are stored as alternative Experiments via \code{\link{altExp}}.
+In such cases, \code{\link{logNormCounts}} will automatically normalize the spike-in transcripts separately.
+}
 
 \usage{
 \S4method{computeSpikeFactors}{SingleCellExperiment}(x, type=NULL, assay.type="counts", sf.out=FALSE, general.use=TRUE)

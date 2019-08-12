@@ -4,7 +4,10 @@
 \alias{overlapExprs,SingleCellExperiment-method}
 
 \title{Overlap expression profiles}
-\description{Compute the gene-specific overlap in expression profiles between two groups of cells.}
+\description{Compute the gene-specific overlap in expression profiles between two groups of cells.
+
+This is deprecated in favor of calling \code{\link{findMarkers}} with \code{type="wilcox"}.
+}
 
 \usage{
 \S4method{overlapExprs}{ANY}(x, groups, gene.names=rownames(x), block=NULL, 

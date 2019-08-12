@@ -1,4 +1,4 @@
-#include "scran.h"
+#include "Rcpp.h"
 
 #include "beachmat/numeric_matrix.h"
 #include "beachmat/integer_matrix.h"
@@ -62,21 +62,20 @@ SEXP fit_linear_model_internal (SEXP qr, SEXP qraux, SEXP inmat, SEXP subset, SE
     }
 }
 
-SEXP fit_linear_model (SEXP qr, SEXP qraux, SEXP exprs, SEXP subset, SEXP get_coefs) {
-    BEGIN_RCPP
+// [[Rcpp::export(rng=false)]]
+Rcpp::RObject fit_linear_model (Rcpp::RObject qr, SEXP qraux, SEXP exprs, SEXP subset, SEXP get_coefs) {
     int rtype=beachmat::find_sexp_type(exprs);
     if (rtype==INTSXP) {
         return fit_linear_model_internal<beachmat::integer_matrix>(qr, qraux, exprs, subset, get_coefs);
     } else {
         return fit_linear_model_internal<beachmat::numeric_matrix>(qr, qraux, exprs, subset, get_coefs);
     }
-    END_RCPP
 }
 
 /* A much faster function when there's a one-way layout involved. */
 
 template<class M>
-SEXP fit_oneway_internal (Rcpp::List bygroup, SEXP inmat, SEXP subset) {
+Rcpp::List fit_oneway_internal (Rcpp::List bygroup, SEXP inmat, SEXP subset) {
     auto emat=beachmat::create_matrix<M>(inmat);
     const size_t ncells=emat->get_ncol();
  
@@ -131,16 +130,15 @@ SEXP fit_oneway_internal (Rcpp::List bygroup, SEXP inmat, SEXP subset) {
         }
     }
 
-    return(Rcpp::List::create(outmean, outvar));
+    return Rcpp::List::create(outmean, outvar);
 }
 
-SEXP fit_oneway (SEXP grouping, SEXP exprs, SEXP subset) {
-    BEGIN_RCPP
+// [[Rcpp::export(rng=false)]]
+Rcpp::List fit_oneway (Rcpp::List grouping, SEXP exprs, SEXP subset) {
     int rtype=beachmat::find_sexp_type(exprs);
     if (rtype==INTSXP) {
         return fit_oneway_internal<beachmat::integer_matrix>(grouping, exprs, subset);
     } else {
         return fit_oneway_internal<beachmat::numeric_matrix>(grouping, exprs, subset);
     }
-    END_RCPP
 }

@@ -1,70 +1,142 @@
+#' Build null correlations
+#' 
+#' Build a distribution of correlations under the null hypothesis of independent expression between pairs of genes.
+#'
+#' @param ncells An integer scalar indicating the number of cells in the data set.
+#' @param iters An integer scalar specifying the number of values in the null distribution.
+#' @param block A factor specifying the blocking level for each cell.
+#' @param design A numeric design matrix containing uninteresting factors to be ignored.
+#' @param equiweight A logical scalar indicating whether statistics from each block should be given equal weight.
+#' Otherwise, each block is weighted according to its number of cells.
+#' Only used if \code{block} is specified.
+#' @param BPPARAM A \linkS4class{BiocParallelParam} object that specifies the manner of parallel processing to use.
+#'
+#' @details
+#' The \code{correlateNull} function constructs an empirical null distribution for Spearman's rank correlation when it is computed with \code{ncells} cells.
+#' This is done by shuffling the ranks, calculating the correlation and repeating until \code{iters} values are obtained.
+#' No consideration is given to tied ranks, which has implications for the accuracy of p-values in \code{\link{correlatePairs}}.
+#'
+#' If \code{block} is specified, a null correlation is created within each level of \code{block} using the shuffled ranks.
+#' The final correlation is then defined as the average of the per-level correlations, 
+#' weighted by the number of cells in that level if \code{equiweight=FALSE}.
+#' Levels with fewer than 3 cells are ignored, and if no level has 3 or more cells, all returned correlations will be \code{NA}.
+#'
+#' If \code{design} is specified, the same process is performed on ranks derived from simulated residuals computed by fitting the linear model to a vector of normally distributed values.
+#' If there are not at least 3 residual d.f., all returned correlations will be \code{NA}.
+#' The \code{design} argument cannot be used at the same time as \code{block}.
+#' 
+#' % Yeah, we could use a t-distribution for this, but the empirical distribution is probably more robust if you have few cells (or effects, after batch correction).
+#'
+#' @return
+#' A numeric vector of length \code{iters} is returned containing the sorted correlations under the null hypothesis of no correlations.
+#'
+#' @author
+#' Aaron Lun
+#' 
+#' @seealso
+#' \code{\link{correlatePairs}}, where the null distribution is used to compute p-values.
+#'
+#' @examples
+#' set.seed(0)
+#' ncells <- 100
+#'
+#' # Simplest case:
+#' null.dist <- correlateNull(ncells, iters=10000)
+#' hist(null.dist)
+#'
+#' # With a blocking factor:
+#' block <- sample(LETTERS[1:3], ncells, replace=TRUE)
+#' null.dist <- correlateNull(block=block, iters=10000)
+#' hist(null.dist)
+#'
+#' # With a design matrix.
+#' cov <- runif(ncells)
+#' X <- model.matrix(~cov)
+#' null.dist <- correlateNull(design=X, iters=10000)
+#' hist(null.dist)
+#' 
 #' @export
-#' @importFrom BiocParallel SerialParam bpmapply
-correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, BPPARAM=SerialParam()) 
-# This builds a null distribution for the modified Spearman's rho.
-#
-# written by Aaron Lun
-# created 10 February 2016    
-{
-    if (!is.null(block)) { 
-        if (!missing(ncells)) { 
+#' @importFrom BiocParallel SerialParam bpmapply bpisup bpstart bpstop
+correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, equiweight=TRUE, BPPARAM=SerialParam()) {
+    if (!bpisup(BPPARAM)) {
+        bpstart(BPPARAM)
+        on.exit(bpstop(BPPARAM))
+    }
+
+    iters <- as.integer(iters)
+    iters.per.core <- .niters_by_nworkers(iters, BPPARAM)
+
+    blockFUN <- function(group) {
+        pcg.state <- .setup_pcg_state(iters.per.core)
+        out.g <- bpmapply(Niters=iters.per.core, Seeds=pcg.state$seeds, Streams=pcg.state$streams,
+            MoreArgs=list(Ncells=length(group)), FUN=get_null_rho,
+            SIMPLIFY=FALSE, USE.NAMES=FALSE, BPPARAM=BPPARAM)
+        unlist(out.g) 
+    }
+
+    designFUN <- function(QR) {
+        pcg.state <- .setup_pcg_state(iters.per.core)
+        out.g <- bpmapply(Niters=iters.per.core, Seeds=pcg.state$seeds, Streams=pcg.state$streams, 
+            MoreArgs=list(qr=QR$qr, qraux=QR$qraux), FUN=get_null_rho_design,
+            SIMPLIFY=FALSE, USE.NAMES=FALSE, BPPARAM=BPPARAM)
+        unlist(out.g) 
+    }
+
+    # Additional error messages.
+    if (is.null(design)) {
+        if (!is.null(block) && !missing(ncells)) { 
             stop("cannot specify both 'ncells' and 'block'")
         }
-        groupings <- table(block)
+    } else {
+        if (!missing(ncells)) { 
+            stop("cannot specify both 'ncells' and 'design'")
+        } else if (!is.null(block)) {
+            stop("cannot specify both 'block' and 'design'")
+        }
+    }
+
+    .correlator_base(ncells, block, design, equiweight, blockFUN, designFUN, BPPARAM, iters)
+}
+
+.correlator_base <- function(ncells, block, design, equiweight, blockFUN, designFUN, BPPARAM, outlen) {
+    if (is.null(design)) { 
+        if (is.null(block)) {
+            block <- rep(1L, ncells)
+        }
+
+        groupings <- split(seq_along(block), block)
+        if (equiweight) {
+            weights <- rep(1, length(groupings))
+        } else {
+            weights <- lengths(groupings)
+        }
 
         # Estimating the correlation as a weighted mean of the correlations in each group.
         # This avoids the need for the normality assumption in the residual effect simulation.
-        out <- 0
-        for (ngr in groupings) {
-            out.g <- .within_block_null(ncells=ngr, iters=as.integer(iters), BPPARAM=BPPARAM)
-            out <- out + out.g * ngr
-        }
-        out <- out/length(block)
-        attrib <- list(block=block)
-        
-    } else if (!is.null(design)) { 
-        if (!missing(ncells)) { 
-            stop("cannot specify both 'ncells' and 'design'")
-        }
+        out <- total <- 0
+        for (g in seq_along(groupings)) {
+            ngr <- length(groupings[[g]])
+            if (ngr <= 2L) {
+                next            
+            }
 
-        # Using residual effects to compute the correlations.
-        QR <- .ranksafe_qr(design)
-        iters.per.core <- .niters_by_nworkers(as.integer(iters), BPPARAM)
-        pcg.states <- .setup_pcg_state(iters.per.core)
-        out <- bpmapply(iters=iters.per.core, seeds=pcg.states$seeds, streams=pcg.states$streams, 
-            MoreArgs=list(QR=QR), FUN=.with_design_null, SIMPLIFY=FALSE, USE.NAMES=FALSE)
-        out <- unlist(out)
-        attrib <- list(design=design)
+            out.g <- blockFUN(groupings[[g]])
+            w <- weights[g]
+            out <- out + unlist(out.g) * w
+            total <- total + w
+        }
+        out <- out/total
 
     } else {
-        out <- .within_block_null(iters=as.integer(iters), ncells=as.integer(ncells), BPPARAM=BPPARAM)
-        attrib <- NULL
+        QR <- .ranksafe_qr(design)
+        if (nrow(design) - ncol(design) > 2L) {
+            out <- designFUN(QR)
+        } else {
+            out <- rep(NA_real_, outlen)
+        }
     }
 
-    # Storing attributes, to make sure it matches up.
-    out <- sort(out)
-    attributes(out) <- attrib
-    return(out)  
-}
-
-#### Internal functions (no design) ####
-
-#' @importFrom BiocParallel bpmapply
-.within_block_null <- function(iters, ncells, BPPARAM) {
-    iters.per.core <- .niters_by_nworkers(as.integer(iters), BPPARAM)
-    pcg.state <- .setup_pcg_state(iters.per.core)
-    out <- bpmapply(iters=iters.per.core, seeds=pcg.state$seeds, streams=pcg.state$streams,
-        MoreArgs=list(ncells=as.integer(ncells)), FUN=.no_design_null, 
-        SIMPLIFY=FALSE, USE.NAMES=FALSE, BPPARAM=BPPARAM)
-    unlist(out)
-}
-
-.no_design_null <- function(ncells, iters, seeds, streams) {
-    .Call(cxx_get_null_rho, ncells, iters, seeds, streams)
-}
-
-.with_design_null <- function(iters, QR, seeds, streams) {
-    .Call(cxx_get_null_rho_design, QR$qr, QR$qraux, iters, seeds, streams)
+    out
 }
 
 #' @importFrom BiocParallel bpnworkers

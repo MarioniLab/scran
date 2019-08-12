@@ -35,6 +35,7 @@ makeTechTrend <- function(means, size.factors=1, tol=1e-6, dispersion=0, pseudo.
 
     to.core <- .worker_assign(length(means), BPPARAM)
     by.core <- .split_vector_by_workers(means, to.core)
+    args <- list(tol=tol, disp=dispersion, pseudo=pseudo.count)
 
     if (is.finite(approx.npts)) {
         if (approx.npts < 2) {
@@ -50,21 +51,21 @@ makeTechTrend <- function(means, size.factors=1, tol=1e-6, dispersion=0, pseudo.
             lpts <- seq(min(lsf), max(lsf), length.out=approx.npts)
         }
         pts <- exp(lpts)
+        args$Sizes <- pts
 
-        out.expected <- bplapply(by.core, FUN=.tech_mean_computer, size.factors=pts, 
-            tol=tol, dispersion=dispersion, pseudo.count=pseudo.count, BPPARAM=BPPARAM)
+        out.expected <- bpmapply(Means=by.core, FUN=calc_log_expected, MoreArgs=args,
+            BPPARAM=BPPARAM, SIMPLIFY=FALSE, USE.NAMES=FALSE)
         collected.means <- .interpolate_and_average(lpts, unlist(out.expected, recursive=FALSE), lsf)
 
         by.core.constant <- .split_vector_by_workers(collected.means, to.core)
-        out.sqdiff <- bpmapply(FUN=.tech_var_computer, means=by.core, logmeans=by.core.constant, 
-            MoreArgs=list(size.factors=pts, tol=tol, dispersion=dispersion, pseudo.count=pseudo.count), 
+        out.sqdiff <- bpmapply(FUN=calc_log_sqdiff, Means=by.core, Constants=by.core.constant, MoreArgs=args,
             BPPARAM=BPPARAM, SIMPLIFY=FALSE, USE.NAMES=FALSE)
         collected.vars <- .interpolate_and_average(lpts, unlist(out.sqdiff, recursive=FALSE), lsf)
 
     } else {
-        # Calling the C++ code to do the heavy lifting.
-        raw.out <- bplapply(by.core, FUN=.tech_trend_computer, size.factors=size.factors, 
-            tol=tol, dispersion=dispersion, pseudo.count=pseudo.count, BPPARAM=BPPARAM)
+        args$Sizes <- size.factors
+        raw.out <- bpmapply(Means=by.core, FUN=calc_log_count_stats, MoreArgs=args,
+            BPPARAM=BPPARAM, SIMPLIFY=FALSE, USE.NAMES=FALSE)
 
         collected.means <- unlist(lapply(raw.out, "[[", i=1))
         collected.vars <- unlist(lapply(raw.out, "[[", i=2))
@@ -72,24 +73,6 @@ makeTechTrend <- function(means, size.factors=1, tol=1e-6, dispersion=0, pseudo.
 
     # Creating a spline output function.
     splinefun(collected.means, collected.vars)
-}
-
-.tech_trend_computer <- function(means, size.factors, tol, dispersion, pseudo.count) 
-# A helper function to ensure that the scran namespace is used in SnowParam().
-{
-    .Call(cxx_calc_log_count_stats, means, size.factors, tol, dispersion, pseudo.count)
-}
-
-.tech_mean_computer <- function(means, size.factors, tol, dispersion, pseudo.count)
-# A helper function to ensure that the scran namespace is used in SnowParam().
-{
-    .Call(cxx_calc_log_expected, means, size.factors, tol, dispersion, pseudo.count)
-}
-
-.tech_var_computer <- function(means, size.factors, tol, dispersion, pseudo.count, logmeans)
-# A helper function to ensure that the scran namespace is used in SnowParam().
-{
-    .Call(cxx_calc_log_sqdiff, means, size.factors, tol, dispersion, pseudo.count, logmeans)
 }
 
 #' @importFrom stats spline

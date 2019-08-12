@@ -11,6 +11,8 @@
 # written by Aaron Lun
 # created 27 March 2018
 {
+    .Deprecated(old="parallelPCA", new="PCAtools::parallelPCA")
+
     # Subsetting the matrix.
     x0 <- x
     if (!is.null(subset.row)) {
@@ -61,7 +63,7 @@
 # Function for use in bplapply, defined here to automatically take advantage of the scran namespace when using snowParam. 
 # We set keep.left=keep.right=FALSE to avoid computing the left/right eigenvectors, which are unnecessary here.
 {
-    re.y <- .Call(cxx_shuffle_matrix, y, seed, stream)
+    re.y <- shuffle_matrix(y, seed, stream)
     out <- .centered_SVD(re.y, ..., keep.left=FALSE, keep.right=FALSE, BSPARAM=BSPARAM)
     out$d^2
 }

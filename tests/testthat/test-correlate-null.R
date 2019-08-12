@@ -1,104 +1,83 @@
 # This checks the correlateNull function.
 # require(scran); require(testthat); source("setup.R"); source("test-correlate-null.R")
 
-refnull <- function(niters, ncells, resort=TRUE) {
-    rankings <- as.double(seq_len(ncells))
-    setup <- scran:::.setup_pcg_state(niters)
-    shuffled <- scramble_matrix(matrix(rankings, nrow=ncells, ncol=niters), seed=setup$seeds[[1]], stream=setup$streams[[1]])
-    out <- cor(shuffled, rankings, method="spearman")
-    if (resort) { out <- sort(out) }
-    out
-}
-
 set.seed(20000)
-test_that("null distribution of correlations is correctly calculated", {
-    set.seed(100)
-    ref <- refnull(1e3, 121)
-    set.seed(100)
-    out <- correlateNull(121, iters=1e3)
-    expect_equal(ref, as.double(out))
-    
-    set.seed(100)
-    ref <- refnull(1e3, 12)
-    set.seed(100)
-    out <- correlateNull(12, iters=1e3)
-    expect_equal(ref, as.double(out))
-})
+test_that("null distribution of correlations looks okay", {
+    for (ncells in c(10, 20, 50, 100)) {
+        out <- correlateNull(ncells, iters=1e5)
+        expect_equal(length(out), 1e5)
+        expect_lte(max(out), 1)
+        expect_gte(min(out), -1)
 
-set.seed(200010) 
-test_that("C++ rnorm works correctly", {
-    vals <- .Call(scran:::cxx_test_rnorm, 20000, 1, 1)
-    expect_identical(length(vals), 20000L)
-    expect_equal(mean(vals), 0, tol=0.01)
-    expect_equal(var(vals), 1, tol=0.01)
-    expect_identical(anyDuplicated(vals), 0L)
+        random1 <- matrix(rnorm(ncells*1000), ncol=1000)
+        random2 <- matrix(rnorm(ncells*1000), ncol=1000)
+        ref <- as.vector(cor(random1, random2, method="spearman"))
 
-    vals2 <- .Call(scran:::cxx_test_rnorm, 20000, 2, 1)
-    expect_false(identical(vals, vals2))
+        expect_true(abs(mean(out) - mean(ref)) < 0.01)
+        expect_true(abs(var(out) - var(ref)) < 0.01)
+    }
 
-    vals3 <- .Call(scran:::cxx_test_rnorm, 20000, 1, 2)
-    expect_false(identical(vals, vals3))
+    # Responds to a seed.
+    set.seed(0)
+    out1 <- correlateNull(121, iters=1e3)
+    set.seed(0)
+    out2 <- correlateNull(121, iters=1e3)
+    expect_identical(out1, out2)
 })
 
 set.seed(20001)
-test_that("correlateNull works with a design matrix", {
-    # Constructing a reference function.
-    REFFUN <- function(design, iters=1e3) {
-        QR <- qr(design, LAPACK=TRUE)
-        df <- nrow(design)-ncol(design)
-
-        collected <- list()
-        rand.state <- scran:::.setup_pcg_state(1e3)
-        seeds <- rand.state$seeds[[1]]
-        streams <- rand.state$streams[[1]]
-
-        for (x in seq_along(seeds)) {
-            vals <- .Call(scran:::cxx_test_rnorm, df*2L, seeds[[x]], streams[x])
-            expect_identical(length(vals), df*2L)
-    
-            first.half <- qr.qy(QR, c(0,0, head(vals, df)))
-            second.half <- qr.qy(QR, c(0, 0, tail(vals, df)))
-            collected[[x]] <- cor(first.half, second.half, method="spearman")
-        }
-        sort(unlist(collected))
-    }
-
-    # A one-way layout.
-    design <- model.matrix(~factor(rep(c(1,2), each=10)))
-    
-    set.seed(100)
-    out1 <- REFFUN(design)
-    set.seed(100)
-    out2 <- correlateNull(design=design, iters=1e3)
-    expect_equal(out1, as.double(out2))
-    expect_equal(attr(out2, "design"), design)
-
-    # A more complicated design.
-    design <- model.matrix(~seq_len(10))
-    set.seed(200)
-    out1 <- REFFUN(design)
-    set.seed(200)
-    out2 <- correlateNull(design=design, iters=1e3)
-    expect_equal(out1, as.double(out2))
-    expect_equal(attr(out2, "design"), design)
-})
-
 test_that("correlateNull works with a blocking factor", {
-    grouping <- rep(1:5, each=3)
-    
+    grouping <- sample(LETTERS[1:5], 121, replace=TRUE)
+
     set.seed(100)
-    out1 <- 0L
-    for (gl in table(grouping)) { 
-        out1 <- out1 + refnull(1e3, gl, resort=FALSE) * gl
+    out1 <- out2 <- 0
+    for (gl in table(grouping)) {
+        X <- correlateNull(gl, 1e3)
+        out1 <- out1 + X * gl
+        out2 <- out2 + X
     }
     out1 <- out1/length(grouping)
-    out1 <- sort(out1)
-    
+    out2 <- out2/length(unique(grouping))
+
     set.seed(100)
-    out2 <- correlateNull(block=grouping, iters=1e3)
-    expect_equal(out1, as.double(out2))
-    expect_equal(attr(out2, "block"), grouping)
-    expect_identical(attr(out2, "design"), NULL)
+    out1x <- correlateNull(block=grouping, equiweight=FALSE, iters=1e3)
+    set.seed(100)
+    out2x <- correlateNull(block=grouping, iters=1e3)
+
+    expect_equal(out1, out1x)
+    expect_equal(out2, out2x)
+
+    # Ignores blank blocks.
+    set.seed(200)
+    ref <- correlateNull(block=grouping, iters=1e3)
+    set.seed(200)
+    out <- correlateNull(block=c("Z", grouping), iters=1e3)
+    expect_equal(out, ref)
+    set.seed(200)
+    out <- correlateNull(block=c("Z", "Z", grouping), iters=1e3)
+    expect_equal(out, ref)
+})
+
+set.seed(20002)
+test_that("correlateNull works with a design matrix", {
+    for (design in list(
+        oneway=model.matrix(~factor(rep(c(1,2), each=5))),
+        oneway=model.matrix(~factor(rep(c(1,2), each=10))),
+        covariate=model.matrix(~seq_len(10)),
+        covariate=model.matrix(~seq_len(20)),
+        added=model.matrix(~gl(10, 2) + seq_len(20))
+        ))
+    {
+        out <- correlateNull(design=design, iters=1e5)
+
+        ncells <- nrow(design)
+        random1 <- lm.fit(y=matrix(rnorm(ncells*1000), ncol=1000), x=design)$residuals
+        random2 <- lm.fit(y=matrix(rnorm(ncells*1000), ncol=1000), x=design)$residuals
+        ref <- as.vector(cor(random1, random2, method="spearman"))
+
+        expect_true(abs(mean(out) - mean(ref)) < 0.01)
+        expect_true(abs(var(out) - var(ref)) < 0.01)
+    }
 })
 
 test_that("correlateNull is unaffected by the number of cores", {
@@ -130,8 +109,9 @@ test_that("correlateNull is unaffected by the number of cores", {
 
 test_that("correlateNull works correctly on silly inputs", {
     expect_identical(correlateNull(ncells=100, iters=0), numeric(0))
-    expect_error(correlateNull(ncells=0), "number of cells should be greater than 2")
-    expect_error(correlateNull(ncells=100, design=design), "cannot specify both 'ncells' and 'design'")
+    expect_identical(correlateNull(ncells=0, iters=1), NaN)
+    expect_identical(correlateNull(design=diag(10), iters=10), rep(NA_real_, 10))
+
     expect_error(correlateNull(200, block=rep(1, 20)), "cannot specify")
     expect_error(correlateNull(200, design=cbind(rep(1, 20))), "cannot specify")
 })

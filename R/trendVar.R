@@ -116,6 +116,7 @@
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     wout <- .worker_assign(length(subset.row), BPPARAM)
     by.core <- .split_vector_by_workers(subset.row, wout)
+    by.core <- lapply(by.core, FUN="-", y=1L)
     recorder <- list()
 
     if (!is.null(block)) { 
@@ -132,7 +133,7 @@
         }
 
         # Calculating the statistics for each block. 
-        raw.stats <- bplapply(by.core, FUN=.fit_oneway, by.block=by.block, x=x, BPPARAM=BPPARAM)
+        raw.stats <- bplapply(by.core, FUN=fit_oneway, grouping=by.block, exprs=x, BPPARAM=BPPARAM)
         means <- do.call(rbind, lapply(raw.stats, FUN="[[", i=1))
         vars <- do.call(rbind, lapply(raw.stats, FUN="[[", i=2))
         dimnames(means) <- dimnames(vars) <- list(rownames(x)[subset.row], names(by.block))
@@ -153,7 +154,7 @@
             }
 
             # Calculating the statistics for each level of design, and then summing them.
-            raw.stats <- bplapply(by.core, FUN=.fit_oneway, by.block=by.design, x=x, BPPARAM=BPPARAM)
+            raw.stats <- bplapply(by.core, FUN=fit_oneway, grouping=by.design, exprs=x, BPPARAM=BPPARAM)
             means <- unlist(lapply(raw.stats, FUN=function(stat) { stat[[1]] %*% N }))/sum(N)
             to.use <- resid.df > 0
             vars <- unlist(lapply(raw.stats, FUN=function(stat) { stat[[2]][,to.use,drop=FALSE] %*% resid.df[to.use] })) / sum(resid.df)
@@ -173,7 +174,8 @@
             # Calculating the residual variance of the fitted linear model.
             QR <- .ranksafe_qr(design)
 
-            raw.stats <- bplapply(by.core, FUN=.fit_linear_model, qr=QR$qr, qraux=QR$qraux, x=x, BPPARAM=BPPARAM)
+            raw.stats <- bplapply(by.core, FUN=fit_linear_model, qr=QR$qr, qraux=QR$qraux, 
+                exprs=x, get_coefs=FALSE, BPPARAM=BPPARAM)
             means <- unlist(lapply(raw.stats, FUN="[[", i=1))
             vars <- unlist(lapply(raw.stats, FUN="[[", i=2))
 
@@ -188,23 +190,14 @@
         }
 
         by.block <- list(seq_len(ncol(x))-1L)
-        raw.stats <- bplapply(by.core, FUN=.fit_oneway, by.block=by.block, x=x, BPPARAM=BPPARAM)
+        raw.stats <- bplapply(by.core, FUN=fit_oneway, grouping=by.block, exprs=x, BPPARAM=BPPARAM)
         means <- unlist(lapply(raw.stats, FUN="[[", i=1))
         vars <- unlist(lapply(raw.stats, FUN="[[", i=2))
         names(means) <- names(vars) <- rownames(x)[subset.row]
 
     }
 
-    return(c(list(vars=vars, means=means, resid.df=resid.df), recorder))
-}
-
-# Helper functions to ensure that the scran namespace is carried into bplapply.
-.fit_oneway <- function(by.block, x, chosen) {
-    .Call(cxx_fit_oneway, by.block, x, chosen - 1L)
-}
-
-.fit_linear_model <- function(qr, qraux, x, chosen, get.coef=FALSE) {
-    .Call(cxx_fit_linear_model, qr, qraux, x, chosen - 1L, get.coef)
+    c(list(vars=vars, means=means, resid.df=resid.df), recorder)
 }
 
 #########################################################
@@ -212,41 +205,35 @@
 #########################################################
 
 #' @importFrom stats coef lm fitted
-.get_nls_starts <- function(vars, means, grad.prop=0.5, grid.length=100, grid.max=10) {
-    lvars <- log2(vars)
-    fit <- loess(lvars ~ means, degree=1)
+#' @importFrom utils head tail
+.get_nls_starts <- function(vars, means, left.n=100, left.prop=0.1, 
+    grid.length=10, b.grid.range=5, n.grid.max=10) 
+{
+    o <- order(means)
+    n <- length(vars)
 
-    # Getting a rough peak location from the fitted values.
-    toppt <- which.max(fitted(fit))
-    top.x <- means[toppt]
-    top.y <- 2^fitted(fit)[toppt]
+    # Estimating the gradient from the left.
+    left.n <- min(left.n, n*left.prop)
+    keep <- head(o, max(1, left.n))
+    y <- vars[keep]
+    x <- means[keep]
+    grad <- coef(lm(y~0+x))
 
-    # Getting the initial gradient, from all points halfway to the peak.
-    min.x <- min(means)
-    lower.set <- means < min.x + (top.x - min.x)*grad.prop
-    lower.vars <- vars[lower.set]
-    lower.means <- means[lower.set]
-    line.fit <- lm(lower.vars ~ lower.means)
-    grad <- coef(line.fit)[2]
+    # Two-dimensional grid search is the most reliable way of estimating the remaining parameters.
+    b.grid.pts <- 2^seq(from=-b.grid.range, to=b.grid.range, length.out=grid.length)
+    n.grid.pts <- 2^seq(from=0, to=n.grid.max, length.out=grid.length)
+    hits <- expand.grid(B=b.grid.pts, n=n.grid.pts)
 
-    # If 'n' is known, the others can be solved by knowing the gradient near zero (grad=a/b), 
-    # knowing the location of the peak (top.x^n=b/(n-1)) and the height of the peak (top.y=a*top.x*(n-1)/nb).
-    # The last could be used to solve for 'n', but this seems unstable, so we do a grid search instead.
-    getB <- function(n) (n-1)*top.x^n
-    getA <- function(n) getB(n) * grad
-
-    # Getting a rough 'n' estimate with a grid search.
-    grid.pts <- seq(from=0, to=grid.max, length.out=grid.length)
-    grid.ss <- vapply(grid.pts, FUN=function(i) {
-        n <- 2^i
-        resid <- vars - (getA(n)*means)/(means^n + getB(n))
+    grid.ss <- mapply(B=hits$B, n=hits$n, FUN=function(B, n) {
+        resid <- vars - (grad*B*means)/(means^n + B)
         sum(resid^2)
-    }, FUN.VALUE=0)
+    })
 
-    n <- 2^grid.pts[which.min(grid.ss)]
-    b <- unname(getB(n))
-    a <- unname(getA(n))
-    list(n=n, b=b, a=a)
+    chosen <- which.min(grid.ss)
+    N <- hits$n[chosen]
+    B <- hits$B[chosen]
+    A <- B * grad
+    list(n=N, b=B, a=A)
 }
 
 ##############################

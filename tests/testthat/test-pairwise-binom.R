@@ -1,10 +1,10 @@
 # Tests the pairwiseBinom() function.
 # library(scran); library(testthat); source("setup.R"); source("test-pairwise-binom.R")
 
-REFFUN <- function(y, grouping, direction="any") 
+REFFUN <- function(y, grouping, direction="any", lfc=0) 
 # A reference function using the t.test function.
 { 
-    output <- pairwiseBinom(y, grouping, direction=direction)
+    output <- pairwiseBinom(y, grouping, direction=direction, lfc=lfc)
     grouping <- factor(grouping)
     clust.vals <- levels(grouping)
     alt.hyp <- switch(direction, any="two.sided", up="greater", down="less")
@@ -100,6 +100,33 @@ test_that("pairwiseBinom works as expected without blocking", {
     expect_equal(out$statistics[subset], ref$statistics)
 })
 
+set.seed(800000112)
+test_that("pairwiseBinom works as expected with a log-fold change threshold", {
+    # Throwing in a very small lfc to check that 
+    # the fundamental calculations are executed correctly
+    # for the lfc-based function.
+    clust <- kmeans(t(X), centers=3)
+    clusters <- as.factor(clust$cluster)
+
+    out <- pairwiseBinom(X, clusters)
+    ref <- pairwiseBinom(X, clusters, lfc=1e-8)
+    expect_equal(out, ref, tol=1e-6)
+
+    out <- pairwiseBinom(X, clusters, direction="up")
+    ref <- pairwiseBinom(X, clusters, lfc=1e-8, direction="up")
+    expect_equal(out, ref, tol=1e-6)
+
+    out <- pairwiseBinom(X, clusters, direction="down")
+    ref <- pairwiseBinom(X, clusters, lfc=1e-8, direction="down")
+    expect_equal(out, ref, tol=1e-6)
+
+    # Just getting some test coverage here, not much that can be done
+    # without rewriting all of the relevant code for 'p'.
+    out <- pairwiseBinom(X, clusters, lfc=0.5)
+    out <- pairwiseBinom(X, clusters, lfc=0.5, direction="up")
+    out <- pairwiseBinom(X, clusters, lfc=0.5, direction="down")
+})
+
 FACTORCHECK <- function(left, right) {
     expect_identical(names(left), names(right))
 
@@ -149,7 +176,7 @@ BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
             if (N1==0 || N2==0) {
                 next
             } 
-            block.weights[[B]] <- N1 * N2
+            block.weights[[B]] <- N1 + N2
 
             if (direction=="any") { 
                 # Recovering one-sided p-values for separate combining across blocks.

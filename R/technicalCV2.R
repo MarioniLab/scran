@@ -9,6 +9,8 @@
 # based on code by Brennecke et al. (2013).
 # created 11 July 2016
 {
+    .Deprecated(old="technicalCV2", new="modelGeneCV2")
+
     if (any(!is.na(is.spike))) { 
         if (any(is.na(is.spike))) { 
             stop("missing values in 'is.spike'")
@@ -46,8 +48,8 @@
     sf.spike <- sf.spike/mean(sf.spike)
 
     # Computing the statistics.
-    cell.out <- .Call(cxx_compute_CV2, x, is.cell-1L, sf.cell, NULL)
-    spike.out <- .Call(cxx_compute_CV2, x, is.spike-1L, sf.spike, NULL)
+    cell.out <- compute_CV2(x, is.cell-1L, sf.cell, NULL)
+    spike.out <- compute_CV2(x, is.spike-1L, sf.spike, NULL)
 
     means.cell <- cell.out[[1]]
     vars.cell <- cell.out[[2]]

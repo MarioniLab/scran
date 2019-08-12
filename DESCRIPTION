@@ -1,6 +1,6 @@
 Package: scran
-Version: 1.13.9
-Date: 2019-06-30
+Version: 1.13.10
+Date: 2019-08-11
 Title: Methods for Single-Cell RNA-Seq Data Analysis
 Description: 
     Implements functions for low-level analyses of single-cell RNA-seq data. 
@@ -26,7 +26,6 @@ Imports:
     scater, 
     edgeR, 
     limma, 
-    dynamicTreeCut, 
     BiocNeighbors, 
     igraph, 
     statmod, 
@@ -40,13 +39,12 @@ Suggests:
     knitr, 
     beachmat, 
     HDF5Array, 
-    irlba, 
     org.Mm.eg.db, 
+    dynamicTreeCut, 
     DESeq2, 
     monocle, 
     Biobase, 
-    aroma.light,
-    scRNAseq
+    aroma.light
 biocViews: 
     ImmunoOncology, 
     Normalization, 

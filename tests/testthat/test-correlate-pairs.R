@@ -1,4 +1,4 @@
-# This checks the correlateNull function.
+# This checks the correlatePairs function.
 # require(scran); require(testthat); source("setup.R"); source("test-correlate-pairs.R")
 
 checkCorrelations <- function(out, exprs, null.dist) {
@@ -86,73 +86,69 @@ test_that("standard rho calculation works correctly", {
 
 ####################################################################################################
 
-grouping <- gl(2, 50)
-design <- model.matrix(~grouping)
-
 test_that("correlatePairs works with a design matrix", {
-    set.seed(200)
-    nulls <- correlateNull(design=design, iter=1e4)
-    expect_warning(correlatePairs(X[1:5,], design=NULL, null.dist=nulls), "'design' is not the same as that used to generate")
+    grouping <- gl(2, 50)
+    design <- model.matrix(~grouping)
 
     # Test the residual calculator.
     QR <- qr(design, LAPACK=TRUE)
     ref.resid <- t(lm.fit(y=t(X), x=design)$residuals)
-    out.resid <- .Call(scran:::cxx_get_residuals, X, QR$qr, QR$qraux, seq_len(nrow(X))-1L, NA_real_) 
+    out.resid <- scran:::get_residuals(X, QR$qr, QR$qraux, seq_len(nrow(X))-1L, NA_real_) 
     expect_equal(unname(ref.resid), out.resid)
     
     subset.chosen <- sample(nrow(X), 10)
-    out.resid.sub <- .Call(scran:::cxx_get_residuals, X, QR$qr, QR$qraux, subset.chosen-1L, NA_real_) 
+    out.resid.sub <- scran:::get_residuals(X, QR$qr, QR$qraux, subset.chosen-1L, NA_real_) 
     expect_equal(unname(ref.resid[subset.chosen,]), out.resid.sub)
 
     # Manual calculation (note; using out.resid as ties are slightly different with ref.resid).
-    out <- correlatePairs(X, design=design, null.dist=nulls, lower.bound=NA)
-    rownames(out.resid) <- rownames(X)
-    ref <- checkCorrelations(out, out.resid, null.dist=nulls)
+    set.seed(200)
+    out <- correlatePairs(X, design=design, iters=1e4)
 
-    expect_equal(out$rho, ref$rho)
-    expect_equal(out$p.value, ref$pvalue)
-    expect_equal(out$FDR, ref$FDR)
-})
-
-test_that("correlatePairs works with lower bounds on the residuals", {
-    set.seed(100021)
-    X <- log(matrix(rpois(Ngenes*Ncells, lambda=1), nrow=Ngenes) + 1) # more zeroes with lambda=1
-    expect_true(sum(X==0)>0) # observations at the lower bound.
-    
-    # Checking proper calculation of the bounded residuals.
-    ref.resid <- t(lm.fit(y=t(X), x=design)$residuals)
-    alt.resid <- ref.resid
-    is.smaller <- X <= 0 # with bounds
-    smallest.per.row <- apply(alt.resid, 1, min) - 1
-    alt.resid[is.smaller] <- smallest.per.row[arrayInd(which(is.smaller), dim(is.smaller))[,1]]
-
-    QR <- qr(design, LAPACK=TRUE)
-    out.resid <- .Call(scran:::cxx_get_residuals, X, QR$qr, QR$qraux, seq_len(nrow(X))-1L, 0)
-    expect_equal(unname(alt.resid), out.resid)
-   
-    # Checking for correct calculation of statistics for bounded residuals.
     set.seed(200)
     nulls <- correlateNull(design=design, iter=1e4)
- 
-    out <- correlatePairs(X, design=design, null.dist=nulls, lower.bound=0)
     rownames(out.resid) <- rownames(X)
     ref <- checkCorrelations(out, out.resid, null.dist=nulls)
-    
+
     expect_equal(out$rho, ref$rho)
     expect_equal(out$p.value, ref$pvalue)
     expect_equal(out$FDR, ref$FDR)
 })
 
-test_that("correlatePairs works without simulated residuals for one-way layouts", {
-    # Repeating without simulation (need to use a normal matrix to avoid ties;
-    # bplapply mucks up the seed for tie breaking, even with a single core).
-    set.seed(200)
+test_that("correlatePairs works with blocking", {
+    grouping <- sample(LETTERS[1:3], Ncells, replace=TRUE)
+
+    # Need to use a normal matrix to avoid ties; bplapply mucks up 
+    # the seed for tie breaking, even with a single core.
     X <- matrix(rnorm(Ncells*Ngenes), ncol=Ncells)
+
+    # Without weighting.
+    set.seed(200)
+    out <- correlatePairs(X, block=grouping, iters=1e4)
+
+    set.seed(200)
     nulls <- correlateNull(block=grouping, iter=1e4)
-    out <- correlatePairs(X, block=grouping, null.dist=nulls)
-    expect_warning(correlatePairs(X, block=NULL, null.dist=nulls), "'block' is not the same")
- 
-    # Calculating the weighted average of correlations. 
+    collected.rho <- 0L
+    for (group in split(seq_along(grouping), grouping)) { 
+        ref <- checkCorrelations(out, X[,group], null.dist=nulls)
+        collected.rho <- collected.rho + ref$rho/length(unique(grouping))
+    }
+    expect_equal(out$rho, collected.rho)
+
+    # Obtaining a p-value.
+    collected.p <- numeric(length(collected.rho)) 
+    for (x in seq_along(collected.rho)) { 
+        collected.p[x] <- min(sum(nulls <= collected.rho[x] + 1e-8), sum(nulls >= collected.rho[x] - 1e-8))
+    }
+    collected.p <- 2*(collected.p + 1)/(length(nulls)+1)
+    collected.p <- pmin(collected.p, 1)
+    expect_equal(out$p.value, collected.p)
+
+    # With weighting.
+    set.seed(200)
+    out <- correlatePairs(X, block=grouping, equiweight=FALSE, iters=1e4)
+
+    set.seed(200)
+    nulls <- correlateNull(block=grouping, equiweight=FALSE, iter=1e4)
     collected.rho <- 0L
     for (group in split(seq_along(grouping), grouping)) { 
         ref <- checkCorrelations(out, X[,group], null.dist=nulls)
@@ -283,9 +279,12 @@ test_that("correlatePairs with pairs matrix works as expected", {
         expect_equal(lexpected, lsub2)
     }
 
-    expect_error(correlatePairs(X, nulls, pairings=matrix(0, 0, 0)), "'pairings' should be a numeric/character matrix with 2 columns")
-    expect_error(correlatePairs(X, nulls, pairings=cbind(1,2,3)), "'pairings' should be a numeric/character matrix with 2 columns")
-    expect_error(correlatePairs(X, nulls, pairings=cbind(TRUE, FALSE)), "'pairings' should be a numeric/character matrix with 2 columns")
+    expect_error(correlatePairs(X, nulls, pairings=matrix(0, 0, 0)), 
+        "'pairings' should be a numeric/character matrix with 2 columns")
+    expect_error(correlatePairs(X, nulls, pairings=cbind(1,2,3)), 
+        "'pairings' should be a numeric/character matrix with 2 columns")
+    expect_error(correlatePairs(X, nulls, pairings=cbind(TRUE, FALSE)), 
+        "'pairings' should be a numeric/character matrix with 2 columns")
 })
 
 ####################################################################################################
@@ -315,11 +314,12 @@ test_that("correlatePairs works correctly with SingleCellExperiment objects", {
     expect_equal(out, ref)
 })
 
-# Checking nonsense inputs.
-
 test_that("correlatePairs fails properly upon silly inputs", {
     expect_error(correlatePairs(X[0,], nulls), "need at least two genes to compute correlations")
-    expect_error(correlatePairs(X[,0], nulls), "number of cells should be greater than or equal to 2")
+    expect_true(all(is.nan(correlatePairs(X[,0], nulls)$rho)))
+    expect_true(all(is.na(correlatePairs(X, nulls, design=diag(ncol(X)))$rho)))
+    expect_true(all(is.nan(correlatePairs(X, nulls, block=1:ncol(X))$rho)))
+
     expect_warning(correlatePairs(X, iters=1), "lower bound on p-values at a FDR of 0.05, increase 'iter'")
     expect_warning(out <- correlatePairs(X, numeric(0)), "lower bound on p-values at a FDR of 0.05, increase 'iter'")
     expect_equal(out$p.value, rep(1, nrow(out)))

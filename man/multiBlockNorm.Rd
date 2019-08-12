@@ -2,7 +2,10 @@
 \alias{multiBlockNorm}
 
 \title{Per-block scaling normalization}
-\description{Perform scaling normalization within each block in a manner that preserves the relative scale of counts between spike-in transcripts and endogenous genes.}
+\description{Perform scaling normalization within each block in a manner that preserves the relative scale of counts between spike-in transcripts and endogenous genes.
+
+This has now been deprecated as rescaling is performed automatically in \code{\link{modelGeneVarWithSpikes}}.
+}
 
 \usage{
 multiBlockNorm(x, block, ...) 

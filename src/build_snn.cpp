@@ -1,5 +1,4 @@
-#include "scran.h"
-
+#include "Rcpp.h"
 #include <deque>
 
 /* The 'rank' version performs the original SNN clustering described by Xu and Su (2015, Bioinformatics).
@@ -7,14 +6,13 @@
  * The rank is computed separately in each NN set, with each node being 0-rank in its own set.
  */
 
-SEXP build_snn_rank(SEXP neighbors) {
-    BEGIN_RCPP
-    Rcpp::IntegerMatrix mat(neighbors);
-    const size_t k=mat.ncol();
-    const size_t ncells=mat.nrow();
+// [[Rcpp::export(rng=false)]]
+Rcpp::List build_snn_rank(Rcpp::IntegerMatrix neighbors) {
+    const size_t k=neighbors.ncol();
+    const size_t ncells=neighbors.nrow();
 
     // Building a host table, identifying the reverse relation from nearest neighbours to cells.
-    auto mIt=mat.begin();
+    auto mIt=neighbors.begin();
     std::deque<std::deque<std::pair<size_t, int> > > hosts(ncells);
     for (size_t i=1; i<=k; ++i) {
         for (size_t j=0; j<ncells; ++j, ++mIt) {
@@ -28,9 +26,9 @@ SEXP build_snn_rank(SEXP neighbors) {
     std::deque<size_t> current_score(ncells);
 
     for (size_t j=0; j<ncells; ++j) {
-        auto rowtmp=mat.row(j);
+        auto rowtmp=neighbors.row(j);
         auto rtIt=rowtmp.begin();
-            
+
         int cur_neighbor;
         for (size_t i=0; i<=k; ++i) {
             if (i==0) {
@@ -83,7 +81,6 @@ SEXP build_snn_rank(SEXP neighbors) {
     Rcpp::IntegerVector pout(output_pairs.begin(), output_pairs.end());
     Rcpp::NumericVector wout(output_weights.begin(), output_weights.end());
     return Rcpp::List::create(pout, wout);
-    END_RCPP
 }
 
 /* The 'number' version performs a much simpler SNN clustering.
@@ -91,14 +88,13 @@ SEXP build_snn_rank(SEXP neighbors) {
  * Each node is also included in its own set, yielding a range of [0, k+1] weights.
  */
 
-SEXP build_snn_number(SEXP neighbors) {
-    BEGIN_RCPP
-    Rcpp::IntegerMatrix mat(neighbors);
-    const size_t k=mat.ncol();
-    const size_t ncells=mat.nrow();
+// [[Rcpp::export(rng=false)]]
+Rcpp::List build_snn_number(Rcpp::IntegerMatrix neighbors) {
+    const size_t k=neighbors.ncol();
+    const size_t ncells=neighbors.nrow();
 
     // Building a host table, identifying the reverse relation from nearest neighbours to cells.
-    auto mIt=mat.begin();
+    auto mIt=neighbors.begin();
     std::deque<std::deque<size_t> > hosts(ncells);
     for (size_t i=1; i<=k; ++i) {
         for (size_t j=0; j<ncells; ++j, ++mIt) {
@@ -112,9 +108,9 @@ SEXP build_snn_number(SEXP neighbors) {
     std::deque<size_t> current_score(ncells);
 
     for (size_t j=0; j<ncells; ++j) {
-        auto rowtmp=mat.row(j);
+        auto rowtmp=neighbors.row(j);
         auto rtIt=rowtmp.begin();
-            
+
         int cur_neighbor;
         for (size_t i=0; i<=k; ++i) {
             if (i==0) {
@@ -160,5 +156,4 @@ SEXP build_snn_number(SEXP neighbors) {
     Rcpp::IntegerVector pout(output_pairs.begin(), output_pairs.end());
     Rcpp::NumericVector wout(output_weights.begin(), output_weights.end());
     return Rcpp::List::create(pout, wout);
-    END_RCPP
 }
