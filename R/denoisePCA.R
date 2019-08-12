@@ -188,8 +188,9 @@ NULL
     leftovers[subset.row] <- FALSE
 
     left.x <- original.mat[leftovers,,drop=FALSE] 
-    left.x <- left.x - rowMeans(left.x)
-    fullV[leftovers,] <- sweep(left.x %*% U, 2, D, "/", check.margin=FALSE)
+    left.x <- as.matrix(left.x %*% U) - outer(rowMeans(left.x), colSums(U))
+
+    fullV[leftovers,] <- sweep(left.x, 2, D, "/", check.margin=FALSE)
 
     fullV
 }
@@ -221,14 +222,17 @@ denoisePCA <- function(x, ..., subset.row=NULL, value=c("pca", "lowrank"),
     assay.type="logcounts", get.spikes=FALSE, sce.out=TRUE)
 {
     subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
-    out <- .get_denoised_pcs(assay(x, i=assay.type), ..., subset.row=subset.row, fill.missing=TRUE)
 
     value <- match.arg(value) 
+    pcs <- .get_denoised_pcs(assay(x, i=assay.type), ..., subset.row=subset.row, 
+        fill.missing=(value=="lowrank"))
+
     if (value=="pca"){ 
-        out <- out$components
+        out <- pcs$components
     } else {
-        out <- tcrossprod(out$rotation, out$components)
+        out <- tcrossprod(pcs$rotation, pcs$components)
     }
+    attr(out, "percentVar") <- pcs$percent.var
 
     if (!sce.out) {
         .Deprecated(old="sce.out=FALSE")
