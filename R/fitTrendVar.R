@@ -89,18 +89,17 @@ fitTrendVar <- function(means, vars, min.mean=0.1, parametric=TRUE, nls.args=lis
             stop("need at least 4 points for non-linear curve fitting")
         } 
 
-        attempt <- try({
-            nls.args <- .setup_nls_args(nls.args, start.args=list(vars=v, means=m))
-            nls.args$formula <- v ~ (exp(A)*m)/(m^(1+exp(N)) + exp(B))
-            nls.args$weights <- w
+        nls.args <- .setup_nls_args(nls.args, start.args=list(vars=v, means=m))
+        nls.args$formula <- v ~ (exp(A)*m)/(m^(1+exp(N)) + exp(B))
+        nls.args$weights <- w
+        nls.args$control$warnOnly <- FALSE
 
-            init.fit <- do.call(nls, nls.args)
+        init.fit <- try(do.call(nls, nls.args), silent=TRUE) 
+        if (is(init.fit, "try-error")) {
+            warning("parametric curve fitting failed, defaulting to loess-only")
+        } else {
             to.fit <- to.fit - log(fitted(init.fit))
             PARAMFUN <- function(x) { predict(init.fit, data.frame(m=x)) }
-        }, silent=TRUE)
-
-        if (is(attempt, "try-error")) {
-            warning("parametric curve fitting failed, defaulting to loess-only")
         }
     } 
 
