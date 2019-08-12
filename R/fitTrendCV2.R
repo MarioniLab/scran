@@ -87,8 +87,8 @@ fitTrendCV2 <- function(means, cv2, ncells, min.mean=0.1, nls.args=list(),
     names(coefs) <- c("logA", "logB")
 
     predFUN <- function(coefs) {
-        Aest <- exp(coefs["logA"])
-        Best <- exp(coefs["logB"])
+        Aest <- unname(exp(coefs["logA"]))
+        Best <- unname(exp(coefs["logB"]))
         function(x) Aest  + Best/x
     }
 
@@ -119,7 +119,7 @@ fitTrendCV2 <- function(means, cv2, ncells, min.mean=0.1, nls.args=list(),
                 nls.args$start$logA <- NULL
                 fit <- do.call(nls, nls.args)
                 predFUN <- function(coefs) {
-                    Best <- exp(coefs["logB"])
+                    Best <- unname(exp(coefs["logB"]))
                     function(x) Best/x
                 }
             } else {
