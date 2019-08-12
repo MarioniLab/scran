@@ -48,9 +48,9 @@ sce <- mockSCE()
 sce <- logNormCounts(sce)
 
 # Any clustering method is okay.
-kout <- kmeans(t(logcounts(example.sce)), centers=3) 
+kout <- kmeans(t(logcounts(sce)), centers=3) 
 
-out <- pairwiseTTests(logcounts(example.sce), 
+out <- pairwiseTTests(logcounts(sce), 
      clusters=paste0("Cluster", kout$cluster))
 
 # Getting top pairwise markers:

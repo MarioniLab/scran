@@ -11,7 +11,7 @@ findMarkers(x, ...)
 
 \S4method{findMarkers}{ANY}(x, clusters, test.type = c("t", "wilcox",
   "binom"), ..., pval.type = c("any", "all"), log.p = FALSE,
-  full.stats = FALSE, sorted = TRUE, BPPARAM = SerialParam())
+  full.stats = FALSE, sorted = TRUE)
 
 \S4method{findMarkers}{SingleCellExperiment}(x, ..., subset.row = NULL,
   assay.type = "logcounts", get.spikes = FALSE)
@@ -32,7 +32,7 @@ For the ANY method:
 \item For \code{test.type="binom"}, further arguments to pass to \code{\link{pairwiseBinom}}.
 }
 Common arguments for all testing functions include \code{gene.names}, \code{direction}, 
-\code{block}, \code{subset.row} and \code{BPPARAM}.
+\code{block} and \code{BPPARAM}.
 Test-specific arguments are also supported for the appropriate \code{test.type}.
 
 For the SingleCellExperiment method, further arguments to pass to the ANY method.}
@@ -50,6 +50,8 @@ or a binomial test with \code{"binom"}.}
 \item{full.stats}{A logical scalar indicating whether all statistics in \code{de.lists} should be stored in the output for each pairwise comparison.}
 
 \item{sorted}{Logical scalar indicating whether each output DataFrame should be sorted by a statistic relevant to \code{pval.type}.}
+
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 
 \item{assay.type}{A string specifying which assay values to use, usually \code{"logcounts"}.}
 
@@ -95,7 +97,7 @@ names(out)
 out[[1]]
 
 # More customization of the tests:
-out <- findMarkers(sce, clusters=kout$cluster, type="wilcox")
+out <- findMarkers(sce, clusters=kout$cluster, test.type="wilcox")
 out[[1]]
 
 out <- findMarkers(sce, clusters=kout$cluster, lfc=1, direction="up")

@@ -25,10 +25,10 @@ Alternatively, a \linkS4class{SingleCellExperiment} object containing such a mat
 
 \item{...}{For the generic, further arguments to pass to specific methods.
 
-For the ANY method, additional arguments to be passed to \code{\link{cutreeDynamic}} for \code{method="hclust"}, 
-or to \code{\link{buildSNNGraph}} for \code{method="igraph"}.
+For the ANY method, additional arguments to be passed to \code{\link{buildSNNGraph}} for \code{method="igraph"}.
+or to \code{\link[dynamicTreeCut]{cutreeDynamic}} for \code{method="hclust"}.
 
-For the \linkS4class{SingleCellExperiment-method}, additional arguments to pass to the ANY method.}
+For the \linkS4class{SingleCellExperiment} method, additional arguments to pass to the ANY method.}
 
 \item{min.size}{An integer scalar specifying the minimum size of each cluster.}
 
@@ -77,7 +77,7 @@ Two clustering strategies are available:
 \itemize{
 \item If \code{method="hclust"}, a distance matrix is constructed;
 hierarchical clustering is performed using Ward's criterion;
-and \code{\link{cutreeDynamic}} is used to define clusters of cells.
+and \code{\link[dynamicTreeCut]{cutreeDynamic}} is used to define clusters of cells.
 \item If \code{method="igraph"}, a shared nearest neighbor graph is constructed using the \code{\link{buildSNNGraph}} function.
 This is used to define clusters based on highly connected communities in the graph, using the \code{graph.fun} function.
 }
@@ -95,7 +95,7 @@ However, the default is to use the log-expression values with \code{use.ranks=FA
 }
 \section{Enforcing cluster sizes}{
 
-With \code{method="hclust"}, \code{\link{cutreeDynamic}} is used to ensure that all clusters contain a minimum number of cells.
+With \code{method="hclust"}, \code{\link[dynamicTreeCut]{cutreeDynamic}} is used to ensure that all clusters contain a minimum number of cells.
 However, some cells may not be assigned to any cluster and are assigned identities of \code{"0"} in the output vector.
 In most cases, this is because those cells belong in a separate cluster with fewer than \code{min.size} cells.
 The function will not be able to call this as a cluster as the minimum threshold on the number of cells has not been passed.

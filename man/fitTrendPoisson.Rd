@@ -19,6 +19,8 @@ If zero, a Poisson distribution is used.}
 
 \item{pseudo.count}{A numeric scalar specifying the pseudo-count to be added to the scaled counts before log-transformation.}
 
+\item{BPPARAM}{A \linkS4class{BiocParallelParam} object indicating how parallelization should be performed across interpolation points.}
+
 \item{...}{Further arguments to pass to \code{\link{fitTrendVar}} for trend fitting.}
 }
 \value{

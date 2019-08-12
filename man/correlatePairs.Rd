@@ -28,9 +28,16 @@ Alternatively, a \linkS4class{SingleCellExperiment} object containing such a mat
 
 \item{ties.method}{String specifying how tied ranks should be handled.}
 
-\item{block}{A factor specifying the blocking level for each cell.}
+\item{iters}{Integer scalar specifying the number of iterations to use in \code{\link{correlateNull}} to build the null distribution.}
+
+\item{block}{A factor specifying the blocking level for each cell in \code{x}.
+If specified, correlations are computed separately within each block and statistics are combined across blocks.}
 
 \item{design}{A numeric design matrix containing uninteresting factors to be ignored.}
+
+\item{equiweight}{A logical scalar indicating whether statistics from each block should be given equal weight.
+Otherwise, each block is weighted according to its number of cells.
+Only used if \code{block} is specified.}
 
 \item{use.names}{A logical scalar specifying whether the row names of \code{x} should be used in the output.
 Alternatively, a character vector containing the names to use.}

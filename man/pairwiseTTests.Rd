@@ -67,7 +67,7 @@ This is useful in cases with many cells such that reporting the p-values directl
 
 Log-fold changes are reported as differences in the values of \code{x}.
 Thus, all log-fold changes have the same base as whatever was used to perform the log-transformation in \code{x}.
-If \code{\link[scater]{normalize}} was used, this would be base 2.
+If \code{\link{logNormCounts}} was used, this would be base 2.
 
 If \code{direction="any"}, two-sided tests will be performed for each pairwise comparisons between clusters.
 Otherwise, one-sided tests in the specified direction will be used to compute p-values for each gene.

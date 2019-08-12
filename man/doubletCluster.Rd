@@ -60,7 +60,7 @@ This function detects clusters of doublet cells in a manner similar to the metho
 For each \dQuote{query} cluster, we examine all possible pairs of \dQuote{source} clusters, hypothesizing that the query consists of doublets formed from the two sources.
 If so, gene expression in the query cluster should be strictly intermediate between the two sources after library size normalization.
 
-We apply pairwise t-tests to the normalized log-expression profiles (see \code{\link[scater]{normalize}}) to reject this null hypothesis.
+We apply pairwise t-tests to the normalized log-expression profiles (see \code{\link{logNormCounts}}) to reject this null hypothesis.
 This is done by identifying genes that are consistently up- or down-regulated in the query compared to \emph{both} of the sources.
 We count the number of genes that reject the null hypothesis at the specified FDR \code{threshold}.
 For each query cluster, the most likely pair of source clusters is that which minimizes the number of significant genes.

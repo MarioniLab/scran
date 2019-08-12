@@ -27,6 +27,8 @@ where each column corresponds to a cell and each row corresponds to a gene.}
 
 \item{threshold}{Numeric scalar specifying the value below which a gene is presumed to be not expressed.}
 
+\item{lfc}{Numeric scalar specifying the minimum absolute log-ratio in the proportion of expressing genes between clusters.}
+
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object indicating how parallelization should be performed across genes.}
 }
 \value{
@@ -119,14 +121,14 @@ sce <- mockSCE()
 sce <- logNormCounts(sce)
 
 # Any clustering method is okay.
-kout <- kmeans(t(logcounts(example.sce)), centers=2) 
+kout <- kmeans(t(logcounts(sce)), centers=2) 
 
 # Vanilla application:
-out <- pairwiseBinom(logcounts(example.sce), clusters=kout$cluster)
+out <- pairwiseBinom(logcounts(sce), clusters=kout$cluster)
 out
 
 # Directional and with a minimum log-fold change:
-out <- pairwiseBinom(logcounts(example.sce), clusters=kout$cluster, 
+out <- pairwiseBinom(logcounts(sce), clusters=kout$cluster, 
     direction="up", lfc=1)
 out
 

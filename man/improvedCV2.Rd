@@ -33,6 +33,7 @@ This is ignored if \code{log.prior!=NULL}.}
 \item{log.prior}{A numeric scalar specifying the pseudo-count added prior to log-transformation.
 If this is set, \code{x} is assumed to contain normalized log-expression values, otherwise it is assumed to contain counts.}
 \item{df}{An integer scalar indicating the number of degrees of freedom for the spline fit with \code{\link[stats]{smooth.spline}}.}
+\item{robust}{Logical scalar specifying whether robust fitting should be performed with \code{robustSmoothSpline} from the \pkg{aroma.light} package.}
 \item{use.spikes}{A logical scalar indicating whether p-values should be returned for spike-in transcripts.}
 \item{spike.type}{A character vector containing the names of the spike-in sets to use.}
 \item{...}{Additional arguments to pass to \code{improvedCV2,ANY-method}.}
