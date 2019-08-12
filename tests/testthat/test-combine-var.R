@@ -10,86 +10,127 @@ rownames(dummy) <- paste0("X", seq_len(ngenes))
 
 X <- SingleCellExperiment(list(counts=dummy))
 sizeFactors(X) <- colSums(dummy)
-X <- normalize(X)
-d <- exprs(X)
-out <- trendVar(d)
-dec <- decomposeVar(d, out)
+X <- scater::logNormCounts(X)
+dec <- modelGeneVar(X)
 
-sub.d <- d[,seq_len(ncells/2)]
+sub.d <- X[,seq_len(ncells/2)]
 block <- sample(3, replace=TRUE, ncol(sub.d))
-out2 <- trendVar(sub.d, block=block)
-dec2 <- decomposeVar(sub.d, out2)
+dec2 <- modelGeneVar(sub.d, block=block)
 
-alt.d <- d[,ncells/2+1:50]
+alt.d <- X[,ncells/2+1:50]
 design <- model.matrix(~runif(ncol(alt.d)))    
-out3 <- trendVar(alt.d, design=design)
-dec3 <- decomposeVar(alt.d, out3)
+dec3 <- modelGeneVar(alt.d, design=design)
 
 test_that("combineVar works correctly", {
     # Checking averaging of stats.
-    N <- c(ncells, ncol(sub.d), ncol(alt.d))
-    DF <- c(ncells - 1L, ncol(sub.d) - 3L, ncol(alt.d) - 2L)
     res <- combineVar(dec, dec2, dec3, method="z")
-    expect_equal(res$mean, drop(cbind(dec$mean, dec2$mean, dec3$mean) %*% N / sum(N)))
-    expect_equal(res$total, drop(cbind(dec$total, dec2$total, dec3$total) %*% DF) / sum(DF))
-    expect_equal(res$tech, drop(cbind(dec$tech, dec2$tech, dec3$tech) %*% DF) / sum(DF))
-    expect_equal(res$bio, drop(cbind(dec$bio, dec2$bio, dec3$bio) %*% DF) / sum(DF))
+    expect_equal(res$mean, rowMeans(cbind(dec$mean, dec2$mean, dec3$mean)))
+    expect_equal(res$total, rowMeans(cbind(dec$total, dec2$total, dec3$total)))
+    expect_equal(res$tech, rowMeans(cbind(dec$tech, dec2$tech, dec3$tech)))
+    expect_equal(res$bio, rowMeans(cbind(dec$bio, dec2$bio, dec3$bio)))
 
     # Checking proper calculation of combined p-values.
-    expect_equal(res$p.value, apply(cbind(dec$p.value, dec2$p.value, dec3$p.value),
-                                    1, FUN=function(p) { pnorm(sum(qnorm(p) * DF)/sqrt(sum(DF^2))) }))
+    pvalmat <- cbind(dec$p.value, dec2$p.value, dec3$p.value)
+    expect_equal(res$p.value, apply(pvalmat, 1, FUN=function(p) { pnorm(sum(qnorm(p))/sqrt(3)) } ))
 
     res2 <- combineVar(dec, dec2, dec3, method="simes")
     expect_equal(res[,c("mean", "total", "tech", "bio")], res2[,c("mean", "total", "tech", "bio")])
-    expect_equal(res2$p.value, apply(cbind(dec$p.value, dec2$p.value, dec3$p.value),
-                                     1, FUN=function(p) { min(p.adjust(p, method="BH")) }))
+    expect_equivalent(res2$p.value, apply(pvalmat, 1, FUN=function(p) { min(p.adjust(p, method="BH")) }))
 
     res3 <- combineVar(dec, dec2, dec3, method="berger")
     expect_equal(res[,c("mean", "total", "tech", "bio")], res3[,c("mean", "total", "tech", "bio")])
-    expect_equal(res3$p.value, apply(cbind(dec$p.value, dec2$p.value, dec3$p.value), 1, max))
+    expect_equal(res3$p.value, apply(pvalmat, 1, max))
 
     res4 <- combineVar(dec, dec2, dec3, method="fisher")
     expect_equal(res[,c("mean", "total", "tech", "bio")], res4[,c("mean", "total", "tech", "bio")])
-    expect_equal(res4$p.value, pchisq(-2*rowSums(log(cbind(dec$p.value, dec2$p.value, dec3$p.value))),
-                                      df=6, lower.tail=FALSE))
+    expect_equivalent(res4$p.value, pchisq(-2*rowSums(log(pvalmat)), df=6, lower.tail=FALSE))
 })
 
-test_that("combineVar responds to settings", {
-    res <- combineVar(dec, dec2, dec3)
+test_that("combineVar works when weighting is turned on", {
+    ref <- combineVar(dec, dec2, dec3, method="z") 
+    res <- combineVar(dec, dec2, dec3, method="z", equiweight=FALSE)
+    expect_equal(res, ref)
 
-    # Same results upon subsetting.
-    reres <- combineVar(dec[1:10,], dec2[1:10,], dec3[1:10,])
-    rescheck <- res[1:10,]
-    rescheck$FDR <- p.adjust(rescheck$p.value, method="BH")
-    expect_equal(reres, rescheck)
+    N <- c(ncells, ncol(sub.d), ncol(alt.d))
+    res <- combineVar(dec, dec2, dec3, method="z", equiweight=FALSE, ncells=N)
+    expect_equal(res$mean, drop(cbind(dec$mean, dec2$mean, dec3$mean) %*% N)/sum(N))
+    expect_equal(res$bio, drop(cbind(dec$bio, dec2$bio, dec3$bio) %*% N)/sum(N))
+    expect_equal(res$total, drop(cbind(dec$total, dec2$total, dec3$total) %*% N)/sum(N))
+    expect_equal(res$tech, drop(cbind(dec$tech, dec2$tech, dec3$tech) %*% N)/sum(N))
 
+    # Checking proper calculation of combined p-values.
+    pvalmat <- cbind(dec$p.value, dec2$p.value, dec3$p.value)
+    expect_equal(res$p.value, apply(pvalmat, 1, FUN=function(p) { pnorm(sum(N*qnorm(p))/sqrt(sum(N^2))) } ))
+
+    # Other methods are unaffected.
+    ref <- combineVar(dec, dec2, dec3, method="simes")
+    res <- combineVar(dec, dec2, dec3, method="simes", equiweight=FALSE, ncells=N)
+    expect_equivalent(res$p.value, ref$p.value)
+})
+
+test_that("combineVar behaves in edge cases", {
     # Just directly returns the input if only one DF is supplied.
     expect_equal(combineVar(dec), dec)
     expect_equal(combineVar(dec2), dec2)
     expect_equal(combineVar(dec3), dec3)
 
-    # Checking that it performs correctly without weighting.
-    res.unw <- combineVar(dec, dec2, dec3, weighted=FALSE)
-    expect_equal(metadata(res.unw), metadata(res))
-
-    dec.x <- dec
-    dec2.x <- dec2
-    dec3.x <- dec3
-    metadata(dec.x) <- metadata(dec2.x) <- metadata(dec3.x) <- list(num.cells=1, resid.df=1)
-    res.unw.ref <- combineVar(dec.x, dec2.x, dec3.x, weighted=TRUE)
-    metadata(res.unw.ref) <- metadata(res.unw)
-    expect_equal(res.unw, res.unw.ref)
-})
-
-test_that("combineVar handles edge cases properly", {
     # Checking failures:
-    dec3.x <- dec3
-    metadata(dec3.x) <- list()
-    expect_error(res <- combineVar(dec, dec3.x), "inputs should come from decomposeVar()", fixed=TRUE)
-    expect_error(res <- combineVar(dec, dec2[rev(rownames(dec)),]), "gene identities should be the same") # when you switch up the order.
+    expect_error(res <- combineVar(dec, dec2[rev(rownames(dec)),]), "gene identities should be the same") 
 
     # Checking empty inputs.
     out <- combineVar(dec[0,], dec2[0,], dec3[0,])
     expect_equal(nrow(out), 0L)
-    expect_identical(colnames(out), c("mean", "total", "bio", "tech", "p.value", "FDR"))
+    expect_identical(colnames(out), c("mean", "total", "tech", "bio", "p.value", "FDR", "per.block"))
+})
+
+#######################################
+#######################################
+
+dec <- modelGeneCV2(X)
+dec2 <- modelGeneCV2(sub.d, block=block)
+dec3 <- modelGeneCV2(alt.d)
+
+geoRowMeans <- function(mat) {
+    exp(rowMeans(log(mat)))
+}
+
+test_that("combineCV2 works correctly", {
+    res <- combineCV2(dec, dec2, dec3)
+    expect_equal(res$mean, geoRowMeans(cbind(dec$mean, dec2$mean, dec3$mean)))
+    expect_equal(res$total, geoRowMeans(cbind(dec$total, dec2$total, dec3$total)))
+    expect_equal(res$trend, geoRowMeans(cbind(dec$trend, dec2$trend, dec3$trend)))
+    expect_equal(res$ratio, geoRowMeans(cbind(dec$ratio, dec2$ratio, dec3$ratio)))
+    expect_equivalent(res$p.value, combinePValues(dec$p.value, dec2$p.value, dec3$p.value, method="fisher"))
+})
+
+geoRowMeansW <- function(mat, w) {
+    exp(drop(log(mat) %*% w / sum(w)))
+}
+
+test_that("combineCV2 works when weighting is turned on", {
+    ref <- combineCV2(dec, dec2, dec3, method="z") 
+    res <- combineCV2(dec, dec2, dec3, method="z", equiweight=FALSE)
+    expect_equal(res, ref)
+
+    N <- c(ncells, ncol(sub.d), ncol(alt.d))
+    res <- combineCV2(dec, dec2, dec3, method="z", equiweight=FALSE, ncells=N)
+    expect_equal(res$mean, geoRowMeansW(cbind(dec$mean, dec2$mean, dec3$mean), N))
+    expect_equal(res$ratio, geoRowMeansW(cbind(dec$ratio, dec2$ratio, dec3$ratio), N))
+    expect_equal(res$total, geoRowMeansW(cbind(dec$total, dec2$total, dec3$total), N))
+    expect_equal(res$trend, geoRowMeansW(cbind(dec$trend, dec2$trend, dec3$trend), N))
+})
+
+test_that("combineCV2 behaves in edge cases", {
+    # Just directly returns the input if only one DF is supplied.
+    expect_equal(combineCV2(dec), dec)
+    expect_equal(combineCV2(dec2), dec2)
+    expect_equal(combineCV2(dec3), dec3)
+
+    # Checking failures:
+    expect_error(res <- combineCV2(dec, dec2[rev(rownames(dec)),]), "gene identities should be the same") 
+
+    # Checking empty inputs.
+    out <- combineCV2(dec[0,], dec2[0,], dec3[0,])
+    expect_equal(nrow(out), 0L)
+    expect_identical(colnames(out), c("mean", "total", "trend", "ratio", "p.value", "FDR", "per.block"))
 })

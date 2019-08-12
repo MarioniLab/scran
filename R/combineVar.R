@@ -63,7 +63,12 @@
 combineVar <- function(..., method="fisher", equiweight=TRUE, ncells=NULL) {
     collected <- list(...)
     if (is.null(ncells)) {
+        # Any arbitrary value will do here, 
+        # as long as it's >=2 so that the block isn't ignored.
         ncells <- rep(10L, length(collected))
+    }
+    if (length(unique(lapply(collected, rownames)))!=1L) {
+        stop("gene identities should be the same")
     }
     .combine_blocked_statistics(collected, method=method, equiweight=equiweight, ncells=ncells)
 }
@@ -74,6 +79,9 @@ combineCV2 <- function(..., method="fisher", equiweight=TRUE, ncells=NULL) {
     collected <- list(...)
     if (is.null(ncells)) {
         ncells <- rep(10L, length(collected))
+    }
+    if (length(unique(lapply(collected, rownames)))!=1L) {
+        stop("gene identities should be the same")
     }
     .combine_blocked_statistics(collected, method=method, equiweight=equiweight, ncells=ncells,
         geometric=TRUE, fields=c("mean", "total", "trend", "ratio"))
