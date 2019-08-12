@@ -57,7 +57,7 @@
 #' sce <- mockSCE()
 #'
 #' # Using spike-ins.
-#' spk <- modelGeneCV2WithSpikes(sce, "Spike")
+#' spk <- modelGeneCV2WithSpikes(sce, "Spikes")
 #' spk
 #' 
 #' plot(spk$mean, spk$total)
@@ -66,7 +66,7 @@
 #'
 #' # With blocking (and spike-ins).
 #' block <- sample(LETTERS[1:2], ncol(sce), replace=TRUE)
-#' blk <- modelGeneCV2WithSpikes(sce, "Spike", block=block)
+#' blk <- modelGeneCV2WithSpikes(sce, "Spikes", block=block)
 #' blk
 #'
 #' par(mfrow=c(1,2))

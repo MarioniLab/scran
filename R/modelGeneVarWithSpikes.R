@@ -79,7 +79,7 @@
 #' sce <- logNormCounts(sce)
 #'
 #' # Using spike-ins.
-#' spk <- modelGeneVarWithSpikes(sce, "Spike")
+#' spk <- modelGeneVarWithSpikes(sce, "Spikes")
 #' spk
 #' 
 #' plot(spk$mean, spk$total, log="xy")
@@ -88,7 +88,7 @@
 #'
 #' # With blocking (and spike-ins).
 #' block <- sample(LETTERS[1:2], ncol(sce), replace=TRUE)
-#' blk <- modelGeneVarWithSpikes(sce, "Spike", block=block)
+#' blk <- modelGeneVarWithSpikes(sce, "Spikes", block=block)
 #' blk
 #'
 #' par(mfrow=c(1,2))
