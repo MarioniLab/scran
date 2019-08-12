@@ -83,7 +83,7 @@ convertTo <- function(x, type=c("edgeR", "DESeq2", "monocle"), ..., assay.type=1
 
     } else if (type=="DESeq2") {
         dds <- DESeq2::DESeqDataSetFromMatrix(assay(x, i=assay.type)[subset.row,,drop=FALSE], pd, ~1, ...)
-        rowData(dds) <- fd[subset.row,]
+        rowData(dds) <- fd[subset.row,,drop=FALSE]
         if (!is.null(sf)) { 
             sizeFactors(dds) <- sf
         }
@@ -91,7 +91,7 @@ convertTo <- function(x, type=c("edgeR", "DESeq2", "monocle"), ..., assay.type=1
 
     } else if (type=="monocle") {
         cur.exprs <- assay(x, i=assay.type)[subset.row,,drop=FALSE]
-        out <- monocle::newCellDataSet(cur.exprs, phenoData=pd, featureData=fd[subset.row,], ...)
+        out <- monocle::newCellDataSet(cur.exprs, phenoData=pd, featureData=fd[subset.row,,drop=FALSE], ...)
         if (!is.null(sf)) { 
             sizeFactors(out) <- sf 
         }
