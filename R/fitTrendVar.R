@@ -96,7 +96,11 @@ fitTrendVar <- function(means, vars, min.mean=0.1, parametric=TRUE, nls.args=lis
 
         init.fit <- try(do.call(nls, nls.args), silent=TRUE) 
         if (is(init.fit, "try-error")) {
-            warning("parametric curve fitting failed, defaulting to loess-only")
+            Aest <- exp(nls.args$start$A)
+            Best <- exp(nls.args$start$B)
+            Nest <- exp(nls.args$start$N)+1
+            PARAMFUN <- function(x) { Aest * x / (x^Nest + Best) }
+            to.fit <- to.fit - log(PARAMFUN(m))
         } else {
             to.fit <- to.fit - log(fitted(init.fit))
             PARAMFUN <- function(x) { predict(init.fit, data.frame(m=x)) }

@@ -55,9 +55,8 @@ test_that("fitTrendVar handles nls errors gracefully",  {
     # Damn the robustness of this algorithm!
     X <- runif(100)
     Y <- runif(100)
-    expect_warning(out <- fitTrendVar(X, Y), "defaulting to loess-only")
-    expect_warning(ref <- fitTrendVar(X, Y, parametric=FALSE), NA)
-    expect_identical(out$std.dev, ref$std.dev)
+    expect_error(out <- fitTrendVar(X, Y), NA)
+    expect_true("Aest" %in% ls(environment(environment(environment(out$trend)$FUN)$PARAMFUN)))
 
     expect_error(fitTrendVar(runif(2), runif(2)), "need at least 4") 
     expect_error(fitTrendVar(runif(1), runif(1)), "need at least 2") 
