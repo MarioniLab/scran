@@ -101,20 +101,24 @@ However, it may also result in spuriously high scores for single cells that happ
 }
 \examples{
 # Mocking up an example.
-ngenes <- 100
-mu1 <- 2^rexp(ngenes)
+ngenes <- 1000
+mu1 <- 2^rnorm(ngenes)
 mu2 <- 2^rnorm(ngenes)
+mu3 <- 2^rnorm(ngenes)
+mu4 <- 2^rnorm(ngenes)
 
 counts.1 <- matrix(rpois(ngenes*100, mu1), nrow=ngenes) # Pure type 1
 counts.2 <- matrix(rpois(ngenes*100, mu2), nrow=ngenes) # Pure type 2
-counts.m <- matrix(rpois(ngenes*20, mu1+mu2), nrow=ngenes) # Doublets
+counts.3 <- matrix(rpois(ngenes*100, mu3), nrow=ngenes) # Pure type 3
+counts.4 <- matrix(rpois(ngenes*100, mu4), nrow=ngenes) # Pure type 4
+counts.m <- matrix(rpois(ngenes*20, mu1+mu2), nrow=ngenes) # Doublets (1 & 2)
 
-counts <- cbind(counts.1, counts.2, counts.m)
-clusters <- rep(1:3, c(ncol(counts.1), ncol(counts.2), ncol(counts.m)))
+counts <- cbind(counts.1, counts.2, counts.3, counts.4, counts.m)
+clusters <- rep(1:5, c(rep(100, 4), ncol(counts.m)))
 
-# Find potential doublets...
+# Find potential doublets.
 scores <- doubletCells(counts)
-boxplot(split(scores, clusters))
+boxplot(split(log10(scores), clusters))
 
 }
 \references{

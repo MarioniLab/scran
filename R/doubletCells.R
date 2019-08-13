@@ -65,20 +65,24 @@
 #' 
 #' @examples
 #' # Mocking up an example.
-#' ngenes <- 100
-#' mu1 <- 2^rexp(ngenes)
+#' ngenes <- 1000
+#' mu1 <- 2^rnorm(ngenes)
 #' mu2 <- 2^rnorm(ngenes)
+#' mu3 <- 2^rnorm(ngenes)
+#' mu4 <- 2^rnorm(ngenes)
 #' 
 #' counts.1 <- matrix(rpois(ngenes*100, mu1), nrow=ngenes) # Pure type 1
 #' counts.2 <- matrix(rpois(ngenes*100, mu2), nrow=ngenes) # Pure type 2
-#' counts.m <- matrix(rpois(ngenes*20, mu1+mu2), nrow=ngenes) # Doublets
+#' counts.3 <- matrix(rpois(ngenes*100, mu3), nrow=ngenes) # Pure type 3
+#' counts.4 <- matrix(rpois(ngenes*100, mu4), nrow=ngenes) # Pure type 4
+#' counts.m <- matrix(rpois(ngenes*20, mu1+mu2), nrow=ngenes) # Doublets (1 & 2)
 #' 
-#' counts <- cbind(counts.1, counts.2, counts.m)
-#' clusters <- rep(1:3, c(ncol(counts.1), ncol(counts.2), ncol(counts.m)))
+#' counts <- cbind(counts.1, counts.2, counts.3, counts.4, counts.m)
+#' clusters <- rep(1:5, c(rep(100, 4), ncol(counts.m)))
 #' 
-#' # Find potential doublets...
+#' # Find potential doublets.
 #' scores <- doubletCells(counts)
-#' boxplot(split(scores, clusters))
+#' boxplot(split(log10(scores), clusters))
 #' 
 #' @references
 #' Lun ATL (2018).
@@ -139,13 +143,11 @@ NULL
     dist2nth <- pmax(1e-8, median(self.dist))
 
     self.dist <- findNeighbors(threshold=dist2nth, BNINDEX=pre.pcs, BNPARAM=BNPARAM, BPPARAM=BPPARAM, get.index=FALSE)$distance
+    self.prop <- lengths(self.dist)/ncol(x)
     sim.dist <- queryNeighbors(sim.pcs, query=pcs, threshold=dist2nth, BNPARAM=BNPARAM, BPPARAM=BPPARAM, get.index=FALSE)$distance
+    sim.prop <- lengths(sim.dist)/niters
 
-    rel.dens <- bpmapply(FUN=function(self, sim, limit) {
-        sum((1 - (sim/limit)^3)^3)/sum((1 - (self/limit)^3)^3)^2
-    }, self=self.dist, sim=sim.dist, limit=dist2nth, BPPARAM=BPPARAM)
-
-    rel.dens/(niters/ncol(x))
+    sim.prop / self.prop^2
 }
 
 #' @importFrom Matrix crossprod
