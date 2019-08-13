@@ -111,7 +111,7 @@ NULL
         residual.FUN=compute_residual_stats_lognorm, 
         BPPARAM=BPPARAM, sf=size.factors, pseudo=pseudo.count)
 
-    xlim <- 2^range(x.stats$means) - pseudo.count
+    xlim <- 2^range(x.stats$means[x.stats$means > 0]) - pseudo.count
     sim.out <- .generate_poisson_values(xlim, size.factors, block=block, design=design,
         npts=npts, dispersion=dispersion, pseudo.count=pseudo.count, BPPARAM=BPPARAM)
 
