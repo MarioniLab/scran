@@ -1,6 +1,11 @@
 # This checks the cyclone implementation against a reference R-based implementation.
 # require(scran); require(testthat); source("setup.R"); source("test-cyclone.R")
 
+# On Windows:
+# - C++ build failures for Win32 and Win64.
+# - Weird test failures on Win32 with the optimized score calculation.
+skip_on_os("windows")
+
 ####################################################################################################
 
 scramble_vector_src <- '
@@ -110,9 +115,6 @@ refFUN <- function(x, pairs) {
 }
 
 ####################################################################################################
-
-# Incomprehensible test failures on Win32.
-skip_on_os("windows")
 
 # Spawning training data.
 
