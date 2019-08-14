@@ -228,11 +228,13 @@ test_that("modelGeneVarWithSpikes works correctly with blocking", {
             spike.size.factors=rep(1, sum(current)))
         subout <- out$per.block[[i]]
 
-        expect_equal(ref$mean, subout$mean)
-        expect_equal(ref$total, subout$total)
-        expect_equal(ref$tech, subout$tech)
-        expect_equal(ref$bio, subout$bio)
-        expect_equal(ref$p.value, subout$p.value)
+        # Increase 'tol' to avoid weird errors on Windows 32, 
+        # probably due to FMA operations on the 32-bit x86 CRT. 
+        expect_equal(ref$mean, subout$mean, tol=1e-6)
+        expect_equal(ref$total, subout$total, tol=1e-6)
+        expect_equal(ref$tech, subout$tech, tol=1e-6)
+        expect_equal(ref$bio, subout$bio, tol=1e-6)
+        expect_equal(ref$p.value, subout$p.value, tol=1e-6)
 
         accumulated.mean <- accumulated.mean + ref$mean
         accumulated.total <- accumulated.total + ref$total
@@ -275,7 +277,7 @@ test_that("modelGeneVarWithSpikes centers size factors correctly", {
         current <- i==block
 
         ssf1 <- msf1[current]
-        ssf2 <- sf2[current]
+        ssf2 <- sf2[current] # use of 'sf2' is deliberate, avoid test errors due to slight numerical imprecision.
         ssf2 <- ssf2/mean(ssf2) * mean(ssf1)
 
         ref <- modelGeneVarWithSpikes(t(t(dummy[,current])/ssf1),
