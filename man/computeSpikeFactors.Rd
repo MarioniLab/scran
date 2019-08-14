@@ -47,6 +47,12 @@ sce <- mockSCE()
 sce <- computeSpikeFactors(sce, "Spikes")
 summary(sizeFactors(sce))
 
+# Deprecated behavior:
+y <- sce
+altExps(y) <- NULL
+y <- rbind(y, altExp(sce))
+suppressWarnings(isSpike(y, "ERCC") <- nrow(sce) + seq_len(nrow(altExp(sce))))
+suppressWarnings(y <- computeSpikeFactors(y))
 }
 \references{
 Lun ATL, McCarthy DJ and Marioni JC (2016). 

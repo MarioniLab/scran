@@ -36,6 +36,12 @@
 #' sce <- computeSpikeFactors(sce, "Spikes")
 #' summary(sizeFactors(sce))
 #' 
+#' # Deprecated behavior:
+#' y <- sce
+#' altExps(y) <- NULL
+#' y <- rbind(y, altExp(sce))
+#' suppressWarnings(isSpike(y, "ERCC") <- nrow(sce) + seq_len(nrow(altExp(sce))))
+#' suppressWarnings(y <- computeSpikeFactors(y))
 #' @seealso
 #' \code{\link{altExps}}, for the concept of alternative experiments.
 #'
