@@ -42,6 +42,8 @@
 #' y <- rbind(y, altExp(sce))
 #' suppressWarnings(isSpike(y, "ERCC") <- nrow(sce) + seq_len(nrow(altExp(sce))))
 #' suppressWarnings(y <- computeSpikeFactors(y))
+#' 
+#' y2 <- y
 #' @seealso
 #' \code{\link{altExps}}, for the concept of alternative experiments.
 #'
