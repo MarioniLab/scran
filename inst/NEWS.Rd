@@ -56,6 +56,8 @@ which are no longer necessary when spike-ins are stored as alternative experimen
 fixing a bug where the off-diagonal weights were split into two entries across the diagonal.
 Added the as.ratio= argument to return a matrix of log-ratios.
 Renamed the get.values= argument to get.weights=.
+
+\item Simplified density calculation in doubletCells() for greater robustness.
 }}
 
 \section{Version 1.12.0}{\itemize{
