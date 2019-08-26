@@ -284,9 +284,9 @@ test_that("other settings for doubletCells work correctly", {
     set.seed(3000)
     ref <- doubletCells(counts)
     sim1 <- doubletCells(counts, block=1000)
-    expect_equal(sim1, ref, tol=0.1)
+    expect_equal(log1p(sim1), log1p(ref), tol=0.1)
     sim2 <- doubletCells(counts, niters=20000)
-    expect_equal(sim2, ref, tol=0.1)
+    expect_equal(log1p(sim2), log1p(ref), tol=0.1)
 })
 
 set.seed(9900006)
@@ -330,5 +330,3 @@ test_that("doubletCells works correctly for SCE objects", {
     expect_warning(ref4 <- doubletCells(counts(sce), subset.row=rand.nospiked),  "greater than available")
     expect_identical(ref4, dbl5)
 })
-
-
