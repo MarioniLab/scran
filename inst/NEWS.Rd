@@ -46,7 +46,8 @@ on non-SingleCellExperiment inputs.
 \item Deprecated all special handling of spike-in rows,
 which are no longer necessary when spike-ins are stored as alternative experiments.
 
-\item Deprecated computeSpikeFactors(), which is no longer necessary when spike-ins are stored as alternative experiments.
+\item Deprecated general.use= in computeSpikeFactors(), 
+which is no longer necessary when spike-ins are stored as alternative experiments.
 
 \item Deprecated overlapExprs(), which is replaced by type="wilcox" in findMarkers().
 
