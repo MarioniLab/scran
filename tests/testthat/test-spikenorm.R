@@ -11,7 +11,7 @@ dummy[is.spike,] <- matrix(rnbinom(sum(is.spike)*ncells, mu=20, size=5), ncol=nc
 rownames(dummy) <- paste0("X", seq_len(ngenes))
 
 X <- SingleCellExperiment(list(counts=dummy))
-X <- splitSCEByAlt(X, ifelse(is.spike, "ERCC", "gene"))
+X <- splitAltExps(X, ifelse(is.spike, "ERCC", "gene"))
 
 test_that("computeSpikeFactors calculates spike-based size factors correctly", {
     out <- computeSpikeFactors(X, "ERCC")
