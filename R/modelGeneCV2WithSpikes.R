@@ -17,11 +17,12 @@
 #' The ratio to the trend is then used to define overdispersion corresponding to interesting biological heterogeneity.
 #' 
 #' This function is almost the same as \code{\link{modelGeneCV2}}, with the only theoretical difference being that the trend is fitted on spike-in CV2 rather than using the means and CV2 of endogenous genes.
-#' It assumes that a constant amount of spike-in RNA was added to each cell, such that any differences in observed expression of the spike-in transcripts can be wholly attributed to technical noise;
-#' and that endogenous genes and spike-in transcripts follow the same mean-variance relationship.
-#' To avoid violating the latter, size factors for both features are centered to the same value across all cells (or all cells within each level of \code{block}, if specified).
+#' This is because there are certain requirements for how normalization is performed when comparing spike-in transcripts with endogenous genes - see comments in \dQuote{Explanation for size factor rescaling}.
+#' We enforce this by centering the size factors for both sets of features and recomputing normalized expression values. 
 #'
 #' @inheritSection modelGeneVarWithSpikes Default size factor choices
+#'
+#' @inheritSection modelGeneVarWithSpikes Explanation for size factor rescaling
 #'
 #' @inheritSection modelGeneCV2 Handling uninteresting factors
 #'

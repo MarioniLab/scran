@@ -89,8 +89,7 @@ It assumes that a constant amount of spike-in RNA was added to each cell, such t
 and that endogenous genes and spike-in transcripts follow the same mean-variance relationship.
 
 Unlike \code{\link{modelGeneVar}}, \code{modelGeneVarWithSpikes} starts from a count matrix (for both genes and spike-ins) and requires size factors and a pseudo-count specification to compute the log-expression values.
-Specifically, the mean size factor for the genes must be the same as the mean size factor for the spike-ins for the trend fitted to the latter to be applicable to the former.
-(If \code{block} is specified, this must be true for all cells in each block.)
+This is because there are certain requirements for how normalization is performed when comparing spike-in transcripts with endogenous genes - see comments in \dQuote{Explanation for size factor rescaling}.
 We enforce this by centering the size factors for both sets of features and recomputing the log-expression values prior to computing means and variances.
 }
 \section{Default size factor choices}{
@@ -105,6 +104,23 @@ Otherwise, it defaults to library size-derived size factors.
 Otherwise, it defaults to library size-derived size factors.
 }
 If \code{size.factors} or \code{spike.size.factors} are supplied, they will override any size factors present in \code{x}.
+}
+
+\section{Explanation for size factor rescaling}{
+
+The use of a spike-in-derived trend makes several assumptions.
+The first is that a constant amount of spike-in RNA was added to each cell, such that any differences in observed expression of the spike-in transcripts can be wholly attributed to technical noise. 
+The second is that endogenous genes and spike-in transcripts follow the same mean-variance relationship, i.e., a spike-in transcript captures the technical noise of an endogenous gene at the same mean count.
+
+Here, the spike-in size factors across all cells are scaled so that their mean is equal to that of the gene-based size factors for the same set of cells.
+This ensures that the average normalized abundances of the spike-in transcripts are comparable to the endogenous genes,
+allowing the trend fitted to the former to be used to determine the biological component of the latter. 
+Otherwise, differences in scaling of the size factors would shift the normalized expression values of the former away from the latter, violating the second assumption.
+
+If \code{block} is specified, rescaling is performed separately for all cells in each block.
+This aims to avoid problems from (frequent) violations of the first assumption where there are differences in the quantity of spike-in RNA added to each batch.
+Without scaling, these differences would lead to systematic shifts in the spike-in abundances from the endogenous genes when fitting a batch-specific trend
+(even if there is no global difference in scaling across all batches).
 }
 
 \section{Computing p-values}{
