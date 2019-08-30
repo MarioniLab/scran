@@ -61,6 +61,14 @@ test_that("combineMarkers is the same as a reference impementation", {
             expect_equal(current.stats[[other]]$logFC, obs.all[[cureffect]])
         }
     }
+
+    # More Simes with some.
+    comb.some <- combineMarkers(output, groups, pval.type="some")
+    for (x in as.character(seq_len(ngroups))) {
+        x.any <- comb.any[[x]]
+        x.some <- comb.some[[x]]
+        expect_identical(x.any[order(x.any$p.value),-1], x.some)
+    }
 })
 
 test_that("combineMarkers responds to the pairing input", {

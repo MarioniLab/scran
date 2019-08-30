@@ -20,75 +20,95 @@
 #' 
 #' @return
 #' A named \linkS4class{List} of \linkS4class{DataFrame}s where each DataFrame contains the consolidated results for the cluster of the same name.
-#' 
-#' Within each DataFrame (say, the DataFrame for cluster X), rows correspond to genes with the fields:
+#' Within each DataFrame (say, the DataFrame for cluster X), each row corresponds to a gene.
+#' By default, the DataFrame contains the fields:
 #' \describe{
 #' \item{\code{Top}:}{Integer, the minimum rank across all pairwise comparisons.
-#' Only reported if \code{pval.type="any"}.}
+#' This is only reported if \code{pval.type="any"}.}
 #' \item{\code{p.value}:}{Numeric, the p-value across all comparisons if \code{log.p.out=FALSE}.
-#' This is a Simes' p-value if \code{pval.type="any"}, otherwise it is an IUT p-value.}
-#' \item{\code{log.p.value}:}{Numeric, the log-transformed version of \code{p.value} if \code{log.p.out=TRUE}.
-#' Natural logarithms are reported.}
+#' This is a Simes' p-value if \code{pval.type="any"} or \code{"some"}, otherwise it is an IUT p-value.}
 #' \item{\code{FDR}:}{Numeric, the BH-adjusted p-value for each gene if \code{log.p.out=FALSE}.}
-#' \item{\code{log.FDR}:}{Numeric, the log-transformed adjusted p-value for each gene if \code{log.p.out=TRUE}.
-#' Natural logarithms are reported.}
-#' \item{\code{logFC.Y}:}{Numeric field present for every other cluster Y in \code{clusters}.
-#' It contains the effect size of the comparison of X to Y:
+#' \item{\code{<OUTPUT>.Y}:}{Numeric, where the value of \code{<OUTPUT>} is set to \code{output.field}.
+#' One of these fields is present for every other cluster Y in \code{clusters}.
+#' It contains the effect size of the comparison of X to Y, with typical values depending on the chosen method:
 #' \itemize{
-#' \item Log-fold changes, usually in base 2, from \code{\link{pairwiseTTests}}.
-#' \item Area under the curve from \code{\link{pairwiseWilcox}}.
-#' \item Log2-fold changes in the expressing proportion from \code{\link{pairwiseBinom}}.
+#' \item \code{logFC.Y} from \code{\link{pairwiseTTests}}, containing log-fold changes in mean expression (usually in base 2).
+#' \item \code{AUC.Y} from \code{\link{pairwiseWilcox}}, containing the area under the curve, i.e., the concordance probability. 
+#' \item \code{logFC.Y} from \code{\link{pairwiseBinom}}, containing log2-fold changes in the expressing proportion.
 #' }
-#' The exact name of this field depends on \code{output.field}, see Examples.
-#' It is only reported when \code{full.stats=FALSE}.}
-#' \item{\code{stats.Y}:}{DataFrame for every other cluster Y in \code{clusters}, returned when \code{full.stats=TRUE}.
-#' This contains the same fields in the corresponding entry of \code{de.lists} for the X versus Y comparison.
-#' The name of this field can be altered by setting \code{output.field}.}
+#' Only reported when \code{full.stats=FALSE}.
 #' }
-#' If \code{sorted=TRUE}, genes are ranked by the \code{Top} column (if available) and then the \code{p.value} column.
+#' }
 #' 
-#' The DataFrames themselves are sorted according to the order of cluster IDs in \code{pairs[,1]}.
-#' The \code{logFC.Y} columns are sorted according to the order of cluster IDs in \code{pairs[,2]} within the corresponding level of the first cluster.
+#' If \code{log.p.out=TRUE}, the p-value fields are different:
+#' \describe{
+#' \item{\code{log.p.value}:}{Numeric, the log-transformed version p-value that replaces the \code{p.value} field.
+#' Natural logarithms are reported.}
+#' \item{\code{log.FDR}:}{Numeric, the log-transformed adjusted p-value that replaces the \code{FDR} field.
+#' Natural logarithms are reported.}
+#' }
 #' 
+#' If \code{full.stats=TRUE}, each DataFrame contains \code{stats.Y} for each other cluster Y.
+#' Each \code{stats.Y} field is itself a DataFrame containing the same fields in the corresponding entry of \code{de.lists} for the X versus Y comparison.
+#' The name of this field can be altered by setting \code{output.field}.
+#' 
+#' Within each DataFrame, if \code{sorted=TRUE}, genes are ranked by the \code{Top} column (if available) and then the \code{p.value} column.
+#' Otherwise, the input order of the genes is preserved.
+#' For the DataFrame corresponding to cluster X, the \code{<OUTPUT>.Y} columns are sorted according to the order of cluster IDs in \code{pairs[,2]} for all rows where \code{pairs[,1]} is X.
+#' 
+#' In the output List, the DataFrames themselves are sorted according to the order of cluster IDs in \code{pairs[,1]}.
 #' Note that DataFrames are only created for clusters present in \code{pairs[,1]}.
-#' Clusters unique to \code{pairs[,2]} will only be present within each DataFrame as Y.
+#' Clusters unique to \code{pairs[,2]} will only be present within a DataFrame as Y.
 #' 
 #' @details
 #' An obvious strategy to characterizing differences between clusters is to look for genes that are differentially expressed (DE) between them.
 #' However, this entails a number of comparisons between all pairs of clusters to comprehensively identify genes that define each cluster.
 #' For all pairwise comparisons involving a single cluster, we would like to consolidate the DE results into a single list of candidate marker genes.
-#' This is the intention of the \code{combineMarkers} function.
+#' Doing so is the purpose of the \code{combineMarkers} function.
 #' DE statistics from any testing regime can be supplied to this function - see the Examples for how this is done with t-tests from \code{\link{pairwiseTTests}}.
 #' 
-#' @section Consolidating p-values into a ranking:
-#' By default, each table is sorted by the \code{Top} value when \code{pval.type="any"}.
-#' This is the minimum rank across all pairwise comparisons for each gene, and specifies the size of the candidate marker set.
-#' Taking all rows with \code{Top} values less than or equal to X will yield a marker set containing the top X genes (ranked by significance) from each pairwise comparison.
-#' The marker set for each cluster allows it to be distinguished from every other cluster based on the differential expression of at least one gene.
+#' @section Consolidating with DE against any other cluster:
+#' By default, each DataFrame is sorted by the \code{Top} value when \code{pval.type="any"}.
+#' (For genes with the same \code{Top}, ranking is performed based on the Simes combined p-value - see the comments for \code{pval.type="some"}.)
+#' Taking all rows with \code{Top} values less than or equal to T yields a marker set containing the top T genes (ranked by significance) from each pairwise comparison.
+#' This guarantees the inclusion of genes that can distinguish between any two clusters.
 #' 
-#' To demonstrate, let us define a marker set with an X of 1 for a given cluster.
+#' To demonstrate, let us define a marker set with an T of 1 for a given cluster.
 #' The set of genes with \code{Top <= 1} will contain the top gene from each pairwise comparison to every other cluster.
-#' If X is instead, say, 5, the set will consist of the \emph{union} of the top 5 genes from each pairwise comparison.
+#' If T is instead, say, 5, the set will consist of the \emph{union} of the top 5 genes from each pairwise comparison.
 #' Obviously, multiple genes can have the same \code{Top} as different genes may have the same rank across different pairwise comparisons.
-#' Conversely, the marker set may be smaller than the product of \code{Top} and the number of other clusters, as the same gene may be shared across different comparisons.
+#' Conversely, the marker set may be smaller than the product of \code{Top} and the number of other clusters, as the same gene may be shared across different comparisons..
 #' 
 #' This approach does not explicitly favour genes that are uniquely expressed in a cluster.
-#' Such a strategy is often too stringent, especially in cases involving overclustering or cell types defined by combinatorial gene expression.
-#' However, if \code{pval.type="all"}, the null hypothesis is that the gene is not DE in all contrasts, and the IUT p-value is computed for each gene.
-#' This yields a \code{IUT.p} field instead of a \code{Top} field in the output table.
-#' Ranking based on the IUT p-value will focus on genes that are uniquely DE in that cluster.
+#' Rather, it focuses on combinations of genes that - together - drive separation of a cluster from the others.
+#' This is more general and robust but tends to yield a less focused marker set compared to the other \code{pval.type} settings.
+#'
+#' @section Consolidating with DE against all other clusters:
+#' If \code{pval.type="all"}, the null hypothesis is that the gene is not DE in all contrasts, and the IUT p-value is computed for each gene.
+#' Ranking based on the IUT p-value will focus on genes that are DE in that cluster compared to \emph{all} other clusters.
+#' This strategy is particularly effective when dealing with distinct clusters that have a unique expression profile.
+#' In such cases, it yields a highly focused marker set that concisely captures the differences between clusters.
 #' 
+#' However, it can be too stringent if the cluster's separation is driven by combinations of gene expression.
+#' For example, consider a situation involving four clusters expressing each combination of two marker genes A and B.
+#' With \code{pval.type="all"}, neither A nor B would be detected as markers as it is not uniquely defined in any one cluster.
+#' This is especially detrimental with overclustering where an otherwise acceptable marker is discarded if it is not DE between two adjacent clusters.
+#'
+#' @section Consolidating with DE against some other clusters:
+#' The \code{pval.type="some"} setting serves as a compromise between \code{"all"} and \code{"any"}.
+#' A combined p-value is calculated by consolidating p-values across contrasts for each gene using Simes' method.
+#' This tests the null hypothesis is that the gene is not DE in any of the contrasts, but in a manner that favors genes that are DE to many other clusters. 
+#' (Specifically, consistently low p-values in each pairwise comparison results in a lower Simes p-value than a single low p-value.)
+#' Genes are then ranked by the combined p-value.
+#' The aim is to provide a more focused gene set without being overly stringent, though obviously it loses the theoretical guarantees of the more extreme settings.
+#'
 #' @section Correcting for multiple testing:
-#' When \code{pval.type="any"}, a combined p-value is calculated by consolidating p-values across contrasts for each gene using Simes' method.
-#' This represents the evidence against the null hypothesis is that the gene is not DE in any of the contrasts.
-#' The BH method is then applied on the combined p-values across all genes to obtain the \code{FDR} field.
-#' The same procedure is done with \code{pval.type="all"}, but using the IUT p-values across genes instead.
+#' The BH method is then applied on the Simes/IUT p-values across all genes to obtain the \code{FDR} field.
+#' The reported FDRs are intended only as a rough measure of significance.
+#' Properly correcting for multiple testing is not generally possible when \code{clusters} is determined from the same \code{x} used for DE testing.
 #' 
 #' If \code{log.p=TRUE}, log-transformed p-values and FDRs will be reported.
 #' This may be useful in over-powered studies with many cells, where directly reporting the raw p-values would result in many zeroes due to the limits of machine precision.
-#' 
-#' Note that the reported FDRs are intended only as a rough measure of significance.
-#' Properly correcting for multiple testing is not generally possible when \code{clusters} is determined from the same \code{x} used for DE testing.
 #' 
 #' @seealso
 #' \code{\link{pairwiseTTests}} and \code{\link{pairwiseWilcox}}, for functions that can generate \code{de.lists} and \code{pairs}.
@@ -135,7 +155,7 @@
 #' @importFrom BiocGenerics cbind
 #' @importFrom methods as
 combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="logFC", 
-    pval.type=c("any", "all"), log.p.in=FALSE, log.p.out=log.p.in, 
+    pval.type=c("any", "some", "all"), log.p.in=FALSE, log.p.out=log.p.in, 
     output.field=NULL, full.stats=FALSE, sorted=TRUE)
 {
     if (length(de.lists)!=nrow(pairs)) {
@@ -146,7 +166,7 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
     }
 
     pval.type <- match.arg(pval.type)
-    method <- switch(pval.type, any="simes", all="berger")
+    method <- switch(pval.type, any="simes", some="simes", all="berger")
 
     # Checking that all genes are the same across lists.
     gene.names <- NULL

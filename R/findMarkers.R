@@ -92,7 +92,7 @@ NULL
 
 #' @importFrom BiocParallel SerialParam
 .findMarkers <- function(x, clusters, test.type=c("t", "wilcox", "binom"),
-    ..., pval.type=c("any", "all"), log.p=FALSE, full.stats=FALSE, sorted=TRUE) 
+    ..., pval.type=c("any", "some", "all"), log.p=FALSE, full.stats=FALSE, sorted=TRUE) 
 {
     test.type <- match.arg(test.type)
     if (test.type=="t") {
