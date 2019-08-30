@@ -10,7 +10,7 @@
 findMarkers(x, ...)
 
 \S4method{findMarkers}{ANY}(x, clusters, test.type = c("t", "wilcox",
-  "binom"), ..., pval.type = c("any", "all"), log.p = FALSE,
+  "binom"), ..., pval.type = c("any", "some", "all"), log.p = FALSE,
   full.stats = FALSE, sorted = TRUE)
 
 \S4method{findMarkers}{SingleCellExperiment}(x, ..., subset.row = NULL,

@@ -59,6 +59,8 @@ Added the as.ratio= argument to return a matrix of log-ratios.
 Renamed the get.values= argument to get.weights=.
 
 \item Simplified density calculation in doubletCells() for greater robustness.
+
+\item Added a pval.type="some" option to combineMarkers(), as a compromise between the two other modes.
 }}
 
 \section{Version 1.12.0}{\itemize{
