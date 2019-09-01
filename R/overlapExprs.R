@@ -1,5 +1,5 @@
 #' @importFrom BiocParallel SerialParam bplapply
-.overlapExprs <- function(x, groups, gene.names=rownames(x), block=NULL, pval.type=c("any", "all"),
+.overlapExprs <- function(x, groups, gene.names=rownames(x), block=NULL, pval.type=c("any", "some", "all"),
     direction=c("any", "up", "down"), tol=1e-8, log.p=FALSE, full.stats=FALSE, subset.row=NULL, BPPARAM=SerialParam()) 
 # Computes the gene-specific overlap in expression profiles between two groups of cells.
 # This aims to determine whether two distributions of expression values are well-separated.    
@@ -9,7 +9,7 @@
 {
     .Deprecated(msg="'overlapExprs' is deprecated.\nUse 'findMarkers' with 'type=\"wilcox\"' instead.")
     fit <- pairwiseWilcox(x, groups, block=block, direction=direction, gene.names=gene.names, log.p=TRUE, subset.row=subset.row, BPPARAM=BPPARAM)
-    combineMarkers(fit$statistics, fit$pairs, pval.type=pval.type, log.p.in=TRUE, log.p.out=log.p, full.stats=full.stats, pval.field="log.p.value", effect.field="AUC")
+    combineMarkers(fit$statistics, fit$pairs, pval.type=match.arg(pval.type), log.p.in=TRUE, log.p.out=log.p, full.stats=full.stats, pval.field="log.p.value", effect.field="AUC")
 }
 
 ###########################################################
