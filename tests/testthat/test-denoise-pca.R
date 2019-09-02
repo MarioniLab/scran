@@ -28,7 +28,7 @@ test_that("denoisePCANumber works as expected", {
 }) 
 
 ################################
-# Running tests for denoisePCA. This requires a mean-varaince trend, 
+# Running tests for denoisePCA. This requires a mean-variance trend, 
 # hence the somewhat complex set-up for the mock data.
 
 set.seed(1000)
@@ -49,6 +49,9 @@ rownames(counts) <- paste0("Gene", seq_len(ngenes))
 
 lcounts <- log2(counts + 1)
 dec <- modelGeneVar(lcounts, subset.fit=is.spike)
+
+##########################################
+##########################################
 
 test_that("getDenoisedPCs works as expected", {
     d.out <- getDenoisedPCs(lcounts, technical=dec)
@@ -137,6 +140,12 @@ test_that("getDenoisedPCs works with different technical inputs", {
     ref <- getDenoisedPCs(lcountsAlt, technical=decAlt$tech)
     pcs <- getDenoisedPCs(lcountsAlt, technical=decAlt)
     expect_equal(ref, pcs)
+
+    # Handles cases where observed variance is zero but reported variance is not, e.g., after blocking.
+    lcountsAlt[1,] <- runif(ncol(lcountsAlt))
+    ref <- getDenoisedPCs(lcountsAlt[-1,], technical=decAlt$tech[-1])
+    pcs <- getDenoisedPCs(lcountsAlt, technical=decAlt)
+    expect_equal(ref$components, pcs$components)
 })
 
 test_that("getDenoisedPCs works with subsetting", {
@@ -173,6 +182,9 @@ test_that("getDenoisedPCs works with min/max rank settings", {
     pcs <- getDenoisedPCs(lcounts, technical=dec, min.rank=0, max.rank=Inf)$components
     expect_identical(ncol(pcs), ncol(ref))
 })
+
+##########################################
+##########################################
 
 test_that("denoisePCA throws errors correctly", {
     expect_error(getDenoisedPCs(lcounts[0,], dec), "a dimension is zero")

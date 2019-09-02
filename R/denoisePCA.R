@@ -128,9 +128,12 @@ NULL
 
     # Processing different mechanisms through which we specify the technical component.
     if (is(technical, "DataFrame")) { 
-        scale <- all.var/technical$total[subset.row] # Making sure everyone has the reported total variance.
-        scale[is.na(scale)] <- 0
+        # Making sure everyone has the reported total variance.
+        total.var <- technical$total[subset.row] 
+        scale <- all.var/total.var
         tech.var <- technical$tech[subset.row] * scale
+        tech.var[all.var==0 & total.var==0] <- 0
+        tech.var[all.var!=0 & total.var==0] <- Inf
     } else {
         if (is.function(technical)) {
             all.means <- rowMeans2(x2, rows=subset.row)
