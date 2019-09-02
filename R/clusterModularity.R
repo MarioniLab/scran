@@ -13,8 +13,7 @@
 #' Each entry corresponds to a pair of clusters and is proportional to the difference between the observed and expected edge weights between those clusters.
 #' 
 #' If \code{as.ratio=TRUE}, an upper triangular numeric matrix is again returned.
-#' Here, each entry is equal to the log2-ratio between the observed and expected edge weights.
-#' A value of 1 is added to each ratio prior to log-transformation.
+#' Here, each entry is equal to the ratio between the observed and expected edge weights.
 #' 
 #' If \code{get.weights=TRUE}, a list is returned containing two upper triangular numeric matrices. 
 #' The \code{observed} matrix contains the observed sum of edge weights between and within clusters,
@@ -34,10 +33,9 @@
 #'
 #' In practice, the modularity may not the most effective metric for evaluating cluster separatedness.
 #' This is because the modularity is proportional to the number of cells, so larger clusters will naturally have a large score regardless of separation.
-#' An alternative approach is to set \code{as.ratio=TRUE}, which returns the log-ratio of the observed to expected weights for each entry of the matrix.
+#' An alternative approach is to set \code{as.ratio=TRUE}, which returns the ratio of the observed to expected weights for each entry of the matrix.
 #' This adjusts for differences in cluster size and improves resolution of differences between clusters.
-#' A pseudo-count of 1 is added to stabilize the ratios by shrinking them towards 1 (or the log-ratio towards zero).
-#' 
+#'
 #' Directed graphs are treated as undirected inputs with \code{mode="each"} in \code{\link{as.undirected}}.
 #' In the rare case that self-loops are present, these will also be handled correctly.
 #' @author
@@ -59,9 +57,10 @@
 #' out <- clusterModularity(g, clusters)
 #' out
 #' 
-#' # Compute the log-ratio intsead.
+#' # Compute the ratio instead, for visualization
+#' # (log-transform to improve range of colors).
 #' out <- clusterModularity(g, clusters, as.ratio=TRUE)
-#' out
+#' image(log2(out+1))
 #' 
 #' # Alternatively, get the edge weights directly:
 #' out <- clusterModularity(g, clusters, get.weights=TRUE)
@@ -139,9 +138,7 @@ clusterModularity <- function(graph, clusters, get.weights=FALSE, get.values=NUL
     if (get.weights) {
         list(observed=mod.mat, expected=expected.mat)
     } else if (as.ratio) {
-        output <- log2(mod.mat/expected.mat + 1)
-        output[is.na(output)] <- 0
-        output
+        mod.mat/expected.mat
     } else {
         1/total.weight * (mod.mat - expected.mat)
     }
