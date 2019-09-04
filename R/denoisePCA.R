@@ -76,7 +76,9 @@
 #'
 #' @section Effects of gene selection:
 #' One can use \code{subset.row} to perform the PCA on a subset of genes, e.g., HVGs.
-#' Note that only those subsetted rows with positive components are actually used in the PCA.
+#' Note that, within the subset, only rows with positive components are actually used in the PCA.
+#' As such, if \code{subset.row} consists only of HVGs that were selected on the basis of having a positive biological component,
+#' then it is unnecessary as it is redundant with the filtering performed internally by \code{getDenoisedPCs}.
 #' 
 #' If \code{fill.missing=TRUE}, entries of the rotation matrix are imputed for all genes in \code{x}.
 #' This includes \dQuote{unselected} genes, i.e., with negative biological components or that were not selected with \code{subset.row}.
@@ -85,13 +87,14 @@
 #' For example, \code{denoisePCA} will only ever use \code{fill.missing=TRUE} when \code{value="lowrank"}.
 #'
 #' @section Caveats with interpretation:
-#' In reality, the choice of X will only be optimal if the early PCs capture all the biological signal with minimal noise.
+#' In reality, the choice of X will only be optimal if the early PCs capture all the biological variation with minimal noise.
 #' This is unlikely to be true as the PCA cannot distinguish between technical noise and weak biological signal in the later PCs.
-#' Thus, from a mathematical perspective, X will usually be underestimated if we wanted to retain all biological signal.
+#' Thus, from a mathematical perspective, X will usually be underestimated if our aim was to retain all signal.
 #'
 #' On the other hand, many aspects of biological variation are not that interesting in most applications (e.g., transcriptional bursting, metabolic fluctuations).
 #' It is often the case that we do not actually need to retain all signal, in which case X is likely a gross overestimate in the context of the wider analysis.
-#' This can be mitigated by using \code{\link{modelGeneVar}} rather than \code{\link{modelGeneVarWithSpikes}} as the former attempts to remove \dQuote{uninteresting} biological variation.
+#' This can be mitigated by using \code{\link{modelGeneVar}} rather than \code{\link{modelGeneVarWithSpikes}}, as the former attempts to remove \dQuote{uninteresting} biological variation;
+#' and by using a more stringent HVG subset in \code{subset.row}, to focus on the stronger aspects of biological variation.
 #'
 #' @author
 #' Aaron Lun
