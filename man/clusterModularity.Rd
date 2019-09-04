@@ -63,9 +63,10 @@ clusters <- igraph::cluster_walktrap(g)$membership
 out <- clusterModularity(g, clusters)
 out
 
-# Compute the log-ratio intsead.
+# Compute the ratio instead, for visualization
+# (log-transform to improve range of colors).
 out <- clusterModularity(g, clusters, as.ratio=TRUE)
-out
+image(log2(out+1))
 
 # Alternatively, get the edge weights directly:
 out <- clusterModularity(g, clusters, get.weights=TRUE)
