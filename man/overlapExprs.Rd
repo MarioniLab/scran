@@ -11,7 +11,7 @@ This is deprecated in favor of calling \code{\link{findMarkers}} with \code{type
 
 \usage{
 \S4method{overlapExprs}{ANY}(x, groups, gene.names=rownames(x), block=NULL, 
-    pval.type=c("any", "all"), direction=c("any", "up", "down"), tol=1e-8, 
+    pval.type=c("any", "some", "all"), direction=c("any", "up", "down"), tol=1e-8, 
     log.p=FALSE, full.stats=FALSE, subset.row=NULL, BPPARAM=SerialParam()) 
 
 \S4method{overlapExprs}{SingleCellExperiment}(x, ..., subset.row=NULL, assay.type="logcounts",

@@ -58,22 +58,44 @@
 #' Random noise is uncorrelated across genes and should be captured by later PCs, as the variance in the data explained by any single gene is low.
 #' In contrast, biological substructure should be correlated and captured by earlier PCs, as this explains more variance for sets of genes.
 #' The idea is to discard later PCs to remove technical noise and improve the resolution of substructure.
+#' This also has the benefit of reducing computational work for downstream steps.
 #' 
 #' The choice of the number of PCs to discard is based on the estimates of technical variance in \code{technical}.
+#' This argument accepts a number of different values, depending on how the technical noise is calculated.
 #' The percentage of variance explained by technical noise is estimated by summing the technical components across genes and dividing by the summed total variance.
 #' Genes with negative biological components are ignored during downstream analyses to ensure that the total variance is greater than the overall technical estimate. 
 #' 
 #' Now, consider the retention of the first X PCs.
 #' For a given value of X, we compute the variance explained by all of the later PCs.
 #' We aim to find the largest value of X such that the sum of variances explained by the later PCs is still less than the variance attributable to technical noise.
-#' This X represents a lower bound on the number of PCs that can be retained before biological variation is definitely lost. 
-#' Note that X will be coerced to lie between \code{min.rank} and \code{max.rank}.
+#' This X represents a lower bound on the number of PCs that can be retained before biological variation is definitely lost.
+#' We use this value to obtain a \dQuote{reasonable} dimensionality for the PCA output.
 #' 
-#' If \code{fill.missing=TRUE}, entries of the rotation matrix are imputed for all geens in \code{x}.
+#' Note that X will be coerced to lie between \code{min.rank} and \code{max.rank}.
+#' This mitigates the effect of occasional extreme results when the percentage of noise is very high or low.
+#'
+#' @section Effects of gene selection:
+#' One can use \code{subset.row} to perform the PCA on a subset of genes, e.g., HVGs.
+#' Note that, within the subset, only rows with positive components are actually used in the PCA.
+#' As such, if \code{subset.row} consists only of HVGs that were selected on the basis of having a positive biological component,
+#' then it is unnecessary as it is redundant with the filtering performed internally by \code{getDenoisedPCs}.
+#' 
+#' If \code{fill.missing=TRUE}, entries of the rotation matrix are imputed for all genes in \code{x}.
 #' This includes \dQuote{unselected} genes, i.e., with negative biological components or that were not selected with \code{subset.row}.
 #' Rotation vectors are extrapolated to these genes by projecting their expression profiles into the low-dimensional space defined by the SVD on the selected genes.
 #' This is useful for guaranteeing that any low-rank approximation has the same dimensions as the input \code{x}.
-#' 
+#' For example, \code{denoisePCA} will only ever use \code{fill.missing=TRUE} when \code{value="lowrank"}.
+#'
+#' @section Caveats with interpretation:
+#' In reality, the choice of X will only be optimal if the early PCs capture all the biological variation with minimal noise.
+#' This is unlikely to be true as the PCA cannot distinguish between technical noise and weak biological signal in the later PCs.
+#' Thus, from a mathematical perspective, X will usually be underestimated if our aim was to retain all signal.
+#'
+#' On the other hand, many aspects of biological variation are not that interesting in most applications (e.g., transcriptional bursting, metabolic fluctuations).
+#' It is often the case that we do not actually need to retain all signal, in which case X is likely a gross overestimate in the context of the wider analysis.
+#' This can be mitigated by using \code{\link{modelGeneVar}} rather than \code{\link{modelGeneVarWithSpikes}}, as the former attempts to remove \dQuote{uninteresting} biological variation;
+#' and by using a more stringent HVG subset in \code{subset.row}, to focus on the stronger aspects of biological variation.
+#'
 #' @author
 #' Aaron Lun
 #' 
@@ -128,9 +150,12 @@ NULL
 
     # Processing different mechanisms through which we specify the technical component.
     if (is(technical, "DataFrame")) { 
-        scale <- all.var/technical$total[subset.row] # Making sure everyone has the reported total variance.
-        scale[is.na(scale)] <- 0
+        # Making sure everyone has the reported total variance.
+        total.var <- technical$total[subset.row] 
+        scale <- all.var/total.var
         tech.var <- technical$tech[subset.row] * scale
+        tech.var[all.var==0 & total.var==0] <- 0
+        tech.var[all.var!=0 & total.var==0] <- Inf
     } else {
         if (is.function(technical)) {
             all.means <- rowMeans2(x2, rows=subset.row)
