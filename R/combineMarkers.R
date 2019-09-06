@@ -150,7 +150,7 @@
 #'
 #' @export
 #' @importFrom S4Vectors DataFrame
-#' @importClassesFrom S4Vectors DataFrame List
+#' @importClassesFrom S4Vectors DataFrame SimpleList
 #' @importFrom stats p.adjust
 #' @importFrom BiocGenerics cbind
 #' @importFrom methods as
@@ -246,7 +246,7 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
         output[[host]] <- marker.set
     }
 
-    as(output, "List")
+    SimpleList(output)
 }
 
 .rank_top_genes <- function(metrics) 
