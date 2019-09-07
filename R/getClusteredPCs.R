@@ -82,7 +82,7 @@ getClusteredPCs <- function(pcs, FUN=NULL, ..., min.rank=5, max.rank=ncol(pcs), 
 
     keep <- which(nc < n-1)
     if (length(keep)) {
-        chosen <- keep[which.max(nc[keep])]
+        chosen <- n[keep][which.max(nc[keep])]
     } else {
         chosen <- max.rank # keep the max, that most satisfies the constraint.
     }
