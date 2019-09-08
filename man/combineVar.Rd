@@ -41,7 +41,7 @@ These functions are designed to merge results from separate calls to \code{\link
 Separate variance decompositions are necessary in cases where different concentrations of spike-in have been added to the cells in each batch.
 This affects the technical mean-variance relationship and precludes the use of a common trend fit.
 
-Statistics in \code{other.fields} default to all common non-numeric fields that are not \code{pval.field} or \code{"FDR"}.
+By default, statistics in \code{other.fields} contain all common non-numeric fields that are not \code{pval.field} or \code{"FDR"}.
 This usually includes \code{"mean"}, \code{"total"}, \code{"bio"} (for \code{combineVar}) or \code{"ratio"} (for \code{combineCV2}).
 \itemize{
 \item For \code{combineVar}, statistics are combined by averaging them across all input DataFrames.
