@@ -6,6 +6,8 @@
 #' For \code{combineVar}, these should be produced by \code{\link{modelGeneVar}} or \code{\link{modelGeneVarWithSpikes}}.
 #' For \code{combineCV2}, these should be produced by \code{\link{modelGeneCV2}} or \code{\link{modelGeneCV2WithSpikes}}.
 #' @param method String specifying how p-values are to be combined, see \code{\link{combinePValues}} for options.
+#' @param pval.field A string specifying the column name of each element of \code{...} that contains the p-value.
+#' @param other.fields A character vector specifying the fields containing other statistics to combine.
 #' @param equiweight Logical scalar indicating whether each result is to be given equal weight in the combined statistics.
 #' @param ncells Numeric vector containing the number of cells used to generate each element of \code{...}.
 #' Only used if \code{equiweight=FALSE}.
@@ -15,11 +17,15 @@
 #' Separate variance decompositions are necessary in cases where different concentrations of spike-in have been added to the cells in each batch.
 #' This affects the technical mean-variance relationship and precludes the use of a common trend fit.
 #' 
-#' For \code{combineVar}, the combined mean is computed by averaging the means across all input DataFrames.
-#' Similarly, each variance component is combined by taking the average of the corresponding value across inputs.
-#' For \code{combineCV2}, the same process is applied but using the geometric mean of the various statistics.
-#' This difference reflects the strategy in which the relevant measure of overdispersion is computed - 
-#' \code{bio} is computed by subtraction while \code{ratio} is computed by division.
+#' By default, statistics in \code{other.fields} contain all common non-numeric fields that are not \code{pval.field} or \code{"FDR"}.
+#' This usually includes \code{"mean"}, \code{"total"}, \code{"bio"} (for \code{combineVar}) or \code{"ratio"} (for \code{combineCV2}).
+#' \itemize{
+#' \item For \code{combineVar}, statistics are combined by averaging them across all input DataFrames.
+#' \item For \code{combineCV2}, statistics are combined by taking the geometric mean across all inputs.
+#' }
+#' This difference between functions reflects the method by which the relevant measure of overdispersion is computed.
+#' For example, \code{"bio"} is computed by subtraction, so taking the average \code{bio} remains consistent with subtraction of the total and technical averages.
+#' Similarly, \code{"ratio"} is computed by division, so the combined \code{ratio} is consistent with division of the geometric means of the total and trend values.
 #'
 #' If \code{equiweight=FALSE}, each per-batch statistic is weighted by the number of cells used to compute it.
 #' The number of cells can be explicitly set using \code{ncells}, and is otherwise assumed to be equal for all batches.
@@ -60,7 +66,7 @@
 #' head(combineVar(results1, results2, method="berger"))
 #' 
 #' @export
-combineVar <- function(..., method="fisher", equiweight=TRUE, ncells=NULL) {
+combineVar <- function(..., method="fisher", pval.field="p.value", other.fields=NULL, equiweight=TRUE, ncells=NULL) {
     collected <- list(...)
     if (is.null(ncells)) {
         # Any arbitrary value will do here, 
@@ -70,12 +76,16 @@ combineVar <- function(..., method="fisher", equiweight=TRUE, ncells=NULL) {
     if (length(unique(lapply(collected, rownames)))!=1L) {
         stop("gene identities should be the same")
     }
-    .combine_blocked_statistics(collected, method=method, equiweight=equiweight, ncells=ncells)
+    if (is.null(other.fields)) {
+        other.fields <- .find_other_fields(collected, c(pval.field, "FDR"))
+    }
+    .combine_blocked_statistics(collected, method=method, equiweight=equiweight, ncells=ncells,
+        geometric=FALSE, fields=other.fields, pval=pval.field)                                
 }
 
 #' @export
 #' @rdname combineVar
-combineCV2 <- function(..., method="fisher", equiweight=TRUE, ncells=NULL) {
+combineCV2 <- function(..., method="fisher", pval.field="p.value", other.fields=NULL, equiweight=TRUE, ncells=NULL) {
     collected <- list(...)
     if (is.null(ncells)) {
         ncells <- rep(10L, length(collected))
@@ -83,6 +93,18 @@ combineCV2 <- function(..., method="fisher", equiweight=TRUE, ncells=NULL) {
     if (length(unique(lapply(collected, rownames)))!=1L) {
         stop("gene identities should be the same")
     }
+    if (is.null(other.fields)) {
+        other.fields <- .find_other_fields(collected, c(pval.field, "FDR"))
+    }
     .combine_blocked_statistics(collected, method=method, equiweight=equiweight, ncells=ncells,
-        geometric=TRUE, fields=c("mean", "total", "trend", "ratio"))
+        geometric=TRUE, fields=other.fields, pval=pval.field)
+}
+
+.find_other_fields <- function(collected, exclude) {
+    all.numerics <- list()
+    for (i in seq_along(collected)) {
+        x <- collected[[i]]
+        all.numerics[[i]] <- colnames(x)[vapply(x, is.numeric, TRUE)]
+    }
+    setdiff(Reduce(intersect, all.numerics), exclude)
 }

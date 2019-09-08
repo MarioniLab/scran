@@ -5,9 +5,11 @@
 \alias{combineCV2}
 \title{Combine variance decompositions}
 \usage{
-combineVar(..., method = "fisher", equiweight = TRUE, ncells = NULL)
+combineVar(..., method = "fisher", pval.field = "p.value",
+  other.fields = NULL, equiweight = TRUE, ncells = NULL)
 
-combineCV2(..., method = "fisher", equiweight = TRUE, ncells = NULL)
+combineCV2(..., method = "fisher", pval.field = "p.value",
+  other.fields = NULL, equiweight = TRUE, ncells = NULL)
 }
 \arguments{
 \item{...}{Two or more \linkS4class{DataFrame}s of variance modelling results.
@@ -15,6 +17,10 @@ For \code{combineVar}, these should be produced by \code{\link{modelGeneVar}} or
 For \code{combineCV2}, these should be produced by \code{\link{modelGeneCV2}} or \code{\link{modelGeneCV2WithSpikes}}.}
 
 \item{method}{String specifying how p-values are to be combined, see \code{\link{combinePValues}} for options.}
+
+\item{pval.field}{A string specifying the column name of each element of \code{...} that contains the p-value.}
+
+\item{other.fields}{A character vector specifying the fields containing other statistics to combine.}
 
 \item{equiweight}{Logical scalar indicating whether each result is to be given equal weight in the combined statistics.}
 
@@ -35,11 +41,15 @@ These functions are designed to merge results from separate calls to \code{\link
 Separate variance decompositions are necessary in cases where different concentrations of spike-in have been added to the cells in each batch.
 This affects the technical mean-variance relationship and precludes the use of a common trend fit.
 
-For \code{combineVar}, the combined mean is computed by averaging the means across all input DataFrames.
-Similarly, each variance component is combined by taking the average of the corresponding value across inputs.
-For \code{combineCV2}, the same process is applied but using the geometric mean of the various statistics.
-This difference reflects the strategy in which the relevant measure of overdispersion is computed - 
-\code{bio} is computed by subtraction while \code{ratio} is computed by division.
+Statistics in \code{other.fields} default to all common non-numeric fields that are not \code{pval.field} or \code{"FDR"}.
+This usually includes \code{"mean"}, \code{"total"}, \code{"bio"} (for \code{combineVar}) or \code{"ratio"} (for \code{combineCV2}).
+\itemize{
+\item For \code{combineVar}, statistics are combined by averaging them across all input DataFrames.
+\item For \code{combineCV2}, statistics are combined by taking the geometric mean across all inputs.
+}
+This difference between functions reflects the method by which the relevant measure of overdispersion is computed.
+For example, \code{"bio"} is computed by subtraction, so taking the average \code{bio} remains consistent with subtraction of the total and technical averages.
+Similarly, \code{"ratio"} is computed by division, so the combined \code{ratio} is consistent with division of the geometric means of the total and trend values.
 
 If \code{equiweight=FALSE}, each per-batch statistic is weighted by the number of cells used to compute it.
 The number of cells can be explicitly set using \code{ncells}, and is otherwise assumed to be equal for all batches.
