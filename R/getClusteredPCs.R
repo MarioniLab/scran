@@ -22,30 +22,34 @@
 #' an integer scalar specifying the \dQuote{ideal} number of PCs to use.
 #'
 #' @details
+#' We assume that the data contains multiple subpopulations, each of which is separated from the others on a different axis.
+#' For example, each subpopulation could be defined by a unique set of marker genes driving its own PC.
+#' If we had \eqn{x} subpopulations, we would need at least \eqn{x-1} PCs to successfully distinguish all of them.
+#' This motivates the choice of the number of PCs provided we know the number of subpopulations in the data.
+#'
+#' In practice, we do not know the number of subpopulations so we use the number of clusters as a proxy instead.
+#' We apply a clustering function \code{FUN} on the first \eqn{d} PCs,
+#' and only consider the values of \eqn{d} that yield no more than \eqn{d+1} clusters.
+#' If we see more clusters with fewer dimensions, 
+#' we consider this to represent overclustering rather than distinct subpopulations,
+#' as multiple subpopulations should not be distinguishable on the same axes (based on the assumption above).
+#'
+#' We choose \eqn{d} that satisfies the constraint above and maximizes the number of clusters.
+#' The idea is that more PCs should include more biological signal, allowing \code{FUN} to detect more distinct subpopulations;
+#' until the point that the extra signal outweights the added noise at high dimensions,
+#' such that resolution decreases and it becomes more difficult for \code{FUN} to distinguish between subpopulations.
+#' 
 #' Any \code{FUN} can be used that automatically chooses the number of clusters based on the data.
 #' The default is a graph-based clustering method using \code{\link{buildSNNGraph}} and \code{\link{cluster_walktrap}},
 #' where arguments in \code{...} are passed to the former.
 #' Users should not supply \code{FUN} where the number of clusters is fixed in advance, 
 #' (e.g., k-means, hierarchical clustering with known \code{k} in \code{\link{cutree}}).
-#' 
-#' The idea is that more PCs should include more biological signal, allowing \code{FUN} to detect more distinct clusters.
-#' However, this only holds up to the point that the extra signal outweights the added noise at high dimensions.
-#' With too many PCs, we would expect to see a decrease in the number of clusters 
-#' as it becomes more difficult for \code{FUN} to distinguish between them.
-#' The \dQuote{ideal} number of PCs can thus be chosen at the maximum number of clusters.
 #'
-#' We add another constraint that the number of clusters must be no greater than the number of PCs minus 1.
-#' This is because we need at least \code{d} PCs to guarantee that \code{d+1} subpopulations are separated.
-#' (For example, in the most extreme case, each subpopulation could be defined by a unique set of marker genes driving its own PC.)
-#' The aim is to avoid situations where \code{FUN} generates many clusters at low rank due to the near-absence of noise.
-#' This would retain very few PCs and may discard more subtle biological factors.
-#'
-#' The identities of the output clusters are returned at each step for use in packages like \pkg{clustree}.
+#' The identities of the output clusters are returned at each step for comparison, e.g., using methods like \pkg{clustree}.
 #'
 #' @author Aaron Lun
 #'
-#' @examples
-#' sce <- scater::mockSCE()
+
 #' sce <- scater::logNormCounts(sce)
 #' sce <- scater::runPCA(sce)
 #' 
