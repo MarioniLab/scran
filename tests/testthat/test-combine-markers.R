@@ -138,7 +138,7 @@ test_that("combineMarkers works with log-transformations", {
             colnames(x)[ii] <- paste0("log.", colnames(x)[ii])
             x
         })
-        ref <- as(ref, "List")
+        ref <- SimpleList(ref)
         expect_equal(ref, comb.logout)
 
         # Log-transformed input and output.
@@ -160,7 +160,7 @@ test_that("combineMarkers works with renamed fields", {
         colnames(x) <- sub("LFC", "logFC", colnames(x))
         x
     })
-    recomb.back <- as(recomb.back, "List")
+    recomb.back <- SimpleList(recomb.back)
     expect_identical(comb, recomb.back)
 
     # Handles the output field.
@@ -189,7 +189,7 @@ test_that("combineMarkers correctly returns the full stats", {
 
 test_that("combineMarkers works with silly inputs", {
     expect_error(combineMarkers(output[1], groups[0,]), "must be equal")
-    expect_identical(combineMarkers(output[0], groups[0,]), setNames(List(), character(0)))
+    expect_identical(combineMarkers(output[0], groups[0,]), setNames(SimpleList(), character(0)))
 
     empty <- combineMarkers(lapply(output, FUN=function(x){ x[0,] }), groups)
     expect_identical(names(empty), as.character(seq_len(ngroups)))

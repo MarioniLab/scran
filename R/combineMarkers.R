@@ -149,8 +149,8 @@
 #' comb[["Cluster3"]]
 #'
 #' @export
-#' @importFrom S4Vectors DataFrame
-#' @importClassesFrom S4Vectors DataFrame SimpleList
+#' @importFrom S4Vectors DataFrame SimpleList
+#' @importClassesFrom S4Vectors DataFrame 
 #' @importFrom stats p.adjust
 #' @importFrom BiocGenerics cbind
 #' @importFrom methods as
