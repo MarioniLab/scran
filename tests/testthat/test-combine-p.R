@@ -66,10 +66,43 @@ test_that("Simes' method works correctly", {
     expect_equal(pout, apply(cbind(p1, p2, p3), 1, FUN=function(p) { min(p.adjust(p, method="BH")) })) 
     TESTER(p1, p2, p3, method="simes")
 
+    # Handles ties correctly.
+    pout <- combinePValues(p1, p2, p1, method="simes")
+    expect_equal(pout, apply(cbind(p1, p2, p1), 1, FUN=function(p) { min(p.adjust(p, method="BH")) })) 
+    TESTER(p1, p2, p1, method="simes")
+
+    pout <- combinePValues(p1, p1, p1, method="simes")
+    expect_equal(pout, apply(cbind(p1, p1, p1), 1, FUN=function(p) { min(p.adjust(p, method="BH")) })) 
+    TESTER(p1, p1, p1, method="simes")
+
     # Behaves sensibly at edge cases.
     expect_equal(combinePValues(0, 0, method="simes"), 0)
     expect_equal(combinePValues(0, 1, method="simes"), 0)
     expect_equal(combinePValues(1, 1, method="simes"), 1)
+})
+
+test_that("Middle-Holm method works correctly", {
+    pout <- combinePValues(p1, p2, p3, method="holm-middle")
+    expect_equal(pout, apply(cbind(p1, p2, p3), 1, FUN=function(p) { median(p.adjust(p, method="holm")) })) 
+    TESTER(p1, p2, p3, method="holm-middle")
+
+    pout <- combinePValues(p1, p2, p3, p2, method="holm-middle")
+    expect_equal(pout, apply(cbind(p1, p2, p3, p2), 1, FUN=function(p) { sort(p.adjust(p, method="holm"))[3] })) 
+    TESTER(p1, p2, p3, p2, method="holm-middle")
+
+    # Handles ties correctly.
+    pout <- combinePValues(p1, p2, p1, method="holm-middle")
+    expect_equal(pout, apply(cbind(p1, p2, p1), 1, FUN=function(p) { median(p.adjust(p, method="holm")) })) 
+    TESTER(p1, p2, p1, method="simes")
+
+    pout <- combinePValues(p1, p1, p1, method="holm-middle")
+    expect_equal(pout, apply(cbind(p1, p1, p1), 1, FUN=function(p) { median(p.adjust(p, method="holm")) })) 
+    TESTER(p1, p1, p1, method="simes")
+
+    # Behaves sensibly at edge cases.
+    expect_equal(combinePValues(0, 0, method="holm-middle"), 0)
+    expect_equal(combinePValues(0, 1, method="holm-middle"), 1)
+    expect_equal(combinePValues(1, 1, method="holm-middle"), 1)
 })
 
 test_that("Stouffer's Z method works correctly", {
