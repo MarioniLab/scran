@@ -95,6 +95,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// combine_holm_middle
+Rcpp::NumericVector combine_holm_middle(Rcpp::List Pvals, bool logp);
+RcppExport SEXP _scran_combine_holm_middle(SEXP PvalsSEXP, SEXP logpSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type Pvals(PvalsSEXP);
+    Rcpp::traits::input_parameter< bool >::type logp(logpSEXP);
+    rcpp_result_gen = Rcpp::wrap(combine_holm_middle(Pvals, logp));
+    return rcpp_result_gen;
+END_RCPP
+}
 // compute_CV2
 Rcpp::List compute_CV2(SEXP exprs, Rcpp::IntegerVector subset_row, SEXP size_factors, SEXP log_prior);
 RcppExport SEXP _scran_compute_CV2(SEXP exprsSEXP, SEXP subset_rowSEXP, SEXP size_factorsSEXP, SEXP log_priorSEXP) {
@@ -341,6 +352,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_scran_calc_log_sqdiff", (DL_FUNC) &_scran_calc_log_sqdiff, 6},
     {"_scran_combine_rho", (DL_FUNC) &_scran_combine_rho, 7},
     {"_scran_combine_simes", (DL_FUNC) &_scran_combine_simes, 2},
+    {"_scran_combine_holm_middle", (DL_FUNC) &_scran_combine_holm_middle, 2},
     {"_scran_compute_CV2", (DL_FUNC) &_scran_compute_CV2, 4},
     {"_scran_compute_blocked_stats_lognorm", (DL_FUNC) &_scran_compute_blocked_stats_lognorm, 4},
     {"_scran_compute_residual_stats_lognorm", (DL_FUNC) &_scran_compute_residual_stats_lognorm, 5},

@@ -29,6 +29,10 @@ combine_simes <- function(Pvals, logp) {
     .Call('_scran_combine_simes', PACKAGE = 'scran', Pvals, logp)
 }
 
+combine_holm_middle <- function(Pvals, logp) {
+    .Call('_scran_combine_holm_middle', PACKAGE = 'scran', Pvals, logp)
+}
+
 compute_CV2 <- function(exprs, subset_row, size_factors, log_prior) {
     .Call('_scran_compute_CV2', PACKAGE = 'scran', exprs, subset_row, size_factors, log_prior)
 }
