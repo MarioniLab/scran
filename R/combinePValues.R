@@ -14,8 +14,8 @@
 #' That is, the set of first p-values from all vectors will be combined, followed by the second p-values and so on.
 #' This is useful for combining p-values for each gene across different hypothesis tests.
 #' 
-#' Fisher's method, Stouffer's Z method and Simes' method test the joint null hypothesis, i.e., that all of the individual null hypotheses in the set are true.
-#' The joint null is rejected if any of the individual nulls are rejected.
+#' Fisher's method, Stouffer's Z method and Simes' method test the global null hypothesis that all of the individual null hypotheses in the set are true.
+#' The global null is rejected if any of the individual nulls are rejected.
 #' However, each test has different characteristics:
 #' \itemize{
 #' \item Fisher's method requires independence of the test statistic.
@@ -29,9 +29,15 @@
 #' It favours asymmetric rejection and is less powerful than the other two methods under independence.
 #' }
 #' 
-#' Berger's intersection-union test examines a different global null hypothesis, i.e., that at least one of the individual null hypotheses are true.
+#' Berger's intersection-union test examines a different global null hypothesis -
+#' that at least one of the individual null hypotheses are true.
 #' Rejection in the IUT indicates that all of the individual nulls have been rejected.
 #' This is the statistically rigorous equivalent of a naive intersection operation.
+#'
+#' The Holm-middle approach applies the Holm-Bonferroni correction to all p-values in the set and takes the middle value
+#' (i.e., the median for odd numbers of elements in \code{...}, one past the median for even).
+#' The global null hypothesis is that most nulls in the set are true. 
+#' This exploits the fact that the Holm method maintains strong control of the family wise error rate, even in the presence of correlations between p-values.
 #' 
 #' @return 
 #' A numeric vector containing the combined p-values.
@@ -79,12 +85,11 @@
 #'
 #' @export
 #' @importFrom stats pnorm qnorm pchisq
-combinePValues <- function(..., method=c("fisher", "z", "simes", "berger"), weights=NULL, log.p=FALSE) 
-# Combines p-values with a variety of methods.
-# Weights are support in Stouffer's Z method.
-#
-# written by Aaron Lun
-# created 16 September 2018
+#' @importFrom DelayedMatrixStats rowRanks rowQuantiles 
+#' @importFrom DelayedArray rowMins
+combinePValues <- function(..., 
+    method=c("fisher", "z", "simes", "berger", "holm-middle"), 
+    weights=NULL, log.p=FALSE) 
 {
     input <- list(...)
     if (length(input)==1L) {
@@ -116,9 +121,8 @@ combinePValues <- function(..., method=c("fisher", "z", "simes", "berger"), weig
             n[n==0] <- NA_real_ # ensure that we get NA outputs.
             pchisq(-2*X, df=2*n, lower.tail=FALSE, log.p=log.p)
         },
-        simes={
-            combine_simes(input, log.p)
-        },
+        simes=combine_simes(input, log.p),
+        `holm-middle`=combine_holm_middle(input, log.p),
         z={
             if (is.null(weights)) {
                 weights <- rep(1, length(input))
