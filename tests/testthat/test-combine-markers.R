@@ -25,6 +25,10 @@ test_that("combineMarkers is the same as a reference impementation", {
     comb.all <- combineMarkers(output, groups, pval.type="all")
     expect_identical(names(comb.any), as.character(seq_len(ngroups)))
 
+    # With a Holm middle approach.
+    comb.some <- combineMarkers(output, groups, pval.type="some")
+    expect_identical(names(comb.some), as.character(seq_len(ngroups)))
+
     # Comparing to reference calculations.
     for (x in as.character(seq_len(ngroups))) {
         current.i <- as.character(groups[,1]) == x
@@ -45,6 +49,11 @@ test_that("combineMarkers is the same as a reference impementation", {
         expect_equal(all.p, obs.all$p.value)
         expect_equal(p.adjust(all.p, method="BH"), obs.all$FDR)
 
+        obs.some <- comb.some[[x]][genes,]
+        some.p <- apply(pmat, 2, FUN=function(p) { sort(p.adjust(p, method="holm"))[ceiling(ngroups/2)] }) 
+        expect_equal(some.p, obs.some$p.value)
+        expect_equal(p.adjust(some.p, method="BH"), obs.some$FDR)
+
         # Rank calculations.
         expect_identical(rownames(comb.all[[x]]), genes[order(all.p)])
 
@@ -60,14 +69,6 @@ test_that("combineMarkers is the same as a reference impementation", {
             expect_equal(obs.any[[cureffect]], obs.all[[cureffect]])
             expect_equal(current.stats[[other]]$logFC, obs.all[[cureffect]])
         }
-    }
-
-    # More Simes with some.
-    comb.some <- combineMarkers(output, groups, pval.type="some")
-    for (x in as.character(seq_len(ngroups))) {
-        x.any <- comb.any[[x]]
-        x.some <- comb.some[[x]]
-        expect_identical(x.any[order(x.any$p.value),-1], x.some)
     }
 })
 

@@ -10,7 +10,7 @@
 #' Each row should specify the pair of clusters being compared for the corresponding element of \code{de.lists}.
 #' @param pval.field A string specifying the column name of each element of \code{de.lists} that contains the p-value.
 #' @param effect.field A string specifying the column name of each element of \code{de.lists} that contains the effect size.
-#' @param pval.type A string specifying the type of combined p-value to be computed, i.e., Simes' (\code{"any"}) or IUT (\code{"all"}).
+#' @param pval.type A string specifying how p-values are to be combined across pairwise comparisons for a given group/cluster.
 #' @param log.p.in A logical scalar indicating if the p-values in \code{de.lists} were log-transformed.
 #' @param log.p.out A logical scalar indicating if log-transformed p-values/FDRs should be returned.
 #' @param output.field A string specifying the prefix of the field names containing the effect sizes.
@@ -96,11 +96,13 @@
 #'
 #' @section Consolidating with DE against some other clusters:
 #' The \code{pval.type="some"} setting serves as a compromise between \code{"all"} and \code{"any"}.
-#' A combined p-value is calculated by consolidating p-values across contrasts for each gene using Simes' method.
-#' This tests the null hypothesis is that the gene is not DE in any of the contrasts, but in a manner that favors genes that are DE to many other clusters. 
-#' (Specifically, consistently low p-values in each pairwise comparison results in a lower Simes p-value than a single low p-value.)
+#' A combined p-value is calculated by taking the middlemost value of the Holm-corrected p-values for each gene.
+#' (This is the median for odd numbers of contrasts and one-after-the-median for even numbers, see \code{?\link{combinePValues}}.)
+#' Here, the null hypothesis is that the gene is not DE in at least half of the contrasts.
+#' 
 #' Genes are then ranked by the combined p-value.
-#' The aim is to provide a more focused gene set without being overly stringent, though obviously it loses the theoretical guarantees of the more extreme settings.
+#' The aim is to provide a more focused marker set without being overly stringent, though obviously it loses the theoretical guarantees of the more extreme settings.
+#' For example, there is no guarantee that the top set contains genes that can distinguish a cluster from any other cluster, which would have been possible with \code{"any"}.
 #'
 #' @section Correcting for multiple testing:
 #' The BH method is then applied on the Simes/IUT p-values across all genes to obtain the \code{FDR} field.
@@ -166,7 +168,7 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
     }
 
     pval.type <- match.arg(pval.type)
-    method <- switch(pval.type, any="simes", some="simes", all="berger")
+    method <- switch(pval.type, any="simes", some="holm-middle", all="berger")
 
     # Checking that all genes are the same across lists.
     gene.names <- NULL

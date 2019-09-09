@@ -39,13 +39,17 @@
 #' If \code{x} contains log-normalized expression values generated with a pseudo-count of 1,
 #' it can be used in any of the pairwise testing procedures.
 #' If \code{x} is scale-normalized but not log-transformed, it can be used with \code{test.type="wilcox"} and \code{test.type="binom"}.
-#' If \code{x} contains raw countrs, it can only be used with \code{test.type="binom"}.
+#' If \code{x} contains raw counts, it can only be used with \code{test.type="binom"}.
 #' 
 #' Note that \code{log.p} only affects the combined p-values and FDRs.
 #' If \code{full.stats=TRUE}, the p-values for each individual pairwise comparison will always be log-transformed,
 #' regardless of the value of \code{log.p}.
 #' Log-transformed p-values and FDRs are reported using the natural base.
-#' 
+#'
+#' The choice of \code{pval.type} determines whether the highly ranked genes are those that are DE between the current cluster
+#' and any other cluster (\code{"any"}); all other clusters (\code{"all"}); or some other clusters (\code{"some"}).
+#' See \code{?\link{combineMarkers}} for more details.
+#'
 #' @return 
 #' A named list of \linkS4class{DataFrame}s, each of which contains a sorted marker gene list for the corresponding cluster.
 #' In each DataFrame, the top genes are chosen to enable separation of that cluster from all other clusters.
