@@ -51,8 +51,12 @@ This is the statistically rigorous equivalent of a naive intersection operation.
 
 The Holm-middle approach applies the Holm-Bonferroni correction to all p-values in the set and takes the middle value
 (i.e., the median for odd numbers of elements in \code{...}, one past the median for even).
-The global null hypothesis is that most nulls in the set are true. 
-This exploits the fact that the Holm method maintains strong control of the family wise error rate, even in the presence of correlations.
+The global null hypothesis is that at least half of the individual nulls in the set are true.
+This method works correctly in the presence of correlations between p-values.
+
+% Specifically, if we have N tests, our global null is that at least ceil(N/2) of the individual nulls are true.
+% We apply Holm until we reject the (N - ceil(N/2) + 1)th test, which causes us to reject the global null.
+% The combined p-value is thus defined as the p-value at this rejection point.
 }
 \examples{
 p1 <- runif(10000)
