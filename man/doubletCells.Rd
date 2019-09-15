@@ -101,6 +101,7 @@ However, it may also result in spuriously high scores for single cells that happ
 }
 \examples{
 # Mocking up an example.
+set.seed(100)
 ngenes <- 1000
 mu1 <- 2^rnorm(ngenes)
 mu2 <- 2^rnorm(ngenes)

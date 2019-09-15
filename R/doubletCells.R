@@ -65,6 +65,7 @@
 #' 
 #' @examples
 #' # Mocking up an example.
+#' set.seed(100)
 #' ngenes <- 1000
 #' mu1 <- 2^rnorm(ngenes)
 #' mu2 <- 2^rnorm(ngenes)
@@ -139,14 +140,16 @@ NULL
     }
 
     # Computing densities, using a distance computed from the kth nearest neighbor.
-    self.dist <- findKNN(BNINDEX=pre.pcs, k=k, BPPARAM=BPPARAM, get.distance=FALSE, get.index=FALSE)
+    self.dist <- findKNN(BNINDEX=pre.pcs, k=k, BPPARAM=BPPARAM, last=1, get.index=FALSE, warn.ties=FALSE)$distance
     dist2nth <- pmax(1e-8, median(self.dist))
 
-    self.dist <- findNeighbors(threshold=dist2nth, BNINDEX=pre.pcs, BNPARAM=BNPARAM, BPPARAM=BPPARAM, get.index=FALSE)$distance
-    self.prop <- lengths(self.dist)/ncol(x)
-    sim.dist <- queryNeighbors(sim.pcs, query=pcs, threshold=dist2nth, BNPARAM=BNPARAM, BPPARAM=BPPARAM, get.index=FALSE)$distance
-    sim.prop <- lengths(sim.dist)/niters
+    self.n <- findNeighbors(threshold=dist2nth, BNINDEX=pre.pcs, BNPARAM=BNPARAM, BPPARAM=BPPARAM, 
+        get.distance=FALSE, get.index=FALSE)
+    sim.n <- queryNeighbors(sim.pcs, query=pcs, threshold=dist2nth, BNPARAM=BNPARAM, BPPARAM=BPPARAM, 
+        get.distance=FALSE, get.index=FALSE)
 
+    self.prop <- self.n/ncol(x)
+    sim.prop <- sim.n/niters
     sim.prop / self.prop^2
 }
 
