@@ -13,7 +13,7 @@ getDenoisedPCs(x, ...)
 
 \S4method{getDenoisedPCs}{ANY}(x, technical, subset.row = NULL,
   min.rank = 5, max.rank = 100, fill.missing = FALSE,
-  BSPARAM = ExactParam(), BPPARAM = SerialParam())
+  BSPARAM = bsparam(), BPPARAM = SerialParam())
 
 \S4method{getDenoisedPCs}{SingleCellExperiment}(x, ...,
   assay.type = "logcounts")

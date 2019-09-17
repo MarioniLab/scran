@@ -11,7 +11,7 @@ quickCluster(x, ...)
 
 \S4method{quickCluster}{ANY}(x, min.size = 100, method = c("igraph",
   "hclust"), use.ranks = FALSE, d = NULL, subset.row = NULL,
-  min.mean = 1, graph.fun = cluster_walktrap, BSPARAM = IrlbaParam(),
+  min.mean = 1, graph.fun = cluster_walktrap, BSPARAM = bsparam(),
   BPPARAM = SerialParam(), block = NULL,
   block.BPPARAM = SerialParam(), ...)
 

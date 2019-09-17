@@ -14,7 +14,7 @@ buildSNNGraph(x, ...)
 
 \S4method{buildSNNGraph}{ANY}(x, k = 10, d = 50, type = c("rank",
   "number", "jaccard"), transposed = FALSE, subset.row = NULL,
-  BNPARAM = KmknnParam(), BSPARAM = ExactParam(),
+  BNPARAM = KmknnParam(), BSPARAM = bsparam(),
   BPPARAM = SerialParam())
 
 \S4method{buildSNNGraph}{SingleCellExperiment}(x, ..., subset.row = NULL,
@@ -24,7 +24,7 @@ buildKNNGraph(x, ...)
 
 \S4method{buildKNNGraph}{ANY}(x, k = 10, d = 50, directed = FALSE,
   transposed = FALSE, subset.row = NULL, BNPARAM = KmknnParam(),
-  BSPARAM = ExactParam(), BPPARAM = SerialParam())
+  BSPARAM = bsparam(), BPPARAM = SerialParam())
 
 \S4method{buildKNNGraph}{SingleCellExperiment}(x, ..., subset.row = NULL,
   assay.type = "logcounts", get.spikes = FALSE, use.dimred = NULL)

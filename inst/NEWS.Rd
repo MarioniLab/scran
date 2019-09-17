@@ -9,7 +9,7 @@
 
 \item Added option to pairwiseTTests() and findMarkers() for standardization of log-fold changes.
 
-\item Changed default BSPARAM=IrlbaParam() in quickCluster().
+\item Changed default BSPARAM= to bsparam() in quickCluster(), denoisePCA(), doubletCells() and build*NNGraph().
 
 \item Added the pairwiseBinom() function for pairwise binomial tests of gene expression.
 
