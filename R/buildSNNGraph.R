@@ -177,8 +177,10 @@ NULL
 
 #' @importFrom igraph make_graph simplify
 #' @importFrom BiocParallel SerialParam
+#' @importFrom BiocSingular bsparam
+#' @importFrom BiocNeighbors KmknnParam
 .buildKNNGraph <- function(x, k=10, d=50, directed=FALSE, transposed=FALSE,
-    subset.row=NULL, BNPARAM=KmknnParam(), BSPARAM=ExactParam(), BPPARAM=SerialParam()) 
+    subset.row=NULL, BNPARAM=KmknnParam(), BSPARAM=bsparam(), BPPARAM=SerialParam()) 
 # Builds a k-nearest-neighbour graph, where edges are present between each
 # cell and its 'k' nearest neighbours. Undirected unless specified otherwise.
 #
