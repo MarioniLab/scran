@@ -65,6 +65,8 @@ Renamed the get.values= argument to get.weights=.
 \item Added a pval.type="some" option to combineMarkers(), as a compromise between the two other modes.
 
 \item Added the getClusteredPCs() function to provide a cluster-based heuristic for choosing the number of PCs.
+
+\item Added the neighborsTo*NNGraph() functions to generate (shared) nearest neighbor graphs from pre-computed NN results.
 }}
 
 \section{Version 1.12.0}{\itemize{

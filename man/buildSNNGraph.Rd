@@ -8,6 +8,8 @@
 \alias{buildKNNGraph}
 \alias{buildKNNGraph,ANY-method}
 \alias{buildKNNGraph,SingleCellExperiment-method}
+\alias{neighborsToSNNGraph}
+\alias{neighborsToKNNGraph}
 \title{Build a nearest-neighbor graph}
 \usage{
 buildSNNGraph(x, ...)
@@ -28,6 +30,10 @@ buildKNNGraph(x, ...)
 
 \S4method{buildKNNGraph}{SingleCellExperiment}(x, ..., subset.row = NULL,
   assay.type = "logcounts", get.spikes = FALSE, use.dimred = NULL)
+
+neighborsToSNNGraph(indices, type = c("rank", "number", "jaccard"))
+
+neighborsToKNNGraph(indices, directed = FALSE)
 }
 \arguments{
 \item{x}{For the ANY method, a matrix-like object containing expression values for each gene (row) in each cell (column).
@@ -36,9 +42,9 @@ These dimensions can be transposed if \code{transposed=TRUE}.
 For the \linkS4class{SingleCellExperiment} method, a SingleCellExperiment containing such an expression matrix.
 Alternatively, graph building will be performed from its \code{\link{reducedDims}} if \code{use.dimred} is set.}
 
-\item{...}{For the generic, additional arguments to pass to specific methods.
+\item{...}{For the generics, additional arguments to pass to the specific methods.
 
-For the SingleCellExperiment method, additional arguments to pass to the ANY method.}
+For the SingleCellExperiment methods, additional arguments to pass to the corresponding ANY method.}
 
 \item{k}{An integer scalar specifying the number of nearest neighbors to consider during graph construction.}
 
@@ -63,6 +69,8 @@ For the SingleCellExperiment method, additional arguments to pass to the ANY met
 \item{use.dimred}{A string specifying whether existing values in \code{reducedDims(x)} should be used.}
 
 \item{directed}{A logical scalar indicating whether the output of \code{buildKNNGraph} should be a directed graph.}
+
+\item{indices}{An integer matrix where each row corresponds to a cell and contains the indices of the \code{k} nearest neighbors (by increasing distance) from that cell.}
 }
 \value{
 A \link{graph} where nodes are cells and edges represent connections between nearest neighbors.
@@ -137,6 +145,11 @@ The same principles apply when \code{x} is a \linkS4class{SingleCellExperiment} 
 except that the relevant matrix is now retrieved from the assays using \code{assay.type}. 
 If \code{use.dimred} is not \code{NULL}, existing PCs are used from the specified entry of \code{reducedDims(x)}, 
 and any setting of \code{d}, \code{subset.row} and \code{get.spikes} are ignored.
+
+The \code{neighborsToSNNGraph} and \code{neighborsToKNNGraph} functions operate directly on a matrix of nearest neighbor indices,
+obtained using functions like \code{\link{findKNN}}.
+This may be useful for constructing a graph from precomputed nearest-neighbor search results.
+Note that the user is responsible for ensuring that the indices are valid (i.e., \code{range(indices)} is positive and no greater than \code{max(indices)}).
 }
 
 \examples{
@@ -177,5 +190,5 @@ See \code{\link{cluster_walktrap}}, \code{\link{cluster_louvain}} and related fu
 Also see \code{\link{findKNN}} for specifics of the nearest-neighbor search.
 }
 \author{
-Aaron Lun
+Aaron Lun, with KNN code contributed by Jonathan Griffiths.
 }

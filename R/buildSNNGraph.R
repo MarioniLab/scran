@@ -16,12 +16,13 @@
 #' @param BNPARAM A \linkS4class{BiocNeighborParam} object specifying the nearest neighbor algorithm.
 #' @param BSPARAM A \linkS4class{BiocSingularParam} object specifying the algorithm to use for PCA, if \code{d} is not \code{NA}.
 #' @param BPPARAM A \linkS4class{BiocParallelParam} object to use for parallel processing.
-#' @param ... For the generic, additional arguments to pass to specific methods.
+#' @param ... For the generics, additional arguments to pass to the specific methods.
 #' 
-#' For the SingleCellExperiment method, additional arguments to pass to the ANY method.
+#' For the SingleCellExperiment methods, additional arguments to pass to the corresponding ANY method.
 #' @param assay.type A string specifying which assay values to use.
 #' @param get.spikes See \code{?"\link{scran-gene-selection}"}.
 #' @param use.dimred A string specifying whether existing values in \code{reducedDims(x)} should be used.
+#' @param indices An integer matrix where each row corresponds to a cell and contains the indices of the \code{k} nearest neighbors (by increasing distance) from that cell.
 #' 
 #' @details
 #' The \code{buildSNNGraph} method builds a shared nearest-neighbour graph using cells as nodes.
@@ -87,6 +88,11 @@
 #' except that the relevant matrix is now retrieved from the assays using \code{assay.type}. 
 #' If \code{use.dimred} is not \code{NULL}, existing PCs are used from the specified entry of \code{reducedDims(x)}, 
 #' and any setting of \code{d}, \code{subset.row} and \code{get.spikes} are ignored.
+#'
+#' The \code{neighborsToSNNGraph} and \code{neighborsToKNNGraph} functions operate directly on a matrix of nearest neighbor indices,
+#' obtained using functions like \code{\link{findKNN}}.
+#' This may be useful for constructing a graph from precomputed nearest-neighbor search results.
+#' Note that the user is responsible for ensuring that the indices are valid (i.e., \code{range(indices)} is positive and no greater than \code{max(indices)}).
 #' 
 #' @return
 #' A \link{graph} where nodes are cells and edges represent connections between nearest neighbors.
@@ -94,7 +100,7 @@
 #' For \code{buildKNNGraph}, edges are not weighted but may be directed if \code{directed=TRUE}.
 #' 
 #' @author 
-#' Aaron Lun
+#' Aaron Lun, with KNN code contributed by Jonathan Griffiths.
 #' 
 #' @seealso
 #' See \code{\link{make_graph}} for details on the graph output object.
@@ -135,7 +141,6 @@
 #' @name buildSNNGraph
 NULL
 
-#' @importFrom igraph make_graph simplify "E<-"
 #' @importFrom BiocNeighbors KmknnParam
 #' @importFrom BiocParallel SerialParam
 #' @importFrom BiocSingular bsparam
@@ -143,72 +148,23 @@ NULL
     type=c("rank", "number", "jaccard"),
     transposed=FALSE, subset.row=NULL, 
     BNPARAM=KmknnParam(), BSPARAM=bsparam(), BPPARAM=SerialParam()) 
-# Builds a shared nearest-neighbor graph, where edges are present between each 
-# cell and any other cell with which it shares at least one neighbour. Each edge
-# is weighted based on the ranks of the shared nearest neighbours of the two cells, 
-# as described in the SNN-Cliq paper; or by the number of shared numbers;
-# or by the Jaccard index, a la Seurat's default.
-#
-# written by Aaron Lun
-# created 3 April 2017
 { 
     nn.out <- .setup_knn_data(x=x, subset.row=subset.row, d=d, transposed=transposed,
         k=k, BNPARAM=BNPARAM, BSPARAM=BSPARAM, BPPARAM=BPPARAM) 
-
-    # Building the SNN graph.
-    type <- match.arg(type)
-    if (type=="rank") {
-        g.out <- build_snn_rank(nn.out$index)
-    } else {
-        g.out <- build_snn_number(nn.out$index)
-    }
-
-    edges <- g.out[[1]] 
-    weights <- g.out[[2]]
-    if (type=="jaccard") {
-        weights <- weights / (2 * (k + 1) - weights)
-    }
-
-    g <- make_graph(edges, directed=FALSE)
-    E(g)$weight <- weights
-    g <- simplify(g, edge.attr.comb="first") # symmetric, so doesn't really matter.
-    return(g)
+    neighborsToSNNGraph(nn.out$index, type=match.arg(type))
 }
 
-#' @importFrom igraph make_graph simplify
 #' @importFrom BiocParallel SerialParam
 #' @importFrom BiocSingular bsparam
 #' @importFrom BiocNeighbors KmknnParam
 .buildKNNGraph <- function(x, k=10, d=50, directed=FALSE, transposed=FALSE,
     subset.row=NULL, BNPARAM=KmknnParam(), BSPARAM=bsparam(), BPPARAM=SerialParam()) 
-# Builds a k-nearest-neighbour graph, where edges are present between each
-# cell and its 'k' nearest neighbours. Undirected unless specified otherwise.
-#
-# written by Aaron Lun, Jonathan Griffiths
-# created 16 November 2017
 { 
     nn.out <- .setup_knn_data(x=x, subset.row=subset.row, d=d, transposed=transposed,
         k=k, BNPARAM=BNPARAM, BSPARAM=BSPARAM, BPPARAM=BPPARAM) 
-
-    # Building the KNN graph.
-    start <- as.vector(row(nn.out$index))
-    end <- as.vector(nn.out$index)
-    interleaved <- as.vector(rbind(start, end))
-    
-    if (directed) { 
-        g <- make_graph(interleaved, directed=TRUE)
-    } else {
-        g <- make_graph(interleaved, directed=FALSE)
-        g <- simplify(g, edge.attr.comb = "first")
-    }
-    return(g)
+    neighborsToKNNGraph(nn.out$index, directed=directed)
 }
 
-######################
-# Internal functions #
-######################
-
-#' @importFrom stats prcomp 
 #' @importFrom BiocNeighbors findKNN
 .setup_knn_data <- function(x, subset.row, d, transposed, k, BNPARAM, BSPARAM, BPPARAM) {
     ncells <- ncol(x)
@@ -277,3 +233,47 @@ setMethod("buildKNNGraph", "SingleCellExperiment", function(x, ..., subset.row=N
     }
     return(out)
 })
+
+############################
+# Graph-building functions #
+############################
+
+#' @export
+#' @rdname buildSNNGraph
+#' @importFrom igraph make_graph simplify "E<-"
+neighborsToSNNGraph <- function(indices, type=c("rank", "number", "jaccard")) {
+    type <- match.arg(type)
+    if (type=="rank") {
+        g.out <- build_snn_rank(indices)
+    } else {
+        g.out <- build_snn_number(indices)
+    }
+
+    edges <- g.out[[1]] 
+    weights <- g.out[[2]]
+    if (type=="jaccard") {
+        weights <- weights / (2 * (ncol(indices) + 1) - weights)
+    }
+
+    g <- make_graph(edges, directed=FALSE)
+    E(g)$weight <- weights
+    simplify(g, edge.attr.comb="first") # symmetric, so doesn't really matter.
+}
+
+
+#' @export
+#' @rdname buildSNNGraph
+#' @importFrom igraph make_graph simplify
+neighborsToKNNGraph <- function(indices, directed=FALSE) {
+    start <- as.vector(row(indices))
+    end <- as.vector(indices)
+    interleaved <- as.vector(rbind(start, end))
+    
+    if (directed) { 
+        g <- make_graph(interleaved, directed=TRUE)
+    } else {
+        g <- make_graph(interleaved, directed=FALSE)
+        g <- simplify(g, edge.attr.comb = "first")
+    }
+    g
+}

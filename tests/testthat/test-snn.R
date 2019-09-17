@@ -1,5 +1,5 @@
 # Checks the construction of the SNN graph.
-# require(scran); require(testthat); source("test-snn.R")
+# require(scran); require(testthat); source("setup.R"); source("test-snn.R")
 
 library(igraph)
 check <- function(vals, k=10, type="rank")
