@@ -134,10 +134,10 @@ NULL
 #' @importClassesFrom S4Vectors DataFrame
 #' @importFrom methods is
 #' @importFrom BiocParallel SerialParam
-#' @importFrom BiocSingular ExactParam
+#' @importFrom BiocSingular bsparam
 #' @importFrom Matrix t
 .get_denoised_pcs <- function(x, technical, subset.row=NULL, min.rank=5, max.rank=100, 
-    fill.missing=FALSE, BSPARAM=ExactParam(), BPPARAM=SerialParam())
+    fill.missing=FALSE, BSPARAM=bsparam(), BPPARAM=SerialParam())
 # Performs PCA and chooses the number of PCs to keep based on the technical noise.
 # This is done on the residuals if a design matrix is supplied.
 #

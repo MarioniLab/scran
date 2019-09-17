@@ -1,7 +1,7 @@
-#' @importFrom BiocSingular runSVD ExactParam
+#' @importFrom BiocSingular runSVD bsparam
 #' @importFrom BiocParallel SerialParam
 #' @importFrom Matrix colMeans
-.centered_SVD <- function(y, max.rank, BSPARAM=ExactParam(), BPPARAM=SerialParam(), keep.left=TRUE, keep.right=TRUE)
+.centered_SVD <- function(y, max.rank, BSPARAM=bsparam(), BPPARAM=SerialParam(), keep.left=TRUE, keep.right=TRUE)
 # Performs the PCA given a log-expression matrix.
 # Switches between svd() and irlba() on request.
 # Output format is guaranteed to be the same.

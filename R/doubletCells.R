@@ -101,11 +101,12 @@ NULL
 #' @importFrom Matrix rowMeans
 #' @importFrom stats median
 #' @importFrom BiocNeighbors findKNN findNeighbors queryNeighbors queryKNN buildIndex
+#' @importFrom BiocSingular bsparam
 #' @importFrom methods is
 .doublet_cells <- function(x, size.factors.norm=NULL, size.factors.content=NULL,
     k=50, subset.row=NULL, niters=max(10000, ncol(x)), block=10000, 
     d=50, force.match=FALSE, force.k=20, force.ndist=3,
-    BNPARAM=KmknnParam(), BSPARAM=ExactParam(), BPPARAM=SerialParam())
+    BNPARAM=KmknnParam(), BSPARAM=bsparam(), BPPARAM=SerialParam())
 {
     if (!is.null(subset.row)) {
         x <- x[subset.row,,drop=FALSE]

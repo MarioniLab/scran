@@ -138,11 +138,11 @@ NULL
 #' @importFrom igraph make_graph simplify "E<-"
 #' @importFrom BiocNeighbors KmknnParam
 #' @importFrom BiocParallel SerialParam
-#' @importFrom BiocSingular ExactParam
+#' @importFrom BiocSingular bsparam
 .buildSNNGraph <- function(x, k=10, d=50, 
     type=c("rank", "number", "jaccard"),
     transposed=FALSE, subset.row=NULL, 
-    BNPARAM=KmknnParam(), BSPARAM=ExactParam(), BPPARAM=SerialParam()) 
+    BNPARAM=KmknnParam(), BSPARAM=bsparam(), BPPARAM=SerialParam()) 
 # Builds a shared nearest-neighbor graph, where edges are present between each 
 # cell and any other cell with which it shares at least one neighbour. Each edge
 # is weighted based on the ranks of the shared nearest neighbours of the two cells, 
