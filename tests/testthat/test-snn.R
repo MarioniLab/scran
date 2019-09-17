@@ -111,11 +111,6 @@ test_that("buildSNNGraph works properly on SingleCellExperiment objects", {
     g <- buildSNNGraph(sce, subset.row=selected)
     g2 <- buildSNNGraph(sce[selected,])
     are_graphs_same(g, g2)
-    
-    isSpike(sce, "ERCC") <- selected
-    g <- buildSNNGraph(sce)
-    g2 <- buildSNNGraph(sce[-selected,])
-    are_graphs_same(g, g2)
 })
 
 # Checking PCA was working.
@@ -139,11 +134,8 @@ test_that("buildSNNGraph with PCA works correctly", {
     are_graphs_same(ref, alt)
 
     # Unaffected by spike-in and subset.row specifications (correctly).
-    isSpike(X, "ERCC") <- sample(ngenes, 50)
-    alt <- buildSNNGraph(X, use.dimred="PCA")
-    are_graphs_same(ref, alt)
-
-    alt <- buildSNNGraph(X, use.dimred="PCA", subset.row=!isSpike(X))
+    sub <- sample(ngenes, 50)
+    alt <- buildSNNGraph(X, use.dimred="PCA", subset.row=sub)
     are_graphs_same(ref, alt)
 })
 

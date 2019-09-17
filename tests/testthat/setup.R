@@ -18,3 +18,6 @@ safeBPParam <- function(nworkers) {
         BiocParallel::MulticoreParam(nworkers)
     }
 }
+
+# Using ExactParam to avoid the trouble of setting the seed for all SVD-related tests.
+options(BiocSingularParam.default=BiocSingular::ExactParam())
