@@ -27,6 +27,7 @@ makeTechTrend(), multiBlockVar() and multiBlockNorm() functions.
 \item Added the combineCV2() function to combine separate CV2 modelling results.
 
 \item Added the test.type= argument in findMarkers() to switch between pairwise DE tests.
+Deprecated overlapExprs(), which is replaced by type="wilcox" in findMarkers().
 
 \item Added the getTopMarkers() function to easily retrieve marker lists from pairwise DE results.
 
@@ -35,21 +36,17 @@ any level of the blocking factor that cannot yield a result (e.g., due to insuff
 will now be completely ignored and not contribute to any statistic.
 
 \item Added the getDenoisedPCs() function for general-purpose PCA-based denoising on non-SingleCellExperiment inputs.
+Converted denoisePCA() to a normal function, removed the method for ANY matrix.
 
-\item Converted denoisePCA() to a normal function, removed the method for ANY matrix.
-
-\item Added the calculateSumFactors() function for general-purpose calculation of deconvolution factors 
-on non-SingleCellExperiment inputs.
-
-\item Converted computeSumFactors() to a normal function, removed the method for ANY input.
+\item Added the calculateSumFactors() function for general-purpose calculation of deconvolution factors on non-SingleCellExperiment inputs.
+Converted computeSumFactors() to a normal function, removed the method for ANY input.
+Auto-guess min.mean= based on the average library size.
 
 \item Deprecated all special handling of spike-in rows,
 which are no longer necessary when spike-ins are stored as alternative experiments.
 
 \item Deprecated general.use= in computeSpikeFactors(), 
 which is no longer necessary when spike-ins are stored as alternative experiments.
-
-\item Deprecated overlapExprs(), which is replaced by type="wilcox" in findMarkers().
 
 \item Deprecated parallelPCA(), which has been moved to the PCAtools package.
 
