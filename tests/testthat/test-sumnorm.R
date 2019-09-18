@@ -195,7 +195,7 @@ test_that("computeSumFactors agrees with a reference implementation", {
 
 set.seed(20005)
 test_that("computeSumFactors correctly ignores low-abundance genes", {
-    dummy <- matrix(rpois(ngenes*ncells, lambda=1), nrow=ngenes, ncol=ncells)
+    dummy <- matrix(rpois(ngenes*ncells, lambda=seq_len(ngenes)/ngenes*2), nrow=ngenes, ncol=ncells)
     sizes <- seq(20, 100, 5)
 
     # Can't subset 'dummy' directly for testing, as that would change the library sizes.
@@ -210,6 +210,10 @@ test_that("computeSumFactors correctly ignores low-abundance genes", {
     # Interacts properly with the subsetting.
     out <- computeSumFactors(dummy, min.mean=1, subset.row=1:500, sizes=sizes)
     expect_equal(out, sumInR(dummy[1:500,], sizes=sizes, min.mean=1))
+
+    # Behaves properly with auto-selection of min.mean.
+    expect_identical(computeSumFactors(dummy, sizes=sizes), computeSumFactors(dummy, min.mean=0.1, sizes=sizes)) # UMI threshold
+    expect_equal(computeSumFactors(dummy*100, sizes=sizes), computeSumFactors(dummy, min.mean=1/100, sizes=sizes)) # read threshold
 })
 
 set.seed(200051)
@@ -436,7 +440,6 @@ test_that("computeSumFactors works properly on alternative representations", {
 set.seed(20012)
 test_that("computeSumFactors throws errors correctly", {
     dummy <- matrix(rpois(ncells*ngenes, lambda=10), nrow=ngenes, ncol=ncells)
-    expect_error(computeSumFactors(dummy, min.mean=NULL), "turn off abundance filtering")
     expect_error(computeSumFactors(dummy[,0,drop=FALSE]), "zero cells in one of the clusters")
     expect_error(computeSumFactors(dummy[0,,drop=FALSE]), "cells should have non-zero library sizes")
     expect_error(computeSumFactors(dummy, sizes=c(10, 10, 20)), "'sizes' are not unique")

@@ -122,18 +122,19 @@
 #' Users can skip this step by setting \code{positive=FALSE} to perform their own diagnostics or coercions.
 #' 
 #' @section Gene selection:
-#' Pooling does not eliminate the need to filter out low-abundance genes.
 #' If too many genes have consistently low counts across all cells, even the pool-based size factors will be zero.
 #' This results in zero or negative size factor estimates for many cells.
-#' Filtering ensures that this is not the case, e.g., by removing genes with average counts below 1.
+#' We avoid this by filtering out low-abundance genes using the \code{min.mean} argument.
+#' This represents a minimum threshold \code{min.mean} on the library size-adjusted average counts from \code{\link{calcAverage}}.
 #' 
-#' In general, genes with average counts below 1 (for read count data) or 0.1 (for UMI data) should not be used for normalization.
-#' Such genes will automatically be filtered out by applying a minimum threshold \code{min.mean} on the library size-adjusted average counts from \code{\link{calcAverage}}.
+#' By default, we set \code{min.mean} to 1 for read count data and 0.1 for UMI data.
+#' The exact values of these defaults are more-or-less arbitrary and are retained for historical reasons.
+#' The lower threshold for UMIs is motivated by (i) their lower count sizes, which would result in the removal of too many genes with a higher threshold; and (ii) the lower variability of UMI counts, which results in a lower frequency of zeroes compared to read count data at the same mean.
+#' We use the mean library size to detect whether the counts are those of reads (above 100,000) or UMIs (below 50,000) to automatically set \code{min.mean}.
+#' Mean library sizes in between these two limits will trigger a warning and revert to using \code{min.mean=0.1}.
+#' 
 #' If \code{clusters} is specified, filtering by \code{min.mean} is performed on the per-cluster average during within-cluster normalization,
 #' and then on the (library size-adjusted) average of the per-cluster averages during between-cluster normalization.
-#' 
-#' Spike-in transcripts are not included with the default \code{get.spikes=FALSE} as they can behave differently from the endogenous genes. 
-#' Users wanting to perform spike-in normalization should see \code{\link{computeSpikeFactors}} instead.
 #' 
 #' @section Obtaining standard errors:
 #' Previous versions of \code{computeSumFactors} would return the standard error for each size factor when \code{errors=TRUE}.
@@ -181,7 +182,7 @@ NULL
 
 #' @importFrom BiocParallel bplapply SerialParam
 .calculate_sum_factors <- function(x, sizes=seq(21, 101, 5), clusters=NULL, ref.clust=NULL, max.cluster.size=3000, 
-    positive=TRUE, scaling=NULL, min.mean=1, subset.row=NULL, BPPARAM=SerialParam())
+    positive=TRUE, scaling=NULL, min.mean=NULL, subset.row=NULL, BPPARAM=SerialParam())
 # This contains the function that performs normalization on the summed counts.
 # It also provides support for normalization within clusters, and then between
 # clusters to make things comparable. 
@@ -207,11 +208,6 @@ NULL
         stop("'sizes' are not unique") 
     }
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
-
-    if (is.null(min.mean)) {
-        stop("set 'min.mean=0' to turn off abundance filtering")
-    }
-    min.mean <- pmax(min.mean, 1e-8) # must be at least non-zero mean. 
 
     # Setting some other values.
     nclusters <- length(indices)
@@ -253,7 +249,7 @@ NULL
 
 #' @importFrom Matrix qr qr.coef colSums
 #' @importFrom scater nexprs
-.per_cluster_normalize <- function(x, curdex, sizes, subset.row, min.mean=1, positive=FALSE, scaling=NULL) 
+.per_cluster_normalize <- function(x, curdex, sizes, subset.row, min.mean=NULL, positive=FALSE, scaling=NULL) 
 # Computes the normalization factors _within_ each cluster,
 # along with the reference pseudo-cell used for normalization. 
 # Written as a separate function so that bplapply operates in the scran namespace.
@@ -266,7 +262,20 @@ NULL
     exprs <- vals[[2]]
     ave.cell <- vals[[3]] # equivalent to calcAverage().
 
-    # Filtering by mean:
+    # Choosing a mean filter based on the data type and then filtering:
+    if (is.null(min.mean)) {
+        mean.lib <- sum(ave.cell)
+        if (mean.lib <= 50000) { # Probably UMI data.
+            min.mean <- 0.1
+        } else if (mean.lib >= 100000) { # Probably read data.
+            min.mean <- 1
+        } else {
+            min.mean <- 0.1
+            warning("assuming UMI data when setting 'min.mean'")
+        }
+    }
+
+    min.mean <- pmax(min.mean, 1e-8) # must be positive.
     high.ave <- min.mean <= ave.cell 
     use.ave.cell <- ave.cell
     if (!all(high.ave)) { 
