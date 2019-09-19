@@ -46,12 +46,14 @@
 #' 
 #' Window sliding is repeated with different window sizes to construct the linear system, as specified by \code{sizes}.
 #' By default, the number of cells in each window ranges from 21 to 101.
-#' Using a range of window sizes improves the precision of the estimates, at the cost of increased computational complexity.
+#' Using a range of window sizes improves the precision of the estimates, at the cost of increased computational work.
 #' The defaults were chosen to provide a reasonable compromise between these two considerations.
-#' The default choice also avoids rare cases of linear dependencies and unstable estimates when all pool sizes are not co-prime with the number of cells.
+#' The default set of \code{sizes} also avoids rare cases of linear dependencies and unstable estimates when all pool sizes are not co-prime with the number of cells.
 #' 
 #' The smallest window should be large enough so that the pool-based size factors are, on average, non-zero.
 #' We recommend window sizes no lower than 20 for UMI data, though smaller windows may be possible for read count data.
+#' The total number of cells should also be at least 100 for effective pooling.
+#' (If \code{cluster} is specified, we would want at least 100 cells per cluster.)
 #' 
 #' If there are fewer cells than the smallest window size, the function will naturally degrade to performing library size normalization.
 #' This yields results that are the same as \code{\link{librarySizeFactors}}.
@@ -84,15 +86,17 @@
 #' The default \code{max.cluster.size} will arbitrarily break up the cell population (within each cluster, if specified) so that we never pool more than 3000 cells.
 #' 
 #' @section Normalization within and between clusters:
-#' In general, it is more appropriate to pool more similar cells to avoid violating the assumption of a non-DE majority of genes across the data set.
+#' In general, it is more appropriate to pool more similar cells to avoid violating the assumption of a non-DE majority of genes.
 #' This can be done by specifying the \code{clusters} argument where cells in each cluster have similar expression profiles.
-#' Deconvolution is subsequently applied on the cells within each cluster.
+#' Deconvolution is subsequently applied on the cells within each cluster, where there should be fewer DE genes between cells.
 #' A convenience function \code{\link{quickCluster}} is provided for this purpose, though any reasonable clustering can be used.
 #' 
 #' Size factors computed within each cluster must be rescaled for comparison between clusters.
-#' This is done by normalizing between clusters to identify the rescaling factor.
-#' One cluster is chosen as a ``reference'' to which all others are normalized.
+#' This is done by normalizing between the per-cluster pseudo-cells to identify the rescaling factor.
+#' One cluster is chosen as a \dQuote{reference} to which all others are normalized.
 #' Ideally, the reference cluster should have a stable expression profile and not be extremely different from all other clusters.
+#' The assumption here is that there is a non-DE majority between the reference and each other cluster
+#' (which is still a weaker assumption than that required without clustering).
 #' 
 #' By default, the cluster with the most non-zero counts is used as the reference.
 #' This reduces the risk of obtaining undefined rescaling factors for the other clusters, while improving the precision (and also accuracy) of the median-based estimate of each factor.
@@ -102,9 +106,9 @@
 #' Otherwise, \code{computeSumFactors} will degrade to library size normalization.
 #' 
 #' @section Dealing with negative size factors:
-#' In theory, it is possible to obtain negative estimates for the size factors.
+#' It is possible for the deconvolution algorithm to yield negative estimates for the size factors.
 #' These values are obviously nonsensical and \code{computeSumFactors} will raise a warning if they are encountered.
-#' Negative estimates are mostly commonly generated from low quality cells with few expressed features, such that most counts are zero even after pooling.
+#' Negative estimates are mostly commonly generated from low quality cells with few expressed features, such that most genes still have zero counts even after pooling.
 #' They may also occur if insufficient filtering of low-abundance genes was performed.
 #' 
 #' To avoid negative size factors, the best solution is to increase the stringency of the filtering.
@@ -112,7 +116,7 @@
 #' \item If only a few negative size factors are present, they are likely to correspond to a few low-quality cells with few expressed features.
 #' Such cells are difficult to normalize reliably under any approach, and can be removed by increasing the stringency of the quality control.
 #' \item If many negative size factors are present, it is probably due to insufficient filtering of low-abundance genes.
-#' This results in many zero counts and pooled size factors of zero, and can be fixed by filtering out more genes with a higher \code{min.mean}.
+#' This results in many zero counts and pooled size factors of zero, and can be fixed by filtering out more genes with a higher \code{min.mean} - see \dQuote{Gene selection} below.
 #' }
 #' Another approach is to increase in the number of \code{sizes} to improve the precision of the estimates.
 #' This reduces the chance of obtaining negative size factors due to estimation error, for cells where the true size factors are very small.

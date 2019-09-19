@@ -115,10 +115,15 @@ This mitigates the effect of occasional extreme results when the percentage of n
 }
 \section{Effects of gene selection}{
 
-One can use \code{subset.row} to perform the PCA on a subset of genes, e.g., HVGs.
-Note that, within the subset, only rows with positive components are actually used in the PCA.
-As such, if \code{subset.row} consists only of HVGs that were selected on the basis of having a positive biological component,
-then it is unnecessary as it is redundant with the filtering performed internally by \code{getDenoisedPCs}.
+We can use \code{subset.row} to perform the PCA on a subset of genes, e.g., HVGs.
+This can be used to only perform the PCA on genes with the largest biological components,
+thus increasing the signal-to-noise ratio of downstream analyses.
+Note that only rows with positive components are actually used in the PCA, 
+even if we explicitly specified them in \code{subset.row}.
+
+(It naturally follows that, if our HVG selection strategy involves picking all genes with positive biological components,
+there is no need to set \code{subset.row} explicitly in this function,
+because that selection would be redundant with the filtering performed internally by \code{getDenoisedPCs}.)
 
 If \code{fill.missing=TRUE}, entries of the rotation matrix are imputed for all genes in \code{x}.
 This includes \dQuote{unselected} genes, i.e., with negative biological components or that were not selected with \code{subset.row}.
