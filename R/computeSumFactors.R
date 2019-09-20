@@ -186,8 +186,6 @@
 NULL
 
 #' @importFrom BiocParallel bplapply SerialParam
-#' @importFrom Matrix colSums
-#' @importFrom stats median
 .calculate_sum_factors <- function(x, sizes=seq(21, 101, 5), clusters=NULL, ref.clust=NULL, max.cluster.size=3000, 
     positive=TRUE, scaling=NULL, min.mean=NULL, subset.row=NULL, BPPARAM=SerialParam())
 # This contains the function that performs normalization on the summed counts.
@@ -209,20 +207,7 @@ NULL
         stop("zero cells in one of the clusters")
     }
 
-    # Choosing a mean filter based on the data type and then filtering:
-    if (is.null(min.mean)) {
-        mid.lib <- median(colSums(x))
-        if (mid.lib <= 50000) { # Probably UMI data.
-            min.mean <- 0.1
-        } else if (mid.lib >= 100000) { # Probably read data.
-            min.mean <- 1
-        } else {
-            min.mean <- 0.1
-            warning("assuming UMI data when setting 'min.mean'")
-        }
-    } else {
-        min.mean <- pmax(min.mean, 1e-8) # must be positive.
-    }
+    min.mean <- .guess_min_mean(x, min.mean=min.mean)
 
     # Checking sizes and subsetting.
     sizes <- sort(as.integer(sizes))
@@ -263,6 +248,28 @@ NULL
     
     is.pos <- final.sf > 0 & !is.na(final.sf)
     final.sf/mean(final.sf[is.pos])
+}
+
+#' @importFrom Matrix colSums
+#' @importFrom stats median
+.guess_min_mean <- function(x, min.mean) { 
+    # Choosing a mean filter based on the data type and then filtering:
+    if (is.null(min.mean)) {
+        mid.lib <- median(colSums(x))
+        if (is.na(mid.lib)) { # no column check, for safety.
+            min.mean <- 1
+        } else if (mid.lib <= 50000) { # Probably UMI data.
+            min.mean <- 0.1
+        } else if (mid.lib >= 100000) { # Probably read data.
+            min.mean <- 1
+        } else {
+            min.mean <- 0.1
+            warning("assuming UMI data when setting 'min.mean'")
+        }
+    } else {
+        min.mean <- pmax(min.mean, 1e-8) # must be positive.
+    }
+    min.mean
 }
 
 #############################################################
