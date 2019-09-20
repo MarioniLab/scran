@@ -90,6 +90,7 @@
 #' This can be done by specifying the \code{clusters} argument where cells in each cluster have similar expression profiles.
 #' Deconvolution is subsequently applied on the cells within each cluster, where there should be fewer DE genes between cells.
 #' A convenience function \code{\link{quickCluster}} is provided for this purpose, though any reasonable clustering can be used.
+#' Only a rough clustering is required here, as \code{computeSumFactors} is robust to a moderate level of DE within each cluster.
 #' 
 #' Size factors computed within each cluster must be rescaled for comparison between clusters.
 #' This is done by normalizing between the per-cluster pseudo-cells to identify the rescaling factor.
@@ -134,7 +135,7 @@
 #' By default, we set \code{min.mean} to 1 for read count data and 0.1 for UMI data.
 #' The exact values of these defaults are more-or-less arbitrary and are retained for historical reasons.
 #' The lower threshold for UMIs is motivated by (i) their lower count sizes, which would result in the removal of too many genes with a higher threshold; and (ii) the lower variability of UMI counts, which results in a lower frequency of zeroes compared to read count data at the same mean.
-#' We use the mean library size to detect whether the counts are those of reads (above 100,000) or UMIs (below 50,000) to automatically set \code{min.mean}.
+#' We use the median library size to detect whether the counts are those of reads (above 100,000) or UMIs (below 50,000) to automatically set \code{min.mean}.
 #' Mean library sizes in between these two limits will trigger a warning and revert to using \code{min.mean=0.1}.
 #' 
 #' If \code{clusters} is specified, filtering by \code{min.mean} is performed on the per-cluster average during within-cluster normalization,
@@ -185,6 +186,8 @@
 NULL
 
 #' @importFrom BiocParallel bplapply SerialParam
+#' @importFrom Matrix colSums
+#' @importFrom stats median
 .calculate_sum_factors <- function(x, sizes=seq(21, 101, 5), clusters=NULL, ref.clust=NULL, max.cluster.size=3000, 
     positive=TRUE, scaling=NULL, min.mean=NULL, subset.row=NULL, BPPARAM=SerialParam())
 # This contains the function that performs normalization on the summed counts.
@@ -204,6 +207,21 @@ NULL
 
     if (length(indices)==0L || any(lengths(indices)==0L)) {
         stop("zero cells in one of the clusters")
+    }
+
+    # Choosing a mean filter based on the data type and then filtering:
+    if (is.null(min.mean)) {
+        mid.lib <- median(colSums(x))
+        if (mid.lib <= 50000) { # Probably UMI data.
+            min.mean <- 0.1
+        } else if (mid.lib >= 100000) { # Probably read data.
+            min.mean <- 1
+        } else {
+            min.mean <- 0.1
+            warning("assuming UMI data when setting 'min.mean'")
+        }
+    } else {
+        min.mean <- pmax(min.mean, 1e-8) # must be positive.
     }
 
     # Checking sizes and subsetting.
@@ -251,7 +269,7 @@ NULL
 # Internal functions.
 #############################################################
 
-#' @importFrom Matrix qr qr.coef colSums
+#' @importFrom Matrix qr qr.coef 
 #' @importFrom scater nexprs
 .per_cluster_normalize <- function(x, curdex, sizes, subset.row, min.mean=NULL, positive=FALSE, scaling=NULL) 
 # Computes the normalization factors _within_ each cluster,
@@ -266,20 +284,6 @@ NULL
     exprs <- vals[[2]]
     ave.cell <- vals[[3]] # equivalent to calcAverage().
 
-    # Choosing a mean filter based on the data type and then filtering:
-    if (is.null(min.mean)) {
-        mean.lib <- sum(ave.cell)
-        if (mean.lib <= 50000) { # Probably UMI data.
-            min.mean <- 0.1
-        } else if (mean.lib >= 100000) { # Probably read data.
-            min.mean <- 1
-        } else {
-            min.mean <- 0.1
-            warning("assuming UMI data when setting 'min.mean'")
-        }
-    }
-
-    min.mean <- pmax(min.mean, 1e-8) # must be positive.
     high.ave <- min.mean <= ave.cell 
     use.ave.cell <- ave.cell
     if (!all(high.ave)) { 

@@ -140,6 +140,7 @@ In general, it is more appropriate to pool more similar cells to avoid violating
 This can be done by specifying the \code{clusters} argument where cells in each cluster have similar expression profiles.
 Deconvolution is subsequently applied on the cells within each cluster, where there should be fewer DE genes between cells.
 A convenience function \code{\link{quickCluster}} is provided for this purpose, though any reasonable clustering can be used.
+Only a rough clustering is required here, as \code{computeSumFactors} is robust to a moderate level of DE within each cluster.
 
 Size factors computed within each cluster must be rescaled for comparison between clusters.
 This is done by normalizing between the per-cluster pseudo-cells to identify the rescaling factor.
@@ -188,7 +189,7 @@ This represents a minimum threshold \code{min.mean} on the library size-adjusted
 By default, we set \code{min.mean} to 1 for read count data and 0.1 for UMI data.
 The exact values of these defaults are more-or-less arbitrary and are retained for historical reasons.
 The lower threshold for UMIs is motivated by (i) their lower count sizes, which would result in the removal of too many genes with a higher threshold; and (ii) the lower variability of UMI counts, which results in a lower frequency of zeroes compared to read count data at the same mean.
-We use the mean library size to detect whether the counts are those of reads (above 100,000) or UMIs (below 50,000) to automatically set \code{min.mean}.
+We use the median library size to detect whether the counts are those of reads (above 100,000) or UMIs (below 50,000) to automatically set \code{min.mean}.
 Mean library sizes in between these two limits will trigger a warning and revert to using \code{min.mean=0.1}.
 
 If \code{clusters} is specified, filtering by \code{min.mean} is performed on the per-cluster average during within-cluster normalization,
