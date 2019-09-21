@@ -112,7 +112,7 @@ The first is that a constant amount of spike-in RNA was added to each cell, such
 The second is that endogenous genes and spike-in transcripts follow the same mean-variance relationship, i.e., a spike-in transcript captures the technical noise of an endogenous gene at the same mean count.
 
 Here, the spike-in size factors across all cells are scaled so that their mean is equal to that of the gene-based size factors for the same set of cells.
-This ensures that the average normalized abundances of the spike-in transcripts are comparable to the endogenous genes,
+This ensures that the average normalized abundances of the spike-in transcripts are comparable to those of the endogenous genes,
 allowing the trend fitted to the former to be used to determine the biological component of the latter. 
 Otherwise, differences in scaling of the size factors would shift the normalized expression values of the former away from the latter, violating the second assumption.
 

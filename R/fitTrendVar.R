@@ -31,8 +31,10 @@
 #'
 #' If \code{parametric=FALSE}, smoothing is performed directly on the log-variances using \code{\link{weightedLowess}}.
 #'
-#' Low-abundance genes with mean log-expression below \code{min.mean} are not used in trend fitting, to preserve the sensitivity of span-based smoothers at moderate-to-high abundances.
+#' Genes with mean log-expression below \code{min.mean} are not used in trend fitting.
+#' This aims to remove the majority of low-abundance genes and preserve the sensitivity of span-based smoothers at moderate-to-high abundances.
 #' It also protects against discreteness, which can interfere with estimation of the variability of the variance estimates and accurate scaling of the trend.
+#' Filtering is applied on the mean log-expression to avoid introducing spurious trends at the filter boundary.
 #' The default threshold is chosen based on the point at which discreteness is observed in variance estimates from Poisson-distributed counts.
 #' For heterogeneous droplet data, a lower threshold of 0.001-0.01 may be more appropriate.
 #'
