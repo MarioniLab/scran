@@ -12,7 +12,7 @@
 getDenoisedPCs(x, ...)
 
 \S4method{getDenoisedPCs}{ANY}(x, technical, subset.row = NULL,
-  min.rank = 5, max.rank = 100, fill.missing = FALSE,
+  min.rank = 5, max.rank = 50, fill.missing = FALSE,
   BSPARAM = bsparam(), BPPARAM = SerialParam())
 
 \S4method{getDenoisedPCs}{SingleCellExperiment}(x, ...,
@@ -93,10 +93,10 @@ This is equivalent to the output from \code{getDenoisedPCs} after setting \code{
 Denoise log-expression data by removing principal components corresponding to technical noise.
 }
 \details{
-This function performs a principal components analysis to reduce random technical noise in the data.
+This function performs a principal components analysis to eliminate random technical noise in the data.
 Random noise is uncorrelated across genes and should be captured by later PCs, as the variance in the data explained by any single gene is low.
-In contrast, biological substructure should be correlated and captured by earlier PCs, as this explains more variance for sets of genes.
-The idea is to discard later PCs to remove technical noise and improve the resolution of substructure.
+In contrast, biological processes should be captured by earlier PCs as more variance can be explained by the correlated behavior of sets of genes in a particular pathway. 
+The idea is to discard later PCs to remove noise and improve resolution of population structure.
 This also has the benefit of reducing computational work for downstream steps.
 
 The choice of the number of PCs to discard is based on the estimates of technical variance in \code{technical}.

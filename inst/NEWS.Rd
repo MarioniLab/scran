@@ -37,6 +37,7 @@ will now be completely ignored and not contribute to any statistic.
 
 \item Added the getDenoisedPCs() function for general-purpose PCA-based denoising on non-SingleCellExperiment inputs.
 Converted denoisePCA() to a normal function, removed the method for ANY matrix.
+Dropped max.rank= default to 50 for greater speed in most cases.
 
 \item Added the calculateSumFactors() function for general-purpose calculation of deconvolution factors on non-SingleCellExperiment inputs.
 Converted computeSumFactors() to a normal function, removed the method for ANY input.
