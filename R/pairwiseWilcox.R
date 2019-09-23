@@ -324,5 +324,6 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
 }
 
 .get_sigma <- function(host.n, target.n, cur.ties) {
-    sqrt((host.n * target.n/12) * ((host.n + target.n + 1) - cur.ties/((host.n + target.n) * (host.n + target.n - 1))))
+    s2 <- (host.n * target.n/12) * ((host.n + target.n + 1) - cur.ties/((host.n + target.n) * (host.n + target.n - 1)))
+    pmax(sqrt(s2), 1e-8)
 }
