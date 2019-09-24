@@ -14,8 +14,8 @@
 #'
 #' @details
 #' These functions are designed to merge results from separate calls to \code{\link{modelGeneVar}}, \code{\link{modelGeneCV2}} or related functions, where each result is usually computed for a different batch of cells.
-#' Separate variance decompositions are necessary in cases where different concentrations of spike-in have been added to the cells in each batch.
-#' This affects the technical mean-variance relationship and precludes the use of a common trend fit.
+#' Separate variance decompositions are necessary in cases where the mean-variance relationships vary across batches (e.g., different concentrations of spike-in have been added to the cells in each batch), which precludes the use of a common trend fit.
+#' By combining these results into a single set of statistics, we can apply standard strategies for feature selection in multi-batch integrated analyses. 
 #' 
 #' By default, statistics in \code{other.fields} contain all common non-numeric fields that are not \code{pval.field} or \code{"FDR"}.
 #' This usually includes \code{"mean"}, \code{"total"}, \code{"bio"} (for \code{combineVar}) or \code{"ratio"} (for \code{combineCV2}).
@@ -29,8 +29,7 @@
 #'
 #' If \code{equiweight=FALSE}, each per-batch statistic is weighted by the number of cells used to compute it.
 #' The number of cells can be explicitly set using \code{ncells}, and is otherwise assumed to be equal for all batches.
-#' No weighting is performed by default, which ensures that all batches contribute equally to the combined statistics.
-#' This avoids cases where batches with many cells dominate the output.
+#' No weighting is performed by default, which ensures that all batches contribute equally to the combined statistics and avoids situations where batches with many cells dominate the output.
 #'
 #' The \code{\link{combinePValues}} function is used to combine p-values across batches.
 #' Only \code{method="z"} will perform any weighting of batches, and only if \code{weights} is set.
