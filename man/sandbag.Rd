@@ -60,11 +60,6 @@ The cell is then assigned to the phase that is consistent with the direction of 
 By default, \code{get.spikes=FALSE} which means that any rows corresponding to spike-in transcripts will not be considered when picking markers.
 This is because the amount of spike-in RNA added will vary between experiments and will not be a robust predictor.
 Nonetheless, if all rows are required, users can set \code{get.spikes=TRUE}.
-
-While \code{sandbag} and its partner function \code{\link{cyclone}} were originally designed for cell cyclone phase classification,
-the same computational strategy can be used to classify cells into any mutually exclusive groupings.
-Any number and nature of groups can be specified in \code{phases}, e.g., differentiation lineages, activation states. 
-Only the names of \code{phases} need to be modified to reflect the biology being studied.
 }
 \examples{
 library(scater)

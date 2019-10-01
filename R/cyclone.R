@@ -32,11 +32,16 @@
 #' Cells with G1 or G2M scores above 0.5 are assigned to the G1 or G2M phases, respectively.
 #' (If both are above 0.5, the higher score is used for assignment.)
 #' Cells can be assigned to S phase based on the S score, but a more reliable approach is to define S phase cells as those with G1 and G2M scores below 0.5.
+#'
+#' Pre-trained classifiers are provided for mouse and human datasets, see \code{?\link{sandbag}} for more details.
+#' However, note that the classifier may not be accurate for data that are substantially different from those used in the training set, e.g., due to the use of a different protocol.
+#' In such cases, users can construct a custom classifier from their own training data using the \code{\link{sandbag}} function.
+#' This is usually necessary for other model organisms where pre-trained classifiers are not available.
 #' 
-#' While this method is described for cell cycle phase classification, any biological groupings can be used here -- see \code{?\link{sandbag}} for details.
-#' However, for non-cell cycle phase groupings, the output \code{phases} will be an empty character vector.
-#' Users should manually apply their own score thresholds for assigning cells into specific groups.
-#' 
+#' Users should \emph{not} filter out low-abundance genes before applying \code{cyclone}.
+#' Even if a gene is not expressed in any cell, it may still be useful for classification if it is phase-specific.
+#' Its lack of expression relative to other genes will still yield informative pairs, and filtering them out would reduce power.
+#'
 #' @section Description of the score calculation:
 #' To make the proportions comparable between phases, a distribution of proportions is constructed by shuffling the expression values within each cell and recalculating the proportion.
 #' The phase score is defined as the lower tail probability at the observed proportion.
