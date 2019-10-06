@@ -1,13 +1,13 @@
 #' Find marker genes
 #' 
-#' Find candidate marker genes for clusters of cells by testing for differential expression between pairs of clusters.
+#' Find candidate marker genes for groups of cells (e.g., clusters) by testing for differential expression between pairs of groups.
 #' 
 #' @param x A numeric matrix-like object of expression values, 
 #' where each column corresponds to a cell and each row corresponds to an endogenous gene.
 #' This is expected to be normalized log-expression values for most tests - see Details.
 #'
 #' Alternatively, a \linkS4class{SingleCellExperiment} object containing such a matrix.
-#' @param clusters A vector of cluster identities for all cells.
+#' @param groups A vector of group assignments for all cells.
 #' @param test.type String specifying the type of pairwise test to perform -
 #' a t-test with \code{"t"}, a Wilcoxon rank sum test with \code{"wilcox"}, 
 #' or a binomial test with \code{"binom"}.

@@ -37,6 +37,8 @@ Test-specific arguments are also supported for the appropriate \code{test.type}.
 
 For the SingleCellExperiment method, further arguments to pass to the ANY method.}
 
+\item{groups}{A vector of group assignments for all cells.}
+
 \item{test.type}{String specifying the type of pairwise test to perform -
 a t-test with \code{"t"}, a Wilcoxon rank sum test with \code{"wilcox"}, 
 or a binomial test with \code{"binom"}.}
@@ -59,8 +61,6 @@ If \code{sorted=TRUE}, this should have the same row names as the output of \cod
 \item{assay.type}{A string specifying which assay values to use, usually \code{"logcounts"}.}
 
 \item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
-
-\item{clusters}{A vector of cluster identities for all cells.}
 }
 \value{
 A named list of \linkS4class{DataFrame}s, each of which contains a sorted marker gene list for the corresponding group.
@@ -71,7 +71,7 @@ Log-fold changes are reported as differences in average \code{x} between groups
 See \code{?\link{combineMarkers}} for more details on the output format.
 }
 \description{
-Find candidate marker genes for clusters of cells by testing for differential expression between pairs of clusters.
+Find candidate marker genes for groups of cells (e.g., clusters) by testing for differential expression between pairs of groups.
 }
 \details{
 This function provides a convenience wrapper for marker gene identification between groups of cells,
