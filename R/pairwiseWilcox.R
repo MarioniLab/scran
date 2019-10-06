@@ -3,9 +3,11 @@
 #' Perform pairwise Wilcoxon rank sum tests between groups of cells, possibly after blocking on uninteresting factors of variation.
 #' 
 #' @param x A numeric matrix-like object of normalized log-expression values, where each column corresponds to a cell and each row corresponds to an endogenous gene.
-#' @param clusters A vector of cluster identities for all cells.
+#' @param groups A vector specifying the group assignment for each cell.
+#' @param clusters Deprecated, same as \code{groups}.
 #' @param block A factor specifying the blocking level for each cell.
-#' @param direction A string specifying the direction of effects to be considered for each cluster.
+#' @param restrict A vector specifying the levels of \code{groups} for which to perform pairwise comparisons.
+#' @param direction A string specifying the direction of effects to be considered in the alternative hypothesis.
 #' @param log.p A logical scalar indicating if log-transformed p-values/FDRs should be returned.
 #' @param gene.names A character vector of gene names with one value for each row of \code{x}.
 #' @param subset.row See \code{?"\link{scran-gene-selection}"}.
@@ -13,8 +15,8 @@
 #' @param BPPARAM A \linkS4class{BiocParallelParam} object indicating whether and how parallelization should be performed across genes.
 #' 
 #' @details
-#' This function performs Wilcoxon rank sum tests to identify differentially expressed genes (DEGs) between pairs of clusters.
-#' A list of tables is returned where each table contains the statistics for all genes for a comparison between each pair of clusters.
+#' This function performs Wilcoxon rank sum tests to identify differentially expressed genes (DEGs) between pairs of groups of cells.
+#' A list of tables is returned where each table contains the statistics for all genes for a comparison between each pair of groups.
 #' This can be examined directly or used as input to \code{\link{combineMarkers}} for marker gene detection.
 #' 
 #' The effect size for each gene in each comparison is reported as the area under the curve (AUC).
@@ -30,14 +32,18 @@
 #' For example, the i.i.d. assumptions are unlikely to hold after scaling normalization due to differences in variance.
 #' Also note that we approximate the distribution of the Wilcoxon rank sum statistic to deal with large numbers of cells and ties.
 #' 
-#' @section Direction and magnitude of the effect:
-#' If \code{direction="any"}, two-sided Wilcoxon rank sum tests will be performed for each pairwise comparisons between clusters.
-#' Otherwise, one-sided tests in the specified direction will be used to compute p-values for each gene.
-#' This can be used to focus on genes that are upregulated in each cluster of interest, which is often easier to interpret.
+#' If \code{restrict} is specified, comparisons are only performed between pairs of groups in \code{restrict}.
+#' This can be used to focus on DEGs distinguishing between a subset of the groups (e.g., closely related cell subtypes).
+#' Similarly, if any entries of \code{groups} are \code{NA}, the corresponding cells are are ignored.
 #' 
-#' To interpret the setting of \code{direction}, consider the DataFrame for cluster X, in which we are comparing to another cluster Y.
-#' If \code{direction="up"}, genes will only be significant in this DataFrame if they are upregulated in cluster X compared to Y.
-#' If \code{direction="down"}, genes will only be significant if they are downregulated in cluster X compared to Y.
+#' @section Direction and magnitude of the effect:
+#' If \code{direction="any"}, two-sided Wilcoxon rank sum tests will be performed for each pairwise comparisons between groups of cells.
+#' Otherwise, one-sided tests in the specified direction will be used instead.
+#' This can be used to focus on genes that are upregulated in each group of interest, which is often easier to interpret.
+#' 
+#' To interpret the setting of \code{direction}, consider the DataFrame for group X, in which we are comparing to another group Y.
+#' If \code{direction="up"}, genes will only be significant in this DataFrame if they are upregulated in group X compared to Y.
+#' If \code{direction="down"}, genes will only be significant if they are downregulated in group X compared to Y.
 #' See \code{?\link{wilcox.test}} for more details on the interpretation of one-sided Wilcoxon rank sum tests.
 #'
 #' Users can also specify a log-fold change threshold in \code{lfc} to focus on genes that exhibit large shifts in location.
@@ -56,33 +62,33 @@
 #' The fact that the AUC depends on \code{lfc} is necessary to preserve its relationship with the p-value.
 #'
 #' @section Blocking on uninteresting factors:
-#' If \code{block} is specified, Wilcoxon tests are performed between clusters within each level of \code{block}.
-#' For each pair of clusters, the p-values for each gene across all levels of \code{block} are combined using Stouffer's Z-score method.
+#' If \code{block} is specified, Wilcoxon tests are performed between groups of cells within each level of \code{block}.
+#' For each pair of groups, the p-values for each gene across all levels of \code{block} are combined using Stouffer's Z-score method.
 #' The reported AUC is also a weighted average of the AUCs across all levels.
 #' 
 #' The weight for a particular level of \code{block} is defined as \eqn{N_xN_y},
-#' where \eqn{N_x} and \eqn{N_y} are the number of cells in clusters X and Y, respectively, for that level. 
+#' where \eqn{N_x} and \eqn{N_y} are the number of cells in groups X and Y, respectively, for that level. 
 #' This means that p-values from blocks with more cells will have a greater contribution to the combined p-value for each gene.
 #' 
 #' When combining across batches, one-sided p-values in the same direction are combined first.
 #' Then, if \code{direction="any"}, the two combined p-values from both directions are combined.
 #' This ensures that a gene only receives a low overall p-value if it changes in the same direction across batches.
 #'
-#' When comparing two clusters, blocking levels are ignored if no p-value was reported, e.g., if there were insufficient cells for a cluster in a particular level. 
+#' When comparing two groups, blocking levels are ignored if no p-value was reported, e.g., if there were insufficient cells for a group in a particular level. 
 #' If all levels are ignored in this manner, the entire comparison will only contain \code{NA} p-values and a warning will be emitted.
 #' 
 #' @return 
 #' A list is returned containing \code{statistics} and \code{pairs}.
 #' 
 #' The \code{statistics} element is itself a list of \linkS4class{DataFrame}s.
-#' Each DataFrame contains the statistics for a comparison between a pair of clusters,
-#' including the overlap proportions, p-values and false discovery rates.
+#' Each DataFrame contains the statistics for a comparison between a pair of groups,
+#' including the AUCs, p-values and false discovery rates.
 #' 
 #' The \code{pairs} element is a DataFrame with one row corresponding to each entry of \code{statistics}.
 #' This contains the fields \code{first} and \code{second}, 
-#' specifying the two clusters under comparison in the corresponding DataFrame in \code{statistics}.
+#' specifying the two groups under comparison in the corresponding DataFrame in \code{statistics}.
 #' 
-#' In each DataFrame in \code{statistics}, the AUC represents the probability of sampling a value in the \code{first} cluster greater than a random value from the \code{second} cluster.
+#' In each DataFrame in \code{statistics}, the AUC represents the probability of sampling a value in the \code{first} group greater than a random value from the \code{second} group.
 #' 
 #' @author
 #' Aaron Lun
@@ -108,44 +114,26 @@
 #' kout <- kmeans(t(logcounts(sce)), centers=2) 
 #' 
 #' # Vanilla application:
-#' out <- pairwiseWilcox(logcounts(sce), clusters=kout$cluster)
+#' out <- pairwiseWilcox(logcounts(sce), groups=kout$cluster)
 #' out
 #' 
 #' # Directional and with a minimum log-fold change:
-#' out <- pairwiseWilcox(logcounts(sce), clusters=kout$cluster, 
+#' out <- pairwiseWilcox(logcounts(sce), groups=kout$cluster, 
 #'     direction="up", lfc=0.2)
 #' out
 #' 
 #' @export
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel SerialParam
-pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "down"),
-    lfc=0, log.p=FALSE, gene.names=rownames(x), subset.row=NULL, BPPARAM=SerialParam())
-# Performs pairwise Wilcoxon rank sum tests between clusters.
-#
-# written by Aaron Lun
-# created 15 September 2018
+pairwiseWilcox <- function(x, groups, block=NULL, restrict=NULL, direction=c("any", "up", "down"),
+    lfc=0, log.p=FALSE, gene.names=rownames(x), clusters=NULL, subset.row=NULL, BPPARAM=SerialParam())
 {
-    ncells <- ncol(x)
-    clusters <- as.factor(clusters)
-    if (length(clusters)!=ncells) {
-        stop("length of 'clusters' does not equal 'ncol(x)'")
-    }
-    if (nlevels(clusters) < 2L) {
-        stop("need at least two unique levels in 'clusters'")
-    }
-
+    groups <- .setup_groups(groups, x, restrict=restrict, clusters=clusters)
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
-    if (is.null(gene.names)) {
-        gene.names <- subset.row
-    } else if (length(gene.names)!=nrow(x)) {
-        stop("length of 'gene.names' is not equal to the number of rows")
-    } else {
-        gene.names <- gene.names[subset.row]
-    }
-
+    gene.names <- .setup_gene_names(gene.names, x, subset.row)
     direction <- match.arg(direction)
-    results <- .blocked_wilcox(x, subset.row, clusters, block=block, direction=direction, 
+
+    results <- .blocked_wilcox(x, subset.row, groups, block=block, direction=direction, 
         lfc=lfc, gene.names=gene.names, log.p=log.p, BPPARAM=BPPARAM)
 
     first <- rep(names(results), lengths(results))
@@ -157,7 +145,7 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
 
 #' @importFrom BiocParallel bplapply SerialParam bpisup bpstart bpstop
 #' @importFrom stats pnorm 
-.blocked_wilcox <- function(x, subset.row, clusters, block=NULL, direction="any", gene.names=NULL, 
+.blocked_wilcox <- function(x, subset.row, groups, block=NULL, direction="any", gene.names=NULL, 
     lfc=0, log.p=TRUE, BPPARAM=SerialParam())
 {
     if (is.null(block)) {
@@ -179,28 +167,28 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
     }
 
     # Computing across blocks.
-    clust.vals <- levels(clusters)
+    group.vals <- levels(groups)
     nblocks <- length(block)
     all.stats <- all.ties <- all.n <- vector("list", nblocks)
 
     for (b in seq_along(block)) {
         chosen <- block[[b]]
-        cur.clusters <- clusters[chosen]
-        all.n[[b]] <- as.vector(table(cur.clusters))
-        names(all.n[[b]]) <- clust.vals
+        cur.groups <- groups[chosen]
+        all.n[[b]] <- as.vector(table(cur.groups))
+        names(all.n[[b]]) <- group.vals
         
-        cur.groups <- split(chosen - 1L, cur.clusters)
-        bpl.out <- bplapply(by.core, FUN=overlap_exprs, exprs=x, bygroup=cur.groups, lfc=lfc, BPPARAM=BPPARAM)
+        by.group <- split(chosen - 1L, cur.groups)
+        bpl.out <- bplapply(by.core, FUN=overlap_exprs, exprs=x, bygroup=by.group, lfc=lfc, BPPARAM=BPPARAM)
         raw.stats <- lapply(bpl.out, "[[", i=1)
         raw.ties <- lapply(bpl.out, "[[", i=2)
 
-        cons.stats <- cons.ties <- vector("list", length(clust.vals))
-        names(cons.stats) <- names(cons.ties) <- clust.vals
+        cons.stats <- cons.ties <- vector("list", length(group.vals))
+        names(cons.stats) <- names(cons.ties) <- group.vals
         for (i in seq_along(cons.stats)) {
             cons.stats[[i]] <- do.call(rbind, lapply(raw.stats, "[[", i=i))
             cons.ties[[i]] <- do.call(rbind, lapply(raw.ties, "[[", i=i))
             ncols <- ncol(cons.stats[[i]])
-            colnames(cons.stats[[i]]) <- colnames(cons.ties[[i]]) <- clust.vals[seq_len(ncols)]
+            colnames(cons.stats[[i]]) <- colnames(cons.ties[[i]]) <- group.vals[seq_len(ncols)]
         }
 
         all.stats[[b]] <- cons.stats
@@ -214,8 +202,8 @@ pairwiseWilcox <- function(x, clusters, block=NULL, direction=c("any", "up", "do
     }
 
     # This looks at every level of the blocking factor and performs
-    # Wilcoxon tests between pairs of clusters within each blocking level.
-    .pairwise_blocked_template(x, clust.vals, nblocks=length(block), direction=direction, 
+    # Wilcoxon tests between pairs of groups within each blocking level.
+    .pairwise_blocked_template(x, group.vals, nblocks=length(block), direction=direction, 
         gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, effect.name="AUC")
 }
 

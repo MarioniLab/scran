@@ -142,6 +142,21 @@ test_that("pairwiseWilcox responds to non-standard level ordering", {
     FACTORCHECK(pairwiseWilcox(X, f1), pairwiseWilcox(X, f2))
 })
 
+set.seed(80000012)
+test_that("pairwiseWilcox responds to restriction", {
+    clusters <- sample(LETTERS[1:5], ncol(X), replace=TRUE)
+
+    restrict <- c("B", "C")
+    keep <- clusters %in% restrict
+    expect_identical(pairwiseWilcox(X, clusters, restrict=restrict),
+       pairwiseWilcox(X[,keep], clusters[keep]))
+
+    restrict <- c("A", "D", "E")
+    keep <- clusters %in% restrict
+    expect_identical(pairwiseWilcox(X, clusters, restrict=restrict),
+       pairwiseWilcox(X[,keep], clusters[keep]))
+})
+
 ###################################################################
 
 BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
@@ -273,6 +288,28 @@ test_that("pairwiseWilcox with blocking responds to non-standard level ordering"
     b1 <- factor(b, 1:3)
     b2 <- factor(b, 3:1)
     FACTORCHECK(pairwiseWilcox(X, f1, block=b1), pairwiseWilcox(X, f2, block=b2))
+})
+
+set.seed(80000023)
+test_that("pairwiseWilcox with blocking responds to restriction", {
+    clusters <- sample(LETTERS[1:5], ncol(X), replace=TRUE)
+
+    restrict <- c("B", "C")
+    keep <- clusters %in% restrict
+    b <- sample(1:3, ncol(X), replace=TRUE)
+    expect_identical(pairwiseWilcox(X, clusters, restrict=restrict, block=b),
+       pairwiseWilcox(X[,keep], clusters[keep], block=b[keep]))
+
+    restrict <- c("A", "D", "E")
+    keep <- clusters %in% restrict
+    expect_identical(pairwiseWilcox(X, clusters, restrict=restrict, block=b),
+       pairwiseWilcox(X[,keep], clusters[keep], block=b[keep]))
+
+    # What happens if the block and cluster are correlated?
+    b2 <- b
+    b2[!clusters %in% restrict] <- 0
+    expect_identical(pairwiseWilcox(X, clusters, restrict=restrict, block=b2),
+       pairwiseWilcox(X[,keep], clusters[keep], block=b2[keep]))
 })
 
 ###################################################################

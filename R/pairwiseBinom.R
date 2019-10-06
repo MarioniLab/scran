@@ -5,27 +5,32 @@
 #' 
 #' @param x A numeric matrix-like object of counts,
 #' where each column corresponds to a cell and each row corresponds to a gene.
-#' @param clusters A vector of cluster identities for all cells.
+#' @param groups A vector specifying the group assignment for each cell.
+#' @param clusters Deprecated, same as \code{groups}.
 #' @param block A factor specifying the blocking level for each cell.
-#' @param direction A string specifying the direction of effects to be considered for each cluster.
+#' @param direction A string specifying the direction of effects to be considered for the alternative hypothesis.
 #' @param log.p A logical scalar indicating if log-transformed p-values/FDRs should be returned.
-#' @param lfc Numeric scalar specifying the minimum absolute log-ratio in the proportion of expressing genes between clusters.
+#' @param lfc Numeric scalar specifying the minimum absolute log-ratio in the proportion of expressing genes between groups.
 #' @param gene.names A character vector of gene names with one value for each row of \code{x}.
+#' @param restrict A vector specifying the levels of \code{groups} for which to perform pairwise comparisons.
 #' @param subset.row See \code{?"\link{scran-gene-selection}"}.
 #' @param threshold Numeric scalar specifying the value below which a gene is presumed to be not expressed.
 #' @param BPPARAM A \linkS4class{BiocParallelParam} object indicating how parallelization should be performed across genes.
 #' 
 #' @details
-#' This function performs exact binomial tests to identify marker genes between pairs of clusters.
-#' Here, the null hypothesis is that the proportion of cells expressing a gene is the same between clusters.
-#' A list of tables is returned where each table contains the statistics for all genes for a comparison between each pair of clusters.
+#' This function performs exact binomial tests to identify marker genes between pairs of groups of cells.
+#' Here, the null hypothesis is that the proportion of cells expressing a gene is the same between groups.
+#' A list of tables is returned where each table contains the statistics for all genes for a comparison between each pair of groups.
 #' This can be examined directly or used as input to \code{\link{combineMarkers}} for marker gene detection.
 #' 
-#' Effect sizes for each comparison are reported as log2-fold changes 
-#' in the proportion of expressing cells in one cluster over the proportion in another cluster.
-#' Large log-FCs correspond to large relative differences in these proportions,
-#' where the sign indicates the direction of the change in proportions.
-#' We add a pseudo-count that squeezes the log-FCs towards zero, to avoid undefined values when one proportion is zero.
+#' Effect sizes for each comparison are reported as log2-fold changes in the proportion of expressing cells in one group over the proportion in another group.
+#' We add a pseudo-count that squeezes the log-FCs towards zero to avoid undefined values when one proportion is zero.
+#' This is closely related to but somewhat more interpretable than the log-odds ratio,
+#' which would otherwise be the more natural statistic for a proportion-based test.
+#'
+#' If \code{restrict} is specified, comparisons are only performed between pairs of groups in \code{restrict}.
+#' This can be used to focus on DEGs distinguishing between a subset of the groups (e.g., closely related cell subtypes).
+#' Similarly, if any entries of \code{groups} are \code{NA}, the corresponding cells are are ignored.
 #' 
 #' \code{x} can be a count matrix or any transformed counterpart where zeroes remain zero and non-zeroes remain non-zero.
 #' This is true of any scaling normalization and monotonic transformation like the log-transform.
@@ -37,9 +42,9 @@
 #' users can treat this as \emph{retaining} information about the total RNA content, analogous to spike-in normalization.
 #' 
 #' @section Direction and magnitude of the effect:
-#' If \code{direction="any"}, two-sided binomial tests will be performed for each pairwise comparisons between clusters.
-#' For other \code{direction}, one-sided tests in the specified direction will be used to compute p-values for each gene.
-#' This can be used to focus on genes that are upregulated in each cluster of interest, which is often easier to interpret.
+#' If \code{direction="any"}, two-sided binomial tests will be performed for each pairwise comparisons between groups of cells.
+#' For other \code{direction}, one-sided tests in the specified direction will be used instead. 
+#' This can be used to focus on genes that are upregulated in each group of interest, which is often easier to interpret.
 #' 
 #' In practice, the two-sided test is approximated by combining two one-sided tests using a Bonferroni correction.
 #' This is done for various logistical purposes;
@@ -47,9 +52,9 @@
 #' As a result, the two-sided p-value reported here will not be the same as that from \code{\link{binom.test}}.
 #' In practice, they are usually similar enough that this is not a major concern.
 #' 
-#' To interpret the setting of \code{direction}, consider the DataFrame for cluster X, in which we are comparing to another cluster Y.
-#' If \code{direction="up"}, genes will only be significant in this DataFrame if they are upregulated in cluster X compared to Y.
-#' If \code{direction="down"}, genes will only be significant if they are downregulated in cluster X compared to Y.
+#' To interpret the setting of \code{direction}, consider the DataFrame for group X, in which we are comparing to another group Y.
+#' If \code{direction="up"}, genes will only be significant in this DataFrame if they are upregulated in group X compared to Y.
+#' If \code{direction="down"}, genes will only be significant if they are downregulated in group X compared to Y.
 #' See \code{?\link{binom.test}} for more details on the interpretation of one-sided Wilcoxon rank sum tests.
 #'
 #' The magnitude of the log-fold change in the proportion of expressing cells can also be tested by setting \code{lfc}.
@@ -63,33 +68,33 @@
 #' }
 #' 
 #' @section Blocking on uninteresting factors:
-#' If \code{block} is specified, binomial tests are performed between clusters within each level of \code{block}.
-#' For each pair of clusters, the p-values for each gene across 
+#' If \code{block} is specified, binomial tests are performed between groups of cells within each level of \code{block}.
+#' For each pair of groups, the p-values for each gene across 
 #' all levels of \code{block} are combined using Stouffer's weighted Z-score method.
 #' 
 #' The weight for the p-value in a particular level of \code{block} is defined as \eqn{N_x + N_y},
-#' where \eqn{N_x} and \eqn{N_y} are the number of cells in clusters X and Y, respectively, for that level. 
+#' where \eqn{N_x} and \eqn{N_y} are the number of cells in groups X and Y, respectively, for that level. 
 #' This means that p-values from blocks with more cells will have a greater contribution to the combined p-value for each gene.
 #' 
 #' When combining across batches, one-sided p-values in the same direction are combined first.
 #' Then, if \code{direction="any"}, the two combined p-values from both directions are combined.
 #' This ensures that a gene only receives a low overall p-value if it changes in the same direction across batches.
 #'
-#' When comparing two clusters, blocking levels are ignored if no p-value was reported, e.g., if there were insufficient cells for a cluster in a particular level. 
+#' When comparing two groups, blocking levels are ignored if no p-value was reported, e.g., if there were insufficient cells for a group in a particular level. 
 #' If all levels are ignored in this manner, the entire comparison will only contain \code{NA} p-values and a warning will be emitted.
 #' 
 #' @return
 #' A list is returned containing \code{statistics} and \code{pairs}.
 #' 
 #' The \code{statistics} element is itself a list of \linkS4class{DataFrame}s.
-#' Each DataFrame contains the statistics for a comparison between a pair of clusters,
+#' Each DataFrame contains the statistics for a comparison between a pair of groups,
 #' including the overlap proportions, p-values and false discovery rates.
 #' 
 #' The \code{pairs} element is a DataFrame with one row corresponding to each entry of \code{statistics}.
 #' This contains the fields \code{first} and \code{second}, 
-#' specifying the two clusters under comparison in the corresponding DataFrame in \code{statistics}.
+#' specifying the two groups under comparison in the corresponding DataFrame in \code{statistics}.
 #' 
-#' In each DataFrame in \code{statistics}, the log-fold change represents the log-ratio of the proportion of expressing cells in the \code{first} cluster compared to the expressing proportion in the \code{second} cluster.
+#' In each DataFrame in \code{statistics}, the log-fold change represents the log-ratio of the proportion of expressing cells in the \code{first} group compared to the expressing proportion in the \code{second} group.
 #' 
 #' @author
 #' Aaron Lun
@@ -112,7 +117,7 @@
 #' out
 #' 
 #' # Directional and with a minimum log-fold change:
-#' out <- pairwiseBinom(logcounts(sce), clusters=kout$cluster, 
+#' out <- pairwiseBinom(logcounts(sce), groups=kout$cluster, 
 #'     direction="up", lfc=1)
 #' out
 #'
@@ -122,30 +127,16 @@
 #' @export
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel SerialParam
-pairwiseBinom <- function(x, clusters, block=NULL, direction=c("any", "up", "down"),
-    log.p=FALSE, gene.names=rownames(x), subset.row=NULL, threshold=1e-8, lfc=0, 
-    BPPARAM=SerialParam())
+pairwiseBinom <- function(x, groups, block=NULL, restrict=NULL, direction=c("any", "up", "down"),
+    threshold=1e-8, lfc=0, log.p=FALSE, gene.names=rownames(x), 
+    clusters=NULL, subset.row=NULL, BPPARAM=SerialParam())
 {
-    ncells <- ncol(x)
-    clusters <- as.factor(clusters)
-    if (length(clusters)!=ncells) {
-        stop("length of 'clusters' does not equal 'ncol(x)'")
-    }
-    if (nlevels(clusters) < 2L) {
-        stop("need at least two unique levels in 'clusters'")
-    }
-
+    groups <- .setup_groups(groups, x, restrict=restrict, clusters=clusters)
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
-    if (is.null(gene.names)) {
-        gene.names <- subset.row
-    } else if (length(gene.names)!=nrow(x)) {
-        stop("length of 'gene.names' is not equal to the number of rows")
-    } else {
-        gene.names <- gene.names[subset.row]
-    }
-
+    gene.names <- .setup_gene_names(gene.names, x, subset.row)
     direction <- match.arg(direction)
-    results <- .blocked_binom(x, subset.row, clusters, block=block, direction=direction, 
+
+    results <- .blocked_binom(x, subset.row, groups, block=block, direction=direction, 
         gene.names=gene.names, log.p=log.p, threshold=threshold, lfc=lfc, BPPARAM=BPPARAM)
 
     first <- rep(names(results), lengths(results))
@@ -158,10 +149,10 @@ pairwiseBinom <- function(x, clusters, block=NULL, direction=c("any", "up", "dow
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel bplapply SerialParam bpisup bpstart bpstop
 #' @importFrom stats pbinom
-.blocked_binom <- function(x, subset.row, clusters, block=NULL, direction="any", gene.names=NULL, log.p=TRUE, 
+.blocked_binom <- function(x, subset.row, groups, block=NULL, direction="any", gene.names=NULL, log.p=TRUE, 
 	threshold=1e-8, lfc=0, BPPARAM=SerialParam())
 # This looks at every level of the blocking factor and performs
-# binomial tests between pairs of clusters within each blocking level.
+# binomial tests between pairs of groups within each blocking level.
 {
     if (is.null(block)) {
         block <- list(`1`=seq_len(ncol(x)))
@@ -182,21 +173,21 @@ pairwiseBinom <- function(x, clusters, block=NULL, direction=c("any", "up", "dow
     }
 
     # Computing across blocks.
-    clust.vals <- levels(clusters)
+    group.vals <- levels(groups)
     nblocks <- length(block)
     all.nzero <- all.n <- vector("list", nblocks)
 
     for (b in seq_along(block)) {
         chosen <- block[[b]]
-        cur.clusters <- clusters[chosen]
-        all.n[[b]] <- as.vector(table(cur.clusters))
-        names(all.n[[b]]) <- clust.vals
-        
-        cur.groups <- split(chosen, cur.clusters)
-        raw.nzero <- bplapply(by.core, FUN=.compute_nzero_stat, x=x, by.group=cur.groups, 
+        cur.groups <- groups[chosen]
+        all.n[[b]] <- as.vector(table(cur.groups))
+        names(all.n[[b]]) <- group.vals
+
+        by.group <- split(chosen, cur.groups)
+        raw.nzero <- bplapply(by.core, FUN=.compute_nzero_stat, x=x, by.group=by.group,
             threshold=threshold, BPPARAM=BPPARAM)
         cons.nzero <- do.call(rbind, raw.nzero)
-        colnames(cons.nzero) <- clust.vals
+        colnames(cons.nzero) <- group.vals
         all.nzero[[b]] <- cons.nzero
     }
 
@@ -206,7 +197,7 @@ pairwiseBinom <- function(x, clusters, block=NULL, direction=c("any", "up", "dow
         STATFUN <- .generate_lfc_binom(all.n, all.nzero, direction, lfc)
     }
 
-    .pairwise_blocked_template(x, clust.vals, nblocks=length(block), direction=direction, 
+    .pairwise_blocked_template(x, group.vals, nblocks=length(block), direction=direction, 
         gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, effect.name="logFC")
 }
 
