@@ -8,9 +8,8 @@
 #' @param clusters Deprecated, same as \code{groups}.
 #' @param block A factor specifying the blocking level for each cell.
 #' @param design A numeric matrix containing blocking terms for uninteresting factors.
-#' Note that these should not be confounded with \code{groups}.
+#' Note that these factors should not be confounded with \code{groups}.
 #' @param restrict A vector specifying the levels of \code{groups} for which to perform pairwise comparisons.
-#' All other groups are ignored.
 #' @param direction A string specifying the direction of log-fold changes to be considered in the alternative hypothesis.
 #' @param lfc A positive numeric scalar specifying the log-fold change threshold to be tested against.
 #' @param std.lfc A logical scalar indicating whether log-fold changes should be standardized.
@@ -42,7 +41,7 @@
 #' If \code{\link{logNormCounts}} was used, this would be base 2.
 #' 
 #' If \code{direction="any"}, two-sided tests will be performed for each pairwise comparisons between groups.
-#' Otherwise, one-sided tests in the specified direction will be used to compute p-values for each gene.
+#' Otherwise, one-sided tests in the specified direction will be used instead.
 #' This can be used to focus on genes that are upregulated in each group of interest, which is often easier to interpret when assigning cell type to a cluster.
 #' 
 #' To interpret the setting of \code{direction}, consider the DataFrame for group X, in which we are comparing to another group Y.
