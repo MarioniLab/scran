@@ -123,6 +123,21 @@ test_that("pairwiseTTests responds to non-standard level ordering", {
     FACTORCHECK(pairwiseTTests(X, f1), pairwiseTTests(X, f2))
 })
 
+set.seed(70000012)
+test_that("pairwiseTTests responds to restriction", {
+    clusters <- sample(LETTERS[1:5], ncol(X), replace=TRUE)
+
+    restrict <- c("B", "C")
+    keep <- clusters %in% restrict
+    expect_identical(pairwiseTTests(X, clusters, restrict=restrict),
+       pairwiseTTests(X[,keep], clusters[keep]))
+
+    restrict <- c("A", "D", "E")
+    keep <- clusters %in% restrict
+    expect_identical(pairwiseTTests(X, clusters, restrict=restrict),
+       pairwiseTTests(X[,keep], clusters[keep]))
+})
+
 ###################################################################
 
 BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
@@ -248,6 +263,28 @@ test_that("pairwiseTTests with blocking responds to non-standard level ordering"
     FACTORCHECK(pairwiseTTests(X, f1, block=b1), pairwiseTTests(X, f2, block=b2))
 })
 
+set.seed(70000023)
+test_that("pairwiseTTests with blocking responds to restriction", {
+    clusters <- sample(LETTERS[1:5], ncol(X), replace=TRUE)
+
+    restrict <- c("B", "C")
+    keep <- clusters %in% restrict
+    b <- sample(1:3, ncol(X), replace=TRUE)
+    expect_identical(pairwiseTTests(X, clusters, restrict=restrict, block=b),
+       pairwiseTTests(X[,keep], clusters[keep], block=b[keep]))
+
+    restrict <- c("A", "D", "E")
+    keep <- clusters %in% restrict
+    expect_identical(pairwiseTTests(X, clusters, restrict=restrict, block=b),
+       pairwiseTTests(X[,keep], clusters[keep], block=b[keep]))
+
+    # What happens if the block and cluster are correlated?
+    b2 <- b
+    b2[!clusters %in% restrict] <- 0
+    expect_identical(pairwiseTTests(X, clusters, restrict=restrict, block=b2),
+       pairwiseTTests(X[,keep], clusters[keep], block=b2[keep]))
+})
+
 ###################################################################
 
 LINEARFUN <- function(y, grouping, design, direction="any", lfc=0) {
@@ -309,6 +346,12 @@ test_that("pairwiseTTests works as expected with a design matrix", {
     LINEARFUN(X, clusters, alternative, lfc=0.2)
     LINEARFUN(X, clusters, alternative, lfc=0.2, direction="up")
     LINEARFUN(X, clusters, alternative, lfc=0.2, direction="down")
+
+    # Automatically removes the intercept.
+    b <- sample(LETTERS[1:3], ncol(X), replace=TRUE)
+    block <- model.matrix(~b)
+    expect_warning(out <- pairwiseTTests(X, clusters, design=block), "intercept")
+    expect_identical(out, pairwiseTTests(X, clusters, design=block[,-1,drop=FALSE]))
 })
 
 set.seed(70000031)
@@ -347,6 +390,22 @@ test_that("pairwiseTTests with linear models responds to non-standard level orde
     }
     CHECK_PIVOTING(cbind(model.matrix(~f1), covariate), cbind(model.matrix(~f2), covariate))
     CHECK_PIVOTING(cbind(model.matrix(~f1), d1), cbind(model.matrix(~f2), d2))
+})
+
+set.seed(70000023)
+test_that("pairwiseTTests with design matrices responds to restriction", {
+    clusters <- sample(LETTERS[1:5], ncol(X), replace=TRUE)
+    cov <- cbind(runif(ncol(X)))
+
+    restrict <- c("B", "C")
+    keep <- clusters %in% restrict
+    expect_identical(pairwiseTTests(X, clusters, restrict=restrict, design=cov),
+       pairwiseTTests(X[,keep], clusters[keep], design=cov[keep,,drop=FALSE]))
+
+    restrict <- c("A", "D", "E")
+    keep <- clusters %in% restrict
+    expect_identical(pairwiseTTests(X, clusters, restrict=restrict, design=cov),
+       pairwiseTTests(X[,keep], clusters[keep], design=cov[keep,,drop=FALSE]))
 })
 
 ###################################################################
