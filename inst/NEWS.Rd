@@ -7,7 +7,7 @@
 
 \item Removed deprecated batch correction functions.
 
-\item Added option to pairwiseTTests() and findMarkers() for standardization of log-fold changes.
+\item Added option to pairwiseTTests() for standardization of log-fold changes.
 
 \item Changed default BSPARAM= to bsparam() in quickCluster(), denoisePCA(), doubletCells() and build*NNGraph().
 
@@ -27,6 +27,7 @@ makeTechTrend(), multiBlockVar() and multiBlockNorm() functions.
 \item Added the combineCV2() function to combine separate CV2 modelling results.
 
 \item Added the test.type= argument in findMarkers() to switch between pairwise DE tests.
+Added the row.data= argument to easily include row metadata in reordered tables.
 Deprecated overlapExprs(), which is replaced by type="wilcox" in findMarkers().
 
 \item Added the getTopMarkers() function to easily retrieve marker lists from pairwise DE results.

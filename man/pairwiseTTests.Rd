@@ -4,23 +4,25 @@
 \alias{pairwiseTTests}
 \title{Perform pairwise t-tests}
 \usage{
-pairwiseTTests(x, clusters, block = NULL, design = NULL,
-  direction = c("any", "up", "down"), lfc = 0, std.lfc = FALSE,
-  log.p = FALSE, gene.names = rownames(x), subset.row = NULL,
-  BPPARAM = SerialParam())
+pairwiseTTests(x, groups, block = NULL, design = NULL,
+  restrict = NULL, direction = c("any", "up", "down"), lfc = 0,
+  std.lfc = FALSE, log.p = FALSE, gene.names = rownames(x),
+  clusters = NULL, subset.row = NULL, BPPARAM = SerialParam())
 }
 \arguments{
 \item{x}{A numeric matrix-like object of normalized log-expression values, 
 where each column corresponds to a cell and each row corresponds to an endogenous gene.}
 
-\item{clusters}{A vector of cluster identities for all cells.}
+\item{groups}{A vector specifying the group assignment for each cell.}
 
 \item{block}{A factor specifying the blocking level for each cell.}
 
 \item{design}{A numeric matrix containing blocking terms for uninteresting factors.
-Note that these should not be confounded with \code{clusters} or contain an intercept, see Details.}
+Note that these factors should not be confounded with \code{groups}.}
 
-\item{direction}{A string specifying the direction of log-fold changes to be considered for each cluster.}
+\item{restrict}{A vector specifying the levels of \code{groups} for which to perform pairwise comparisons.}
+
+\item{direction}{A string specifying the direction of log-fold changes to be considered in the alternative hypothesis.}
 
 \item{lfc}{A positive numeric scalar specifying the log-fold change threshold to be tested against.}
 
@@ -30,6 +32,8 @@ Note that these should not be confounded with \code{clusters} or contain an inte
 
 \item{gene.names}{A character vector of gene names with one value for each row of \code{x}.}
 
+\item{clusters}{Deprecated, same as \code{groups}.}
+
 \item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object indicating whether and how parallelization should be performed across genes.}
@@ -38,30 +42,34 @@ Note that these should not be confounded with \code{clusters} or contain an inte
 A list is returned containing \code{statistics} and \code{pairs}.
 
 The \code{statistics} element is itself a list of \linkS4class{DataFrame}s.
-Each DataFrame contains the statistics for a comparison between a pair of clusters,
+Each DataFrame contains the statistics for a comparison between a pair of groups,
 including the log-fold changes, p-values and false discovery rates.
 
 The \code{pairs} element is a DataFrame where each row corresponds to an entry of \code{statistics}.
 This contains the fields \code{first} and \code{second}, 
-specifying the two clusters under comparison in the corresponding DataFrame in \code{statistics}.
+specifying the two groups under comparison in the corresponding DataFrame in \code{statistics}.
 
-In each DataFrame in \code{statistics}, the log-fold change represents the change in the \code{first} cluster compared to the \code{second} cluster.
+In each DataFrame in \code{statistics}, the log-fold change represents the change in the \code{first} group compared to the \code{second} group.
 }
 \description{
 Perform pairwise Welch t-tests between groups of cells, possibly after blocking on uninteresting factors of variation.
 }
 \details{
-This function performs Welch t-tests to identify differentially expressed genes (DEGs) between pairs of clusters.
-The aim is to use the DEGs to determine cluster identity based on expression of marker genes with known biological activity.
-A list of tables is returned where each table contains the statistics for all genes for a comparison between each pair of clusters.
+This function performs t-tests to identify differentially expressed genes (DEGs) between pairs of groups of cells.
+A typical aim is to use the DEGs to determine cluster identity based on expression of marker genes with known biological activity.
+A list of tables is returned where each table contains per-gene statistics for a comparison between one pair of groups.
 This can be examined directly or used as input to \code{\link{combineMarkers}} for marker gene detection.
 
-The Welch t-test is simple, fast and performs reasonably well for single-cell count data (Soneson and Robinson, 2018).
-However, if one of the clusters contains fewer than two cells, no p-value will be reported for comparisons involving that cluster.
+We use t-tests as they are simple, fast and perform reasonably well for single-cell data (Soneson and Robinson, 2018).
+However, if one of the groups contains fewer than two cells, no p-value will be reported for comparisons involving that group.
 A warning will also be raised about insufficient degrees of freedom (d.f.) in such cases.
 
 When \code{log.p=TRUE}, the log-transformed p-values and FDRs are reported using the natural base.
 This is useful in cases with many cells such that reporting the p-values directly would lead to double-precision underflow.
+
+If \code{restrict} is specified, comparisons are only performed between pairs of groups in \code{restrict}.
+This can be used to focus on DEGs distinguishing between a subset of the groups (e.g., closely related cell subtypes).
+Similarly, if any entries of \code{groups} are \code{NA}, the corresponding cells are are ignored.
 }
 \section{Direction and magnitude of the log-fold change}{
 
@@ -69,13 +77,13 @@ Log-fold changes are reported as differences in the values of \code{x}.
 Thus, all log-fold changes have the same base as whatever was used to perform the log-transformation in \code{x}.
 If \code{\link{logNormCounts}} was used, this would be base 2.
 
-If \code{direction="any"}, two-sided tests will be performed for each pairwise comparisons between clusters.
-Otherwise, one-sided tests in the specified direction will be used to compute p-values for each gene.
-This can be used to focus on genes that are upregulated in each cluster of interest, which is often easier to interpret.
+If \code{direction="any"}, two-sided tests will be performed for each pairwise comparisons between groups.
+Otherwise, one-sided tests in the specified direction will be used instead.
+This can be used to focus on genes that are upregulated in each group of interest, which is often easier to interpret when assigning cell type to a cluster.
 
-To interpret the setting of \code{direction}, consider the DataFrame for cluster X, in which we are comparing to another cluster Y.
-If \code{direction="up"}, genes will only be significant in this DataFrame if they are upregulated in cluster X compared to Y.
-If \code{direction="down"}, genes will only be significant if they are downregulated in cluster X compared to Y.
+To interpret the setting of \code{direction}, consider the DataFrame for group X, in which we are comparing to another group Y.
+If \code{direction="up"}, genes will only be significant in this DataFrame if they are upregulated in group X compared to Y.
+If \code{direction="down"}, genes will only be significant if they are downregulated in group X compared to Y.
 
 The magnitude of the log-fold changes can also be tested by setting \code{lfc}.
 By default, \code{lfc=0} meaning that we will reject the null upon detecting any differential expression.
@@ -96,40 +104,43 @@ The choice of \code{std.lfc} does not affect the calculation of the p-values.
 
 \section{Blocking on uninteresting factors}{
 
-If \code{block} is specified, t-tests are performed between clusters within each level of \code{block}.
-For each pair of clusters, the p-values for each gene across all levels of \code{block} are combined using Stouffer's weighted Z-score method.
+If \code{block} is specified, Welch t-tests are performed between groups within each level of \code{block}.
+For each pair of groups, the p-values for each gene across all levels of \code{block} are combined using Stouffer's weighted Z-score method.
 The reported log-fold change for each gene is also a weighted average of log-fold changes across levels.
 
 The weight for a particular level is defined as \eqn{(1/N_x + 1/N_y)^{-1}}, 
-where \eqn{Nx} and \eqn{Ny} are the number of cells in clusters X and Y, respectively, for that level. 
-This is inversely proportional to the expected variance of the log-fold change, provided that all clusters and blocking levels have the same variance.
+where \eqn{Nx} and \eqn{Ny} are the number of cells in groups X and Y, respectively, for that level. 
+This is inversely proportional to the expected variance of the log-fold change, provided that all groups and blocking levels have the same variance.
 
 % In theory, a better weighting scheme would be to use the estimated standard error of the log-fold change to compute the weight.
 % This would be more responsive to differences in variance between blocking levels, focusing on levels with low variance and high power.
 % However, this is not safe in practice as genes with many zeroes can have very low standard errors, dominating the results inappropriately.
 
-When comparing two clusters, blocking levels are ignored if no p-value was reported, e.g., if there were insufficient cells for a cluster in a particular level. 
-This includes levels that contain fewer than two cells for either cluster, as this cannot yield a p-value from the Welch t-test.
+When comparing two groups, blocking levels are ignored if no p-value was reported, e.g., if there were insufficient cells for a group in a particular level. 
+This includes levels that contain fewer than two cells for either group, as this cannot yield a p-value from the Welch t-test.
 If all levels are ignored in this manner, the entire comparison will only contain \code{NA} p-values and a warning will be emitted.
 }
 
 \section{Regressing out unwanted factors}{
 
 If \code{design} is specified, a linear model is instead fitted to the expression profile for each gene.
-This linear model will include the \code{clusters} as well as any blocking factors in \code{design}.
-A t-test is then performed to identify DEGs between pairs of clusters, using the values of the relevant coefficients and the gene-wise residual variance.
-Note that \code{design} must be full rank when combined with the \code{clusters} terms, i.e., there should not be any confounding variables.
-Similarly, any intercept column should be removed beforehand.
+This linear model will include the \code{groups} as well as any blocking factors in \code{design}.
+A t-test is then performed to identify DEGs between pairs of groups, using the values of the relevant coefficients and the gene-wise residual variance.
+
+Note that \code{design} must be full rank when combined with the \code{groups} terms, 
+i.e., there should not be any confounding variables.
+We make an exception for the common situation where \code{design} contains an \code{"(Intercept)"} column,
+which is automatically detected and removed (emitting a warning along the way).
 
 We recommend using \code{block} instead of \code{design} for uninteresting categorical factors of variation.
-The former accommodates differences in the variance of expression in each cluster via Welch's t-test.
-As a result, it is more robust to misspecification of the clusters, as misspecified clusters (and inflated variances) do not affect the inferences for other clusters.
-Use of \code{block} also avoids assuming additivity of effects between the blocking factors and the cluster identities.
+The former accommodates differences in the variance of expression in each group via Welch's t-test.
+As a result, it is more robust to misspecification of the groups, as misspecified groups (and inflated variances) do not affect the inferences for other groups.
+Use of \code{block} also avoids assuming additivity of effects between the blocking factors and the groups.
 
 Nonetheless, use of \code{design} is unavoidable when blocking on real-valued covariates.
-It is also useful for ensuring that log-fold changes/p-values are computed for comparisons between all pairs of clusters
-(assuming that \code{design} is not confounded with the cluster identities).
-This may not be the case with \code{block} if a pair of clusters never co-occur in a single blocking level.
+It is also useful for ensuring that log-fold changes/p-values are computed for comparisons between all pairs of groups
+(assuming that \code{design} is not confounded with the groups).
+This may not be the case with \code{block} if a pair of groups never co-occur in a single blocking level.
 }
 
 \examples{
@@ -141,11 +152,11 @@ sce <- logNormCounts(sce)
 kout <- kmeans(t(logcounts(sce)), centers=3) 
 
 # Vanilla application:
-out <- pairwiseTTests(logcounts(sce), clusters=kout$cluster)
+out <- pairwiseTTests(logcounts(sce), groups=kout$cluster)
 out
 
 # Directional with log-fold change threshold:
-out <- pairwiseTTests(logcounts(sce), clusters=kout$cluster, 
+out <- pairwiseTTests(logcounts(sce), groups=kout$cluster, 
     direction="up", lfc=0.2)
 out
 

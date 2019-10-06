@@ -4,30 +4,34 @@
 \alias{pairwiseBinom}
 \title{Perform pairwise binomial tests}
 \usage{
-pairwiseBinom(x, clusters, block = NULL, direction = c("any", "up",
-  "down"), log.p = FALSE, gene.names = rownames(x),
-  subset.row = NULL, threshold = 1e-08, lfc = 0,
-  BPPARAM = SerialParam())
+pairwiseBinom(x, groups, block = NULL, restrict = NULL,
+  direction = c("any", "up", "down"), threshold = 1e-08, lfc = 0,
+  log.p = FALSE, gene.names = rownames(x), clusters = NULL,
+  subset.row = NULL, BPPARAM = SerialParam())
 }
 \arguments{
 \item{x}{A numeric matrix-like object of counts,
 where each column corresponds to a cell and each row corresponds to a gene.}
 
-\item{clusters}{A vector of cluster identities for all cells.}
+\item{groups}{A vector specifying the group assignment for each cell.}
 
 \item{block}{A factor specifying the blocking level for each cell.}
 
-\item{direction}{A string specifying the direction of effects to be considered for each cluster.}
+\item{restrict}{A vector specifying the levels of \code{groups} for which to perform pairwise comparisons.}
+
+\item{direction}{A string specifying the direction of effects to be considered for the alternative hypothesis.}
+
+\item{threshold}{Numeric scalar specifying the value below which a gene is presumed to be not expressed.}
+
+\item{lfc}{Numeric scalar specifying the minimum absolute log-ratio in the proportion of expressing genes between groups.}
 
 \item{log.p}{A logical scalar indicating if log-transformed p-values/FDRs should be returned.}
 
 \item{gene.names}{A character vector of gene names with one value for each row of \code{x}.}
 
+\item{clusters}{Deprecated, same as \code{groups}.}
+
 \item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
-
-\item{threshold}{Numeric scalar specifying the value below which a gene is presumed to be not expressed.}
-
-\item{lfc}{Numeric scalar specifying the minimum absolute log-ratio in the proportion of expressing genes between clusters.}
 
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object indicating how parallelization should be performed across genes.}
 }
@@ -35,30 +39,33 @@ where each column corresponds to a cell and each row corresponds to a gene.}
 A list is returned containing \code{statistics} and \code{pairs}.
 
 The \code{statistics} element is itself a list of \linkS4class{DataFrame}s.
-Each DataFrame contains the statistics for a comparison between a pair of clusters,
+Each DataFrame contains the statistics for a comparison between a pair of groups,
 including the overlap proportions, p-values and false discovery rates.
 
 The \code{pairs} element is a DataFrame with one row corresponding to each entry of \code{statistics}.
 This contains the fields \code{first} and \code{second}, 
-specifying the two clusters under comparison in the corresponding DataFrame in \code{statistics}.
+specifying the two groups under comparison in the corresponding DataFrame in \code{statistics}.
 
-In each DataFrame in \code{statistics}, the log-fold change represents the log-ratio of the proportion of expressing cells in the \code{first} cluster compared to the expressing proportion in the \code{second} cluster.
+In each DataFrame in \code{statistics}, the log-fold change represents the log-ratio of the proportion of expressing cells in the \code{first} group compared to the expressing proportion in the \code{second} group.
 }
 \description{
 Perform pairwise binomial tests between groups of cells, 
 possibly after blocking on uninteresting factors of variation.
 }
 \details{
-This function performs exact binomial tests to identify marker genes between pairs of clusters.
-Here, the null hypothesis is that the proportion of cells expressing a gene is the same between clusters.
-A list of tables is returned where each table contains the statistics for all genes for a comparison between each pair of clusters.
+This function performs exact binomial tests to identify marker genes between pairs of groups of cells.
+Here, the null hypothesis is that the proportion of cells expressing a gene is the same between groups.
+A list of tables is returned where each table contains the statistics for all genes for a comparison between each pair of groups.
 This can be examined directly or used as input to \code{\link{combineMarkers}} for marker gene detection.
 
-Effect sizes for each comparison are reported as log2-fold changes 
-in the proportion of expressing cells in one cluster over the proportion in another cluster.
-Large log-FCs correspond to large relative differences in these proportions,
-where the sign indicates the direction of the change in proportions.
-We add a pseudo-count that squeezes the log-FCs towards zero, to avoid undefined values when one proportion is zero.
+Effect sizes for each comparison are reported as log2-fold changes in the proportion of expressing cells in one group over the proportion in another group.
+We add a pseudo-count that squeezes the log-FCs towards zero to avoid undefined values when one proportion is zero.
+This is closely related to but somewhat more interpretable than the log-odds ratio,
+which would otherwise be the more natural statistic for a proportion-based test.
+
+If \code{restrict} is specified, comparisons are only performed between pairs of groups in \code{restrict}.
+This can be used to focus on DEGs distinguishing between a subset of the groups (e.g., closely related cell subtypes).
+Similarly, if any entries of \code{groups} are \code{NA}, the corresponding cells are are ignored.
 
 \code{x} can be a count matrix or any transformed counterpart where zeroes remain zero and non-zeroes remain non-zero.
 This is true of any scaling normalization and monotonic transformation like the log-transform.
@@ -71,9 +78,9 @@ users can treat this as \emph{retaining} information about the total RNA content
 }
 \section{Direction and magnitude of the effect}{
 
-If \code{direction="any"}, two-sided binomial tests will be performed for each pairwise comparisons between clusters.
-For other \code{direction}, one-sided tests in the specified direction will be used to compute p-values for each gene.
-This can be used to focus on genes that are upregulated in each cluster of interest, which is often easier to interpret.
+If \code{direction="any"}, two-sided binomial tests will be performed for each pairwise comparisons between groups of cells.
+For other \code{direction}, one-sided tests in the specified direction will be used instead. 
+This can be used to focus on genes that are upregulated in each group of interest, which is often easier to interpret.
 
 In practice, the two-sided test is approximated by combining two one-sided tests using a Bonferroni correction.
 This is done for various logistical purposes;
@@ -81,9 +88,9 @@ it is also the only way to combine p-values across blocks in a direction-aware m
 As a result, the two-sided p-value reported here will not be the same as that from \code{\link{binom.test}}.
 In practice, they are usually similar enough that this is not a major concern.
 
-To interpret the setting of \code{direction}, consider the DataFrame for cluster X, in which we are comparing to another cluster Y.
-If \code{direction="up"}, genes will only be significant in this DataFrame if they are upregulated in cluster X compared to Y.
-If \code{direction="down"}, genes will only be significant if they are downregulated in cluster X compared to Y.
+To interpret the setting of \code{direction}, consider the DataFrame for group X, in which we are comparing to another group Y.
+If \code{direction="up"}, genes will only be significant in this DataFrame if they are upregulated in group X compared to Y.
+If \code{direction="down"}, genes will only be significant if they are downregulated in group X compared to Y.
 See \code{?\link{binom.test}} for more details on the interpretation of one-sided Wilcoxon rank sum tests.
 
 The magnitude of the log-fold change in the proportion of expressing cells can also be tested by setting \code{lfc}.
@@ -99,19 +106,19 @@ A two-sided p-value is computed against this composite null.
 
 \section{Blocking on uninteresting factors}{
 
-If \code{block} is specified, binomial tests are performed between clusters within each level of \code{block}.
-For each pair of clusters, the p-values for each gene across 
+If \code{block} is specified, binomial tests are performed between groups of cells within each level of \code{block}.
+For each pair of groups, the p-values for each gene across 
 all levels of \code{block} are combined using Stouffer's weighted Z-score method.
 
 The weight for the p-value in a particular level of \code{block} is defined as \eqn{N_x + N_y},
-where \eqn{N_x} and \eqn{N_y} are the number of cells in clusters X and Y, respectively, for that level. 
+where \eqn{N_x} and \eqn{N_y} are the number of cells in groups X and Y, respectively, for that level. 
 This means that p-values from blocks with more cells will have a greater contribution to the combined p-value for each gene.
 
 When combining across batches, one-sided p-values in the same direction are combined first.
 Then, if \code{direction="any"}, the two combined p-values from both directions are combined.
 This ensures that a gene only receives a low overall p-value if it changes in the same direction across batches.
 
-When comparing two clusters, blocking levels are ignored if no p-value was reported, e.g., if there were insufficient cells for a cluster in a particular level. 
+When comparing two groups, blocking levels are ignored if no p-value was reported, e.g., if there were insufficient cells for a group in a particular level. 
 If all levels are ignored in this manner, the entire comparison will only contain \code{NA} p-values and a warning will be emitted.
 }
 
@@ -128,7 +135,7 @@ out <- pairwiseBinom(logcounts(sce), clusters=kout$cluster)
 out
 
 # Directional and with a minimum log-fold change:
-out <- pairwiseBinom(logcounts(sce), clusters=kout$cluster, 
+out <- pairwiseBinom(logcounts(sce), groups=kout$cluster, 
     direction="up", lfc=1)
 out
 

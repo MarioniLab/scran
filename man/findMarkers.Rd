@@ -9,9 +9,9 @@
 \usage{
 findMarkers(x, ...)
 
-\S4method{findMarkers}{ANY}(x, clusters, test.type = c("t", "wilcox",
+\S4method{findMarkers}{ANY}(x, groups, test.type = c("t", "wilcox",
   "binom"), ..., pval.type = c("any", "some", "all"), log.p = FALSE,
-  full.stats = FALSE, sorted = TRUE)
+  full.stats = FALSE, sorted = TRUE, row.data = NULL)
 
 \S4method{findMarkers}{SingleCellExperiment}(x, ..., subset.row = NULL,
   assay.type = "logcounts", get.spikes = FALSE)
@@ -37,8 +37,6 @@ Test-specific arguments are also supported for the appropriate \code{test.type}.
 
 For the SingleCellExperiment method, further arguments to pass to the ANY method.}
 
-\item{clusters}{A vector of cluster identities for all cells.}
-
 \item{test.type}{String specifying the type of pairwise test to perform -
 a t-test with \code{"t"}, a Wilcoxon rank sum test with \code{"wilcox"}, 
 or a binomial test with \code{"binom"}.}
@@ -51,16 +49,23 @@ or a binomial test with \code{"binom"}.}
 
 \item{sorted}{Logical scalar indicating whether each output DataFrame should be sorted by a statistic relevant to \code{pval.type}.}
 
+\item{row.data}{A \linkS4class{DataFrame} containing additional row metadata for each gene in \code{x},
+to be included in each of the output DataFrames.
+If \code{sorted=TRUE}, this should have the same row names as the output of \code{\link{combineMarkers}}
+(usually \code{rownames(x)}, see the \code{gene.names} argument in functions like \code{\link{pairwiseTTests}}.}
+
 \item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 
 \item{assay.type}{A string specifying which assay values to use, usually \code{"logcounts"}.}
 
 \item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
+
+\item{clusters}{A vector of cluster identities for all cells.}
 }
 \value{
-A named list of \linkS4class{DataFrame}s, each of which contains a sorted marker gene list for the corresponding cluster.
-In each DataFrame, the top genes are chosen to enable separation of that cluster from all other clusters.
-Log-fold changes are reported as differences in average \code{x} between clusters
+A named list of \linkS4class{DataFrame}s, each of which contains a sorted marker gene list for the corresponding group.
+In each DataFrame, the top genes are chosen to enable separation of that group from all other groups.
+Log-fold changes are reported as differences in average \code{x} between groups
 (usually in base 2, depending on the transformation applied to \code{x}).
 
 See \code{?\link{combineMarkers}} for more details on the output format.
@@ -69,7 +74,7 @@ See \code{?\link{combineMarkers}} for more details on the output format.
 Find candidate marker genes for clusters of cells by testing for differential expression between pairs of clusters.
 }
 \details{
-This function provides a convenience wrapper for marker gene identification,
+This function provides a convenience wrapper for marker gene identification between groups of cells,
 based on running \code{\link{pairwiseTTests}} or related functions and passing the result to \code{\link{combineMarkers}}.
 All of the arguments above are supplied directly to one of these two functions -
 refer to the relevant function's documentation for more details.
@@ -84,8 +89,12 @@ If \code{full.stats=TRUE}, the p-values for each individual pairwise comparison 
 regardless of the value of \code{log.p}.
 Log-transformed p-values and FDRs are reported using the natural base.
 
-The choice of \code{pval.type} determines whether the highly ranked genes are those that are DE between the current cluster
-and any other cluster (\code{"any"}); all other clusters (\code{"all"}); or some other clusters (\code{"some"}).
+The choice of \code{pval.type} determines whether the highly ranked genes are those that are DE between the current group and:
+\itemize{
+\item any other group (\code{"any"})
+\item all other groups (\code{"all"})
+\item some other groups (\code{"some"})
+}
 See \code{?\link{combineMarkers}} for more details.
 }
 \examples{
@@ -96,18 +105,18 @@ sce <- logNormCounts(sce)
 # Any clustering method is okay, only using k-means for convenience.
 kout <- kmeans(t(logcounts(sce)), centers=4) 
 
-out <- findMarkers(sce, clusters=kout$cluster)
+out <- findMarkers(sce, groups=kout$cluster)
 names(out)
 out[[1]]
 
 # More customization of the tests:
-out <- findMarkers(sce, clusters=kout$cluster, test.type="wilcox")
+out <- findMarkers(sce, groups=kout$cluster, test.type="wilcox")
 out[[1]]
 
-out <- findMarkers(sce, clusters=kout$cluster, lfc=1, direction="up")
+out <- findMarkers(sce, groups=kout$cluster, lfc=1, direction="up")
 out[[1]]
 
-out <- findMarkers(sce, clusters=kout$cluster, pval.type="all")
+out <- findMarkers(sce, groups=kout$cluster, pval.type="all")
 out[[1]]
 
 }
