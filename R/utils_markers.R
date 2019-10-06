@@ -1,10 +1,41 @@
-.pairwise_blocked_template <- function(x, clust.vals, nblocks, direction="any", 
+.setup_groups <- function(groups, x, restrict, clusters) {
+    if (!is.null(clusters)) {
+        .Deprecated(old="clusters=", new="groups=")
+        groups <- clusters
+    }
+    ncells <- ncol(x)
+    if (length(groups)!=ncells) {
+        stop("length of 'groups' does not equal 'ncol(x)'")
+    }
+    if (!is.null(restrict)) {
+        groups[!groups%in% restrict] <- NA
+    }
+    groups <- as.factor(groups)
+    if (nlevels(groups) < 2L) {
+        stop("need at least two unique levels in 'groups'")
+    }
+    groups
+}
+
+.setup_gene_names <- function(gene.names, x, subset.row) {
+    if (is.null(gene.names)) {
+        subset.row
+    } else if (length(gene.names)!=nrow(x)) {
+        stop("length of 'gene.names' is not equal to the number of rows")
+    } else if (!is.null(subset.row)) {
+        gene.names[subset.row]
+    } else {
+        gene.names
+    }
+}
+
+.pairwise_blocked_template <- function(x, group.vals, nblocks, direction="any", 
     gene.names=NULL, log.p=TRUE, STATFUN, effect.name) 
 {
-    out.stats <- .create_output_container(clust.vals)
-    for (i in seq_along(clust.vals)) {
-        host <- clust.vals[i]
-        targets <- clust.vals[seq_len(i-1L)]
+    out.stats <- .create_output_container(group.vals)
+    for (i in seq_along(group.vals)) {
+        host <- group.vals[i]
+        targets <- group.vals[seq_len(i-1L)]
 
         for (target in targets) {
             all.forward <- all.reverse <- all.left <- all.right <- vector("list", nblocks)
@@ -65,14 +96,14 @@
     }
 }
 
-.create_output_container <- function(clust.vals) {
-    out <- vector("list", length(clust.vals))
-    names(out) <- clust.vals
-    for (i in seq_along(clust.vals)) {
-        targets <- clust.vals[-i]
+.create_output_container <- function(group.vals) {
+    out <- vector("list", length(group.vals))
+    names(out) <- group.vals
+    for (i in seq_along(group.vals)) {
+        targets <- group.vals[-i]
         collected <- vector("list", length(targets))
         names(collected) <- targets
-        host <- clust.vals[i]
+        host <- group.vals[i]
         out[[host]] <- collected
     }
     return(out)
