@@ -63,3 +63,36 @@ test_that("findMarkers works correctly with row metadata", {
         expect_identical(x$Y, meta$Y)
     } 
 })
+
+test_that("findMarkers and getTopMarkers work correctly", {
+    clust <- kmeans(t(exprs(X)), centers=3)
+    stats <- pairwiseTTests(dummy, groups=clust$cluster)
+
+    out <- findMarkers(dummy, groups=clust$cluster)
+    top <- getTopMarkers(stats[[1]], stats[[2]], pairwise=FALSE, fdr.field=NULL)
+    ref <- lapply(out, FUN=function(x) rownames(x)[x$Top <= 10]) 
+    expect_identical(as.list(top), ref)
+
+    out <- findMarkers(dummy, groups=clust$cluster, pval.type="all")
+    top <- getTopMarkers(stats[[1]], stats[[2]], pairwise=FALSE, pval.type="all", fdr.field=NULL)
+    ref <- lapply(out, FUN=function(x) rownames(x)[1:10])
+    expect_identical(as.list(top), ref)
+
+    top <- getTopMarkers(stats[[1]], stats[[2]], pairwise=FALSE, pval.type="all")
+    ref <- lapply(out, FUN=function(x) head(rownames(x)[x$FDR <= 0.05], 10))
+    expect_identical(as.list(top), ref)
+
+    # Checking with pairwise=TRUE.
+    out <- getTopMarkers(stats[[1]], stats[[2]], pairwise=TRUE, fdr.field=NULL)
+    expect_identical(unique(lengths(out)), 3L)
+    expect_equivalent(do.call(cbind, lapply(out, lengths)), (1 - diag(3)) * 10L)
+    expect_identical(unique(lapply(out, names)), list(as.character(1:3)))
+
+    alt <- getTopMarkers(stats[[1]], stats[[2]], pairwise=FALSE, fdr.field=NULL)
+    expect_identical(lapply(lapply(lapply(out, unlist), unique), sort), lapply(alt, sort))
+
+    # Checking some genes get thrown out by the FDR filter.
+    bounded <- getTopMarkers(stats[[1]], stats[[2]], pairwise=TRUE)
+    expect_true(all(unlist(lapply(bounded, lengths)) <= unlist(lapply(out, lengths))))
+    expect_true(length(unlist(bounded)) <= length(unlist(out)))
+})
