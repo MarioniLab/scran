@@ -10,6 +10,7 @@
 #' Each row should specify the pair of clusters being compared for the corresponding element of \code{de.lists}.
 #' @param pval.field A string specifying the column name of each element of \code{de.lists} that contains the p-value.
 #' @param effect.field A string specifying the column name of each element of \code{de.lists} that contains the effect size.
+#' If \code{NULL}, effect sizes are not reported in the output.
 #' @param pval.type A string specifying how p-values are to be combined across pairwise comparisons for a given group/cluster.
 #' @param log.p.in A logical scalar indicating if the p-values in \code{de.lists} were log-transformed.
 #' @param log.p.out A logical scalar indicating if log-transformed p-values/FDRs should be returned.
@@ -19,46 +20,41 @@
 #' @param sorted Logical scalar indicating whether each output DataFrame should be sorted by a statistic relevant to \code{pval.type}.
 #' 
 #' @return
-#' A named \linkS4class{List} of \linkS4class{DataFrame}s where each DataFrame contains the consolidated results for the cluster of the same name.
-#' Within each DataFrame (say, the DataFrame for cluster X), each row corresponds to a gene.
-#' By default, the DataFrame contains the fields:
+#' A named \linkS4class{List} of \linkS4class{DataFrame}s where each DataFrame contains the consolidated marker statistics for each gene (row) for the cluster of the same name.
+#' The DataFrame for cluster \eqn{X} contains the fields:
 #' \describe{
 #' \item{\code{Top}:}{Integer, the minimum rank across all pairwise comparisons.
 #' This is only reported if \code{pval.type="any"}.}
 #' \item{\code{p.value}:}{Numeric, the p-value across all comparisons if \code{log.p.out=FALSE}.
 #' This is a Simes' p-value if \code{pval.type="any"} or \code{"some"}, otherwise it is an IUT p-value.}
 #' \item{\code{FDR}:}{Numeric, the BH-adjusted p-value for each gene if \code{log.p.out=FALSE}.}
+#' \item{\code{log.p.value}:}{Numeric, the (natural) log-transformed version p-value.
+#' Replaces the \code{p.value} field if \code{log.p.out=TRUE}.}
+#' \item{\code{log.FDR}:}{Numeric, the (natural) log-transformed adjusted p-value.
+#' Replaces the \code{FDR} field if \code{log.p.out=TRUE}.}
 #' \item{\code{<OUTPUT>.Y}:}{Numeric, where the value of \code{<OUTPUT>} is set to \code{output.field}.
-#' One of these fields is present for every other cluster Y in \code{clusters}.
-#' It contains the effect size of the comparison of X to Y, with typical values depending on the chosen method:
+#' One of these fields is present for every other cluster \eqn{Y} in \code{clusters}.
+#' It contains the effect size of the comparison of \eqn{X} to \eqn{Y}, with typical values depending on the chosen method:
 #' \itemize{
 #' \item \code{logFC.Y} from \code{\link{pairwiseTTests}}, containing log-fold changes in mean expression (usually in base 2).
 #' \item \code{AUC.Y} from \code{\link{pairwiseWilcox}}, containing the area under the curve, i.e., the concordance probability. 
 #' \item \code{logFC.Y} from \code{\link{pairwiseBinom}}, containing log2-fold changes in the expressing proportion.
 #' }
-#' Only reported when \code{full.stats=FALSE}.
+#' Only reported when \code{full.stats=FALSE} and \code{effect.field} is not \code{NULL}.
 #' }
-#' }
-#' 
-#' If \code{log.p.out=TRUE}, the p-value fields are different:
-#' \describe{
-#' \item{\code{log.p.value}:}{Numeric, the log-transformed version p-value that replaces the \code{p.value} field.
-#' Natural logarithms are reported.}
-#' \item{\code{log.FDR}:}{Numeric, the log-transformed adjusted p-value that replaces the \code{FDR} field.
-#' Natural logarithms are reported.}
+#' \item{\code{stats.y}:}{A nested DataFrame containing the same fields in the corresponding entry of \code{de.lists} for the \eqn{X} versus \eqn{Y} comparison.
+#' Only reported when \code{full.stats=TRUE}.}
 #' }
 #' 
-#' If \code{full.stats=TRUE}, each DataFrame contains \code{stats.Y} for each other cluster Y.
-#' Each \code{stats.Y} field is itself a DataFrame containing the same fields in the corresponding entry of \code{de.lists} for the X versus Y comparison.
-#' The name of this field can be altered by setting \code{output.field}.
-#' 
-#' Within each DataFrame, if \code{sorted=TRUE}, genes are ranked by the \code{Top} column (if available) and then the \code{p.value} column.
+#' Ordering rules are:
+#' \itemize{
+#' \item Within each DataFrame, if \code{sorted=TRUE}, genes are ranked by the \code{Top} column (if available) and then the \code{p.value} column.
 #' Otherwise, the input order of the genes is preserved.
-#' For the DataFrame corresponding to cluster X, the \code{<OUTPUT>.Y} columns are sorted according to the order of cluster IDs in \code{pairs[,2]} for all rows where \code{pairs[,1]} is X.
-#' 
-#' In the output List, the DataFrames themselves are sorted according to the order of cluster IDs in \code{pairs[,1]}.
+#' \item For the DataFrame corresponding to cluster X, the \code{<OUTPUT>.Y} columns are sorted according to the order of cluster IDs in \code{pairs[,2]} for all rows where \code{pairs[,1]} is X.
+#' \item In the output List, the DataFrames themselves are sorted according to the order of cluster IDs in \code{pairs[,1]}.
 #' Note that DataFrames are only created for clusters present in \code{pairs[,1]}.
 #' Clusters unique to \code{pairs[,2]} will only be present within a DataFrame as Y.
+#' }
 #' 
 #' @details
 #' An obvious strategy to characterizing differences between clusters is to look for genes that are differentially expressed (DE) between them.
@@ -234,9 +230,11 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
         if (full.stats) {
             cur.stats <- lapply(cur.stats, FUN=function(x) { I(as(x, Class="DataFrame")) })
             stat.df <- do.call(DataFrame, c(cur.stats, list(check.names=FALSE)))
-        } else {
+        } else if (!is.null(effect.field)) {
             all.effects <- lapply(cur.stats, "[[", i=effect.field)
             stat.df <- DataFrame(all.effects)
+        } else {
+            stat.df <- preamble[,0] # output.field is NULL, so colnames is automatically empty.
         }
         colnames(stat.df) <- sprintf("%s.%s", output.field, targets)
 

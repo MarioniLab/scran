@@ -188,6 +188,18 @@ test_that("combineMarkers correctly returns the full stats", {
     }
 })
 
+test_that("combineMarkers correctly returns no effects", {
+    stuff <- combineMarkers(output, groups, effect.field=NULL)
+    ref <- combineMarkers(output, groups)
+    all.groups <- as.character(seq_len(ngroups)) 
+
+    for (x in all.groups) {
+        current <- stuff[[x]]
+        expect_identical(colnames(current), c("Top", "p.value", "FDR"))
+        expect_identical(current, ref[[x]][,1:3])
+    }
+})
+
 test_that("combineMarkers works with silly inputs", {
     expect_error(combineMarkers(output[1], groups[0,]), "must be equal")
     expect_identical(combineMarkers(output[0], groups[0,]), setNames(SimpleList(), character(0)))
