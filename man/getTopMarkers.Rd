@@ -4,8 +4,9 @@
 \alias{getTopMarkers}
 \title{Get top markers}
 \usage{
-getTopMarkers(de.lists, pairs, n = 10, field = "p.value",
-  pairwise = TRUE, combine.type = c("any", "all"))
+getTopMarkers(de.lists, pairs, n = 10, pval.field = "p.value",
+  fdr.field = "FDR", pairwise = TRUE, pval.type = c("any", "some",
+  "all"), fdr.threshold = 0.05, ...)
 }
 \arguments{
 \item{de.lists}{A list-like object where each element is a data.frame or \linkS4class{DataFrame}.
@@ -16,16 +17,25 @@ Rows should be named by the feature name in the same order for all elements.}
 \item{pairs}{A matrix, data.frame or \linkS4class{DataFrame} with two columns and number of rows equal to the length of \code{de.lists}.
 Each row should specify the pair of clusters being compared for the corresponding element of \code{de.lists}.}
 
-\item{n}{Integer scalar specifying the number of markers to obtain from each pairwise comparison.}
+\item{n}{Integer scalar specifying the number of markers to obtain from each pairwise comparison, if \code{pairwise=FALSE}.
 
-\item{field}{String specifying the column of each DataFrame in \code{de.lists} to use to identify top markers.
+Otherwise, the number of top genes to take from each cluster's combined marker set, see Details.}
+
+\item{pval.field}{String specifying the column of each DataFrame in \code{de.lists} to use to identify top markers.
 Smaller values are assigned higher rank.}
+
+\item{fdr.field}{String specifying the column containing the adjusted p-values.}
 
 \item{pairwise}{Logical scalar indicating whether top markers should be returned for every pairwise comparison.
 If \code{FALSE}, one marker set is returned for every cluster.}
 
-\item{combine.type}{String specifying how markers from pairwise comparisons are to be combined if \code{pairwise=FALSE}.
-If \code{"all"}, the intersection of pairwise marker sets is used, while if \code{"any"}, the union is used.}
+\item{pval.type}{String specifying how markers from pairwise comparisons are to be combined if \code{pairwise=FALSE}.
+This has the same effect as \code{pval.type} in \code{\link{combineMarkers}}.}
+
+\item{fdr.threshold}{Numeric scalar specifying the FDR threshold for filtering.
+If \code{NULL}, no filtering is performed on the FDR.}
+
+\item{...}{Further arguments to pass to \code{\link{combineMarkers}} if \code{pairwise=FALSE}.}
 }
 \value{
 If \code{pairwise=TRUE}, a \linkS4class{List} of Lists of character vectors is returned.
@@ -33,7 +43,8 @@ Each element of the outer list corresponds to cluster X, each element of the inn
 and each character vector specifies the marker genes that distinguish X from Y.
 
 If \code{pairwise=FALSE}, a List of character vectors is returned.
-Each character vector contains the marker genes that distinguish X from any/all other clusters.
+Each character vector contains the marker genes that distinguish X from any, some or all other clusters,
+depending on \code{combine.type}.
 }
 \description{
 Obtain the top markers for each pairwise comparison between clusters, or for each cluster.
@@ -41,6 +52,16 @@ Obtain the top markers for each pairwise comparison between clusters, or for eac
 \details{
 This is a convenience utility that converts the results of pairwise comparisons into a marker list
 that can be used in downstream functions, e.g., as the marker sets in \pkg{SingleR}.
+By default, it returns a list of lists containing the top genes for every pairwise comparison,
+which is useful for feature selection to select genes distinguishing between closely related clusters.
+The top \code{n} genes are chosen with adjusted p-values below \code{fdr.threshold}.
+
+If \code{pairwise=FALSE}, \code{\link{combineMarkers}} is called on \code{de.lists} and \code{pairs}
+to obtain a per-cluster ranking of genes from all pairwise comparisons involving that cluster.
+If \code{pval.type="any"}, the top genes with \code{Top} values no greater than \code{n} are retained; 
+this is equivalent to taking the union of the top \code{n} genes from each pairwise comparison for each cluster.
+Otherwise, the top \code{n} genes with the smallest p-values are retained.
+In both cases, genes are further filtered by \code{fdr.threshold}.
 }
 \examples{
 library(scater)

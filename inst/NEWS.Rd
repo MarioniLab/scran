@@ -32,6 +32,8 @@ Deprecated overlapExprs(), which is replaced by type="wilcox" in findMarkers().
 
 \item Added the getTopMarkers() function to easily retrieve marker lists from pairwise DE results.
 
+\item Added the getTopHVGs() function to easily retrieve HVG sets from variance modelling results.
+
 \item In all functions that accept a block= argument,
 any level of the blocking factor that cannot yield a result (e.g., due to insufficient degrees of freedom)
 will now be completely ignored and not contribute to any statistic.
