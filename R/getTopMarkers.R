@@ -13,8 +13,8 @@
 #' @param pval.type String specifying how markers from pairwise comparisons are to be combined if \code{pairwise=FALSE}.
 #' This has the same effect as \code{pval.type} in \code{\link{combineMarkers}}.
 #' @param fdr.field String specifying the column containing the adjusted p-values.
-#' If \code{NULL}, no filtering is performed on the FDR.
 #' @param fdr.threshold Numeric scalar specifying the FDR threshold for filtering.
+#' If \code{NULL}, no filtering is performed on the FDR.
 #' @param ... Further arguments to pass to \code{\link{combineMarkers}} if \code{pairwise=FALSE}.
 #'
 #' @return If \code{pairwise=TRUE}, a \linkS4class{List} of Lists of character vectors is returned.
@@ -39,7 +39,7 @@
 #' If \code{pval.type="any"}, the top genes with \code{Top} values no greater than \code{n} are retained; 
 #' this is equivalent to taking the union of the top \code{n} genes from each pairwise comparison for each cluster.
 #' Otherwise, the top \code{n} genes with the smallest p-values are retained.
-#' In both cases, genes are further filtered by \code{fdr.threshold} if \code{fdr.field} is provided.
+#' In both cases, genes are further filtered by \code{fdr.threshold}.
 #' 
 #' @seealso
 #' \code{\link{pairwiseTTests}} and friends, to obtain \code{de.lists} and \code{pairs}.
@@ -86,7 +86,7 @@ getTopMarkers <- function(de.lists, pairs, n=10, pval.field="p.value", fdr.field
                     stop(sprintf("multiple entries in 'pairs' for '%s' vs '%s'", first, second))
                 } else {
                     cur.stats <- de.lists[[chosen]]
-                    if (!is.null(fdr.field)) {
+                    if (!is.null(fdr.threshold)) {
                         cur.stats <- cur.stats[cur.stats[,fdr.field] <= fdr.threshold,,drop=FALSE]
                     }
                     o <- order(cur.stats[[pval.field]])
@@ -103,7 +103,7 @@ getTopMarkers <- function(de.lists, pairs, n=10, pval.field="p.value", fdr.field
 
         for (i in names(combined)) {
             cur.stats <- combined[[i]]
-            if (!is.null(fdr.field)) {
+            if (!is.null(fdr.threshold)) {
                 cur.stats <- cur.stats[cur.stats[,fdr.field] <= fdr.threshold,,drop=FALSE]
             }
             if (pval.type=="any") {
