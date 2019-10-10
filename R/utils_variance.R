@@ -84,7 +84,7 @@ dummy.trend.fit <- list(trend=function(x) { rep(NA_real_, length(x)) }, std.dev=
     collected
 }
 
-#' @importFrom stats pnorm
+#' @importFrom stats pnorm p.adjust
 #' @importFrom S4Vectors DataFrame metadata<-
 .decompose_cv2 <- function(x.means, x.vars, fit.means, fit.vars, ncells, ...) {
     collected <- vector("list", ncol(x.means))
@@ -103,6 +103,7 @@ dummy.trend.fit <- list(trend=function(x) { rep(NA_real_, length(x)) }, std.dev=
 
         output$ratio <- output$total/output$trend
         output$p.value <- pnorm(output$ratio, mean=1, sd=fit$std.dev, lower.tail=FALSE)
+        output$FDR <- p.adjust(output$p.value, method="BH")
 
         rownames(output) <- rownames(x.means)
         metadata(output) <- c(list(mean=fm, cv2=fcv2), fit)
