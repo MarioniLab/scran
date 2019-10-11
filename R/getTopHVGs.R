@@ -6,6 +6,7 @@
 #' @param stats A \linkS4class{DataFrame} of variance modelling statistics with one row per gene.
 #' @param var.field String specifying the column of \code{stats} containing the relevant metric of variation.
 #' @param n Integer scalar specifying the number of top HVGs to report.
+#' @param prop Numeric scalar specifying the proportion of genes to report as HVGs.
 #' @param var.threshold Numeric scalar specifying the minimum threshold on the metric of variation.
 #' @param fdr.field String specifying the column of \code{stats} containing the adjusted p-values.
 #' If \code{NULL}, no filtering is performed on the FDR.
@@ -27,8 +28,9 @@
 #' determine significance of large variances \emph{relative} to other genes.
 #' This can be overly conservative if many genes are highly variable.
 #'
-#' If \code{n=NULL}, the resulting subset of genes is directly returned.
-#' Otherwise, the top \code{n} genes with the largest values of the variance metric are returned.
+#' If \code{n=NULL} and \code{prop=NULL}, the resulting subset of genes is directly returned.
+#' Otherwise, the top set of genes with the largest values of the variance metric are returned,
+#' where the size of the set is defined as the larger of \code{n} and \code{prop*nrow(stats)}.
 #' 
 #' @seealso
 #' \code{\link{modelGeneVar}} and friends, to generate \code{stats}.
@@ -50,18 +52,21 @@
 #' 
 #' @export
 #' @importFrom utils head
-getTopHVGs <- function(stats, var.field="bio", n=NULL, var.threshold=0,
+getTopHVGs <- function(stats, var.field="bio", n=NULL, prop=NULL, var.threshold=0,
     fdr.field="FDR", fdr.threshold=NULL, row.names=!is.null(rownames(stats))) 
 {
     if (!is.null(fdr.threshold)) {
-        stats <- stats[stats[[fdr.field]] <= fdr.threshold,,drop=FALSE]
+        fdr <- stats[[fdr.field]]
+        stats <- stats[!is.na(fdr) & fdr <= fdr.threshold,,drop=FALSE]
     }
     if (!is.null(var.threshold)) {
-        stats <- stats[stats[[var.field]] > var.threshold,,drop=FALSE]
+        var <- stats[[var.field]]
+        stats <- stats[!is.na(var) & var > var.threshold,,drop=FALSE]
     }
 
     o <- order(stats[[var.field]], decreasing=TRUE)
-    if (!is.null(n)) {
+    if (!is.null(n) || !is.null(prop)) {
+        n <- max(n, prop*nrow(stats))
         o <- head(o, n)
     }
 

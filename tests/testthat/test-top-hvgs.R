@@ -16,11 +16,44 @@ test_that("getTopHVGs works correctly", {
     expect_identical_sorted(getTopHVGs(stats, fdr.threshold=0.05), 
         rownames(stats)[stats$bio > 0 & stats$FDR <= 0.05])
 
+    # Handles top choices correctly.
     expect_identical_sorted(getTopHVGs(stats, n=200, var.threshold=NULL), 
         head(rownames(stats)[order(-stats$bio)], 200))
 
+    expect_identical_sorted(getTopHVGs(stats, n=200, prop=0.1, var.threshold=NULL), 
+        head(rownames(stats)[order(-stats$bio)], 0.1*nrow(stats)))
+
+    expect_identical_sorted(getTopHVGs(stats, n=2000, prop=0.001, var.threshold=NULL), 
+        head(rownames(stats)[order(-stats$bio)], 2000))
+
+    expect_identical_sorted(getTopHVGs(stats, n=NULL, prop=0.1, var.threshold=NULL), 
+        head(rownames(stats)[order(-stats$bio)], 0.1*nrow(stats)))
+
     expect_identical_sorted(getTopHVGs(stats, n=Inf, var.threshold=NULL), 
         rownames(stats)[order(-stats$bio)])
+})
+
+test_that("getTopHVGs handles NA values", {
+    stats <- modelGeneVar(sce)
+    stats$bio[1] <- 10000
+    stats$FDR[1] <- NA
+    stats$bio[2] <- NA
+    stats$FDR[2] <- 0
+
+    expect_identical_sorted(
+        getTopHVGs(stats, fdr.threshold=0.05, var.threshold=NULL),
+        getTopHVGs(stats[-1,], fdr.threshold=0.05, var.threshold=NULL)
+    )
+
+    expect_identical_sorted(
+        getTopHVGs(stats),
+        getTopHVGs(stats[-2,])
+    )
+
+    expect_identical_sorted(
+        getTopHVGs(stats, fdr.threshold=0.05),
+        getTopHVGs(stats[-(1:2),], fdr.threshold=0.05)
+    )
 })
 
 test_that("getTopHVGs works correctly with CV2", {

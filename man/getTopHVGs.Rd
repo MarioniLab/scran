@@ -4,8 +4,8 @@
 \alias{getTopHVGs}
 \title{Identify HVGs}
 \usage{
-getTopHVGs(stats, var.field = "bio", n = NULL, var.threshold = 0,
-  fdr.field = "FDR", fdr.threshold = NULL,
+getTopHVGs(stats, var.field = "bio", n = NULL, prop = NULL,
+  var.threshold = 0, fdr.field = "FDR", fdr.threshold = NULL,
   row.names = !is.null(rownames(stats)))
 }
 \arguments{
@@ -14,6 +14,8 @@ getTopHVGs(stats, var.field = "bio", n = NULL, var.threshold = 0,
 \item{var.field}{String specifying the column of \code{stats} containing the relevant metric of variation.}
 
 \item{n}{Integer scalar specifying the number of top HVGs to report.}
+
+\item{prop}{Numeric scalar specifying the proportion of genes to report as HVGs.}
 
 \item{var.threshold}{Numeric scalar specifying the minimum threshold on the metric of variation.}
 
@@ -43,8 +45,9 @@ By default, FDR thresholding is turned off as \code{\link{modelGeneVar}} and rel
 determine significance of large variances \emph{relative} to other genes.
 This can be overly conservative if many genes are highly variable.
 
-If \code{n=NULL}, the resulting subset of genes is directly returned.
-Otherwise, the top \code{n} genes with the largest values of the variance metric are returned.
+If \code{n=NULL} and \code{prop=NULL}, the resulting subset of genes is directly returned.
+Otherwise, the top set of genes with the largest values of the variance metric are returned,
+where the size of the set is defined as the larger of \code{n} and \code{prop*nrow(stats)}.
 }
 \examples{
 library(scater)
