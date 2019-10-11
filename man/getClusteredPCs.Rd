@@ -62,14 +62,7 @@ Users should not supply \code{FUN} where the number of clusters is fixed in adva
 
 The identities of the output clusters are returned at each step for comparison, e.g., using methods like \pkg{clustree}.
 }
-\seealso{
-\code{\link{runPCA}}, to compute the PCs in the first place.
-
-\code{\link{buildSNNGraph}}, for arguments to use in with default \code{FUN}.
-}
-\author{
-Aaron Lun
-
+\examples{
 sce <- scater::logNormCounts(sce)
 sce <- scater::runPCA(sce)
 
@@ -77,4 +70,13 @@ output <- getClusteredPCs(reducedDim(sce))
 output
 
 metadata(output)$chosen
+
+}
+\seealso{
+\code{\link{runPCA}}, to compute the PCs in the first place.
+
+\code{\link{buildSNNGraph}}, for arguments to use in with default \code{FUN}.
+}
+\author{
+Aaron Lun
 }

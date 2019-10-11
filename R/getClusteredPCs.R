@@ -49,7 +49,8 @@
 #'
 #' @author Aaron Lun
 #'
-
+#' @examples
+#' sce <- scater::mockSCE()
 #' sce <- scater::logNormCounts(sce)
 #' sce <- scater::runPCA(sce)
 #' 
