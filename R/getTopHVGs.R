@@ -66,7 +66,7 @@ getTopHVGs <- function(stats, var.field="bio", n=NULL, prop=NULL, var.threshold=
 
     o <- order(stats[[var.field]], decreasing=TRUE)
     if (!is.null(n) || !is.null(prop)) {
-        n <- max(n, prop*nrow(stats))
+        n <- max(n, round(prop*nrow(stats)))
         o <- head(o, n)
     }
 
