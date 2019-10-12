@@ -11,9 +11,16 @@ dummy[1:300,known.clusters==1L] <- 0
 dummy[301:600,known.clusters==2L] <- 0
 dummy[601:900,known.clusters==3L] <- 0
 
+expect_nested <- function(known, observed) 
+# Sometimes the clustering breaks it up into smaller clusters; that's fine,
+# as long as those smaller ones are nested within the known clusters.
+{
+    expect_true(all(lengths(lapply(split(known, observed), unique))==1L))
+}
+
 test_that("quickCluster works in the simple case", {
     emp.clusters <- quickCluster(dummy, use.ranks=FALSE)
-    expect_true(length(unique(paste0(known.clusters, emp.clusters)))==3L)
+    expect_nested(known.clusters, emp.clusters)
     emp.clusters <- quickCluster(dummy, d=20, use.ranks=FALSE)
     expect_true(length(unique(paste0(known.clusters, emp.clusters)))==3L)
 
@@ -129,7 +136,7 @@ test_that("quickCluster's calls to min.size in dynamic tree cut are respected", 
     mat <- matrix(rpois(10000, lambda=5), nrow=20)
     obs <- scran:::.quick_cluster(mat, min.size=50, method="hclust", d=NA, use.ranks=FALSE)
 
-    ref <- scater::normalizeCounts(mat, scater::librarySizeFactors(mat), return_log=TRUE)
+    ref <- scater::normalizeCounts(mat)
     refM <- dist(t(ref))
     htree <- hclust(refM, method="ward.D2")
     clusters <- unname(dynamicTreeCut::cutreeDynamic(htree, minClusterSize=50, distM=as.matrix(refM), verbose=0))
@@ -146,11 +153,10 @@ test_that("quickCluster's calls to min.size in dynamic tree cut are respected", 
     out <- quickCluster(dummy, min.size=0, method="hclust", use.ranks=FALSE)
     expect_identical(length(unique(paste(out, known.clusters))), 3L)
 
-    leftovers <- min(80, sum(known.clusters==3))
-    keep <- c(which(known.clusters==1), which(known.clusters==2), which(known.clusters==3)[seq_len(leftovers)]) # force cluster 3 to be unassigned.
-    expect_warning(forced <- quickCluster(dummy[,keep], method="hclust", use.ranks=FALSE, min.size=100), 
-        sprintf("%i cells were not assigned to any cluster", leftovers))
-    expect_identical(as.character(tail(forced, leftovers)), rep("0", leftovers))
+    forced <- quickCluster(dummy, method="hclust", use.ranks=FALSE, min.size=100) 
+    tab <- table(forced)
+    nonzero <- setdiff(names(tab), "0")
+    expect_true(all(tab[nonzero] >= 70L))
 })
 
 set.seed(300002)
@@ -198,9 +204,12 @@ test_that("quickCluster with igraph merging works correctly", {
 
 set.seed(3000022)
 test_that("quickCluster with igraph on ranks works correctly", {
-    # These tests are surprisingly fragile for use.rank=TRUE, as findKNN in rank space is liable to find lots of tied distances.
-    # This results in arbitrary choices and ordering of neighbors, which can differ between seeds and machines (depending on precision).
-    # Hence we need to make sure that there are no ties, by supplying enough dimensions with no tied ranks.
+    # These tests are surprisingly fragile for use.rank=TRUE, as findKNN in
+    # rank space is liable to find lots of tied distances.  This results in
+    # arbitrary choices and ordering of neighbors, which can differ between
+    # seeds and machines (depending on precision).  Hence we need to make sure
+    # that there are no ties, by supplying enough dimensions with no tied
+    # ranks.
     k <- 10
     mat <- matrix(rnorm(200000, mean=20), nrow=400)
     obs <- quickCluster(mat, min.size=0, method="igraph", k=k, use.ranks=FALSE)
