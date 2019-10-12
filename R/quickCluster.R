@@ -46,7 +46,7 @@
 #' }
 #' 
 #' By default, \code{quickCluster} will apply these clustering algorithms on the principal component (PC) scores generated from the log-expression values.
-#' These are obtained by \code{\link{denoisePCA}} based on the trend fitted to endogenous genes with \code{\link{modelGeneVar}}.
+#' These are obtained by running \code{\link{denoisePCA}} on HVGs detected using the trend fitted to endogenous genes with \code{\link{modelGeneVar}}.
 #' If \code{d} is specified, the PCA is directly performed on the entire \code{x} and the specified number of PCs is retained.
 #' 
 #' @section Clustering within blocks:
@@ -181,7 +181,8 @@ NULL
         y <- normalizeCounts(x, size_factors=sf, subset_row=subset.row)
         if (is.null(d)) {
             fit <- modelGeneVar(y)
-            y <- getDenoisedPCs(y, technical=fit, BSPARAM=BSPARAM)$components
+            chosen <- getTopHVGs(fit, n=500, prop=0.1) # At least 500 genes, or 10% of genes; whichever is larger.
+            y <- getDenoisedPCs(y, technical=fit, subset.row=chosen, BSPARAM=BSPARAM)$components
             d <- NA
         } else {
             y <- t(y)

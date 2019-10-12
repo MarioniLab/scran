@@ -68,6 +68,8 @@ Renamed the get.values= argument to get.weights=.
 \item Added the getClusteredPCs() function to provide a cluster-based heuristic for choosing the number of PCs.
 
 \item Added the neighborsTo*NNGraph() functions to generate (shared) nearest neighbor graphs from pre-computed NN results.
+
+\item Switched to using only the top 10\% of HVGs for the internal PCA in quickCluster().
 }}
 
 \section{Version 1.12.0}{\itemize{

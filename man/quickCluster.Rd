@@ -83,7 +83,7 @@ This is used to define clusters based on highly connected communities in the gra
 }
 
 By default, \code{quickCluster} will apply these clustering algorithms on the principal component (PC) scores generated from the log-expression values.
-These are obtained by \code{\link{denoisePCA}} based on the trend fitted to endogenous genes with \code{\link{modelGeneVar}}.
+These are obtained by running \code{\link{denoisePCA}} on HVGs detected using the trend fitted to endogenous genes with \code{\link{modelGeneVar}}.
 If \code{d} is specified, the PCA is directly performed on the entire \code{x} and the specified number of PCs is retained.
 }
 \section{Clustering within blocks}{
