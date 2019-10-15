@@ -113,7 +113,7 @@
 #' kout <- kmeans(t(logcounts(sce)), centers=2) 
 #' 
 #' # Vanilla application:
-#' out <- pairwiseBinom(logcounts(sce), clusters=kout$cluster)
+#' out <- pairwiseBinom(logcounts(sce), groups=kout$cluster)
 #' out
 #' 
 #' # Directional and with a minimum log-fold change:

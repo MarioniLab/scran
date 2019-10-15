@@ -55,7 +55,7 @@
 #' kout <- kmeans(t(logcounts(sce)), centers=3) 
 #' 
 #' out <- pairwiseTTests(logcounts(sce), 
-#'      clusters=paste0("Cluster", kout$cluster))
+#'      groups=paste0("Cluster", kout$cluster))
 #'
 #' # Getting top pairwise markers:
 #' top <- getTopMarkers(out$statistics, out$pairs)

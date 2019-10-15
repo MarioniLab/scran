@@ -134,15 +134,15 @@
 #' kout <- kmeans(t(logcounts(sce)), centers=3)
 #' clusters <- paste0("Cluster", kout$cluster)
 #' 
-#' out <- pairwiseTTests(logcounts(sce), clusters=clusters)
+#' out <- pairwiseTTests(logcounts(sce), groups=clusters)
 #' comb <- combineMarkers(out$statistics, out$pairs)
 #' comb[["Cluster1"]]
 #' 
-#' out <- pairwiseWilcox(logcounts(sce), clusters=clusters)
+#' out <- pairwiseWilcox(logcounts(sce), groups=clusters)
 #' comb <- combineMarkers(out$statistics, out$pairs, effect.field="AUC")
 #' comb[["Cluster2"]]
 #' 
-#' out <- pairwiseBinom(logcounts(sce), clusters=clusters)
+#' out <- pairwiseBinom(logcounts(sce), groups=clusters)
 #' comb <- combineMarkers(out$statistics, out$pairs)
 #' comb[["Cluster3"]]
 #'
