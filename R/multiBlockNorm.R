@@ -24,9 +24,9 @@ multiBlockNorm <- function(x, block, ...)
     ref.mean <- ave(ref, block, FUN=mean)
 
     for (sf in suppressWarnings(sizeFactorNames(x))) {
-        current <- sizeFactors(x, sf)
+        suppressWarnings(current <- sizeFactors(x, sf))
         cur.mean <- ave(current, block, FUN=mean)
-        sizeFactors(x, sf) <- current * ref.mean / cur.mean
+        suppressWarnings(sizeFactors(x, sf) <- current * ref.mean / cur.mean)
     }
    
     x <- normalize(x, ..., centre_size_factors=FALSE)

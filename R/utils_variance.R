@@ -144,7 +144,7 @@ dummy.trend.fit <- list(trend=function(x) { rep(NA_real_, length(x)) }, std.dev=
 
         is.okay <- TRUE
         for (sf in suppressWarnings(sizeFactorNames(x))) {
-            sf.means <- FUN(sizeFactors(x, sf))
+            suppressWarnings(sf.means <- FUN(sizeFactors(x, sf)))
             if (!isTRUE(all.equal(ref.means, sf.means))) {
                 is.okay <- FALSE
                 break
