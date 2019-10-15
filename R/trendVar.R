@@ -11,6 +11,7 @@
 # written by Aaron Lun
 # created 21 January 2016
 {
+    .Deprecated(new="modelGeneVar", old="trendVar")
     stats.out <- .get_var_stats(x, block=block, design=design, subset.row=subset.row, BPPARAM=BPPARAM)
 
     # Filtering out zero-variance and low-abundance genes.
@@ -308,7 +309,7 @@ setMethod("trendVar", "SingleCellExperiment", function(x, subset.row=NULL, ..., 
 
     # Can use only spikes, everything but spikes, or everything. 
     if (!is.na(use.spikes)) {
-        is.spike <- isSpike(x)
+        suppressWarnings(is.spike <- isSpike(x))
         if (is.null(is.spike)) {
             is.spike <- logical(nrow(x))
         }

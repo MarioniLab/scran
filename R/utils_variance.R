@@ -143,7 +143,7 @@ dummy.trend.fit <- list(trend=function(x) { rep(NA_real_, length(x)) }, std.dev=
         ref.means <- FUN(ref)
 
         is.okay <- TRUE
-        for (sf in sizeFactorNames(x)) {
+        for (sf in suppressWarnings(sizeFactorNames(x))) {
             sf.means <- FUN(sizeFactors(x, sf))
             if (!isTRUE(all.equal(ref.means, sf.means))) {
                 is.okay <- FALSE
@@ -172,8 +172,8 @@ dummy.trend.fit <- list(trend=function(x) { rep(NA_real_, length(x)) }, std.dev=
     if (is.null(spike.type) || all(!is.na(spike.type))) { 
         if (is.null(spike.type)) { 
             # Get all spikes.
-            spike.type <- spikeNames(x)            
-        } else if (!all(spike.type %in% spikeNames(x))) { 
+            suppressWarnings(spike.type <- spikeNames(x))
+        } else if (!all(spike.type %in% suppressWarnings(spikeNames(x)))) { 
             stop(sprintf("spike-in set '%s' does not exist", spike.type[1]))
         }
         if (!length(spike.type)) { 
@@ -186,8 +186,8 @@ dummy.trend.fit <- list(trend=function(x) { rep(NA_real_, length(x)) }, std.dev=
         is.spike <- logical(nrow(x))
         for (st in seq_along(spike.type)) {
             cur.type <- spike.type[st]
-            is.spike <- is.spike | isSpike(x, type=cur.type)
-            cur.sf <- sizeFactors(x, type=cur.type)
+            suppressWarnings(is.spike <- is.spike | isSpike(x, type=cur.type))
+            suppressWarnings(cur.sf <- sizeFactors(x, type=cur.type))
             if (st==1L) {
                 collected <- cur.sf
             } else if (!isTRUE(all.equal(collected, cur.sf))) {

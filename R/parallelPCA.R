@@ -92,7 +92,7 @@ setMethod("parallelPCA", "SingleCellExperiment", function(x, ..., subset.row=NUL
         reducedDim(x, "PCA") <- out
     } else if (value=="lowrank") {
         if (!get.spikes) {
-            out[isSpike(x),] <- 0
+            suppressWarnings(out[isSpike(x),] <- 0)
         }
         assay(x, i="lowrank") <- out
     }

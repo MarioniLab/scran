@@ -23,7 +23,7 @@ multiBlockNorm <- function(x, block, ...)
     }
     ref.mean <- ave(ref, block, FUN=mean)
 
-    for (sf in sizeFactorNames(x)) {
+    for (sf in suppressWarnings(sizeFactorNames(x))) {
         current <- sizeFactors(x, sf)
         cur.mean <- ave(current, block, FUN=mean)
         sizeFactors(x, sf) <- current * ref.mean / cur.mean

@@ -66,11 +66,11 @@ computeSpikeFactors <- function(x, spikes, type=NULL, assay.type="counts", sf.ou
     }
 
     if (is.null(type)) { 
-        is.spike <- isSpike(x)
+        suppressWarnings(is.spike <- isSpike(x))
     } else {
         is.spike <- logical(nrow(x))
         for (tset in type) {
-            current <- isSpike(x, type=tset)
+            suppressWarnings(current <- isSpike(x, type=tset))
             if (!is.null(current)) { is.spike <- is.spike | current }
         }
     }
@@ -98,10 +98,10 @@ computeSpikeFactors <- function(x, spikes, type=NULL, assay.type="counts", sf.ou
         .Deprecated(msg="'computeSpikeFactors' is not necessary if spike-ins are stored as 'altExps'")
     }
     if (is.null(type)) {
-        type <- spikeNames(x)
+        suppressWarnings(type <- spikeNames(x))
     }
     for (f in type) {
-        sizeFactors(x, type=f) <- sf
+        suppressWarnings(sizeFactors(x, type=f) <- sf)
     }        
     x
 }

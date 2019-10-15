@@ -7,7 +7,8 @@
 #
 # written by Aaron Lun
 # created 21 January 2016 
-{   
+{  
+    .Deprecated(new="modelGeneVar", old="decomposeVar")
     if (missing(x)) {
         # Extracting statistics from an existing fit.
         lmeans <- fit$mean
@@ -93,7 +94,7 @@ setMethod("decomposeVar", c("SingleCellExperiment", "list"),
     # Checking whether we want to retrieve spikes but not use them in FDR calculations.
     if (is.na(get.spikes)) { 
         get.spikes <- TRUE
-        names.to.kill <- rownames(x)[isSpike(x)]
+        suppressWarnings(names.to.kill <- rownames(x)[isSpike(x)])
     } else {
         names.to.kill <- character(0)
     }
