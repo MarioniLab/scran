@@ -5,9 +5,9 @@
 \title{Perform pairwise Wilcoxon rank sum tests}
 \usage{
 pairwiseWilcox(x, groups, block = NULL, restrict = NULL,
-  direction = c("any", "up", "down"), lfc = 0, log.p = FALSE,
-  gene.names = rownames(x), clusters = NULL, subset.row = NULL,
-  BPPARAM = SerialParam())
+  exclude = NULL, direction = c("any", "up", "down"), lfc = 0,
+  log.p = FALSE, gene.names = rownames(x), clusters = NULL,
+  subset.row = NULL, BPPARAM = SerialParam())
 }
 \arguments{
 \item{x}{A numeric matrix-like object of normalized log-expression values, where each column corresponds to a cell and each row corresponds to an endogenous gene.}
@@ -17,6 +17,8 @@ pairwiseWilcox(x, groups, block = NULL, restrict = NULL,
 \item{block}{A factor specifying the blocking level for each cell.}
 
 \item{restrict}{A vector specifying the levels of \code{groups} for which to perform pairwise comparisons.}
+
+\item{exclude}{A vector specifying the levels of \code{groups} for which \emph{not} to perform pairwise comparisons.}
 
 \item{direction}{A string specifying the direction of effects to be considered in the alternative hypothesis.}
 
@@ -68,6 +70,8 @@ Also note that we approximate the distribution of the Wilcoxon rank sum statisti
 
 If \code{restrict} is specified, comparisons are only performed between pairs of groups in \code{restrict}.
 This can be used to focus on DEGs distinguishing between a subset of the groups (e.g., closely related cell subtypes).
+
+If \code{exclude} is specified, comparisons are not performed between groups in \code{exclude}.
 Similarly, if any entries of \code{groups} are \code{NA}, the corresponding cells are are ignored.
 }
 \section{Direction and magnitude of the effect}{

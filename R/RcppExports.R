@@ -29,8 +29,12 @@ combine_simes <- function(Pvals, logp) {
     .Call('_scran_combine_simes', PACKAGE = 'scran', Pvals, logp)
 }
 
-combine_holm_middle <- function(Pvals, logp) {
-    .Call('_scran_combine_holm_middle', PACKAGE = 'scran', Pvals, logp)
+combine_holm_middle <- function(Pvals, logp, prop) {
+    .Call('_scran_combine_holm_middle', PACKAGE = 'scran', Pvals, logp, prop)
+}
+
+compute_Top_statistic_from_ranks <- function(Ranks, prop) {
+    .Call('_scran_compute_Top_statistic_from_ranks', PACKAGE = 'scran', Ranks, prop)
 }
 
 compute_CV2 <- function(exprs, subset_row, size_factors, log_prior) {

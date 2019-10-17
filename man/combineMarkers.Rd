@@ -6,8 +6,8 @@
 \usage{
 combineMarkers(de.lists, pairs, pval.field = "p.value",
   effect.field = "logFC", pval.type = c("any", "some", "all"),
-  log.p.in = FALSE, log.p.out = log.p.in, output.field = NULL,
-  full.stats = FALSE, sorted = TRUE)
+  min.prop = NULL, log.p.in = FALSE, log.p.out = log.p.in,
+  output.field = NULL, full.stats = FALSE, sorted = TRUE)
 }
 \arguments{
 \item{de.lists}{A list-like object where each element is a data.frame or \linkS4class{DataFrame}.
@@ -24,6 +24,9 @@ Each row should specify the pair of clusters being compared for the correspondin
 If \code{NULL}, effect sizes are not reported in the output.}
 
 \item{pval.type}{A string specifying how p-values are to be combined across pairwise comparisons for a given group/cluster.}
+
+\item{min.prop}{Numeric scalar specifying the minimum proportion of significant comparisons per gene,
+Defaults to 0.5 when \code{pval.type="some"}, otherwise defaults to zero.}
 
 \item{log.p.in}{A logical scalar indicating if the p-values in \code{de.lists} were log-transformed.}
 
@@ -94,11 +97,14 @@ To demonstrate, let us define a marker set with an T of 1 for a given cluster.
 The set of genes with \code{Top <= 1} will contain the top gene from each pairwise comparison to every other cluster.
 If T is instead, say, 5, the set will consist of the \emph{union} of the top 5 genes from each pairwise comparison.
 Obviously, multiple genes can have the same \code{Top} as different genes may have the same rank across different pairwise comparisons.
-Conversely, the marker set may be smaller than the product of \code{Top} and the number of other clusters, as the same gene may be shared across different comparisons..
+Conversely, the marker set may be smaller than the product of \code{Top} and the number of other clusters, as the same gene may be shared across different comparisons.
 
 This approach does not explicitly favour genes that are uniquely expressed in a cluster.
 Rather, it focuses on combinations of genes that - together - drive separation of a cluster from the others.
 This is more general and robust but tends to yield a less focused marker set compared to the other \code{pval.type} settings.
+
+Note that this only relates to the default setting of \code{min.prop=0} with \code{pval.type="any"}.
+For user-specified values of \code{min.prop}, see the comments in the \dQuote{some clusters} section below.
 }
 
 \section{Consolidating with DE against all other clusters}{
@@ -118,12 +124,17 @@ This is especially detrimental with overclustering where an otherwise acceptable
 
 The \code{pval.type="some"} setting serves as a compromise between \code{"all"} and \code{"any"}.
 A combined p-value is calculated by taking the middlemost value of the Holm-corrected p-values for each gene.
-(This is the median for odd numbers of contrasts and one-after-the-median for even numbers, see \code{?\link{combinePValues}}.)
+(By default, this the median for odd numbers of contrasts and one-after-the-median for even numbers, but the exact proportion can be changed by setting \code{min.prop} - see \code{?\link{combinePValues}}.)
 Here, the null hypothesis is that the gene is not DE in at least half of the contrasts.
 
 Genes are then ranked by the combined p-value.
 The aim is to provide a more focused marker set without being overly stringent, though obviously it loses the theoretical guarantees of the more extreme settings.
-For example, there is no guarantee that the top set contains genes that can distinguish a cluster from any other cluster, which would have been possible with \code{"any"}.
+For example, there is no guarantee that the top set contains genes that can distinguish a cluster from any other cluster, which would have been possible with \code{pval.type="any"}.
+
+A slightly different flavor of this approach is achieved by setting \code{method="any"} with \code{min.prop=0.5}.
+Genes will then only be high-ranked if they are significant in at least some \code{min.prop} proportion of the comparisons.
+For example, if \code{min.prop=0.3}, any gene with a value of \code{Top} less than or equal to 5 will be in the top 5 DEGs of at least 30% of the comparisons.
+This increases the stringency of the \code{"any"} setting but with similar loss of theoretical guarantees.
 }
 
 \section{Correcting for multiple testing}{

@@ -10,8 +10,9 @@
 findMarkers(x, ...)
 
 \S4method{findMarkers}{ANY}(x, groups, test.type = c("t", "wilcox",
-  "binom"), ..., pval.type = c("any", "some", "all"), log.p = FALSE,
-  full.stats = FALSE, sorted = TRUE, row.data = NULL)
+  "binom"), ..., pval.type = c("any", "some", "all"), min.prop = NULL,
+  log.p = FALSE, full.stats = FALSE, sorted = TRUE,
+  row.data = NULL)
 
 \S4method{findMarkers}{SingleCellExperiment}(x, ..., subset.row = NULL,
   assay.type = "logcounts", get.spikes = FALSE)
@@ -44,6 +45,9 @@ a t-test with \code{"t"}, a Wilcoxon rank sum test with \code{"wilcox"},
 or a binomial test with \code{"binom"}.}
 
 \item{pval.type}{A string specifying how p-values are to be combined across pairwise comparisons for a given group/cluster.}
+
+\item{min.prop}{Numeric scalar specifying the minimum proportion of significant comparisons per gene,
+Defaults to 0.5 when \code{pval.type="some"}, otherwise defaults to zero.}
 
 \item{log.p}{A logical scalar indicating if log-transformed p-values/FDRs should be returned.}
 

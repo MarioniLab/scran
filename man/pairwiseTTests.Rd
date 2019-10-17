@@ -5,9 +5,10 @@
 \title{Perform pairwise t-tests}
 \usage{
 pairwiseTTests(x, groups, block = NULL, design = NULL,
-  restrict = NULL, direction = c("any", "up", "down"), lfc = 0,
-  std.lfc = FALSE, log.p = FALSE, gene.names = rownames(x),
-  clusters = NULL, subset.row = NULL, BPPARAM = SerialParam())
+  restrict = NULL, exclude = NULL, direction = c("any", "up",
+  "down"), lfc = 0, std.lfc = FALSE, log.p = FALSE,
+  gene.names = rownames(x), clusters = NULL, subset.row = NULL,
+  BPPARAM = SerialParam())
 }
 \arguments{
 \item{x}{A numeric matrix-like object of normalized log-expression values, 
@@ -21,6 +22,8 @@ where each column corresponds to a cell and each row corresponds to an endogenou
 Note that these factors should not be confounded with \code{groups}.}
 
 \item{restrict}{A vector specifying the levels of \code{groups} for which to perform pairwise comparisons.}
+
+\item{exclude}{A vector specifying the levels of \code{groups} for which \emph{not} to perform pairwise comparisons.}
 
 \item{direction}{A string specifying the direction of log-fold changes to be considered in the alternative hypothesis.}
 
@@ -69,6 +72,8 @@ This is useful in cases with many cells such that reporting the p-values directl
 
 If \code{restrict} is specified, comparisons are only performed between pairs of groups in \code{restrict}.
 This can be used to focus on DEGs distinguishing between a subset of the groups (e.g., closely related cell subtypes).
+
+If \code{exclude} is specified, comparisons are not performed between groups in \code{exclude}.
 Similarly, if any entries of \code{groups} are \code{NA}, the corresponding cells are are ignored.
 }
 \section{Direction and magnitude of the log-fold change}{

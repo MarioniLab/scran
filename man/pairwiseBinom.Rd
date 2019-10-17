@@ -5,9 +5,10 @@
 \title{Perform pairwise binomial tests}
 \usage{
 pairwiseBinom(x, groups, block = NULL, restrict = NULL,
-  direction = c("any", "up", "down"), threshold = 1e-08, lfc = 0,
-  log.p = FALSE, gene.names = rownames(x), clusters = NULL,
-  subset.row = NULL, BPPARAM = SerialParam())
+  exclude = NULL, direction = c("any", "up", "down"),
+  threshold = 1e-08, lfc = 0, log.p = FALSE,
+  gene.names = rownames(x), clusters = NULL, subset.row = NULL,
+  BPPARAM = SerialParam())
 }
 \arguments{
 \item{x}{A numeric matrix-like object of counts,
@@ -18,6 +19,8 @@ where each column corresponds to a cell and each row corresponds to a gene.}
 \item{block}{A factor specifying the blocking level for each cell.}
 
 \item{restrict}{A vector specifying the levels of \code{groups} for which to perform pairwise comparisons.}
+
+\item{exclude}{A vector specifying the levels of \code{groups} for which \emph{not} to perform pairwise comparisons.}
 
 \item{direction}{A string specifying the direction of effects to be considered for the alternative hypothesis.}
 
