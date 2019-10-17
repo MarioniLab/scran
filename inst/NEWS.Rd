@@ -62,8 +62,10 @@ Renamed the get.values= argument to get.weights=.
 \item Simplified density calculation in doubletCells() for greater robustness.
 
 \item Added a method="holm-middle" option to combinePValues(), to test if most individual nulls are true.
+Added a min.prop= option to control the definition of "most".
 
 \item Added a pval.type="some" option to combineMarkers(), as a compromise between the two other modes.
+Added a min.prop= option to tune stringency for pval.type="some" and "any".
 
 \item Added the getClusteredPCs() function to provide a cluster-based heuristic for choosing the number of PCs.
 
