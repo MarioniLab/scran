@@ -10,6 +10,7 @@
 #' @param design A numeric matrix containing blocking terms for uninteresting factors.
 #' Note that these factors should not be confounded with \code{groups}.
 #' @param restrict A vector specifying the levels of \code{groups} for which to perform pairwise comparisons.
+#' @param exclude A vector specifying the levels of \code{groups} for which \emph{not} to perform pairwise comparisons.
 #' @param direction A string specifying the direction of log-fold changes to be considered in the alternative hypothesis.
 #' @param lfc A positive numeric scalar specifying the log-fold change threshold to be tested against.
 #' @param std.lfc A logical scalar indicating whether log-fold changes should be standardized.
@@ -33,6 +34,8 @@
 #'
 #' If \code{restrict} is specified, comparisons are only performed between pairs of groups in \code{restrict}.
 #' This can be used to focus on DEGs distinguishing between a subset of the groups (e.g., closely related cell subtypes).
+#'
+#' If \code{exclude} is specified, comparisons are not performed between groups in \code{exclude}.
 #' Similarly, if any entries of \code{groups} are \code{NA}, the corresponding cells are are ignored.
 #' 
 #' @section Direction and magnitude of the log-fold change:
@@ -153,10 +156,10 @@
 #' @export
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel SerialParam
-pairwiseTTests <- function(x, groups, block=NULL, design=NULL, restrict=NULL, direction=c("any", "up", "down"),
+pairwiseTTests <- function(x, groups, block=NULL, design=NULL, restrict=NULL, exclude=NULL, direction=c("any", "up", "down"),
     lfc=0, std.lfc=FALSE, log.p=FALSE, gene.names=rownames(x), clusters=NULL, subset.row=NULL, BPPARAM=SerialParam())
 {
-    groups <- .setup_groups(groups, x, restrict=restrict, clusters=clusters)
+    groups <- .setup_groups(groups, x, restrict=restrict, exclude=exclude, clusters=clusters)
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     gene.names <- .setup_gene_names(gene.names, x, subset.row)
     direction <- match.arg(direction)

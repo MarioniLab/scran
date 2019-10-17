@@ -13,6 +13,7 @@
 #' @param lfc Numeric scalar specifying the minimum absolute log-ratio in the proportion of expressing genes between groups.
 #' @param gene.names A character vector of gene names with one value for each row of \code{x}.
 #' @param restrict A vector specifying the levels of \code{groups} for which to perform pairwise comparisons.
+#' @param exclude A vector specifying the levels of \code{groups} for which \emph{not} to perform pairwise comparisons.
 #' @param subset.row See \code{?"\link{scran-gene-selection}"}.
 #' @param threshold Numeric scalar specifying the value below which a gene is presumed to be not expressed.
 #' @param BPPARAM A \linkS4class{BiocParallelParam} object indicating how parallelization should be performed across genes.
@@ -127,11 +128,11 @@
 #' @export
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel SerialParam
-pairwiseBinom <- function(x, groups, block=NULL, restrict=NULL, direction=c("any", "up", "down"),
+pairwiseBinom <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, direction=c("any", "up", "down"),
     threshold=1e-8, lfc=0, log.p=FALSE, gene.names=rownames(x), 
     clusters=NULL, subset.row=NULL, BPPARAM=SerialParam())
 {
-    groups <- .setup_groups(groups, x, restrict=restrict, clusters=clusters)
+    groups <- .setup_groups(groups, x, restrict=restrict, exclude=exclude, clusters=clusters)
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     gene.names <- .setup_gene_names(gene.names, x, subset.row)
     direction <- match.arg(direction)

@@ -7,6 +7,7 @@
 #' @param clusters Deprecated, same as \code{groups}.
 #' @param block A factor specifying the blocking level for each cell.
 #' @param restrict A vector specifying the levels of \code{groups} for which to perform pairwise comparisons.
+#' @param exclude A vector specifying the levels of \code{groups} for which \emph{not} to perform pairwise comparisons.
 #' @param direction A string specifying the direction of effects to be considered in the alternative hypothesis.
 #' @param log.p A logical scalar indicating if log-transformed p-values/FDRs should be returned.
 #' @param gene.names A character vector of gene names with one value for each row of \code{x}.
@@ -34,6 +35,8 @@
 #' 
 #' If \code{restrict} is specified, comparisons are only performed between pairs of groups in \code{restrict}.
 #' This can be used to focus on DEGs distinguishing between a subset of the groups (e.g., closely related cell subtypes).
+#'
+#' If \code{exclude} is specified, comparisons are not performed between groups in \code{exclude}.
 #' Similarly, if any entries of \code{groups} are \code{NA}, the corresponding cells are are ignored.
 #' 
 #' @section Direction and magnitude of the effect:
@@ -125,10 +128,10 @@
 #' @export
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel SerialParam
-pairwiseWilcox <- function(x, groups, block=NULL, restrict=NULL, direction=c("any", "up", "down"),
+pairwiseWilcox <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, direction=c("any", "up", "down"),
     lfc=0, log.p=FALSE, gene.names=rownames(x), clusters=NULL, subset.row=NULL, BPPARAM=SerialParam())
 {
-    groups <- .setup_groups(groups, x, restrict=restrict, clusters=clusters)
+    groups <- .setup_groups(groups, x, restrict=restrict, exclude=exclude, clusters=clusters)
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     gene.names <- .setup_gene_names(gene.names, x, subset.row)
     direction <- match.arg(direction)

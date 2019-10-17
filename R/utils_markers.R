@@ -1,15 +1,21 @@
-.setup_groups <- function(groups, x, restrict, clusters) {
+.setup_groups <- function(groups, x, restrict, exclude, clusters) {
     if (!is.null(clusters)) {
         .Deprecated(old="clusters=", new="groups=")
         groups <- clusters
     }
+
     ncells <- ncol(x)
     if (length(groups)!=ncells) {
         stop("length of 'groups' does not equal 'ncol(x)'")
     }
+
     if (!is.null(restrict)) {
         groups[!groups%in% restrict] <- NA
     }
+    if (!is.null(exclude)) {
+        groups[groups %in% exclude] <- NA
+    }
+
     groups <- as.factor(groups)
     if (nlevels(groups) < 2L) {
         stop("need at least two unique levels in 'groups'")
