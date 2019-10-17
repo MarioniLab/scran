@@ -105,7 +105,7 @@ NULL
 #' @importFrom BiocParallel SerialParam
 #' @importFrom BiocGenerics cbind
 .findMarkers <- function(x, groups, test.type=c("t", "wilcox", "binom"), ..., 
-    pval.type=c("any", "some", "all"), min.prop=0.5, log.p=FALSE, 
+    pval.type=c("any", "some", "all"), min.prop=NULL, log.p=FALSE, 
     full.stats=FALSE, sorted=TRUE, row.data=NULL) 
 {
     test.type <- match.arg(test.type)

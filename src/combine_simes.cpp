@@ -70,6 +70,7 @@ Rcpp::NumericVector combine_simes(Rcpp::List Pvals, bool logp) {
 // [[Rcpp::export(rng=false)]]
 Rcpp::NumericVector combine_holm_middle(Rcpp::List Pvals, bool logp, double prop) {
     const size_t ncon=Pvals.size();
+    std::vector<double> collected(ncon);
 
     std::vector<Rcpp::NumericVector> individual(ncon);
     size_t ngenes=0;
@@ -82,10 +83,7 @@ Rcpp::NumericVector combine_holm_middle(Rcpp::List Pvals, bool logp, double prop
         }
     }
     
-    // Should we process these values as if they were log-transformed?
-    Rcpp::NumericVector output(ngenes, (logp ? 0 : 1));
-    std::vector<double> collected(ncon);
-
+    Rcpp::NumericVector output(ngenes);
     for (size_t g=0; g<ngenes; ++g) {
         size_t nonna=0;
         for (size_t c=0; c<ncon; ++c) {
@@ -100,6 +98,8 @@ Rcpp::NumericVector combine_holm_middle(Rcpp::List Pvals, bool logp, double prop
             output[g]=R_NaReal;
             continue;
         }
+
+        // Computing the Holm series of p-values:
         std::sort(collected.begin(), collected.begin()+nonna);
 
         double last=(logp ? R_NegInf : 0);
@@ -118,6 +118,7 @@ Rcpp::NumericVector combine_holm_middle(Rcpp::List Pvals, bool logp, double prop
             }
         }
 
+        // Picking a middle p-value.
         double& chosen=output[g];
         const size_t jump=std::floor(nonna * prop); // -1 for zero indexing, cancels out the +1.
         std::nth_element(collected.begin(), collected.begin() + jump, collected.begin() + nonna);
@@ -127,6 +128,47 @@ Rcpp::NumericVector combine_holm_middle(Rcpp::List Pvals, bool logp, double prop
         } else {
             if (chosen > 1) { chosen=1; }
         }
+    }
+
+    return output;
+}
+
+// [[Rcpp::export(rng=false)]]
+Rcpp::IntegerVector compute_Top_statistic_from_ranks(Rcpp::List Ranks, double prop) {
+    const size_t ncon=Ranks.size();
+    std::vector<int> collected(ncon);
+
+    std::vector<Rcpp::IntegerVector> individual(ncon);
+    size_t ngenes=0;
+    for (size_t c=0; c<ncon; ++c) {
+        auto& current=(individual[c]=Ranks[c]);
+        if (c==0) {
+            ngenes=current.size();
+        } else if (ngenes!=static_cast<size_t>(current.size())) {
+            throw std::runtime_error("rank vectors must be of the same length");
+        }
+    }
+
+    Rcpp::IntegerVector output(ngenes);
+    for (size_t g=0; g<ngenes; ++g) {
+        size_t nonna=0;
+        for (size_t c=0; c<ncon; ++c) {
+            const auto& current=individual[c][g];
+            if (current!=NA_INTEGER) {
+                collected[nonna]=current;
+                ++nonna;
+            }
+        }
+
+        if (nonna==0) {
+            output[g]=NA_INTEGER;
+            continue;
+        }
+
+        size_t jump=std::ceil(nonna * prop);
+        if (jump) { --jump; } // -1 for the zero-indexing. 
+        std::nth_element(collected.begin(), collected.begin() + jump, collected.begin() + nonna);
+        output[g]=collected[jump];
     }
 
     return output;

@@ -13,7 +13,7 @@
 #' If \code{NULL}, effect sizes are not reported in the output.
 #' @param pval.type A string specifying how p-values are to be combined across pairwise comparisons for a given group/cluster.
 #' @param min.prop Numeric scalar specifying the minimum proportion of significant comparisons per gene,
-#' used when \code{pval.type="some"}.
+#' Defaults to 0.5 when \code{pval.type="some"}, otherwise defaults to zero.
 #' @param log.p.in A logical scalar indicating if the p-values in \code{de.lists} were log-transformed.
 #' @param log.p.out A logical scalar indicating if log-transformed p-values/FDRs should be returned.
 #' @param output.field A string specifying the prefix of the field names containing the effect sizes.
@@ -75,11 +75,14 @@
 #' The set of genes with \code{Top <= 1} will contain the top gene from each pairwise comparison to every other cluster.
 #' If T is instead, say, 5, the set will consist of the \emph{union} of the top 5 genes from each pairwise comparison.
 #' Obviously, multiple genes can have the same \code{Top} as different genes may have the same rank across different pairwise comparisons.
-#' Conversely, the marker set may be smaller than the product of \code{Top} and the number of other clusters, as the same gene may be shared across different comparisons..
+#' Conversely, the marker set may be smaller than the product of \code{Top} and the number of other clusters, as the same gene may be shared across different comparisons.
 #' 
 #' This approach does not explicitly favour genes that are uniquely expressed in a cluster.
 #' Rather, it focuses on combinations of genes that - together - drive separation of a cluster from the others.
 #' This is more general and robust but tends to yield a less focused marker set compared to the other \code{pval.type} settings.
+#'
+#' Note that this only relates to the default setting of \code{min.prop=0} with \code{pval.type="any"}.
+#' For user-specified values of \code{min.prop}, see the comments in the \dQuote{some clusters} section below.
 #'
 #' @section Consolidating with DE against all other clusters:
 #' If \code{pval.type="all"}, the null hypothesis is that the gene is not DE in all contrasts, and the IUT p-value is computed for each gene.
@@ -100,7 +103,12 @@
 #' 
 #' Genes are then ranked by the combined p-value.
 #' The aim is to provide a more focused marker set without being overly stringent, though obviously it loses the theoretical guarantees of the more extreme settings.
-#' For example, there is no guarantee that the top set contains genes that can distinguish a cluster from any other cluster, which would have been possible with \code{"any"}.
+#' For example, there is no guarantee that the top set contains genes that can distinguish a cluster from any other cluster, which would have been possible with \code{pval.type="any"}.
+#'
+#' A slightly different flavor of this approach is achieved by setting \code{method="any"} with \code{min.prop=0.5}.
+#' Genes will then only be high-ranked if they are significant in at least some \code{min.prop} proportion of the comparisons.
+#' For example, if \code{min.prop=0.3}, any gene with a value of \code{Top} less than or equal to 5 will be in the top 5 DEGs of at least 30% of the comparisons.
+#' This increases the stringency of the \code{"any"} setting but with similar loss of theoretical guarantees.
 #'
 #' @section Correcting for multiple testing:
 #' The BH method is then applied on the Simes/IUT p-values across all genes to obtain the \code{FDR} field.
@@ -155,7 +163,7 @@
 #' @importFrom BiocGenerics cbind
 #' @importFrom methods as
 combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="logFC", 
-    pval.type=c("any", "some", "all"), min.prop=0.5, log.p.in=FALSE, log.p.out=log.p.in, 
+    pval.type=c("any", "some", "all"), min.prop=NULL, log.p.in=FALSE, log.p.out=log.p.in, 
     output.field=NULL, full.stats=FALSE, sorted=TRUE)
 {
     if (length(de.lists)!=nrow(pairs)) {
@@ -167,6 +175,9 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
 
     pval.type <- match.arg(pval.type)
     method <- switch(pval.type, any="simes", some="holm-middle", all="berger")
+    if (is.null(min.prop))  {
+        min.prop <- if (pval.type=="any") 0 else 0.5
+    }
 
     # Checking that all genes are the same across lists.
     gene.names <- NULL
@@ -202,10 +213,9 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
 
         # Determining rank.
         if (pval.type=="any") {
-            rank.out <- .rank_top_genes(all.p)
-            min.rank <- rank.out$rank
-            min.p <- rank.out$value
-            gene.order <- order(min.rank, min.p)
+            ranked <- lapply(all.p, rank, ties.method="first", na.last="keep")
+            min.rank <- compute_Top_statistic_from_ranks(ranked, min.prop)
+            gene.order <- order(min.rank) 
             preamble$Top <- min.rank
         } else {
             gene.order <- order(pval)
@@ -250,21 +260,3 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
 
     SimpleList(output)
 }
-
-.rank_top_genes <- function(metrics) 
-# This computes the rank and the minimum metric for each gene.
-{
-    ncon <- length(metrics)
-    ngenes <- if (ncon) length(metrics[[1]]) else 0L
-    min.rank <- min.val <- rep(NA_integer_, ngenes)
-
-    for (con in seq_len(ncon)) { 
-        cur.val <- metrics[[con]]
-        cur.rank <- rank(cur.val, ties.method="first", na.last="keep")
-        min.rank <- pmin(min.rank, cur.rank, na.rm=TRUE)
-        min.val <- pmin(min.val, cur.val, na.rm=TRUE)
-    }
-    
-    list(rank=min.rank, value=min.val)
-}
-
