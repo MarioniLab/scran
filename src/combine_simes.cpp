@@ -119,10 +119,11 @@ Rcpp::NumericVector combine_holm_middle(Rcpp::List Pvals, bool logp, double prop
         }
 
         // Picking a middle p-value.
-        double& chosen=output[g];
-        const size_t jump=std::floor(nonna * prop); // -1 for zero indexing, cancels out the +1.
+        size_t jump=std::ceil(nonna * prop);
+        if (jump) { --jump; } // -1 for the zero-indexing. 
         std::nth_element(collected.begin(), collected.begin() + jump, collected.begin() + nonna);
-        chosen=collected[jump];
+
+        double& chosen=(output[g]=collected[jump]);
         if (logp) {
             if (chosen > 0) { chosen=0; }
         } else {

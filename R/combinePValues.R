@@ -35,12 +35,11 @@
 #' Rejection in the IUT indicates that all of the individual nulls have been rejected.
 #' This is the statistically rigorous equivalent of a naive intersection operation.
 #'
-#' In the Holm-middle approach, the global null hypothesis is that at least some \code{1 - min.prop} proportion of the individual nulls in the set are true.
-#' We apply the Holm-Bonferroni correction to all p-values in the set and take the \code{floor(min.prop * N) + 1}-th smallest value where \code{N} is the size of the set (excluding \code{NA} values).
+#' In the Holm-middle approach, the global null hypothesis is that more than \code{1 - min.prop} proportion of the individual nulls in the set are true.
+#' We apply the Holm-Bonferroni correction to all p-values in the set and take the \code{ceiling(min.prop * N)}-th smallest value where \code{N} is the size of the set (excluding \code{NA} values).
 #' This method works correctly in the presence of correlations between p-values.
 #'
-#' % Specifically, if we have N tests, our global null is that at least ceil(N/2) of the individual nulls are true.
-#' % We apply Holm until we reject the (N - ceil(N/2) + 1)th test, which causes us to reject the global null.
+#' % We apply Holm until we reject the ceil(N * min.prop)-th test, which causes us to reject the global null.
 #' % The combined p-value is thus defined as the p-value at this rejection point.
 #' 
 #' @return 
