@@ -8,6 +8,7 @@
 #' Alternatively, a list of numeric vectors of weights, with one vector per element in \code{...}.
 #' This is only used when \code{method="z"}.
 #' @param log.p Logical scalar indicating whether the p-values in \code{...} are log-transformed.
+#' @param min.prop Numeric scalar in [0, 1] specifying the minimum proportion of tests to reject for each set of p-values when \code{method="holm-middle"}.
 #' 
 #' @details
 #' This function will operate across elements on \code{...} in parallel to combine p-values.
@@ -34,9 +35,8 @@
 #' Rejection in the IUT indicates that all of the individual nulls have been rejected.
 #' This is the statistically rigorous equivalent of a naive intersection operation.
 #'
-#' The Holm-middle approach applies the Holm-Bonferroni correction to all p-values in the set and takes the middle value
-#' (i.e., the median for odd numbers of elements in \code{...}, one past the median for even).
-#' The global null hypothesis is that at least half of the individual nulls in the set are true.
+#' In the Holm-middle approach, the global null hypothesis is that at least some \code{1 - min.prop} proportion of the individual nulls in the set are true.
+#' We apply the Holm-Bonferroni correction to all p-values in the set and take the \code{floor(min.prop * N) + 1}-th smallest value where \code{N} is the size of the set (excluding \code{NA} values).
 #' This method works correctly in the presence of correlations between p-values.
 #'
 #' % Specifically, if we have N tests, our global null is that at least ceil(N/2) of the individual nulls are true.
@@ -93,7 +93,7 @@
 #' @importFrom DelayedArray rowMins
 combinePValues <- function(..., 
     method=c("fisher", "z", "simes", "berger", "holm-middle"), 
-    weights=NULL, log.p=FALSE) 
+    weights=NULL, log.p=FALSE, min.prop=0.5)
 {
     input <- list(...)
     if (length(input)==1L) {
@@ -126,7 +126,7 @@ combinePValues <- function(...,
             pchisq(-2*X, df=2*n, lower.tail=FALSE, log.p=log.p)
         },
         simes=combine_simes(input, log.p),
-        `holm-middle`=combine_holm_middle(input, log.p),
+        `holm-middle`=combine_holm_middle(input, log.p, min.prop),
         z={
             if (is.null(weights)) {
                 weights <- rep(1, length(input))

@@ -68,7 +68,7 @@ Rcpp::NumericVector combine_simes(Rcpp::List Pvals, bool logp) {
 }
 
 // [[Rcpp::export(rng=false)]]
-Rcpp::NumericVector combine_holm_middle(Rcpp::List Pvals, bool logp) {
+Rcpp::NumericVector combine_holm_middle(Rcpp::List Pvals, bool logp, double prop) {
     const size_t ncon=Pvals.size();
 
     std::vector<Rcpp::NumericVector> individual(ncon);
@@ -119,7 +119,7 @@ Rcpp::NumericVector combine_holm_middle(Rcpp::List Pvals, bool logp) {
         }
 
         double& chosen=output[g];
-        const size_t jump=(nonna % 2 == 0 ? (nonna+1)/2 : nonna/2);
+        const size_t jump=std::floor(nonna * prop); // -1 for zero indexing, cancels out the +1.
         std::nth_element(collected.begin(), collected.begin() + jump, collected.begin() + nonna);
         chosen=collected[jump];
         if (logp) {

@@ -82,13 +82,31 @@ test_that("Simes' method works correctly", {
 })
 
 test_that("Middle-Holm method works correctly", {
+    # Default midway settings.
     pout <- combinePValues(p1, p2, p3, method="holm-middle")
     expect_equal(pout, apply(cbind(p1, p2, p3), 1, FUN=function(p) { median(p.adjust(p, method="holm")) })) 
     TESTER(p1, p2, p3, method="holm-middle")
 
-    pout <- combinePValues(p1, p2, p3, p2, method="holm-middle")
-    expect_equal(pout, apply(cbind(p1, p2, p3, p2), 1, FUN=function(p) { sort(p.adjust(p, method="holm"))[3] })) 
+    p4 <- (p1+p2)/2
+    pout <- combinePValues(p1, p2, p3, p4, method="holm-middle")
+    expect_equal(pout, apply(cbind(p1, p2, p3, p4), 1, FUN=function(p) { sort(p.adjust(p, method="holm"))[3] })) 
     TESTER(p1, p2, p3, p2, method="holm-middle")
+
+    # Testing alternative min.prop settings.
+    pout <- combinePValues(p1, p2, p3, p4, method="holm-middle", min.prop=0.2)
+    expect_equal(pout, apply(cbind(p1, p2, p3, p4), 1, FUN=function(p) { sort(p.adjust(p, method="holm"))[1] })) 
+
+    pout <- combinePValues(p1, p2, p3, p4, method="holm-middle", min.prop=0.25)
+    expect_equal(pout, apply(cbind(p1, p2, p3, p4), 1, FUN=function(p) { sort(p.adjust(p, method="holm"))[2] })) 
+    
+    pout <- combinePValues(p1, p2, p3, p4, method="holm-middle", min.prop=0.45)
+    expect_equal(pout, apply(cbind(p1, p2, p3, p4), 1, FUN=function(p) { sort(p.adjust(p, method="holm"))[2] })) 
+
+    pout <- combinePValues(p1, p2, p3, p4, method="holm-middle", min.prop=0.65)
+    expect_equal(pout, apply(cbind(p1, p2, p3, p4), 1, FUN=function(p) { sort(p.adjust(p, method="holm"))[3] })) 
+
+    pout <- combinePValues(p1, p2, p3, p4, method="holm-middle", min.prop=0.75)
+    expect_equal(pout, apply(cbind(p1, p2, p3, p4), 1, FUN=function(p) { sort(p.adjust(p, method="holm"))[4] })) 
 
     # Handles ties correctly.
     pout <- combinePValues(p1, p2, p1, method="holm-middle")

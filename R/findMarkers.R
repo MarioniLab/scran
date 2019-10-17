@@ -104,9 +104,9 @@ NULL
 
 #' @importFrom BiocParallel SerialParam
 #' @importFrom BiocGenerics cbind
-.findMarkers <- function(x, groups, test.type=c("t", "wilcox", "binom"),
-    ..., pval.type=c("any", "some", "all"), log.p=FALSE, full.stats=FALSE, 
-    sorted=TRUE, row.data=NULL) 
+.findMarkers <- function(x, groups, test.type=c("t", "wilcox", "binom"), ..., 
+    pval.type=c("any", "some", "all"), min.prop=0.5, log.p=FALSE, 
+    full.stats=FALSE, sorted=TRUE, row.data=NULL) 
 {
     test.type <- match.arg(test.type)
     if (test.type=="t") {
@@ -121,8 +121,9 @@ NULL
     }
 
     fit <- FUN(x, groups, ..., log.p=TRUE)
-    output <- combineMarkers(fit$statistics, fit$pairs, pval.type=pval.type, log.p.in=TRUE, log.p.out=log.p, 
-        full.stats=full.stats, pval.field="log.p.value", effect.field=effect.field, sorted=sorted)
+    output <- combineMarkers(fit$statistics, fit$pairs, pval.type=pval.type, min.prop=min.prop, 
+        log.p.in=TRUE, log.p.out=log.p, full.stats=full.stats, pval.field="log.p.value", 
+        effect.field=effect.field, sorted=sorted)
 
     if (!is.null(row.data)) {
         for (i in seq_along(output)) {

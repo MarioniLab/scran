@@ -12,6 +12,8 @@
 #' @param effect.field A string specifying the column name of each element of \code{de.lists} that contains the effect size.
 #' If \code{NULL}, effect sizes are not reported in the output.
 #' @param pval.type A string specifying how p-values are to be combined across pairwise comparisons for a given group/cluster.
+#' @param min.prop Numeric scalar specifying the minimum proportion of significant comparisons per gene,
+#' used when \code{pval.type="some"}.
 #' @param log.p.in A logical scalar indicating if the p-values in \code{de.lists} were log-transformed.
 #' @param log.p.out A logical scalar indicating if log-transformed p-values/FDRs should be returned.
 #' @param output.field A string specifying the prefix of the field names containing the effect sizes.
@@ -93,7 +95,7 @@
 #' @section Consolidating with DE against some other clusters:
 #' The \code{pval.type="some"} setting serves as a compromise between \code{"all"} and \code{"any"}.
 #' A combined p-value is calculated by taking the middlemost value of the Holm-corrected p-values for each gene.
-#' (This is the median for odd numbers of contrasts and one-after-the-median for even numbers, see \code{?\link{combinePValues}}.)
+#' (By default, this the median for odd numbers of contrasts and one-after-the-median for even numbers, but the exact proportion can be changed by setting \code{min.prop} - see \code{?\link{combinePValues}}.)
 #' Here, the null hypothesis is that the gene is not DE in at least half of the contrasts.
 #' 
 #' Genes are then ranked by the combined p-value.
@@ -153,7 +155,7 @@
 #' @importFrom BiocGenerics cbind
 #' @importFrom methods as
 combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="logFC", 
-    pval.type=c("any", "some", "all"), log.p.in=FALSE, log.p.out=log.p.in, 
+    pval.type=c("any", "some", "all"), min.prop=0.5, log.p.in=FALSE, log.p.out=log.p.in, 
     output.field=NULL, full.stats=FALSE, sorted=TRUE)
 {
     if (length(de.lists)!=nrow(pairs)) {
@@ -195,7 +197,7 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
         cur.stats <- cur.stats[keep]
 
         all.p <- lapply(cur.stats, "[[", i=pval.field)
-        pval <- do.call(combinePValues, c(all.p, list(method=method, log.p=log.p.in)))
+        pval <- do.call(combinePValues, c(all.p, list(method=method, log.p=log.p.in, min.prop=min.prop)))
         preamble <- DataFrame(row.names=gene.names)
 
         # Determining rank.
