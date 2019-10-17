@@ -16,20 +16,12 @@ for (x in seq_len(nrow(groups))) {
 
 #######################################################
 
-test_that("combineMarkers is the same as a reference impementation", {
-    # With Simes' method.
+test_that("combineMarkers is the same as a reference impementation for 'any'", {
     comb.any <- combineMarkers(output, groups)
     expect_identical(names(comb.any), as.character(seq_len(ngroups)))
 
-    # With the IUT.
-    comb.all <- combineMarkers(output, groups, pval.type="all")
-    expect_identical(names(comb.any), as.character(seq_len(ngroups)))
+    comb.mid <- combineMarkers(output, groups, min.prop=0.5)
 
-    # With a Holm middle approach.
-    comb.some <- combineMarkers(output, groups, pval.type="some")
-    expect_identical(names(comb.some), as.character(seq_len(ngroups)))
-
-    # Comparing to reference calculations.
     for (x in as.character(seq_len(ngroups))) {
         current.i <- as.character(groups[,1]) == x
         current.targets <- groups[current.i,2]
@@ -44,31 +36,74 @@ test_that("combineMarkers is the same as a reference impementation", {
         expect_equal(any.p, obs.any$p.value)
         expect_equal(p.adjust(any.p, method="BH"), obs.any$FDR)
 
-        obs.all <- comb.all[[x]][genes,]
-        all.p <- apply(pmat, 2, FUN=max)
-        expect_equal(all.p, obs.all$p.value)
-        expect_equal(p.adjust(all.p, method="BH"), obs.all$FDR)
-
-        obs.some <- comb.some[[x]][genes,]
-        some.p <- apply(pmat, 2, FUN=function(p) { sort(p.adjust(p, method="holm"))[ceiling(ngroups/2)] }) 
-        expect_equal(some.p, obs.some$p.value)
-        expect_equal(p.adjust(some.p, method="BH"), obs.some$FDR)
-
         # Rank calculations.
-        expect_identical(rownames(comb.all[[x]]), genes[order(all.p)])
-
-        min.rank <- do.call(pmin, lapply(collected.p, rank))
-        min.p <- do.call(pmin, collected.p)
-        any.o <- order(min.rank, min.p)
+        rankings <- lapply(collected.p, rank, ties.method="first")
+        min.rank <- do.call(pmin, rankings)
+        any.o <- order(min.rank)
         expect_identical(rownames(comb.any[[x]]), genes[any.o])
         expect_equal(comb.any[[x]]$Top, min.rank[any.o])
+
+        mid.rank <- apply(do.call(cbind, rankings), 1, function(x) sort(x)[5])
+        any.o <- order(mid.rank)
+        expect_identical(rownames(comb.mid[[x]]), genes[any.o])
+        expect_equal(comb.mid[[x]]$Top, mid.rank[any.o])
 
         # Effect size extraction.
         for (other in seq_along(current.targets)) {
             cureffect <- paste0("logFC.", current.targets[other])
-            expect_equal(obs.any[[cureffect]], obs.all[[cureffect]])
-            expect_equal(current.stats[[other]]$logFC, obs.all[[cureffect]])
+            expect_equal(current.stats[[other]]$logFC, obs.any[[cureffect]])
         }
+    }
+})
+
+test_that("combineMarkers is the same as a reference impementation for the 'all' option", {
+    comb.all <- combineMarkers(output, groups, pval.type="all")
+    expect_identical(names(comb.all), as.character(seq_len(ngroups)))
+
+    for (x in as.character(seq_len(ngroups))) {
+        current.i <- as.character(groups[,1]) == x
+        current.targets <- groups[current.i,2]
+        current.stats <- output[current.i]
+
+        collected.p <- lapply(current.stats, "[[", i="p.value")
+        all.p <- do.call(pmax, collected.p)
+
+        obs.all <- comb.all[[x]][genes,]
+        expect_equal(all.p, obs.all$p.value)
+        expect_equal(p.adjust(all.p, method="BH"), obs.all$FDR)
+        expect_identical(rownames(comb.all[[x]]), genes[order(all.p)])
+    }
+})
+
+test_that("combineMarkers is the same as a reference impementation for the 'some' option", {
+    comb.some <- combineMarkers(output, groups, pval.type="some")
+    expect_identical(names(comb.some), as.character(seq_len(ngroups)))
+
+    comb.quart <- combineMarkers(output, groups, pval.type="some", min.prop=0.25)
+        
+    get.i <- function(prop) { ceiling((ngroups-1)*prop) }
+
+    # Comparing to reference calculations.
+    for (x in as.character(seq_len(ngroups))) {
+        current.i <- as.character(groups[,1]) == x
+        current.targets <- groups[current.i,2]
+        current.stats <- output[current.i]
+
+        collected.p <- lapply(current.stats, "[[", i="p.value")
+        pmat <- do.call(rbind, collected.p)
+
+        obs.some <- comb.some[[x]][genes,]
+        I <- get.i(0.5)
+        some.p <- apply(pmat, 2, FUN=function(p) sort(p.adjust(p, method="holm"))[I])
+        expect_equal(some.p, obs.some$p.value)
+        expect_equal(p.adjust(some.p, method="BH"), obs.some$FDR)
+
+        # Trying with another min.prop setting.
+        obs.quart <- comb.quart[[x]][genes,]
+        I <- get.i(0.25)
+        quart.p <- apply(pmat, 2, FUN=function(p) sort(p.adjust(p, method="holm"))[I])
+        expect_equal(quart.p, obs.quart$p.value)
+        expect_equal(p.adjust(quart.p, method="BH"), obs.quart$FDR)
     }
 })
 
