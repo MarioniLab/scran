@@ -165,6 +165,11 @@ test_that("pairwiseBinom responds to restriction", {
     keep <- clusters %in% restrict
     expect_identical(pairwiseBinom(X, clusters, restrict=restrict),
        pairwiseBinom(X[,keep], clusters[keep]))
+
+    exclude <- c("A", "B", "C")
+    keep <- !clusters %in% exclude
+    expect_identical(pairwiseBinom(X, clusters, exclude=exclude),
+       pairwiseBinom(X[,keep], clusters[keep]))
 })
 
 ###################################################################

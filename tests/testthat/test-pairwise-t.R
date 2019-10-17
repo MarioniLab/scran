@@ -124,7 +124,7 @@ test_that("pairwiseTTests responds to non-standard level ordering", {
 })
 
 set.seed(70000012)
-test_that("pairwiseTTests responds to restriction", {
+test_that("pairwiseTTests responds to restriction and exclusion", {
     clusters <- sample(LETTERS[1:5], ncol(X), replace=TRUE)
 
     restrict <- c("B", "C")
@@ -135,6 +135,11 @@ test_that("pairwiseTTests responds to restriction", {
     restrict <- c("A", "D", "E")
     keep <- clusters %in% restrict
     expect_identical(pairwiseTTests(X, clusters, restrict=restrict),
+       pairwiseTTests(X[,keep], clusters[keep]))
+
+    exclude <- c("A", "B", "C")
+    keep <- !clusters %in% exclude
+    expect_identical(pairwiseTTests(X, clusters, exclude=exclude),
        pairwiseTTests(X[,keep], clusters[keep]))
 })
 

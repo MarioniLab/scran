@@ -155,6 +155,11 @@ test_that("pairwiseWilcox responds to restriction", {
     keep <- clusters %in% restrict
     expect_identical(pairwiseWilcox(X, clusters, restrict=restrict),
        pairwiseWilcox(X[,keep], clusters[keep]))
+
+    exclude <- c("A", "B", "C")
+    keep <- !clusters %in% exclude
+    expect_identical(pairwiseWilcox(X, clusters, exclude=exclude),
+       pairwiseWilcox(X[,keep], clusters[keep]))
 })
 
 ###################################################################
