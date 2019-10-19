@@ -130,7 +130,7 @@
 #' If too many genes have consistently low counts across all cells, even the pool-based size factors will be zero.
 #' This results in zero or negative size factor estimates for many cells.
 #' We avoid this by filtering out low-abundance genes using the \code{min.mean} argument.
-#' This represents a minimum threshold \code{min.mean} on the library size-adjusted average counts from \code{\link{calcAverage}}.
+#' This represents a minimum threshold \code{min.mean} on the library size-adjusted average counts from \code{\link{calculateAverage}}.
 #' 
 #' By default, we set \code{min.mean} to 1 for read count data and 0.1 for UMI data.
 #' The exact values of these defaults are more-or-less arbitrary and are retained for historical reasons.
@@ -289,7 +289,7 @@ NULL
     vals <- subset_and_divide(x, subset.row-1L, curdex-1L, scaling)
     scaling <- vals[[1]]
     exprs <- vals[[2]]
-    ave.cell <- vals[[3]] # equivalent to calcAverage().
+    ave.cell <- vals[[3]] # equivalent to calculateAverage().
 
     high.ave <- min.mean <= ave.cell 
     use.ave.cell <- ave.cell
@@ -384,8 +384,8 @@ LOWWEIGHT <- 0.000001
         cur.prof <- mean.prof[[clust]] 
 
         # Filtering based on the mean of the per-cluster means (requires scaling for the library size).
-        # Effectively equivalent to 'calcAverage(cbind(ref.ave.count, cur.ave.count))' where the averages
-        # are themselves equivalent to 'calcAverage()' across all cells in each cluster.
+        # Effectively equivalent to 'calculateAverage(cbind(ref.ave.count, cur.ave.count))' where the averages
+        # are themselves equivalent to 'calculateAverage()' across all cells in each cluster.
         cur.libsize <- sum(cur.prof)
         ref.libsize <- sum(ref.prof)
         to.use <- (cur.prof/cur.libsize + ref.prof/ref.libsize)/2 * (cur.libsize + ref.libsize)/2 >= min.mean

@@ -42,7 +42,7 @@
 #' table(igraph::cluster_walktrap(g)$membership)
 #' 
 #' @export
-#' @importFrom scater calcAverage
+#' @importFrom scater calculateAverage
 scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, as.sparse=FALSE, withDimnames=TRUE)
 # Obtaining scaled/centred ranks to compute cosine distances.
 # Using this instead of colRanks to support dgCMatrix, HDF5Array objects.
@@ -52,7 +52,7 @@ scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
 {
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     if (!is.null(min.mean) && all(dim(x)>0L)) {
-        further.subset <- calcAverage(x, subset_row=subset.row) >= min.mean
+        further.subset <- calculateAverage(x, subset_row=subset.row) >= min.mean
         subset.row <- subset.row[further.subset]
     }
 

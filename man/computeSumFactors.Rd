@@ -184,7 +184,7 @@ Users can skip this step by setting \code{positive=FALSE} to perform their own d
 If too many genes have consistently low counts across all cells, even the pool-based size factors will be zero.
 This results in zero or negative size factor estimates for many cells.
 We avoid this by filtering out low-abundance genes using the \code{min.mean} argument.
-This represents a minimum threshold \code{min.mean} on the library size-adjusted average counts from \code{\link{calcAverage}}.
+This represents a minimum threshold \code{min.mean} on the library size-adjusted average counts from \code{\link{calculateAverage}}.
 
 By default, we set \code{min.mean} to 1 for read count data and 0.1 for UMI data.
 The exact values of these defaults are more-or-less arbitrary and are retained for historical reasons.
