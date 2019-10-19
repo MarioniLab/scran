@@ -84,9 +84,15 @@ cleanSizeFactors <- function(size.factors, num.detected, control=nls.control(war
     weights <- rep(1, length(Y))
     for (i in seq_len(iterations+1L)) {
         # Log-transforming both sides avoids large libraries dominating the least-squares.
-        fit <- nls(lY ~ logA + lX - log(X * exp(logB) + 1), start=init, weights=weights, control=control, ...)
-        init <- coef(fit)
+        fit <- try(nls(lY ~ logA + lX - log(X * exp(logB) + 1), start=init, weights=weights, control=control, ...), silent=TRUE)
 
+        # Brutal and dirty fallback to avoid errors.
+        if (is(fit, "try-error")) {
+            size.factors[!keep] <- min(size.factors[keep])
+            return(size.factors)
+        }
+
+        init <- coef(fit)
         resids <- abs(residuals(fit))
         bandwidth <- pmax(1e-8, median(resids) * nmads)
         weights <- (1-pmin(resids/bandwidth, 1)^3)^3
