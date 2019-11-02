@@ -15,7 +15,6 @@
 #' 
 #' For the SingleCellExperiment method, additional arguments to pass to the ANY method.
 #' @param assay.type A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.
-#' @param get.spikes See \code{?"\link{scran-gene-selection}"}.
 #' 
 #' @return 
 #' A \linkS4class{DataFrame} containing one row per query cluster with the following fields:
@@ -203,7 +202,6 @@ setMethod("doubletCluster", "ANY", .doublet_cluster)
 #' @export
 #' @rdname doubletCluster
 #' @importFrom SummarizedExperiment assay
-setMethod("doubletCluster", "SingleCellExperiment", function(x, ..., subset.row=NULL, assay.type="counts", get.spikes=FALSE) {
-    subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
-    .doublet_cluster(assay(x, i=assay.type), ..., subset.row=subset.row)
+setMethod("doubletCluster", "SingleCellExperiment", function(x, ..., assay.type="counts") { 
+    .doublet_cluster(assay(x, i=assay.type), ...)
 })

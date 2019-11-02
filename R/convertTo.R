@@ -6,7 +6,7 @@
 #' @param type A string specifying the analysis for which the object should be prepared.
 #' @param ... Other arguments to be passed to pipeline-specific constructors.
 #' @param assay.type A string specifying which assay of \code{x} should be put in the returned object.
-#' @param subset.row, get.spikes See \code{?"\link{scran-gene-selection}"}.
+#' @param subset.row See \code{?"\link{scran-gene-selection}"}.
 #' 
 #' @return
 #' For \code{type="edgeR"}, a DGEList object is returned containing the count matrix.

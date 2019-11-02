@@ -28,7 +28,6 @@
 #'
 #' For the \code{denoisePCA} function, further arguments to pass to the \code{getDenoisedPCs} function.
 #' @param assay.type A string specifying which assay values to use.
-#' @param get.spikes See \code{?"\link{scran-gene-selection}"}.
 #' @param sce.out Deprecated, a logical scalar specifying whether a modified SingleCellExperiment object should be returned.
 #' @param var.exp A numeric vector of the variances explained by successive PCs, starting from the first (but not necessarily containing all PCs).
 #' @param var.tech A numeric scalar containing the variance attributable to technical noise.
@@ -248,14 +247,10 @@ setMethod("getDenoisedPCs", "SingleCellExperiment", function(x, ..., assay.type=
 #' @rdname denoisePCA
 #' @importFrom SummarizedExperiment assay "assay<-"
 #' @importFrom SingleCellExperiment reducedDim<- 
-denoisePCA <- function(x, ..., subset.row=NULL, value=c("pca", "lowrank"), 
-    assay.type="logcounts", get.spikes=FALSE, sce.out=TRUE)
+denoisePCA <- function(x, ..., value=c("pca", "lowrank"), assay.type="logcounts")
 {
-    subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
-
     value <- match.arg(value) 
-    pcs <- .get_denoised_pcs(assay(x, i=assay.type), ..., subset.row=subset.row, 
-        fill.missing=(value=="lowrank"))
+    pcs <- .get_denoised_pcs(assay(x, i=assay.type), ..., fill.missing=(value=="lowrank"))
 
     if (value=="pca"){ 
         out <- pcs$components
@@ -263,11 +258,6 @@ denoisePCA <- function(x, ..., subset.row=NULL, value=c("pca", "lowrank"),
         out <- tcrossprod(pcs$rotation, pcs$components)
     }
     attr(out, "percentVar") <- pcs$percent.var
-
-    if (!sce.out) {
-        .Deprecated(old="sce.out=FALSE")
-        return(out)
-    }
 
     value <- match.arg(value) 
     if (value=="pca"){ 

@@ -32,7 +32,6 @@
 #' 
 #' For the \linkS4class{SingleCellExperiment} method, additional arguments to pass to the ANY method.
 #' @param assay.type A string specifying which assay values to use. 
-#' @param get.spikes See \code{?"\link{scran-gene-selection}"}.
 #' 
 #' @details
 #' This function provides a convenient wrapper to quickly define clusters of a minimum size \code{min.size}.
@@ -287,10 +286,7 @@ setMethod("quickCluster", "ANY", .quick_cluster)
 #' @export
 #' @rdname quickCluster
 #' @importFrom SummarizedExperiment assay
-setMethod("quickCluster", "SingleCellExperiment", 
-          function(x, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE) { 
-
-    subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)          
-    .quick_cluster(assay(x, i=assay.type), subset.row=subset.row, ...)
+setMethod("quickCluster", "SingleCellExperiment", function(x, ..., assay.type="counts") {
+    .quick_cluster(assay(x, i=assay.type), ...)
 })
 

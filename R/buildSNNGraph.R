@@ -20,7 +20,6 @@
 #' 
 #' For the SingleCellExperiment methods, additional arguments to pass to the corresponding ANY method.
 #' @param assay.type A string specifying which assay values to use.
-#' @param get.spikes See \code{?"\link{scran-gene-selection}"}.
 #' @param use.dimred A string specifying whether existing values in \code{reducedDims(x)} should be used.
 #' @param indices An integer matrix where each row corresponds to a cell and contains the indices of the \code{k} nearest neighbors (by increasing distance) from that cell.
 #' 
@@ -87,7 +86,7 @@
 #' The same principles apply when \code{x} is a \linkS4class{SingleCellExperiment} object, 
 #' except that the relevant matrix is now retrieved from the assays using \code{assay.type}. 
 #' If \code{use.dimred} is not \code{NULL}, existing PCs are used from the specified entry of \code{reducedDims(x)}, 
-#' and any setting of \code{d}, \code{subset.row} and \code{get.spikes} are ignored.
+#' and any setting of \code{d} and \code{subset.row} are ignored.
 #'
 #' The \code{neighborsToSNNGraph} and \code{neighborsToKNNGraph} functions operate directly on a matrix of nearest neighbor indices,
 #' obtained using functions like \code{\link{findKNN}}.
@@ -169,7 +168,7 @@ NULL
 .setup_knn_data <- function(x, subset.row, d, transposed, k, BNPARAM, BSPARAM, BPPARAM) {
     ncells <- ncol(x)
     if (!is.null(subset.row)) {
-        x <- x[.subset_to_index(subset.row, x, byrow=TRUE),,drop=FALSE]
+        x <- x[subset.row,,drop=FALSE]
     }
     
     if (!transposed) {
@@ -202,14 +201,12 @@ setMethod("buildSNNGraph", "ANY", .buildSNNGraph)
 #' @rdname buildSNNGraph
 #' @importFrom SummarizedExperiment assay
 #' @importFrom SingleCellExperiment reducedDim 
-setMethod("buildSNNGraph", "SingleCellExperiment", function(x, ..., subset.row=NULL, assay.type="logcounts", get.spikes=FALSE, use.dimred=NULL) {
+setMethod("buildSNNGraph", "SingleCellExperiment", function(x, ..., subset.row=NULL, assay.type="logcounts", use.dimred=NULL) {
     if (!is.null(use.dimred)) {
-        out <- .buildSNNGraph(reducedDim(x, use.dimred), d=NA, transposed=TRUE, ..., subset.row=NULL)
+        .buildSNNGraph(reducedDim(x, use.dimred), d=NA, transposed=TRUE, ..., subset.row=NULL)
     } else {
-        subset.row <- .SCE_subset_genes(subset.row, x=x, get.spikes=get.spikes)
-        out <- .buildSNNGraph(assay(x, i=assay.type), transposed=FALSE, ..., subset.row=subset.row)
+        .buildSNNGraph(assay(x, i=assay.type), transposed=FALSE, ..., subset.row=subset.row)
     }
-    return(out)
 })
 
 #' @export
@@ -224,14 +221,12 @@ setMethod("buildKNNGraph", "ANY", .buildKNNGraph)
 #' @rdname buildSNNGraph
 #' @importFrom SummarizedExperiment assay
 #' @importFrom SingleCellExperiment reducedDim 
-setMethod("buildKNNGraph", "SingleCellExperiment", function(x, ..., subset.row=NULL, assay.type="logcounts", get.spikes=FALSE, use.dimred=NULL) {
+setMethod("buildKNNGraph", "SingleCellExperiment", function(x, ..., subset.row=NULL, assay.type="logcounts", use.dimred=NULL) {
     if (!is.null(use.dimred)) {
-        out <- .buildKNNGraph(reducedDim(x, use.dimred), d=NA, transposed=TRUE, ..., subset.row=NULL)
+        .buildKNNGraph(reducedDim(x, use.dimred), d=NA, transposed=TRUE, ..., subset.row=NULL)
     } else {
-        subset.row <- .SCE_subset_genes(subset.row, x=x, get.spikes=get.spikes)
-        out <- .buildKNNGraph(assay(x, i=assay.type), transposed=FALSE, ..., subset.row=subset.row)
+        .buildKNNGraph(assay(x, i=assay.type), transposed=FALSE, ..., subset.row=subset.row)
     }
-    return(out)
 })
 
 ############################

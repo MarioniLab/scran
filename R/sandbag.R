@@ -14,7 +14,6 @@
 #'
 #' For the SingleCellExperiment method, additional arguments to pass to the ANY method.
 #' @param assay.type A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.
-#' @param get.spikes See \code{?"\link{scran-gene-selection}"}.
 #' 
 #' @details
 #' This function implements the training step of the pair-based prediction method described by Scialdone et al. (2015).
@@ -29,10 +28,6 @@
 #' Classification from test data can be performed using the \code{\link{cyclone}} function.
 #' For each cell, this involves comparing expression values between genes in each marker pair. 
 #' The cell is then assigned to the phase that is consistent with the direction of the difference in expression in the majority of pairs.
-#' 
-#' By default, \code{get.spikes=FALSE} which means that any rows corresponding to spike-in transcripts will not be considered when picking markers.
-#' This is because the amount of spike-in RNA added will vary between experiments and will not be a robust predictor.
-#' Nonetheless, if all rows are required, users can set \code{get.spikes=TRUE}.
 #' 
 #' @return
 #' A named list of data.frames, where each data frame corresponds to a cell cycle phase and contains the names of the genes in each marker pair.
@@ -160,9 +155,6 @@ setMethod("sandbag", "ANY", function(x, phases, gene.names=rownames(x), fraction
 #' @export
 #' @rdname sandbag
 #' @importFrom SummarizedExperiment assay
-setMethod("sandbag", "SingleCellExperiment", 
-          function(x, phases, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE) {
-
-    subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
-    sandbag(assay(x, i=assay.type), phases=phases, ..., subset.row=subset.row)
+setMethod("sandbag", "SingleCellExperiment", function(x, ..., assay.type="counts") {
+    sandbag(assay(x, i=assay.type), ...)
 })

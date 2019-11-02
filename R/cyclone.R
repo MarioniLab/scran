@@ -17,7 +17,6 @@
 #'
 #' For the SingleCellExperiment method, additional arguments to pass to the ANY method.
 #' @param assay.type A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.
-#' @param get.spikes See \code{?"\link{scran-gene-selection}"}.
 #' 
 #' @details
 #' This function implements the classification step of the pair-based prediction method described by Scialdone et al. (2015).
@@ -185,9 +184,6 @@ setMethod("cyclone", "ANY", .cyclone)
 #' @export
 #' @rdname cyclone
 #' @importFrom SummarizedExperiment assay
-setMethod("cyclone", "SingleCellExperiment", 
-          function(x, pairs, subset.row=NULL, ..., assay.type="counts", get.spikes=FALSE) {
-
-    subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
-    cyclone(assay(x, i=assay.type), pairs=pairs, subset.row=subset.row, ...)          
+setMethod("cyclone", "SingleCellExperiment", function(x, ..., assay.type="counts") {
+    cyclone(assay(x, i=assay.type), ...)
 })

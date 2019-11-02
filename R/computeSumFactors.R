@@ -20,7 +20,6 @@
 #' 
 #' For the \code{computeSumFactors} function, additional arguments to pass to \code{calculateSumFactors}.
 #' @param assay.type A string specifying which assay values to use when \code{x} is a SummarizedExperiment or SingleCellExperiment.
-#' @param get.spikes See \code{?"\link{scran-gene-selection}"}.
 #' @param sf.out Deprecated, a logical scalar indicating whether only size factors should be returned.
 #' 
 #' @section Overview of the deconvolution method:
@@ -460,18 +459,7 @@ setMethod("calculateSumFactors", "SummarizedExperiment", function(x, ..., assay.
 #' @rdname computeSumFactors
 #' @importFrom SummarizedExperiment assay 
 #' @importFrom BiocGenerics "sizeFactors<-"
-computeSumFactors <- function(x, ..., subset.row=NULL, assay.type="counts", get.spikes=FALSE, sf.out=FALSE) { 
-    if (!is(x, "SingleCellExperiment")) {
-        .Deprecated(msg="use 'calculateSumFactors' for any 'x' that is not a SingleCellExperiment")
-        return(.calculate_sum_factors(x, ..., subset.row=subset.row))
-    }
-
-    subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
-    sf <- .calculate_sum_factors(assay(x, i=assay.type), subset.row=subset.row, ...) 
-    if (sf.out) { 
-        .Deprecated(old="'sf.out=TRUE'", new="calculateSumFactors")
-        return(sf) 
-    }
-    sizeFactors(x) <- sf
+computeSumFactors <- function(x, ..., assay.type="counts") {
+    sizeFactors(x) <- .calculate_sum_factors(assay(x, i=assay.type), ...) 
     x
 }

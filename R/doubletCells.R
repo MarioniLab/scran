@@ -28,7 +28,6 @@
 #' 
 #' For the SingleCellExperiment method, additional arguments to pass to the ANY method.
 #' @param assay.type A string specifying which assay values contain the count matrix. 
-#' @param get.spikes See \code{?"\link{scran-gene-selection}"}.
 #' 
 #' @return 
 #' A numeric vector of doublet scores for each cell in \code{x}.
@@ -200,9 +199,7 @@ setMethod("doubletCells", "ANY", .doublet_cells)
 #' @rdname doubletCells
 #' @importFrom SummarizedExperiment assay
 #' @importFrom BiocGenerics sizeFactors
-setMethod("doubletCells", "SingleCellExperiment", function(x, size.factors.norm=sizeFactors(x), ..., 
-    subset.row=NULL, assay.type="counts", get.spikes=FALSE) 
+setMethod("doubletCells", "SingleCellExperiment", function(x, size.factors.norm=sizeFactors(x), ..., assay.type="counts")  
 {
-    subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
-    .doublet_cells(assay(x, i=assay.type), size.factors.norm=size.factors.norm, ..., subset.row=subset.row)
+    .doublet_cells(assay(x, i=assay.type), size.factors.norm=size.factors.norm, ...)
 })

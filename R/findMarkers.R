@@ -32,7 +32,6 @@
 #' 
 #' For the SingleCellExperiment method, further arguments to pass to the ANY method.
 #' @param assay.type A string specifying which assay values to use, usually \code{"logcounts"}.
-#' @param get.spikes See \code{?"\link{scran-gene-selection}"}.
 #' 
 #' @details
 #' This function provides a convenience wrapper for marker gene identification between groups of cells,
@@ -153,7 +152,6 @@ setMethod("findMarkers", "ANY", .findMarkers)
 #' @export
 #' @rdname findMarkers
 #' @importFrom SummarizedExperiment assay
-setMethod("findMarkers", "SingleCellExperiment", function(x, ..., subset.row=NULL, assay.type="logcounts", get.spikes=FALSE) {
-    subset.row <- .SCE_subset_genes(subset.row=subset.row, x=x, get.spikes=get.spikes)
-    .findMarkers(assay(x, i=assay.type), ..., subset.row=subset.row)
+setMethod("findMarkers", "SingleCellExperiment", function(x, ..., assay.type="logcounts") {
+    .findMarkers(assay(x, i=assay.type), ...)
 })

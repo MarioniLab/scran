@@ -26,7 +26,6 @@
 #' @param iters Integer scalar specifying the number of iterations to use in \code{\link{correlateNull}} to build the null distribution.
 #' @param ... Additional arguments to pass to \code{correlatePairs,ANY-method}.
 #' @param assay.type A string specifying which assay values to use.
-#' @param get.spikes See \code{?"\link{scran-gene-selection}"}.
 #' 
 #' @details
 #' The \code{correlatePairs} function identifies significant correlations between all pairs of genes in \code{x}.
@@ -104,8 +103,6 @@
 #' 
 #' If \code{subset.row} is not \code{NULL}, only the genes in the selected subset are used to compute correlations - see \code{?"\link{scran-gene-selection}"}.
 #' This will interact properly with \code{pairings}, such that genes in \code{pairings} and not in \code{subset.row} will be ignored.
-#' Rows corresponding to spike-in transcripts are also removed by default with \code{get.spikes=FALSE}.
-#' This avoids picking up strong technical correlations between pairs of spike-in transcripts.
 #' 
 #' We recommend setting  \code{subset.row} and/or \code{pairings} to contain only the subset of genes of interest.
 #' This reduces computational time and memory usage by only computing statistics for the gene pairs of interest.
@@ -418,11 +415,7 @@ setMethod("correlatePairs", "ANY", .correlate_pairs)
 #' @export
 #' @rdname correlatePairs
 #' @importFrom SummarizedExperiment assay
-setMethod("correlatePairs", "SingleCellExperiment", function(x, ..., use.names=TRUE, subset.row=NULL, 
-    assay.type="logcounts", get.spikes=FALSE)
+setMethod("correlatePairs", "SingleCellExperiment", function(x, ..., assay.type="logcounts") 
 {
-    subset.row <- .SCE_subset_genes(subset.row, x=x, get.spikes=get.spikes)              
-    .correlate_pairs(assay(x, i=assay.type), subset.row=subset.row, 
-        use.names=use.names, ...)
+    .correlate_pairs(assay(x, i=assay.type), ...)
 })
-
