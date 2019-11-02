@@ -39,12 +39,13 @@ Suggests:
     knitr, 
     beachmat, 
     HDF5Array, 
-    org.Mm.eg.db, 
+    scRNAseq,
     dynamicTreeCut, 
     DESeq2, 
     monocle, 
-    Biobase, 
-    aroma.light
+    Biobase,
+    aroma.light,
+    pheatmap
 biocViews: 
     ImmunoOncology, 
     Normalization, 
