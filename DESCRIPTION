@@ -1,6 +1,6 @@
 Package: scran
-Version: 1.15.0
-Date: 2019-10-18
+Version: 1.15.1
+Date: 2019-11-02
 Title: Methods for Single-Cell RNA-Seq Data Analysis
 Description: 
     Implements functions for low-level analyses of single-cell RNA-seq data. 
@@ -44,7 +44,6 @@ Suggests:
     DESeq2, 
     monocle, 
     Biobase,
-    aroma.light,
     pheatmap
 biocViews: 
     ImmunoOncology, 
