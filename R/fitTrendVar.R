@@ -121,3 +121,41 @@ fitTrendVar <- function(means, vars, min.mean=0.1, parametric=TRUE, nls.args=lis
     # Adjusting for any scale shift due to fitting to the log-values.
     .correct_logged_expectation(m, v, w, UNSCALEDFUN)
 }
+
+#########################################################
+# Computing NLS starting points for parametric fitting. #
+#########################################################
+
+#' @importFrom stats coef lm fitted
+#' @importFrom utils head tail
+.get_nls_starts <- function(vars, means, left.n=100, left.prop=0.1,
+    grid.length=10, b.grid.range=5, n.grid.max=10)
+{
+    o <- order(means)
+    n <- length(vars)
+
+    # Estimating the gradient from the left.
+    left.n <- min(left.n, n*left.prop)
+    keep <- head(o, max(1, left.n))
+    y <- vars[keep]
+    x <- means[keep]
+    grad <- coef(lm(y~0+x))
+
+    # Two-dimensional grid search is the most reliable way of estimating the remaining parameters.
+    b.grid.pts <- 2^seq(from=-b.grid.range, to=b.grid.range, length.out=grid.length)
+    n.grid.pts <- 2^seq(from=0, to=n.grid.max, length.out=grid.length)
+    hits <- expand.grid(B=b.grid.pts, n=n.grid.pts)
+
+    grid.ss <- mapply(B=hits$B, n=hits$n, FUN=function(B, n) {
+        resid <- vars - (grad*B*means)/(means^n + B)
+        sum(resid^2)
+    })
+
+    chosen <- which.min(grid.ss)
+    N <- hits$n[chosen]
+    B <- hits$B[chosen]
+    A <- B * grad
+    list(n=N, b=B, a=A)
+}
+
+
