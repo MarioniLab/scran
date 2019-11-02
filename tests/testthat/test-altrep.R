@@ -29,18 +29,20 @@ test_that("cyclone runs properly", {
 })
 
 test_that("Variance estimation runs properly", {
-    fit1 <- trendVar(X) 
-    dec1 <- decomposeVar(X, fit1)
-    fit2 <- trendVar(X_)
-    dec2 <- decomposeVar(X_, fit1)
-    expect_equal(fit1, fit2)
+    dec1 <- modelGeneVar(X) 
+    dec2 <- modelGeneVar(X_)
     expect_equal(dec1, dec2)
 
-    fit1 <- trendVar(Y)
-    dec1 <- decomposeVar(Y, fit1)
-    fit2 <- trendVar(Y_)
-    dec2 <- decomposeVar(Y_, fit1)
-    expect_equal(fit1, fit2)
+    dec1 <- modelGeneVar(Y)
+    dec2 <- modelGeneVar(Y_)
+    expect_equal(dec1, dec2)
+
+    dec1 <- modelGeneCV2(X) 
+    dec2 <- modelGeneCV2(X_)
+    expect_equal(dec1, dec2)
+
+    dec1 <- modelGeneCV2(Y)
+    dec2 <- modelGeneCV2(Y_)
     expect_equal(dec1, dec2)
 })
 
@@ -79,22 +81,4 @@ test_that("findMarkers and overlapExprs work properly", {
     groups <- sample(2, ncol(X), replace=TRUE)
     expect_equal(findMarkers(X, groups), findMarkers(X_, groups))
     expect_equal(findMarkers(Y, groups), findMarkers(Y_, groups))
-
-    expect_equal(overlapExprs(X, groups), overlapExprs(X_, groups))
-    expect_equal(overlapExprs(Y, groups), overlapExprs(Y_, groups))
 })
-
-test_that("parallelPCA runs properly", {
-    set.seed(1000)
-    pp1 <- parallelPCA(X_, value="n", niters=1)
-    set.seed(1000)
-    pp2 <- parallelPCA(X, value="n", niters=1)
-    expect_identical(pp1, pp2)
-
-    set.seed(1000)
-    pp1 <- parallelPCA(Y_, value="n", niters=1)
-    set.seed(1000)
-    pp2 <- parallelPCA(Y, value="n", niters=1)
-    expect_identical(pp1, pp2)
-})
-

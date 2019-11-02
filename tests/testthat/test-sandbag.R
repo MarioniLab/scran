@@ -95,39 +95,3 @@ test_that("sandbag works correctly with SingleCellExperiment objects", {
     expect_true(all(happycheck(XG2M, XS, XG1, out$G2M, frac)))
     expect_true(all(happycheck(XS, XG1, XG2M, out$S, frac)))
 })
-
-# Testing for a SCESet, with spike-ins.
-
-set.seed(300)
-test_that("sandbag works correctly with SingleCellExperiment objects with spikes", {
-    Ngenes <- 100
-    phases <- sample(3, 100, replace=TRUE)
-    is.G1 <- phases==1L
-    is.G2M <- phases==2L
-    is.S <- phases==3L
-    
-    frac <- 0.5
-    X <- matrix(rpois(Ngenes*length(phases), lambda=10), nrow=Ngenes)
-    rownames(X) <- paste0("X", seq_len(Ngenes))
-    X <- SingleCellExperiment(list(counts=X))
-    isSpike(X, "MySpike") <- rbinom(Ngenes, 1, 0.7)==0L
-    
-    cur.classes <- list(G1=is.G1, S=is.S, G2M=is.G2M)
-    out <- sandbag(X, cur.classes, fraction=frac)
-    expect_identical(sandbag(counts(X)[!isSpike(X),], cur.classes, fraction=frac), out)
-    
-    XG1 <- counts(X[,is.G1,drop=FALSE])
-    XS <- counts(X[,is.S,drop=FALSE])
-    XG2M <- counts(X[,is.G2M,drop=FALSE])
-    
-    expect_true(all(happycheck(XG1, XS, XG2M, out$G1, frac)))
-    expect_true(all(happycheck(XG2M, XS, XG1, out$G2M, frac)))
-    expect_true(all(happycheck(XS, XG1, XG2M, out$S, frac)))
-    
-    # Testing for a SCESet, with all spike-ins.
-    isSpike(X, "MySpike") <- !logical(Ngenes)
-    out <- sandbag(X, cur.classes, fraction=frac)
-    expect_identical(out$G1, data.frame(first=character(0), second=character(0), stringsAsFactors=FALSE))
-    expect_identical(out$G2M, data.frame(first=character(0), second=character(0), stringsAsFactors=FALSE))
-    expect_identical(out$S, data.frame(first=character(0), second=character(0), stringsAsFactors=FALSE))
-})

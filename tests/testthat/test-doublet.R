@@ -133,21 +133,12 @@ test_that("doubletCluster works correctly with SingleCellExperiment", {
     dbl2 <- doubletCluster(sce, clusters, assay.type="whee")
     expect_identical(ref2, dbl2)
 
-    # With spike-ins that get used.
-    isSpike(sce, "ERCC") <- sample(nrow(sce), 20)
-    dbl3 <- doubletCluster(sce, clusters, get.spikes=TRUE)
-    expect_identical(ref, dbl3)
-
-    # ... or ignored.
-    dbl4 <- doubletCluster(sce, clusters)
-    ref3 <- doubletCluster(counts(sce), clusters, subset.row=!isSpike(sce))
-    expect_identical(ref3, dbl4)
-
-    # With both spike-ins _and_ subset.row specified.
-    keep <- c(sample(which(isSpike(sce)), 10), sample(which(!isSpike(sce)), 10))
+    # With subsetting.
+    keep <- sample(nrow(sce), 10)
     dbl5 <- doubletCluster(sce, clusters, subset.row=keep)
-    ref4 <- doubletCluster(counts(sce), clusters, subset.row=setdiff(keep, which(isSpike(sce))))
-    expect_identical(ref4, dbl5)
+    ref4 <- doubletCluster(counts(sce)[keep,], clusters)
+    same.fields <- setdiff(colnames(ref4), c("best", "all.pairs")) # avoid checking different indices.
+    expect_identical(ref4[,same.fields], dbl5[,same.fields])
 })
 
 ###################################################
@@ -307,26 +298,12 @@ test_that("doubletCells works correctly for SCE objects", {
     dbl2 <- doubletCells(sce, assay.type="whee")
     expect_identical(ref2, dbl2)
 
-    # With spike-ins that get used.
-    isSpike(sce, "ERCC") <- sample(nrow(sce), 20)
-    set.seed(1000)
-    dbl3 <- doubletCells(sce, get.spikes=TRUE)
-    expect_identical(ref, dbl3)
-
-    # ... or ignored.
-    set.seed(1002)
-    dbl4 <- doubletCells(sce)
-    set.seed(1002)
-    ref3 <- doubletCells(counts(sce), subset.row=!isSpike(sce))
-    expect_identical(ref3, dbl4)
-
-    # With both spike-ins _and_ subset.row specified.
-    rand.nospiked <- sample(which(!isSpike(sce)), 10)
-    rand.spiked <- sample(which(isSpike(sce)), 10)
+    # With subsetting.
+    keep <- sample(nrow(sce), 10)
 
     set.seed(1003)
-    expect_warning(dbl5 <- doubletCells(sce, subset.row=c(rand.spiked, rand.nospiked)), "greater than available")
+    dbl5 <- doubletCells(sce, subset.row=keep)
     set.seed(1003)
-    expect_warning(ref4 <- doubletCells(counts(sce), subset.row=rand.nospiked),  "greater than available")
+    ref4 <- doubletCells(sce[keep,])
     expect_identical(ref4, dbl5)
 })
