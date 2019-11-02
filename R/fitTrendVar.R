@@ -126,6 +126,27 @@ fitTrendVar <- function(means, vars, min.mean=0.1, parametric=TRUE, nls.args=lis
 # Computing NLS starting points for parametric fitting. #
 #########################################################
 
+#' @importFrom stats nls nls.control
+.setup_nls_args <- function(nls.args, start.args) {
+    if (is.null(nls.args)) {
+        return(list())
+    }
+
+    nls.call <- do.call(call, c("nls", nls.args))
+    nls.call <- match.call(nls, nls.call)
+    nls.args <- as.list(nls.call)[-1]
+
+    control <- nls.control(warnOnly=TRUE, maxiter=500)
+    raw.start <- do.call(.get_nls_starts, start.args)
+    start <- list(A=log(raw.start$a),
+                  B=log(raw.start$b),
+                  N=log(pmax(1e-8, raw.start$n-1))) # reflects enforced positivity in formula.
+
+    altogether <- c(nls.args, list(control=control, start=start))
+    keep <- !duplicated(names(altogether)) # nls.args are favoured.
+    return(altogether[keep])
+}
+
 #' @importFrom stats coef lm fitted
 #' @importFrom utils head tail
 .get_nls_starts <- function(vars, means, left.n=100, left.prop=0.1,
