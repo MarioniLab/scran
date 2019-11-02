@@ -9,18 +9,6 @@ build_snn_number <- function(neighbors) {
     .Call('_scran_build_snn_number', PACKAGE = 'scran', neighbors)
 }
 
-calc_log_count_stats <- function(Means, Sizes, tol, disp, pseudo) {
-    .Call('_scran_calc_log_count_stats', PACKAGE = 'scran', Means, Sizes, tol, disp, pseudo)
-}
-
-calc_log_expected <- function(Means, Sizes, tol, disp, pseudo) {
-    .Call('_scran_calc_log_expected', PACKAGE = 'scran', Means, Sizes, tol, disp, pseudo)
-}
-
-calc_log_sqdiff <- function(Means, Sizes, tol, disp, pseudo, Constants) {
-    .Call('_scran_calc_log_sqdiff', PACKAGE = 'scran', Means, Sizes, tol, disp, pseudo, Constants)
-}
-
 combine_rho <- function(Ngenes, first, second, Rho, Pval, Limited, Order) {
     .Call('_scran_combine_rho', PACKAGE = 'scran', Ngenes, first, second, Rho, Pval, Limited, Order)
 }
@@ -35,10 +23,6 @@ combine_holm_middle <- function(Pvals, logp, prop) {
 
 compute_Top_statistic_from_ranks <- function(Ranks, prop) {
     .Call('_scran_compute_Top_statistic_from_ranks', PACKAGE = 'scran', Ranks, prop)
-}
-
-compute_CV2 <- function(exprs, subset_row, size_factors, log_prior) {
-    .Call('_scran_compute_CV2', PACKAGE = 'scran', exprs, subset_row, size_factors, log_prior)
 }
 
 compute_blocked_stats_lognorm <- function(bygroup, inmat, sf, pseudo) {
@@ -99,10 +83,6 @@ overlap_exprs <- function(exprs, subset, bygroup, lfc) {
 
 pool_size_factors <- function(exprs, pseudo_cell, order, pool_sizes) {
     .Call('_scran_pool_size_factors', PACKAGE = 'scran', exprs, pseudo_cell, order, pool_sizes)
-}
-
-shuffle_matrix <- function(incoming, seed, stream) {
-    .Call('_scran_shuffle_matrix', PACKAGE = 'scran', incoming, seed, stream)
 }
 
 subset_and_divide <- function(matrix, row_subset, col_subset, scaling) {

@@ -25,49 +25,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// calc_log_count_stats
-Rcpp::List calc_log_count_stats(Rcpp::NumericVector Means, Rcpp::NumericVector Sizes, double tol, double disp, double pseudo);
-RcppExport SEXP _scran_calc_log_count_stats(SEXP MeansSEXP, SEXP SizesSEXP, SEXP tolSEXP, SEXP dispSEXP, SEXP pseudoSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Means(MeansSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Sizes(SizesSEXP);
-    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
-    Rcpp::traits::input_parameter< double >::type disp(dispSEXP);
-    Rcpp::traits::input_parameter< double >::type pseudo(pseudoSEXP);
-    rcpp_result_gen = Rcpp::wrap(calc_log_count_stats(Means, Sizes, tol, disp, pseudo));
-    return rcpp_result_gen;
-END_RCPP
-}
-// calc_log_expected
-Rcpp::List calc_log_expected(Rcpp::NumericVector Means, Rcpp::NumericVector Sizes, double tol, double disp, double pseudo);
-RcppExport SEXP _scran_calc_log_expected(SEXP MeansSEXP, SEXP SizesSEXP, SEXP tolSEXP, SEXP dispSEXP, SEXP pseudoSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Means(MeansSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Sizes(SizesSEXP);
-    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
-    Rcpp::traits::input_parameter< double >::type disp(dispSEXP);
-    Rcpp::traits::input_parameter< double >::type pseudo(pseudoSEXP);
-    rcpp_result_gen = Rcpp::wrap(calc_log_expected(Means, Sizes, tol, disp, pseudo));
-    return rcpp_result_gen;
-END_RCPP
-}
-// calc_log_sqdiff
-Rcpp::List calc_log_sqdiff(Rcpp::NumericVector Means, Rcpp::NumericVector Sizes, double tol, double disp, double pseudo, Rcpp::NumericVector Constants);
-RcppExport SEXP _scran_calc_log_sqdiff(SEXP MeansSEXP, SEXP SizesSEXP, SEXP tolSEXP, SEXP dispSEXP, SEXP pseudoSEXP, SEXP ConstantsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Means(MeansSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Sizes(SizesSEXP);
-    Rcpp::traits::input_parameter< double >::type tol(tolSEXP);
-    Rcpp::traits::input_parameter< double >::type disp(dispSEXP);
-    Rcpp::traits::input_parameter< double >::type pseudo(pseudoSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Constants(ConstantsSEXP);
-    rcpp_result_gen = Rcpp::wrap(calc_log_sqdiff(Means, Sizes, tol, disp, pseudo, Constants));
-    return rcpp_result_gen;
-END_RCPP
-}
 // combine_rho
 Rcpp::List combine_rho(int Ngenes, Rcpp::IntegerVector first, Rcpp::IntegerVector second, Rcpp::NumericVector Rho, Rcpp::NumericVector Pval, Rcpp::LogicalVector Limited, Rcpp::IntegerVector Order);
 RcppExport SEXP _scran_combine_rho(SEXP NgenesSEXP, SEXP firstSEXP, SEXP secondSEXP, SEXP RhoSEXP, SEXP PvalSEXP, SEXP LimitedSEXP, SEXP OrderSEXP) {
@@ -115,19 +72,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::List >::type Ranks(RanksSEXP);
     Rcpp::traits::input_parameter< double >::type prop(propSEXP);
     rcpp_result_gen = Rcpp::wrap(compute_Top_statistic_from_ranks(Ranks, prop));
-    return rcpp_result_gen;
-END_RCPP
-}
-// compute_CV2
-Rcpp::List compute_CV2(SEXP exprs, Rcpp::IntegerVector subset_row, SEXP size_factors, SEXP log_prior);
-RcppExport SEXP _scran_compute_CV2(SEXP exprsSEXP, SEXP subset_rowSEXP, SEXP size_factorsSEXP, SEXP log_priorSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< SEXP >::type exprs(exprsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type subset_row(subset_rowSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type size_factors(size_factorsSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type log_prior(log_priorSEXP);
-    rcpp_result_gen = Rcpp::wrap(compute_CV2(exprs, subset_row, size_factors, log_prior));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -330,18 +274,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// shuffle_matrix
-Rcpp::RObject shuffle_matrix(Rcpp::RObject incoming, Rcpp::IntegerVector seed, int stream);
-RcppExport SEXP _scran_shuffle_matrix(SEXP incomingSEXP, SEXP seedSEXP, SEXP streamSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type incoming(incomingSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type seed(seedSEXP);
-    Rcpp::traits::input_parameter< int >::type stream(streamSEXP);
-    rcpp_result_gen = Rcpp::wrap(shuffle_matrix(incoming, seed, stream));
-    return rcpp_result_gen;
-END_RCPP
-}
 // subset_and_divide
 Rcpp::RObject subset_and_divide(Rcpp::RObject matrix, Rcpp::RObject row_subset, Rcpp::RObject col_subset, Rcpp::RObject scaling);
 RcppExport SEXP _scran_subset_and_divide(SEXP matrixSEXP, SEXP row_subsetSEXP, SEXP col_subsetSEXP, SEXP scalingSEXP) {
@@ -359,14 +291,10 @@ END_RCPP
 static const R_CallMethodDef CallEntries[] = {
     {"_scran_build_snn_rank", (DL_FUNC) &_scran_build_snn_rank, 1},
     {"_scran_build_snn_number", (DL_FUNC) &_scran_build_snn_number, 1},
-    {"_scran_calc_log_count_stats", (DL_FUNC) &_scran_calc_log_count_stats, 5},
-    {"_scran_calc_log_expected", (DL_FUNC) &_scran_calc_log_expected, 5},
-    {"_scran_calc_log_sqdiff", (DL_FUNC) &_scran_calc_log_sqdiff, 6},
     {"_scran_combine_rho", (DL_FUNC) &_scran_combine_rho, 7},
     {"_scran_combine_simes", (DL_FUNC) &_scran_combine_simes, 2},
     {"_scran_combine_holm_middle", (DL_FUNC) &_scran_combine_holm_middle, 3},
     {"_scran_compute_Top_statistic_from_ranks", (DL_FUNC) &_scran_compute_Top_statistic_from_ranks, 2},
-    {"_scran_compute_CV2", (DL_FUNC) &_scran_compute_CV2, 4},
     {"_scran_compute_blocked_stats_lognorm", (DL_FUNC) &_scran_compute_blocked_stats_lognorm, 4},
     {"_scran_compute_residual_stats_lognorm", (DL_FUNC) &_scran_compute_residual_stats_lognorm, 5},
     {"_scran_compute_blocked_stats_norm", (DL_FUNC) &_scran_compute_blocked_stats_norm, 3},
@@ -382,7 +310,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_scran_get_scaled_ranks", (DL_FUNC) &_scran_get_scaled_ranks, 4},
     {"_scran_overlap_exprs", (DL_FUNC) &_scran_overlap_exprs, 4},
     {"_scran_pool_size_factors", (DL_FUNC) &_scran_pool_size_factors, 4},
-    {"_scran_shuffle_matrix", (DL_FUNC) &_scran_shuffle_matrix, 3},
     {"_scran_subset_and_divide", (DL_FUNC) &_scran_subset_and_divide, 4},
     {NULL, NULL, 0}
 };
