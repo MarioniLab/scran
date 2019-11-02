@@ -2,8 +2,8 @@
 title: Using scran to analyze single-cell RNA-seq data
 author: 
 - name: Aaron Lun
-  affiliation: Cancer Research UK Cambridge Institute, Cambridge, United Kingdom
-date: "Revised: 17 October 2018"
+  email: infinite.monkeys.with.keyboards@gmail.com
+date: "Revised: 1 November 2019"
 output:
   BiocStyle::html_document:
     toc_float: true
@@ -35,90 +35,33 @@ The `r Biocpkg("scran")` package implements methods to perform low-level process
 including cell cycle phase assignment, scaling normalization, variance modelling and testing for corrrelated genes.
 This vignette provides brief descriptions of these methods and some toy examples to demonstrate their use.
 
+**Note:** A more comprehensive description of the use of `r Biocpkg("scran")` (along with other packages) in a scRNA-seq analysis workflow is available at https://osca.bioconductor.org.
+
 # Setting up the data
 
 We start off with a count matrix where each row is a gene and each column is a cell.
 These can be obtained by mapping read sequences to a reference genome, and then counting the number of reads mapped to the exons of each gene.
 (See, for example, the `r Biocpkg("Rsubread")` package to do both of these tasks.)
 Alternatively, pseudo-alignment methods can be used to quantify the abundance of each transcript in each cell.
-For simplicity, though, we'll just simulate some counts here from a negative binomial distribution.
+For simplicity, we will pull out an existing dataset from the `r Biocpkg("scRNAseq")` package.
 
 ```{r}
-ngenes <- 10000
-ncells <- 200
-mu <- 2^runif(ngenes, -1, 5)
-gene.counts <- matrix(rnbinom(ngenes*ncells, mu=mu, size=10), nrow=ngenes)
+library(scRNAseq)
+sce <- GrunPancreasData()
+sce
 ```
 
-We add some arbitrary Ensembl gene IDs to give the impression that this is real (mouse) data.
+This particular dataset is taken from a study of the human pancreas with the CEL-seq protocol [@grun2016denovo].
+It is provided as a `SingleCellExperiment` object (from the `r Biocpkg("SingleCellExperiment")` package), which contains the raw data and various annotations.
+We perform some cursory quality control to remove cells with low total counts or high spike-in percentages:
 
 ```{r}
-library(org.Mm.eg.db)
-all.ensembl <- unique(toTable(org.Mm.egENSEMBL)$ensembl_id)
-rownames(gene.counts) <- sample(all.ensembl, ngenes)
+library(scater)
+qcstats <- perCellQCMetrics(sce)
+qcfilter <- quickPerCellQC(qcstats, percent_subsets="altexps_ERCC_percent")
+sce <- sce[,!qcfilter$discard]
+summary(qcfilter$discard)
 ```
-
-We also have a set of counts for spike-in transcripts.
-These are appended to the counts for the endogenous genes.
-In practice, the reads should have been mapped to the spike-in transcipts by including the spike-in sequences in the genome index.
-
-```{r}
-nspikes <- 100
-ncells <- 200
-mu <- 2^runif(nspikes, -1, 5)
-spike.counts <- matrix(rnbinom(nspikes*ncells, mu=mu, size=10), nrow=nspikes)
-rownames(spike.counts) <- paste0("ERCC-", seq_len(nspikes))
-all.counts <- rbind(gene.counts, spike.counts)
-```
-
-Finally, we construct a `SingleCellExperiment` object to store all of the data.
-We also indicate which rows correspond to spike-in transcripts.
-This is done through the `calculateQCMetrics` method from `r Biocpkg("scater")`, which takes a named list of sets of control genes.
-We indicate which sets of controls are spike-ins using the `setSpike` setter function.
-(In this case, there is only one control set, so the process may seem more complicated than necessary. 
-The usefulness of this setup becomes more obvious when multiple control sets are present.)
-This information can be easily extracted later on using the `isSpike`, `spikes` and `whichSpike` methods.
-
-```{r}
-library(scran)
-sce <- SingleCellExperiment(list(counts=all.counts))
-isSpike(sce, "MySpike") <- grep("^ERCC", rownames(sce))
-```
-
-This is simulated data, so we assume that quality control has already been applied to remove low-quality cells or low-abundance genes.
-Check out the `r Biocpkg("scater")` and `r Biocpkg("cellity")` packages for more details.
-Also see the `r Biocpkg("simpleSingleCell")` workflow where all these steps are used in real data analyses.
-
-# Cell cycle phase assignment
-
-We use a pre-defined classifier to assign cells into their cell cycle phases [@scialdone2015computational].
-This classifier was constructed from a training data set by identifying pairs of genes where the difference in expression within each pair changed sign across phases.
-Thus, by examining the sign of the difference in test data, the phase to which the cell belongs can be identified.
-Classifiers for human and mouse data are provided with the package -- for other systems, classifiers can be constructed from a training set using the `sandbag` function.
-
-```{r}
-mm.pairs <- readRDS(system.file("exdata", "mouse_cycle_markers.rds", package="scran"))
-```
-
-The classification itself is done using the `cyclone` function, given the count data and the trained classifier.
-This yields a number of scores representing the consistency of the signs with each phase.
-
-```{r}
-assigned <- cyclone(sce, pairs=mm.pairs)
-head(assigned$scores)
-```
-
-Cells are considered to be in G1 phase, if the G1 score is above 0.5 and the G2/M score is below 0.5;
-    to be in G2/M phase, if the G2/M score is above 0.5 and the G1 score is below 0.5;
-    to be in S phase, if both scores are below 0.5; and to be unknown, if both scores are above 0.5.
-Despite the availability of a S score, it tends to be more accurate to assign cells based on the G1 and G2/M scores only.
-
-```{r}
-table(assigned$phases)
-```
-
-Note that it is generally best practice to perform cell cycle phase assignment _before_ filtering out low-abundance genes.
-This is because the lack of expression of particular genes can provide some information about the cell cycle.
 
 # Normalizing cell-specific biases
 
@@ -129,19 +72,15 @@ This computes size factors that are used to scale the counts in each cell.
 The assumption is that most genes are not differentially expressed (DE) between cells, such that any differences in expression across the majority of genes represents some technical bias that should be removed.
 
 ```{r}
-sce <- computeSumFactors(sce)
+library(scran)
+clusters <- quickCluster(sce)
+sce <- computeSumFactors(sce, clusters=clusters)
 summary(sizeFactors(sce))
 ```
 
 For larger data sets, clustering should be performed with the `quickCluster` function before normalization.
 Briefly, cells are grouped into clusters of similar expression; normalization is applied within each cluster to compute size factors for each cell; and the factors are rescaled by normalization between clusters.
 This reduces the risk of violating the above assumption when many genes are DE between clusters in a heterogeneous population.
-
-```{r}
-larger.sce <- SingleCellExperiment(list(counts=cbind(all.counts, all.counts, all.counts)))
-clusters <- quickCluster(larger.sce, min.size=100)
-larger.sce <- computeSumFactors(larger.sce, cluster=clusters)
-```
 
 Note that `computeSumFactors` will automatically remove low-abundance genes, which provides some protection against zero or negative size factor estimates.
 We also assume that quality control on the cells has already been performed, as low-quality cells with few expressed genes can often have negative size factor estimates.
@@ -154,87 +93,172 @@ Size factors are computed to scale the counts such that the total coverage of th
 The main practical difference is that spike-in normalization preserves differences in total RNA content between cells, whereas `computeSumFactors` and other non-DE methods do not.
 
 ```{r}
-sce2 <- computeSpikeFactors(sce)
+sce2 <- computeSpikeFactors(sce, "ERCC")
 summary(sizeFactors(sce2))
-```
-
-Even if we decide to use the deconvolution size factors, it is _strongly_ recommended to compute a separate set of size factors for the spike-ins.
-This is because the spike-ins are not affected by total mRNA content.
-Using the deconvolution size factors will over-normalize the spike-in counts, whereas the spike-in size factors are more appropriate.
-To obtain the latter without overwriting the former, we set `general.use=FALSE` in our call to `computeSpikeFactors`.
-This means that the spike-in-based size factors will be computed and stored in the `SingleCellExperiment` object, but will only be used by the spike-in transcripts.
-(Obviously, if the spike-in size factors were already being used for normalization, e.g., in `sce2`, then this extra step is unnecessary.)
-
-```{r}
-sce <- computeSpikeFactors(sce, general.use=FALSE)
 ```
 
 ## Computing normalized expression values
 
-Normalized expression values are calculated using the `normalize` method from `r Biocpkg("scater")` [@mccarthy2017scater].
+Normalized expression values are calculated using the `logNormCounts()` method from `r Biocpkg("scater")` [@mccarthy2017scater].
 This will use the deconvolution size factors for the endogenous genes, and the spike-in-based size factors for the spike-in transcripts.
 Each expression value can be interpreted as a log-transformed "normalized count", and can be used in downstream applications like clustering or dimensionality reduction.
 
 ```{r}
-sce <- normalize(sce)
+sce <- logNormCounts(sce)
 ```
 
 # Variance modelling 
 
 We identify genes that drive biological heterogeneity in the data set by modelling the per-gene variance.
 The aim is use a subset of highly variable genes in downstream analyses like clustering, to improve resolution by removing genes driven by technical noise.
-We first decompose the total variance of each gene into its biological and technical components [@lun2016step].
-We fit a mean-variance trend to the normalized log-expression values with `trendVar`.
-By default, this done using only the spike-in transcripts, as these should only exhibit technical noise.
+We decompose the total variance of each gene into its biological and technical components by fitting a trend to the endogenous variances [@lun2016step].
+The fitted value of the trend is used as an estimate of the technical component, and we subtract the fitted value from the total variance to obtain the biological component for each gene.
 
 ```{r}
-fit <- trendVar(sce, parametric=TRUE)
+dec <- modelGeneVar(sce)
+plot(dec$mean, dec$total, xlab="Mean log-expression", ylab="Variance")
+curve(metadata(dec)$trend(x), col="blue", add=TRUE)
 ```
 
-The fitted value of the trend is used as an estimate of the technical component.
-We subtract the fitted value from the total variance to obtain the biological component for each gene.
-We can then extract some certain number of top genes for use in downstream procedures; or more generally, take all potentially interesting genes with positive biological components.
+If we have spike-ins, we can use them to fit the trend instead.
+This provides a more direct estimate of the technical variance and avoids assuming that most genes do not exhibit biological variaility. 
 
 ```{r}
-decomp <- decomposeVar(sce, fit)
-top.hvgs <- order(decomp$bio, decreasing=TRUE)
-head(decomp[top.hvgs,])
+dec2 <- modelGeneVarWithSpikes(sce, 'ERCC')
+plot(dec2$mean, dec2$total, xlab="Mean log-expression", ylab="Variance")
+points(metadata(dec2)$mean, metadata(dec2)$var, col="red")
+curve(metadata(dec2)$trend(x), col="blue", add=TRUE)
 ```
 
-We examine this in more detail by constructing a mean-variance plot.
-Here, the black points represent the endogenous genes; the red points represent spike-in transcripts; and the red line represents the mean-variance trend fitted to the spike-ins.
+If we have some uninteresting factors of variation, we can block on these using `block=`.
+This will perform the trend fitting and decomposition within each block before combining the statistics across blocks for output.
+Statistics for each individual block can also be extracted for further inspection.
 
-```{r, fig.cap=""}
-plot(decomp$mean, decomp$total, xlab="Mean log-expression", ylab="Variance")
-o <- order(decomp$mean)
-lines(decomp$mean[o], decomp$tech[o], col="red", lwd=2)
-points(fit$mean, fit$var, col="red", pch=16)
+```{r, fig.wide=TRUE, fig.asp=1.5}
+dec3 <- modelGeneVar(sce, block=sce$donor)
+per.block <- dec3$per.block
+par(mfrow=c(3, 2))
+for (i in seq_along(per.block)) {
+    decX <- per.block[[i]]
+    plot(decX$mean, decX$total, xlab="Mean log-expression", 
+        ylab="Variance", main=names(per.block)[i])
+    curve(metadata(decX)$trend(x), col="blue", add=TRUE)
+}
 ```
 
-If spike-ins are absent or of poor quality, an alternative is to fit the trend to the gene variances directly with `use.spikes=FALSE`.
-This assumes that technical noise is the major contributor to the variance of most genes in the data set, such that the trend still represents the technical component.
-The resulting fit can then be used in `decomposeVar` as described above.
+We can then extract some top genes for use in downstream procedures.
+This is usually done by passing the selected subset of genes to the `subset.row` argument (or equivalent) in the desired downstream function, as shown below for the PCA step.
 
 ```{r}
-alt.fit <- trendVar(sce, use.spikes=FALSE) 
-alt.decomp <- decomposeVar(sce, alt.fit)
+# Get the top 10% of genes.
+top.hvgs <- getTopHVGs(dec, prop=0.1)
+
+# Get the top 2000 genes.
+top.hvgs2 <- getTopHVGs(dec, n=2000)
+
+# Get all genes with positive biological components.
+top.hvgs3 <- getTopHVGs(dec, var.threshold=0)
+
+# Get all genes with FDR below 5%.
+top.hvgs4 <- getTopHVGs(dec, fdr.threshold=0.05)
+
+# Running the PCA with the 10% of HVGs.
+sce <- runPCA(sce, subset_row=top.hvgs)
+reducedDimNames(sce)
 ```
 
-If the data set already contains some uninteresting substructure (e.g., batch effects), we can block on this by setting the `block=` argument in `trendVar`.
-This ensures that the substructure does not inflate the variance estimates.
-For example, if the cells were prepared in two separate batches, we can set the batch of origin as `block`.
-The same blocking information will also be used in `decomposeVar`.
+# Automated PC choice
+
+Principal components analysis is commonly performed to denoise and compact the data prior to downstream analysis.
+A common question is how many PCs to retain; more PCs will capture more biological signal at the cost of retaining more noise and requiring more computational work.
+One approach to choosing the number of PCs is to use the technical component estimates to determine the proportion of variance that should be retained.
+This is implemented in `denoisePCA()`, which takes the estimates returned by `modelGeneVar()` or friends.
+(For greater accuracy, we use the fit with the spikes; we also subset to only the top HVGs to remove noise.)
 
 ```{r}
-batch <- rep(c("1", "2"), each=100)
-alt.fit2 <- trendVar(sce, block=batch)
-alt.decomp2 <- decomposeVar(sce, alt.fit)
+sced <- denoisePCA(sce, dec2, subset.row=getTopHVGs(dec2, prop=0.1))
+ncol(reducedDim(sced, "PCA"))
 ```
 
-See `r Biocpkg("simpleSingleCell", vignette="var.html", label="this workflow")` for more discussion about variance modelling with `trendVar` and `decomposeVar`.
-Other alternatives include the `DM` and `technicalCV2` functions, which quantify expression variance based on the coefficient of variation of the (normalized) counts.
-These provide more power for detecting genes that are only expressed in rare subpopulations, but are also more sensitive to outliers.
-Also see the `improvedCV2` function, which is intended as a more stable counterpart of `technicalCV2`.
+Another approach is based on the assumption that each subpopulation should be separated from each other on a different axis of variation.
+Thus, we choose the number of PCs that is not less than the number of subpopulations (which are unknown, of course, so we use the number of clusters as a proxy).
+It is then a simple to subset the dimensionality reduction result to the desired number of PCs.
+
+```{r}
+output <- getClusteredPCs(reducedDim(sce))
+npcs <- metadata(output)$chosen
+reducedDim(sce, "PCAsub") <- reducedDim(sce, "PCA")[,1:npcs,drop=FALSE]
+npcs
+```
+
+# Graph-based clustering
+
+Clustering of scRNA-seq data is commonly performed with graph-based methods due to their relative scalability and robustness. 
+`r Biocpkg('scran')` provides several graph construction methods based on shared nearest neighbors [@xu2015identification] through the `buildSNNGraph()` function.
+This is most commonly generated from the selected PCs, after which methods from the `r CRANpkg("igraph")` package can be used to identify clusters.
+
+```{r}
+# In this case, using the PCs that we chose from getClusteredPCs().
+g <- buildSNNGraph(sce, use.dimred="PCAsub")
+cluster <- igraph::cluster_walktrap(g)$membership
+sce$cluster <- factor(cluster)
+table(sce$cluster)
+```
+
+We can then use methods from `r Biocpkg("scater")` to visualize this on a $t$-SNE plot, as shown below.
+
+```{r}
+sce <- runTSNE(sce, dimred="PCAsub")
+plotTSNE(sce, colour_by="cluster", text_by="cluster")
+```
+
+Another diagnostic is to examine the ratio of observed to expected edge weights for each pair of clusters (closely related to the modularity score used in many `cluster_*`  functions).
+We would usually expect to see high observed weights between cells in the same cluster with minimal weights between clusters, indicating that the clusters are well-separated.
+Off-diagonal entries indicate that some clusters are closely related, which is useful to know for checking that they are annotated consistently.
+
+```{r}
+ratio <- clusterModularity(g, cluster, as.ratio=TRUE)
+
+library(pheatmap)
+pheatmap(log10(ratio+1), cluster_cols=FALSE, cluster_rows=FALSE,
+    col=rev(heat.colors(100)))
+```
+
+By default, `buildSNNGraph()` uses the mode of shared neighbor weighting described by @xu2015identification, but other weighting methods (e.g., the Jaccard index) are also available by setting `type=`.
+An unweighted $k$-nearest neighbor graph can also be constructed with `buildKNNGraph()`.
+
+# Identifying marker genes
+
+The `findMarkers()` wrapper function will perform some simple differential expression tests between pairs of clusters to identify potential marker genes for each cluster.
+For each cluster, we perform $t$-tests to identify genes that are DE in each cluster compared to at least one other cluster.
+All pairwise tests are combined into a single ranking by simply taking the top genes from each pairwise comparison.
+For example, if we take all genes with `Top <= 5`, this is equivalent to the union of the top 5 genes from each pairwise comparison.
+This aims to provide a set of genes that is guaranteed to be able to distinguish the chosen cluster from all others.
+
+```{r}
+markers <- findMarkers(sce, sce$cluster)
+markers[[1]][,1:3]
+```
+
+We can modify the tests by passing a variety of arguments to `findMarkers()`.
+For example, the code below will perform Wilcoxon tests instead of $t$-tests;
+only identify genes that are upregulated in the target cluster compared to each other cluster;
+and require a minimum log~2~-fold change of 1 to be considered significant.
+
+```{r}
+wmarkers <- findMarkers(sce, sce$cluster, 
+    test.type="wilcox", direction="up", lfc=1)
+wmarkers[[1]][,1:3]
+```
+
+We can also modify how the statistics are combined across pairwise comparisons.
+Setting `pval.type="all"` requires a gene to be DE between each cluster and _every_ other cluster (rather than _any_ other cluster, as is the default with `pval.type="any"`).
+This is a more stringent definition that can yield a more focused set of markers but may also fail to detect any markers in the presence of overclustering. 
+
+```{r}
+markers <- findMarkers(sce, sce$cluster, pval.type="all")
+markers[[1]][,1:2]
+```
 
 # Detecting correlated genes
 
@@ -244,9 +268,9 @@ Correlations are computed in the `correlatePairs` method using a slightly modifi
 Testing is performed against the null hypothesis of independent genes, using a permutation method in `correlateNull` to construct a null distribution.
 
 ```{r}
-null.dist <- correlateNull(ncol(sce))
-# Only using the first 200 genes as a demonstration.
-cor.pairs <- correlatePairs(sce, subset.row=top.hvgs[1:200], null.dist=null.dist)
+# Using the first 200 HVs, which are the most interesting anyway.
+of.interest <- top.hvgs[1:200]
+cor.pairs <- correlatePairs(sce, subset.row=of.interest)
 cor.pairs
 ```
 
@@ -254,9 +278,7 @@ As with variance estimation, if uninteresting substructure is present, this shou
 This avoids strong correlations due to the blocking factor.
 
 ```{r}
-null.dist2 <- correlateNull(block=batch, iter=1e5) # fewer iterations, to speed it up.
-cor.pairs2 <- correlatePairs(sce, subset.row=top.hvgs[1:200], 
-    null.dist=null.dist2, block=batch)
+cor.pairs2 <- correlatePairs(sce, subset.row=of.interest, block=sce$donor)
 ```
 
 The pairs can be used for choosing marker genes in experimental validation, and to construct gene-gene association networks.
@@ -291,13 +313,11 @@ The same conversion strategy roughly applies to the other supported formats.
 DE analyses can be performed using `r Biocpkg("DESeq2")` by converting the object to a `DESeqDataSet`.
 Cells can be ordered on pseudotime with `r Biocpkg("monocle")` by converting the object to a `CellDataSet` (in this case, normalized _unlogged_ expression values are stored). 
 
-# Summary
+# Getting help 
 
-This vignette describes the main functions in the `r Biocpkg("scran")` package for basic analysis of single-cell RNA-seq data.
-We cover normalization, cell cycle phase assignment, HVG detection and correlation testing.
-Conversion to other formats can also be performed in preparation for analyses with other packages in the Bioconductor project.
-Further information can be obtained by examining the documentation for each function (e.g., `?convertTo`); reading the `r Biocpkg("simpleSingleCell")` workflow;
-    or asking for help on the Bioconductor [support site](http://support.bioconductor.org) (please read the [posting guide](http://www.bioconductor.org/help/support/posting-guide) beforehand).
+Further information can be obtained by examining the documentation for each function (e.g., `?convertTo`); 
+reading the [Orchestrating Single Cell Analysis](https://osca.bioconductor.org) book;
+or asking for help on the Bioconductor [support site](http://support.bioconductor.org) (please read the [posting guide](http://www.bioconductor.org/help/support/posting-guide) beforehand).
 
 # Session information
 
