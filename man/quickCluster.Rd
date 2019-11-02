@@ -15,8 +15,8 @@ quickCluster(x, ...)
   BPPARAM = SerialParam(), block = NULL,
   block.BPPARAM = SerialParam(), ...)
 
-\S4method{quickCluster}{SingleCellExperiment}(x, subset.row = NULL, ...,
-  assay.type = "counts", get.spikes = FALSE)
+\S4method{quickCluster}{SingleCellExperiment}(x, ...,
+  assay.type = "counts")
 }
 \arguments{
 \item{x}{A numeric count matrix where rows are genes and columns are cells.
@@ -62,8 +62,6 @@ By default, all columns in \code{x} are treated as a single block.}
 if \code{block} is non-\code{NULL} and has more than one level.}
 
 \item{assay.type}{A string specifying which assay values to use.}
-
-\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
 }
 \value{
 A character vector of cluster identities for each cell in \code{x}.

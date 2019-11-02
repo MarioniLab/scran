@@ -20,7 +20,7 @@ buildSNNGraph(x, ...)
   BPPARAM = SerialParam())
 
 \S4method{buildSNNGraph}{SingleCellExperiment}(x, ..., subset.row = NULL,
-  assay.type = "logcounts", get.spikes = FALSE, use.dimred = NULL)
+  assay.type = "logcounts", use.dimred = NULL)
 
 buildKNNGraph(x, ...)
 
@@ -29,7 +29,7 @@ buildKNNGraph(x, ...)
   BSPARAM = bsparam(), BPPARAM = SerialParam())
 
 \S4method{buildKNNGraph}{SingleCellExperiment}(x, ..., subset.row = NULL,
-  assay.type = "logcounts", get.spikes = FALSE, use.dimred = NULL)
+  assay.type = "logcounts", use.dimred = NULL)
 
 neighborsToSNNGraph(indices, type = c("rank", "number", "jaccard"))
 
@@ -63,8 +63,6 @@ For the SingleCellExperiment methods, additional arguments to pass to the corres
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object to use for parallel processing.}
 
 \item{assay.type}{A string specifying which assay values to use.}
-
-\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
 
 \item{use.dimred}{A string specifying whether existing values in \code{reducedDims(x)} should be used.}
 
@@ -144,7 +142,7 @@ In such cases, setting \code{transposed=TRUE} and \code{d=NA} will use the input
 The same principles apply when \code{x} is a \linkS4class{SingleCellExperiment} object, 
 except that the relevant matrix is now retrieved from the assays using \code{assay.type}. 
 If \code{use.dimred} is not \code{NULL}, existing PCs are used from the specified entry of \code{reducedDims(x)}, 
-and any setting of \code{d}, \code{subset.row} and \code{get.spikes} are ignored.
+and any setting of \code{d} and \code{subset.row} are ignored.
 
 The \code{neighborsToSNNGraph} and \code{neighborsToKNNGraph} functions operate directly on a matrix of nearest neighbor indices,
 obtained using functions like \code{\link{findKNN}}.

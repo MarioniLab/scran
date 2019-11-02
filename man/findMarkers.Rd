@@ -14,8 +14,8 @@ findMarkers(x, ...)
   log.p = FALSE, full.stats = FALSE, sorted = TRUE,
   row.data = NULL)
 
-\S4method{findMarkers}{SingleCellExperiment}(x, ..., subset.row = NULL,
-  assay.type = "logcounts", get.spikes = FALSE)
+\S4method{findMarkers}{SingleCellExperiment}(x, ...,
+  assay.type = "logcounts")
 }
 \arguments{
 \item{x}{A numeric matrix-like object of expression values, 
@@ -60,11 +60,7 @@ to be included in each of the output DataFrames.
 If \code{sorted=TRUE}, this should have the same row names as the output of \code{\link{combineMarkers}}
 (usually \code{rownames(x)}, see the \code{gene.names} argument in functions like \code{\link{pairwiseTTests}}.}
 
-\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
-
 \item{assay.type}{A string specifying which assay values to use, usually \code{"logcounts"}.}
-
-\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
 }
 \value{
 A named list of \linkS4class{DataFrame}s, each of which contains a sorted marker gene list for the corresponding group.

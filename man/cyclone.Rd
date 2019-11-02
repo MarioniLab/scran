@@ -13,8 +13,7 @@ cyclone(x, ...)
   iter = 1000, min.iter = 100, min.pairs = 50,
   BPPARAM = SerialParam(), verbose = FALSE, subset.row = NULL)
 
-\S4method{cyclone}{SingleCellExperiment}(x, pairs, subset.row = NULL,
-  ..., assay.type = "counts", get.spikes = FALSE)
+\S4method{cyclone}{SingleCellExperiment}(x, ..., assay.type = "counts")
 }
 \arguments{
 \item{x}{A numeric matrix-like object of gene expression values where rows are genes and columns are cells.
@@ -42,8 +41,6 @@ For the SingleCellExperiment method, additional arguments to pass to the ANY met
 \item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
-
-\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
 }
 \value{
 A list is returned containing:

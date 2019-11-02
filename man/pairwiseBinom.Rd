@@ -7,7 +7,7 @@
 pairwiseBinom(x, groups, block = NULL, restrict = NULL,
   exclude = NULL, direction = c("any", "up", "down"),
   threshold = 1e-08, lfc = 0, log.p = FALSE,
-  gene.names = rownames(x), clusters = NULL, subset.row = NULL,
+  gene.names = rownames(x), subset.row = NULL,
   BPPARAM = SerialParam())
 }
 \arguments{
@@ -31,8 +31,6 @@ where each column corresponds to a cell and each row corresponds to a gene.}
 \item{log.p}{A logical scalar indicating if log-transformed p-values/FDRs should be returned.}
 
 \item{gene.names}{A character vector of gene names with one value for each row of \code{x}.}
-
-\item{clusters}{Deprecated, same as \code{groups}.}
 
 \item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 

@@ -18,8 +18,8 @@ getDenoisedPCs(x, ...)
 \S4method{getDenoisedPCs}{SingleCellExperiment}(x, ...,
   assay.type = "logcounts")
 
-denoisePCA(x, ..., subset.row = NULL, value = c("pca", "lowrank"),
-  assay.type = "logcounts", get.spikes = FALSE, sce.out = TRUE)
+denoisePCA(x, ..., value = c("pca", "lowrank"),
+  assay.type = "logcounts")
 
 denoisePCANumber(var.exp, var.tech, var.total)
 }
@@ -59,10 +59,6 @@ for genes that were not used in the PCA.}
 \item{value}{String specifying the type of value to return.
 \code{"pca"} will return the PCs, \code{"n"} will return the number of retained components, 
 and \code{"lowrank"} will return a low-rank approximation.}
-
-\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
-
-\item{sce.out}{Deprecated, a logical scalar specifying whether a modified SingleCellExperiment object should be returned.}
 
 \item{var.exp}{A numeric vector of the variances explained by successive PCs, starting from the first (but not necessarily containing all PCs).}
 

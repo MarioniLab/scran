@@ -12,8 +12,7 @@ sandbag(x, ...)
 \S4method{sandbag}{ANY}(x, phases, gene.names = rownames(x),
   fraction = 0.5, subset.row = NULL)
 
-\S4method{sandbag}{SingleCellExperiment}(x, phases, subset.row = NULL,
-  ..., assay.type = "counts", get.spikes = FALSE)
+\S4method{sandbag}{SingleCellExperiment}(x, ..., assay.type = "counts")
 }
 \arguments{
 \item{x}{A numeric matrix of gene expression values where rows are genes and columns are cells.
@@ -34,8 +33,6 @@ This should typically be of length 3, with elements named as \code{"G1"}, \code{
 \item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
-
-\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
 }
 \value{
 A named list of data.frames, where each data frame corresponds to a cell cycle phase and contains the names of the genes in each marker pair.
@@ -56,10 +53,6 @@ The mouse set was generated as described by Scialdone et al. (2015), while the h
 Classification from test data can be performed using the \code{\link{cyclone}} function.
 For each cell, this involves comparing expression values between genes in each marker pair. 
 The cell is then assigned to the phase that is consistent with the direction of the difference in expression in the majority of pairs.
-
-By default, \code{get.spikes=FALSE} which means that any rows corresponding to spike-in transcripts will not be considered when picking markers.
-This is because the amount of spike-in RNA added will vary between experiments and will not be a robust predictor.
-Nonetheless, if all rows are required, users can set \code{get.spikes=TRUE}.
 }
 \examples{
 library(scater)

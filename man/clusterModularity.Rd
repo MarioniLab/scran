@@ -5,7 +5,7 @@
 \title{Compute the cluster-wise modularity}
 \usage{
 clusterModularity(graph, clusters, get.weights = FALSE,
-  get.values = NULL, as.ratio = FALSE)
+  as.ratio = FALSE)
 }
 \arguments{
 \item{graph}{A \link{graph} object from \pkg{igraph}, usually where each node represents a cell.}
@@ -13,8 +13,6 @@ clusterModularity(graph, clusters, get.weights = FALSE,
 \item{clusters}{Factor specifying the cluster identity for each node.}
 
 \item{get.weights}{Logical scalar indicating whether the observed and expected edge weights should be returned, rather than the modularity.}
-
-\item{get.values}{Deprecated, same as \code{get.weights}.}
 
 \item{as.ratio}{Logical scalar indicating whether the log-ratio of observed to expected weights should be returned.}
 }

@@ -4,8 +4,7 @@
 \alias{computeSpikeFactors}
 \title{Normalization with spike-in counts}
 \usage{
-computeSpikeFactors(x, spikes, type = NULL, assay.type = "counts",
-  sf.out = FALSE, general.use = TRUE)
+computeSpikeFactors(x, spikes, assay.type = "counts")
 }
 \arguments{
 \item{x}{A \linkS4class{SingleCellExperiment} object containing spike-in transcripts in an \code{\link{altExps}} entry.
@@ -14,13 +13,7 @@ Support for spike-in transcripts in the rows of \code{x} itself is deprecated.}
 
 \item{spikes}{String or integer scalar specifying the alternative experiment containing the spike-in transcripts.}
 
-\item{type}{Deprecated, a character vector specifying which spike-in sets to use.}
-
 \item{assay.type}{A string indicating which assay contains the counts.}
-
-\item{sf.out}{Deprecated, a logical scalar indicating whether only size factors should be returned.}
-
-\item{general.use}{A logical scalar indicating whether the size factors should be stored for general use by all genes.}
 }
 \value{
 A modified \code{x} is returned, containing spike-in-derived size factors for all cells in \code{\link{sizeFactors}}.
@@ -40,6 +33,9 @@ Indeed, spike-in normalization is the only available approach if a majority of g
 Size factors are computed by applying \code{\link{librarySizeFactors}} to the spike-in count matrix.
 This ensures that the mean of all size factors is unity for standardization purposes,
 if one were to compare expression values normalized with sets of size factors (e.g., in \code{\link{modelGeneVarWithSpikes}}).
+
+Users who want the spike-in size factors without returning a SingleCellExperiment object can simply call
+\code{\link{librarySizeFactors}(\link{altExp}(x, spikes))}, which gives the same result.
 }
 \examples{
 library(scater)
@@ -47,14 +43,6 @@ sce <- mockSCE()
 sce <- computeSpikeFactors(sce, "Spikes")
 summary(sizeFactors(sce))
 
-# Deprecated behavior:
-y <- sce
-altExps(y) <- NULL
-y <- rbind(y, altExp(sce))
-suppressWarnings(isSpike(y, "ERCC") <- nrow(sce) + seq_len(nrow(altExp(sce))))
-suppressWarnings(y <- computeSpikeFactors(y))
-
-y2 <- y
 }
 \references{
 Lun ATL, McCarthy DJ and Marioni JC (2016). 

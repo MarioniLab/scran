@@ -17,8 +17,7 @@ doubletCells(x, ...)
   BPPARAM = SerialParam())
 
 \S4method{doubletCells}{SingleCellExperiment}(x,
-  size.factors.norm = sizeFactors(x), ..., subset.row = NULL,
-  assay.type = "counts", get.spikes = FALSE)
+  size.factors.norm = sizeFactors(x), ..., assay.type = "counts")
 }
 \arguments{
 \item{x}{A numeric matrix-like object of count values, 
@@ -62,8 +61,6 @@ This should be an algorithm supported by \code{\link{findNeighbors}}.}
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object specifying whether the neighbour searches should be parallelized.}
 
 \item{assay.type}{A string specifying which assay values contain the count matrix.}
-
-\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
 }
 \value{
 A numeric vector of doublet scores for each cell in \code{x}.

@@ -18,8 +18,7 @@ calculateSumFactors(x, ...)
 \S4method{calculateSumFactors}{SummarizedExperiment}(x, ...,
   assay.type = "counts")
 
-computeSumFactors(x, ..., subset.row = NULL, assay.type = "counts",
-  get.spikes = FALSE, sf.out = FALSE)
+computeSumFactors(x, ..., assay.type = "counts")
 }
 \arguments{
 \item{x}{For \code{calculateSumFactors}, a  numeric matrix-like object of counts, where rows are genes and columns are cells.
@@ -51,10 +50,6 @@ For the \code{computeSumFactors} function, additional arguments to pass to \code
 \item{BPPARAM}{A BiocParallelParam object specifying whether and how clusters should be processed in parallel.}
 
 \item{assay.type}{A string specifying which assay values to use when \code{x} is a SummarizedExperiment or SingleCellExperiment.}
-
-\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
-
-\item{sf.out}{Deprecated, a logical scalar indicating whether only size factors should be returned.}
 }
 \value{
 For \code{calculateSumFactors}, a numeric vector of size factors for all cells in \code{x} is returned.

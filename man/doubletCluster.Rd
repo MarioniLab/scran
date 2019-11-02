@@ -13,7 +13,7 @@ doubletCluster(x, ...)
   threshold = 0.05, ...)
 
 \S4method{doubletCluster}{SingleCellExperiment}(x, ...,
-  subset.row = NULL, assay.type = "counts", get.spikes = FALSE)
+  assay.type = "counts")
 }
 \arguments{
 \item{x}{A numeric matrix-like object of count values, 
@@ -34,8 +34,6 @@ For the SingleCellExperiment method, additional arguments to pass to the ANY met
 \item{threshold}{A numeric scalar specifying the FDR threshold with which to identify significant genes.}
 
 \item{assay.type}{A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.}
-
-\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
 }
 \value{
 A \linkS4class{DataFrame} containing one row per query cluster with the following fields:

@@ -16,7 +16,7 @@ convertTo(x, type = c("edgeR", "DESeq2", "monocle"), ...,
 
 \item{assay.type}{A string specifying which assay of \code{x} should be put in the returned object.}
 
-\item{subset.row, }{get.spikes See \code{?"\link{scran-gene-selection}"}.}
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 }
 \value{
 For \code{type="edgeR"}, a DGEList object is returned containing the count matrix.

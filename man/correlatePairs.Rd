@@ -12,11 +12,10 @@ correlatePairs(x, ...)
 \S4method{correlatePairs}{ANY}(x, null.dist = NULL,
   ties.method = c("expected", "average"), iters = 1e+06,
   block = NULL, design = NULL, equiweight = TRUE, use.names = TRUE,
-  subset.row = NULL, pairings = NULL, cache.size = 100L,
-  BPPARAM = SerialParam())
+  subset.row = NULL, pairings = NULL, BPPARAM = SerialParam())
 
-\S4method{correlatePairs}{SingleCellExperiment}(x, ..., use.names = TRUE,
-  subset.row = NULL, assay.type = "logcounts", get.spikes = FALSE)
+\S4method{correlatePairs}{SingleCellExperiment}(x, ...,
+  assay.type = "logcounts")
 }
 \arguments{
 \item{x}{A numeric matrix-like object of log-normalized expression values, where rows are genes and columns are cells.
@@ -48,13 +47,9 @@ Alternatively, a character vector containing the names to use.}
 or a list of 2 vectors of genes between which correlations are to be computed;
 or a integer/character matrix with 2 columns of specific gene pairs - see below for details.}
 
-\item{cache.size}{Deprecated argument, ignored.}
-
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object that specifies the manner of parallel processing to use.}
 
 \item{assay.type}{A string specifying which assay values to use.}
-
-\item{get.spikes}{See \code{?"\link{scran-gene-selection}"}.}
 }
 \value{
 A \linkS4class{DataFrame} is returned with one row per gene pair and the following fields:
@@ -138,8 +133,6 @@ Genes in the first column of the matrix are always reported as \code{gene1}.
 
 If \code{subset.row} is not \code{NULL}, only the genes in the selected subset are used to compute correlations - see \code{?"\link{scran-gene-selection}"}.
 This will interact properly with \code{pairings}, such that genes in \code{pairings} and not in \code{subset.row} will be ignored.
-Rows corresponding to spike-in transcripts are also removed by default with \code{get.spikes=FALSE}.
-This avoids picking up strong technical correlations between pairs of spike-in transcripts.
 
 We recommend setting  \code{subset.row} and/or \code{pairings} to contain only the subset of genes of interest.
 This reduces computational time and memory usage by only computing statistics for the gene pairs of interest.

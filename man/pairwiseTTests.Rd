@@ -7,7 +7,7 @@
 pairwiseTTests(x, groups, block = NULL, design = NULL,
   restrict = NULL, exclude = NULL, direction = c("any", "up",
   "down"), lfc = 0, std.lfc = FALSE, log.p = FALSE,
-  gene.names = rownames(x), clusters = NULL, subset.row = NULL,
+  gene.names = rownames(x), subset.row = NULL,
   BPPARAM = SerialParam())
 }
 \arguments{
@@ -34,8 +34,6 @@ Note that these factors should not be confounded with \code{groups}.}
 \item{log.p}{A logical scalar indicating if log-transformed p-values/FDRs should be returned.}
 
 \item{gene.names}{A character vector of gene names with one value for each row of \code{x}.}
-
-\item{clusters}{Deprecated, same as \code{groups}.}
 
 \item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 
