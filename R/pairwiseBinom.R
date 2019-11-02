@@ -6,7 +6,6 @@
 #' @param x A numeric matrix-like object of counts,
 #' where each column corresponds to a cell and each row corresponds to a gene.
 #' @param groups A vector specifying the group assignment for each cell.
-#' @param clusters Deprecated, same as \code{groups}.
 #' @param block A factor specifying the blocking level for each cell.
 #' @param direction A string specifying the direction of effects to be considered for the alternative hypothesis.
 #' @param log.p A logical scalar indicating if log-transformed p-values/FDRs should be returned.
@@ -130,9 +129,9 @@
 #' @importFrom BiocParallel SerialParam
 pairwiseBinom <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, direction=c("any", "up", "down"),
     threshold=1e-8, lfc=0, log.p=FALSE, gene.names=rownames(x), 
-    clusters=NULL, subset.row=NULL, BPPARAM=SerialParam())
+    subset.row=NULL, BPPARAM=SerialParam())
 {
-    groups <- .setup_groups(groups, x, restrict=restrict, exclude=exclude, clusters=clusters)
+    groups <- .setup_groups(groups, x, restrict=restrict, exclude=exclude)
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     gene.names <- .setup_gene_names(gene.names, x, subset.row)
     direction <- match.arg(direction)

@@ -1,9 +1,4 @@
-.setup_groups <- function(groups, x, restrict, exclude, clusters) {
-    if (!is.null(clusters)) {
-        .Deprecated(old="clusters=", new="groups=")
-        groups <- clusters
-    }
-
+.setup_groups <- function(groups, x, restrict, exclude) { 
     ncells <- ncol(x)
     if (length(groups)!=ncells) {
         stop("length of 'groups' does not equal 'ncol(x)'")

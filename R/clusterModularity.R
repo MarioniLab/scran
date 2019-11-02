@@ -5,7 +5,6 @@
 #' @param graph A \link{graph} object from \pkg{igraph}, usually where each node represents a cell.
 #' @param clusters Factor specifying the cluster identity for each node.
 #' @param get.weights Logical scalar indicating whether the observed and expected edge weights should be returned, rather than the modularity.
-#' @param get.values Deprecated, same as \code{get.weights}.
 #' @param as.ratio Logical scalar indicating whether the log-ratio of observed to expected weights should be returned.
 #' 
 #' @return
@@ -69,7 +68,7 @@
 #' @export
 #' @importFrom Matrix diag diag<-
 #' @importFrom igraph is.directed
-clusterModularity <- function(graph, clusters, get.weights=FALSE, get.values=NULL, as.ratio=FALSE) {
+clusterModularity <- function(graph, clusters, get.weights=FALSE, as.ratio=FALSE) {
     by.clust <- split(seq_along(clusters), clusters)
     uclust <- names(by.clust)
     nclust <- length(uclust)
@@ -134,7 +133,6 @@ clusterModularity <- function(graph, clusters, get.weights=FALSE, get.values=NUL
     expected.mat <- expected.mat * 2
     diag(expected.mat) <- old.diag
 
-    get.weights <- .switch_arg_names(get.values, get.weights)
     if (get.weights) {
         list(observed=mod.mat, expected=expected.mat)
     } else if (as.ratio) {

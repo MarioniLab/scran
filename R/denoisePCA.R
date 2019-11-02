@@ -28,7 +28,6 @@
 #'
 #' For the \code{denoisePCA} function, further arguments to pass to the \code{getDenoisedPCs} function.
 #' @param assay.type A string specifying which assay values to use.
-#' @param sce.out Deprecated, a logical scalar specifying whether a modified SingleCellExperiment object should be returned.
 #' @param var.exp A numeric vector of the variances explained by successive PCs, starting from the first (but not necessarily containing all PCs).
 #' @param var.tech A numeric scalar containing the variance attributable to technical noise.
 #' @param var.total A numeric scalar containing the total variance in the data.

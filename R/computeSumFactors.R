@@ -20,7 +20,6 @@
 #' 
 #' For the \code{computeSumFactors} function, additional arguments to pass to \code{calculateSumFactors}.
 #' @param assay.type A string specifying which assay values to use when \code{x} is a SummarizedExperiment or SingleCellExperiment.
-#' @param sf.out Deprecated, a logical scalar indicating whether only size factors should be returned.
 #' 
 #' @section Overview of the deconvolution method:
 #' The \code{computeSumFactors} function implements the deconvolution strategy (Lun et al., 2016) for scaling normalization of sparse count data.

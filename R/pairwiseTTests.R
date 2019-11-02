@@ -5,7 +5,6 @@
 #' @param x A numeric matrix-like object of normalized log-expression values, 
 #' where each column corresponds to a cell and each row corresponds to an endogenous gene.
 #' @param groups A vector specifying the group assignment for each cell.
-#' @param clusters Deprecated, same as \code{groups}.
 #' @param block A factor specifying the blocking level for each cell.
 #' @param design A numeric matrix containing blocking terms for uninteresting factors.
 #' Note that these factors should not be confounded with \code{groups}.
@@ -157,9 +156,9 @@
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel SerialParam
 pairwiseTTests <- function(x, groups, block=NULL, design=NULL, restrict=NULL, exclude=NULL, direction=c("any", "up", "down"),
-    lfc=0, std.lfc=FALSE, log.p=FALSE, gene.names=rownames(x), clusters=NULL, subset.row=NULL, BPPARAM=SerialParam())
+    lfc=0, std.lfc=FALSE, log.p=FALSE, gene.names=rownames(x), subset.row=NULL, BPPARAM=SerialParam())
 {
-    groups <- .setup_groups(groups, x, restrict=restrict, exclude=exclude, clusters=clusters)
+    groups <- .setup_groups(groups, x, restrict=restrict, exclude=exclude)
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     gene.names <- .setup_gene_names(gene.names, x, subset.row)
     direction <- match.arg(direction)

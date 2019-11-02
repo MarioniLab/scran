@@ -17,7 +17,6 @@
 #' @param pairings A \code{NULL} value indicating that all pairwise correlations should be computed;
 #' or a list of 2 vectors of genes between which correlations are to be computed;
 #' or a integer/character matrix with 2 columns of specific gene pairs - see below for details.
-#' @param cache.size Deprecated argument, ignored.
 #' @param block A factor specifying the blocking level for each cell in \code{x}.
 #' If specified, correlations are computed separately within each block and statistics are combined across blocks.
 #' @param equiweight A logical scalar indicating whether statistics from each block should be given equal weight.
@@ -167,7 +166,7 @@ NULL
 #' @importFrom stats p.adjust
 .correlate_pairs <- function(x, null.dist=NULL, ties.method=c("expected", "average"), 
     iters=1e6, block=NULL, design=NULL, equiweight=TRUE, use.names=TRUE, subset.row=NULL, 
-    pairings=NULL, cache.size=100L, BPPARAM=SerialParam())
+    pairings=NULL, BPPARAM=SerialParam())
 # This calculates a (modified) Spearman's rho for each pair of genes.
 #
 # written by Aaron Lun
