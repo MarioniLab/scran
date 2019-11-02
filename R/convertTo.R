@@ -47,7 +47,6 @@
 #' @export
 #' @importFrom BiocGenerics sizeFactors as.data.frame "sizeFactors<-"
 #' @importFrom SummarizedExperiment rowData colData assay rowData<-
-#' @importFrom SingleCellExperiment isSpike
 #' @importFrom S4Vectors "mcols<-" 
 #' @importFrom edgeR DGEList "[.DGEList" scaleOffset.DGEList
 convertTo <- function(x, type=c("edgeR", "DESeq2", "monocle"), ..., assay.type=1, subset.row=NULL) {

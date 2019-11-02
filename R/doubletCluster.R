@@ -124,7 +124,7 @@ NULL
     sizeFactors(sce) <- librarySizeFactors(x, subset_row=subset.row)
     sce <- normalize(sce, return_log=TRUE)
 
-    degs <- findMarkers(sce, clusters=clusters, subset.row=subset.row, full.stats=TRUE, ...)
+    degs <- findMarkers(sce, clusters, subset.row=subset.row, full.stats=TRUE, ...)
     med.lib.size <- vapply(split(sizeFactors(sce), clusters), FUN=median, FUN.VALUE=0)
 	n.cluster <- table(clusters)/length(clusters)
 

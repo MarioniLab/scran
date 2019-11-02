@@ -13,7 +13,6 @@
 #' or a binomial test with \code{"binom"}.
 #' @inheritParams combineMarkers
 #' @param log.p A logical scalar indicating if log-transformed p-values/FDRs should be returned.
-#' @param subset.row See \code{?"\link{scran-gene-selection}"}.
 #' @param row.data A \linkS4class{DataFrame} containing additional row metadata for each gene in \code{x},
 #' to be included in each of the output DataFrames.
 #' If \code{sorted=TRUE}, this should have the same row names as the output of \code{\link{combineMarkers}}
