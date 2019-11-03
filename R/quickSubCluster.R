@@ -29,7 +29,9 @@
 #' By default, \code{prepFUN} will run \code{\link{modelGeneVar}}, take the top 10% of genes with large biological components with \code{\link{getTopHVGs}}, and then run \code{\link{denoisePCA}} to perform the PCA.
 #' \code{clusterFUN} will then perform graph-based clustering with \code{\link{buildSNNGraph}} and \code{\link{cluster_walktrap}}.
 #' Either or both of these functions can be replaced with custom functions.
-#' 
+#'
+#' The default behavior of this function is the same as running \code{\link{quickCluster}} on each subset with default parameters except for \code{min.size=0}.
+#'
 #' @author Aaron Lun
 #' 
 #' @examples
