@@ -71,6 +71,7 @@ Cluster similar cells based on their expression profiles, using either log-expre
 }
 \details{
 This function provides a convenient wrapper to quickly define clusters of a minimum size \code{min.size}.
+Its intended use is to generate \dQuote{quick and dirty} clusters for use in \code{\link{computeSumFactors}}.
 Two clustering strategies are available:
 \itemize{
 \item If \code{method="hclust"}, a distance matrix is constructed;
@@ -83,6 +84,10 @@ This is used to define clusters based on highly connected communities in the gra
 By default, \code{quickCluster} will apply these clustering algorithms on the principal component (PC) scores generated from the log-expression values.
 These are obtained by running \code{\link{denoisePCA}} on HVGs detected using the trend fitted to endogenous genes with \code{\link{modelGeneVar}}.
 If \code{d} is specified, the PCA is directly performed on the entire \code{x} and the specified number of PCs is retained.
+
+It is also possible to use the clusters from this function for actual biological interpretation.
+In such cases, users should set \code{min.size=0} to avoid aggregation of small clusters.
+However, it is often better to call the relevant functions (\code{\link{modelGeneVar}}, \code{\link{denoisePCA}} and \code{\link{buildSNNGraph}}) manually as this provides more opportunities for diagnostics when the meaning of the clusters is important.
 }
 \section{Clustering within blocks}{
 
@@ -154,9 +159,13 @@ Pooling across cells to normalize single-cell RNA sequencing data with many zero
 \seealso{
 \code{\link{computeSumFactors}}, where the clustering results can be used as \code{clusters=}.
 
-\code{\link{buildSNNGraph}}, for additional arguments to customize the clustering.
+\code{\link{buildSNNGraph}}, for additional arguments to customize the clustering when \code{method="igraph"}.
 
-\code{\link{scaledColRanks}}, to get the rank matrix directly.
+\code{\link[dynamicTreeCut]{cutreeDynamic}}, for additional arguments to customize the clustering when \code{method="hclust"}.
+
+\code{\link{scaledColRanks}}, to get the rank matrix that was used with \code{use.rank=TRUE}.
+
+\code{\link{quickSubCluster}}, for a related function that uses a similar approach for subclustering.
 }
 \author{
 Aaron Lun and Karsten Bach

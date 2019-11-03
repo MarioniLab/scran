@@ -2,6 +2,10 @@
 \title{scran News}
 \encoding{UTF-8}
 
+\section{Version 1.16.0}{\itemize{
+\item Added the quickSubCluster() function for convenient subclustering.    
+}}
+
 \section{Version 1.14.0}{\itemize{
 \item Removed deprecated approximate= and pc.approx= arguments.
 
