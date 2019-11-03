@@ -109,7 +109,7 @@
 #' @name doubletCluster
 NULL
 
-#' @importFrom scater librarySizeFactors normalize
+#' @importFrom scater librarySizeFactors 
 #' @importFrom BiocGenerics "sizeFactors<-" sizeFactors
 #' @importFrom stats p.adjust
 #' @importFrom methods as
@@ -122,7 +122,7 @@ NULL
     # Computing normalized counts using the library size (looking for compositional differences!)
     sce <- SingleCellExperiment(list(counts=x))
     sizeFactors(sce) <- librarySizeFactors(x, subset_row=subset.row)
-    sce <- normalize(sce, return_log=TRUE)
+    sce <- logNormCounts(sce)
 
     degs <- findMarkers(sce, clusters, subset.row=subset.row, full.stats=TRUE, ...)
     med.lib.size <- vapply(split(sizeFactors(sce), clusters), FUN=median, FUN.VALUE=0)
