@@ -205,6 +205,9 @@ sce$cluster <- factor(cluster)
 table(sce$cluster)
 ```
 
+By default, `buildSNNGraph()` uses the mode of shared neighbor weighting described by @xu2015identification, but other weighting methods (e.g., the Jaccard index) are also available by setting `type=`.
+An unweighted $k$-nearest neighbor graph can also be constructed with `buildKNNGraph()`.
+
 We can then use methods from `r Biocpkg("scater")` to visualize this on a $t$-SNE plot, as shown below.
 
 ```{r}
@@ -212,7 +215,7 @@ sce <- runTSNE(sce, dimred="PCAsub")
 plotTSNE(sce, colour_by="cluster", text_by="cluster")
 ```
 
-Another diagnostic is to examine the ratio of observed to expected edge weights for each pair of clusters (closely related to the modularity score used in many `cluster_*`  functions).
+For graph-based methods, another diagnostic is to examine the ratio of observed to expected edge weights for each pair of clusters (closely related to the modularity score used in many `cluster_*`  functions).
 We would usually expect to see high observed weights between cells in the same cluster with minimal weights between clusters, indicating that the clusters are well-separated.
 Off-diagonal entries indicate that some clusters are closely related, which is useful to know for checking that they are annotated consistently.
 
@@ -224,8 +227,27 @@ pheatmap(log10(ratio+1), cluster_cols=FALSE, cluster_rows=FALSE,
     col=rev(heat.colors(100)))
 ```
 
-By default, `buildSNNGraph()` uses the mode of shared neighbor weighting described by @xu2015identification, but other weighting methods (e.g., the Jaccard index) are also available by setting `type=`.
-An unweighted $k$-nearest neighbor graph can also be constructed with `buildKNNGraph()`.
+A more general diagnostic involves bootstrapping to determine the stability of the partitions between clusters.
+Given a clustering function, the `bootstrapCluster()` function uses bootstrapping to compute the co-assignment probability for each pair of original clusters, i.e., the probability that one randomly chosen cell from each cluster is assigned to the same cluster in the bootstrap replicate .
+Larger probabilities indicate that the separation between those clusters is unstable to the extent that it is sensitive to sampling noise, and thus should not be used for downstream inferences.
+
+```{r}
+ass.prob <- bootstrapCluster(sce, FUN=function(x) {
+    g <- buildSNNGraph(x, use.dimred="PCAsub")
+    igraph::cluster_walktrap(g)$membership
+}, clusters=sce$cluster)
+
+pheatmap(ass.prob, cluster_cols=FALSE, cluster_rows=FALSE,
+    col=colorRampPalette(c("white", "blue"))(100))
+```
+
+If necessary, further subclustering can be performed conveniently using the `quickSubCluster()` wrapper function.
+This splits the input `SingleCellExperiment` into several smaller objects containing cells from each cluster and performs another round of clustering within that cluster, using a freshly identified set of HVGs to improve resolution for internal structure.
+
+```{r}
+subout <- quickSubCluster(sce, sce$cluster)
+table(subout[[1]]$subcluster) # subclusters for cluster 1
+```
 
 # Identifying marker genes
 
