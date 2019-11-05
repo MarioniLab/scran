@@ -25,6 +25,9 @@
 #' High co-assignment probabilities indicate that the two original clusters were not stably separated.
 #' We might then only trust separation between two clusters if their co-assignment probability was less than some threshold, e.g., 5\%.
 #'
+#' The co-assignment probability of each cluster to itself provides some measure of per-cluster stability.
+#' A probability of 1 indicates that all cells are always assigned to the same cluster across bootstrap iterations, while internal structure that encourages the formation of subclusters will lower this probability.
+#' 
 #' @section Statistical notes:
 #' We use the co-assignment probability as it is more interpretable than, say, the Jaccard index (see the \pkg{fpc} package).
 #' It also focuses on the relevant differences between clusters, allowing us to determine which aspects of a clustering are stable.
@@ -63,7 +66,7 @@ bootstrapCluster <- function(x, FUN, clusters=NULL, transposed=FALSE, iterations
 
     cluster.ids <- as.character(sort(unique(clusters)))
     output <- matrix(0, length(cluster.ids), length(cluster.ids))
-    output[lower.tri(output, diag=TRUE)] <- NA_real_
+    output[lower.tri(output)] <- NA_real_
     dimnames(output) <- list(cluster.ids, cluster.ids)
 
     for (i in seq_len(iterations)) {
@@ -82,7 +85,7 @@ bootstrapCluster <- function(x, FUN, clusters=NULL, transposed=FALSE, iterations
             spread1 <- tab[cluster.ids[j1],]
             spread1 <- spread1/sum(spread1)
 
-            for (j2 in seq_len(j1-1L)) {
+            for (j2 in seq_len(j1)) {
                 spread2 <- tab[cluster.ids[j2],]
                 spread2 <- spread2/sum(spread2)
                 output[j2,j1] <- output[j2,j1] + sum(spread1 * spread2)/iterations

@@ -39,6 +39,9 @@ We sample cells with replacement from \code{x}, perform clustering with \code{FU
 The relevant statistic is the co-assignment probability for each pair of original clusters, i.e., the probability that a randomly chosen cells from each of the two original clusters will be put in the same bootstrap cluster.
 High co-assignment probabilities indicate that the two original clusters were not stably separated.
 We might then only trust separation between two clusters if their co-assignment probability was less than some threshold, e.g., 5\%.
+
+The co-assignment probability of each cluster to itself provides some measure of per-cluster stability.
+A probability of 1 indicates that all cells are always assigned to the same cluster across bootstrap iterations, while internal structure that encourages the formation of subclusters will lower this probability.
 }
 \section{Statistical notes}{
 
