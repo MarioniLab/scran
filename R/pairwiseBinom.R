@@ -257,7 +257,14 @@ pairwiseBinom <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, di
         host.n <- all.n[[b]][[host]]
         target.n <- all.n[[b]][[target]]
 
-        # Log-fold change in the ratios.
+        # Converting log-fold change in the **proportions** into **probabilities**.
+        # Let p_1 and p_2 be the probability of non-zero in group 1 and 2 respectively.
+        # Let's say that p_1 = fold * p_2 for some fold > 1.
+        # Given a non-zero value, the probability that it comes from group 1 is 
+        # (p_1 * n_1) / (p_1 * n_1 + p_2 * n_2), which collapses to `p.right`
+        # (i.e., probability of more non-zeros, hence the right side of the distribution).
+        # Calculation of `p.left` follows the opposite premise that p_1 = p_2 / fold, 
+        # i.e., the other side of the composite null hypothesis.
         p.left <- host.n/fold / (target.n + host.n/fold)
         p.right <- host.n*fold / (target.n + host.n*fold)
         size <- host.nzero + target.nzero
