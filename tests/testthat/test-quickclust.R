@@ -95,7 +95,7 @@ test_that("quickCluster functions correctly with subsetting", {
     # Handles the mean, but only when use.ranks=TRUE.
     obs <- quickCluster(mat, min.size=50, min.mean=5, use.ranks=TRUE)
     expect_identical(obs, quickCluster(mat, min.size=50, use.ranks=TRUE, 
-        subset.row=scater::calcAverage(mat) >= 5))
+        subset.row=scater::calculateAverage(mat) >= 5))
 
     # 'min.mean' should have no effect when use.ranks=FALSE.
     obs <- quickCluster(mat, min.size=50, min.mean=5, use.ranks=FALSE)
@@ -166,7 +166,7 @@ test_that("quickCluster with igraph works correctly", {
     mat <- matrix(rnorm(200000, mean=20), nrow=400)
     obs <- quickCluster(mat, min.size=0, method="igraph", k=k, d=50, use.ranks=FALSE)
 
-    ref <- scater::normalizeCounts(mat, scater::librarySizeFactors(mat), return_log=TRUE)
+    ref <- scater::normalizeCounts(mat)
     snn <- buildSNNGraph(ref, k=k, d=50)
     out <- igraph::cluster_walktrap(snn)
     expect_identical(factor(out$membership), obs)

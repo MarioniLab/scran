@@ -202,7 +202,7 @@ test_that("Cyclone also works on SingleCellExperiment objects", {
     rownames(X) <- all.names
 
     X2 <- SingleCellExperiment(list(counts=X))
-    suppressWarnings(X2 <- normalize(X2))
+    X2 <- logNormCounts(X2)
 
     set.seed(100)
     reference <- refFUN(X, markers)
