@@ -95,4 +95,13 @@ test_that("findMarkers and getTopMarkers work correctly", {
     bounded <- getTopMarkers(stats[[1]], stats[[2]], pairwise=TRUE)
     expect_true(all(unlist(lapply(bounded, lengths)) <= unlist(lapply(out, lengths))))
     expect_true(length(unlist(bounded)) <= length(unlist(out)))
+
+    # Checking it tolerates NAs.
+    nastats <- stats
+    nastats[[1]]$FDR[1] <- NA
+    naive <- getTopMarkers(nastats[[1]], nastats[[2]], pairwise=TRUE)
+
+    nastats[[1]]$FDR[1] <- 1
+    ref <- getTopMarkers(nastats[[1]], nastats[[2]], pairwise=TRUE)
+    expect_identical(naive, ref)
 })

@@ -74,6 +74,14 @@ getTopMarkers <- function(de.lists, pairs, n=10, pval.field="p.value", fdr.field
     markers <- List()
     all.labels <- sort(unique(c(pairs$first, pairs$second)))
 
+    .sigrows <- function(stats) {
+        if (!is.null(fdr.threshold)) {
+            cur.fdr <- stats[,fdr.field]
+            stats <- stats[cur.fdr <= fdr.threshold & !is.na(cur.fdr),,drop=FALSE]
+        }
+        stats
+    }
+
     if (pairwise) {
         for (first in all.labels) {
             cur.markers <- List()
@@ -85,10 +93,7 @@ getTopMarkers <- function(de.lists, pairs, n=10, pval.field="p.value", fdr.field
                 } else if (length(chosen)!=1L){ 
                     stop(sprintf("multiple entries in 'pairs' for '%s' vs '%s'", first, second))
                 } else {
-                    cur.stats <- de.lists[[chosen]]
-                    if (!is.null(fdr.threshold)) {
-                        cur.stats <- cur.stats[cur.stats[,fdr.field] <= fdr.threshold,,drop=FALSE]
-                    }
+                    cur.stats <- .sigrows(de.lists[[chosen]])
                     o <- order(cur.stats[[pval.field]])
                     cur.markers[[second]] <- rownames(cur.stats)[head(o, n)]
                 }
@@ -102,10 +107,7 @@ getTopMarkers <- function(de.lists, pairs, n=10, pval.field="p.value", fdr.field
             effect.field=NULL, pval.type=pval.type, sorted=TRUE)
 
         for (i in names(combined)) {
-            cur.stats <- combined[[i]]
-            if (!is.null(fdr.threshold)) {
-                cur.stats <- cur.stats[cur.stats[,fdr.field] <= fdr.threshold,,drop=FALSE]
-            }
+            cur.stats <- .sigrows(combined[[i]])
             if (pval.type=="any") {
                 markers[[i]] <- rownames(cur.stats)[cur.stats$Top <= n]
             } else {
