@@ -17,7 +17,7 @@ The same reasoning applies for any \code{x} that is a \linkS4class{SingleCellExp
 
 \section{Filtering by mean}{
 Some functions will have a \code{min.mean} argument to filter out low-abundance genes prior to processing.
-Depending on the function, the filter may be applied to the average library size-adjusted count computed by \code{\link{calcAverage}}, the average log-count, 
+Depending on the function, the filter may be applied to the average library size-adjusted count computed by \code{\link{calculateAverage}}, the average log-count, 
 or some other measure of abundance - see the documentation for each function for details.
 
 Any filtering on \code{min.mean} is automatically intersected with a specified \code{subset.row}.
