@@ -53,6 +53,11 @@ test_that("combineMarkers is the same as a reference impementation for 'any'", {
             cureffect <- paste0("logFC.", current.targets[other])
             expect_equal(current.stats[[other]]$logFC, obs.any[[cureffect]])
         }
+
+        # Checking the summary statistic.
+        mat.p <- do.call(cbind, collected.p)
+        mat.effect <- do.call(cbind, lapply(current.stats, "[[", i="logFC"))
+        expect_identical(obs.any$logFC, mat.effect[cbind(seq_len(nrow(mat.p)), max.col(-mat.p))])
     }
 })
 
@@ -72,6 +77,11 @@ test_that("combineMarkers is the same as a reference impementation for the 'all'
         expect_equal(all.p, obs.all$p.value)
         expect_equal(p.adjust(all.p, method="BH"), obs.all$FDR)
         expect_identical(rownames(comb.all[[x]]), genes[order(all.p)])
+
+        # Checking the summary statistic.
+        mat.p <- do.call(cbind, collected.p)
+        mat.effect <- do.call(cbind, lapply(current.stats, "[[", i="logFC"))
+        expect_identical(obs.all$logFC, mat.effect[cbind(seq_len(nrow(mat.p)), max.col(mat.p))])
     }
 })
 
@@ -82,6 +92,14 @@ test_that("combineMarkers is the same as a reference impementation for the 'some
     comb.quart <- combineMarkers(output, groups, pval.type="some", min.prop=0.25)
         
     get.i <- function(prop) { ceiling((ngroups-1)*prop) }
+
+    get.effect <- function(mat.p, mat.effect, prop) {
+        vapply(seq_len(nrow(mat.p)), FUN=function(i) {
+            r <- rank(mat.p[i,])
+            valid <- which(r <= ceiling(ncol(mat.p) * prop))
+            mat.effect[i,valid[which.max(r[valid])]]
+        }, 0)
+    }
 
     # Comparing to reference calculations.
     for (x in as.character(seq_len(ngroups))) {
@@ -98,12 +116,21 @@ test_that("combineMarkers is the same as a reference impementation for the 'some
         expect_equal(some.p, obs.some$p.value)
         expect_equal(p.adjust(some.p, method="BH"), obs.some$FDR)
 
+        # Checking the summary statistic.
+        mat.p <- do.call(cbind, collected.p)
+        mat.effect <- do.call(cbind, lapply(current.stats, "[[", i="logFC"))
+        expect_identical(obs.some$logFC, get.effect(mat.p, mat.effect, 0.5))
+
         # Trying with another min.prop setting.
         obs.quart <- comb.quart[[x]][genes,]
         I <- get.i(0.25)
         quart.p <- apply(pmat, 2, FUN=function(p) sort(p.adjust(p, method="holm"))[I])
         expect_equal(quart.p, obs.quart$p.value)
         expect_equal(p.adjust(quart.p, method="BH"), obs.quart$FDR)
+
+        mat.p <- do.call(cbind, collected.p)
+        mat.effect <- do.call(cbind, lapply(current.stats, "[[", i="logFC"))
+        expect_identical(obs.quart$logFC, get.effect(mat.p, mat.effect, 0.25))
     }
 })
 
@@ -120,18 +147,21 @@ test_that("combineMarkers responds to the pairing input", {
 
     first <- as.character(groups[,1])
     second <- as.character(groups[,2])
+    nfields.any <- 4
+    nfields.all <- 3
+
     for (x in names(comb.any)) {
         old.order <- second[first==x]
         cur.any <- comb.any[[x]]
-        expect_equal(tail(colnames(cur.any), -3), paste0("logFC.", old.order))
+        expect_equal(tail(colnames(cur.any), -nfields.any), paste0("logFC.", old.order))
         cur.all <- comb.all[[x]]
-        expect_equal(tail(colnames(cur.all), -2), paste0("logFC.", old.order))
+        expect_equal(tail(colnames(cur.all), -nfields.all), paste0("logFC.", old.order))
 
         new.order <- second[s][first[s]==x]
         cur.any.alt <- alt.any[[x]]
-        expect_equal(tail(colnames(cur.any.alt), -3), paste0("logFC.", new.order))
+        expect_equal(tail(colnames(cur.any.alt), -nfields.any), paste0("logFC.", new.order))
         cur.all.alt <- alt.all[[x]]
-        expect_equal(tail(colnames(cur.all.alt), -2), paste0("logFC.", new.order))
+        expect_equal(tail(colnames(cur.all.alt), -nfields.all), paste0("logFC.", new.order))
 
         expect_equal(cur.any, cur.any.alt[,colnames(cur.any)])
         expect_equal(cur.all, cur.all.alt[,colnames(cur.all)])
@@ -147,9 +177,9 @@ test_that("combineMarkers responds to the pairing input", {
         cur1 <- comb.any[[x]]
         cur2 <- re.comb[[x]]
 
-        g <- as.integer(sub("logFC.", "", tail(colnames(cur1), -3)))
+        g <- as.integer(sub("logFC.", "", tail(colnames(cur1), -nfields.any)))
         g2 <- paste0("logFC.", LETTERS[g])
-        expect_equal(tail(colnames(cur2), -3), g2)
+        expect_equal(tail(colnames(cur2), -nfields.any), g2)
 
         colnames(cur2) <- colnames(cur1)
         expect_equal(cur1, cur2)
@@ -157,7 +187,10 @@ test_that("combineMarkers responds to the pairing input", {
 })
 
 test_that("combineMarkers works with log-transformations", {
-    login <- lapply(output, FUN=function(x) { x$p.value <- log(x$p.value); x })
+    login <- lapply(output, FUN=function(x) { 
+        x$p.value <- log(x$p.value)
+        x 
+    })
 
     for (ptype in c("all", "any")) {
         # Log-transforming input.
@@ -235,14 +268,14 @@ test_that("combineMarkers correctly returns no effects", {
     }
 })
 
-test_that("combineMarkers works with silly inputs", {
+test_that("combineMarkers works with silly inputs (empty)", {
     expect_error(combineMarkers(output[1], groups[0,]), "must be equal")
     expect_identical(combineMarkers(output[0], groups[0,]), setNames(SimpleList(), character(0)))
 
     empty <- combineMarkers(lapply(output, FUN=function(x){ x[0,] }), groups)
     expect_identical(names(empty), as.character(seq_len(ngroups)))
     expect_identical(unname(vapply(empty, nrow, 0L)), integer(ngroups))
-    expect_equal(unname(vapply(empty, ncol, 0L)), rep(ngroups + 2L, ngroups))
+    expect_equal(unname(vapply(empty, ncol, 0L)), rep(ngroups + 3L, ngroups))
 
     empty.full <- combineMarkers(lapply(output, FUN=function(x){ x[0,] }), groups, full.stats=TRUE)
     expect_identical(names(empty), names(empty.full))
@@ -254,7 +287,9 @@ test_that("combineMarkers works with silly inputs", {
     ref <- combineMarkers(output, groups)
     lost <- combineMarkers(output, as.df)
     expect_identical(ref, lost)
+})
 
+test_that("combineMarkers works with silly inputs (missing)", {
     # Handles NA values in the group specifier.
     groups0 <- groups
     groups0[1,] <- NA
@@ -270,5 +305,15 @@ test_that("combineMarkers works with silly inputs", {
     ref <- combineMarkers(output0, groups)
     ref[["1"]]$logFC.2 <- NULL
     lost <- combineMarkers(output0[-1], groups[-1,])
+    expect_identical(ref, lost)
+
+    ref <- combineMarkers(output0, groups, pval.type="all")
+    ref[["1"]]$logFC.2 <- NULL
+    lost <- combineMarkers(output0[-1], groups[-1,], pval.type="all")
+    expect_identical(ref, lost)
+
+    ref <- combineMarkers(output0, groups, pval.type="some")
+    ref[["1"]]$logFC.2 <- NULL
+    lost <- combineMarkers(output0[-1], groups[-1,], pval.type="some")
     expect_identical(ref, lost)
 })
