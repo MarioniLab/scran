@@ -75,6 +75,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// choose_middle_effect_size
+Rcpp::NumericVector choose_middle_effect_size(Rcpp::List Pvals, Rcpp::List Effects, double prop);
+RcppExport SEXP _scran_choose_middle_effect_size(SEXP PvalsSEXP, SEXP EffectsSEXP, SEXP propSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::List >::type Pvals(PvalsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type Effects(EffectsSEXP);
+    Rcpp::traits::input_parameter< double >::type prop(propSEXP);
+    rcpp_result_gen = Rcpp::wrap(choose_middle_effect_size(Pvals, Effects, prop));
+    return rcpp_result_gen;
+END_RCPP
+}
 // compute_blocked_stats_lognorm
 Rcpp::List compute_blocked_stats_lognorm(Rcpp::List bygroup, SEXP inmat, Rcpp::NumericVector sf, double pseudo);
 RcppExport SEXP _scran_compute_blocked_stats_lognorm(SEXP bygroupSEXP, SEXP inmatSEXP, SEXP sfSEXP, SEXP pseudoSEXP) {
@@ -295,6 +307,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_scran_combine_simes", (DL_FUNC) &_scran_combine_simes, 2},
     {"_scran_combine_holm_middle", (DL_FUNC) &_scran_combine_holm_middle, 3},
     {"_scran_compute_Top_statistic_from_ranks", (DL_FUNC) &_scran_compute_Top_statistic_from_ranks, 2},
+    {"_scran_choose_middle_effect_size", (DL_FUNC) &_scran_choose_middle_effect_size, 3},
     {"_scran_compute_blocked_stats_lognorm", (DL_FUNC) &_scran_compute_blocked_stats_lognorm, 4},
     {"_scran_compute_residual_stats_lognorm", (DL_FUNC) &_scran_compute_residual_stats_lognorm, 5},
     {"_scran_compute_blocked_stats_norm", (DL_FUNC) &_scran_compute_blocked_stats_norm, 3},

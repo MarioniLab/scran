@@ -45,21 +45,16 @@ The DataFrame for cluster \eqn{X} contains the fields:
 \describe{
 \item{\code{Top}:}{Integer, the minimum rank across all pairwise comparisons.
 This is only reported if \code{pval.type="any"}.}
-\item{\code{p.value}:}{Numeric, the p-value across all comparisons if \code{log.p.out=FALSE}.
-This is a Simes' p-value if \code{pval.type="any"} or \code{"some"}, otherwise it is an IUT p-value.}
+\item{\code{p.value}:}{Numeric, the combined p-value across all comparisons if \code{log.p.out=FALSE}.}
 \item{\code{FDR}:}{Numeric, the BH-adjusted p-value for each gene if \code{log.p.out=FALSE}.}
 \item{\code{log.p.value}:}{Numeric, the (natural) log-transformed version p-value.
 Replaces the \code{p.value} field if \code{log.p.out=TRUE}.}
 \item{\code{log.FDR}:}{Numeric, the (natural) log-transformed adjusted p-value.
 Replaces the \code{FDR} field if \code{log.p.out=TRUE}.}
+\item{\code{<OUTPUT>}:}{Numeric, where the value of \code{<OUTPUT>} is set to \code{output.field}.
+This contains the summary effect size, obtained by combining effect sizes from all pairwise comparison into a single value.}
 \item{\code{<OUTPUT>.Y}:}{Numeric, where the value of \code{<OUTPUT>} is set to \code{output.field}.
-One of these fields is present for every other cluster \eqn{Y} in \code{clusters}.
-It contains the effect size of the comparison of \eqn{X} to \eqn{Y}, with typical values depending on the chosen method:
-\itemize{
-\item \code{logFC.Y} from \code{\link{pairwiseTTests}}, containing log-fold changes in mean expression (usually in base 2).
-\item \code{AUC.Y} from \code{\link{pairwiseWilcox}}, containing the area under the curve, i.e., the concordance probability. 
-\item \code{logFC.Y} from \code{\link{pairwiseBinom}}, containing log2-fold changes in the expressing proportion.
-}
+One of these fields is present for every other cluster \eqn{Y} in \code{clusters} and contains the effect size of the comparison of \eqn{X} to \eqn{Y}.
 Only reported when \code{full.stats=FALSE} and \code{effect.field} is not \code{NULL}.
 }
 \item{\code{stats.y}:}{A nested DataFrame containing the same fields in the corresponding entry of \code{de.lists} for the \eqn{X} versus \eqn{Y} comparison.
@@ -84,12 +79,18 @@ An obvious strategy to characterizing differences between clusters is to look fo
 However, this entails a number of comparisons between all pairs of clusters to comprehensively identify genes that define each cluster.
 For all pairwise comparisons involving a single cluster, we would like to consolidate the DE results into a single list of candidate marker genes.
 Doing so is the purpose of the \code{combineMarkers} function.
+
 DE statistics from any testing regime can be supplied to this function - see the Examples for how this is done with t-tests from \code{\link{pairwiseTTests}}.
+The effect size field in the output will vary according to the type of input statistics, for example:
+\itemize{
+\item \code{logFC.Y} from \code{\link{pairwiseTTests}}, containing log-fold changes in mean expression (usually in base 2).
+\item \code{AUC.Y} from \code{\link{pairwiseWilcox}}, containing the area under the curve, i.e., the concordance probability. 
+\item \code{logFC.Y} from \code{\link{pairwiseBinom}}, containing log2-fold changes in the expressing proportion.
+}
 }
 \section{Consolidating with DE against any other cluster}{
 
 By default, each DataFrame is sorted by the \code{Top} value when \code{pval.type="any"}.
-(For genes with the same \code{Top}, ranking is performed based on the Simes combined p-value - see the comments for \code{pval.type="some"}.)
 Taking all rows with \code{Top} values less than or equal to T yields a marker set containing the top T genes (ranked by significance) from each pairwise comparison.
 This guarantees the inclusion of genes that can distinguish between any two clusters.
 
@@ -103,13 +104,15 @@ This approach does not explicitly favour genes that are uniquely expressed in a 
 Rather, it focuses on combinations of genes that - together - drive separation of a cluster from the others.
 This is more general and robust but tends to yield a less focused marker set compared to the other \code{pval.type} settings.
 
-Note that this only relates to the default setting of \code{min.prop=0} with \code{pval.type="any"}.
-For user-specified values of \code{min.prop}, see the comments in the \dQuote{some clusters} section below.
+For each gene and cluster, the summary effect size is defined as the effect size from the pairwise comparison with the lowest p-value.
+The combined p-value is computed by applying Simes' method to all p-values.
+Neither of these values are directly used for ranking and are only reported for the sake of the user.
 }
 
 \section{Consolidating with DE against all other clusters}{
 
-If \code{pval.type="all"}, the null hypothesis is that the gene is not DE in all contrasts, and the IUT p-value is computed for each gene.
+If \code{pval.type="all"}, the null hypothesis is that the gene is not DE in all contrasts.
+A combined p-value for each gene is computed using Berger's intersection union test (IUT).
 Ranking based on the IUT p-value will focus on genes that are DE in that cluster compared to \emph{all} other clusters.
 This strategy is particularly effective when dealing with distinct clusters that have a unique expression profile.
 In such cases, it yields a highly focused marker set that concisely captures the differences between clusters.
@@ -118,6 +121,10 @@ However, it can be too stringent if the cluster's separation is driven by combin
 For example, consider a situation involving four clusters expressing each combination of two marker genes A and B.
 With \code{pval.type="all"}, neither A nor B would be detected as markers as it is not uniquely defined in any one cluster.
 This is especially detrimental with overclustering where an otherwise acceptable marker is discarded if it is not DE between two adjacent clusters.
+
+For each gene and cluster, the summary effect size is defined as the effect size from the pairwise comparison with the \emph{largest} p-value.
+This reflects the fact that, with this approach, a gene is only as significant as its weakest DE.
+Again, this value is not directly used for ranking and are only reported for the sake of the user.
 }
 
 \section{Consolidating with DE against some other clusters}{
@@ -131,15 +138,25 @@ Genes are then ranked by the combined p-value.
 The aim is to provide a more focused marker set without being overly stringent, though obviously it loses the theoretical guarantees of the more extreme settings.
 For example, there is no guarantee that the top set contains genes that can distinguish a cluster from any other cluster, which would have been possible with \code{pval.type="any"}.
 
-A slightly different flavor of this approach is achieved by setting \code{method="any"} with \code{min.prop=0.5}.
-Genes will then only be high-ranked if they are significant in at least some \code{min.prop} proportion of the comparisons.
+For each gene and cluster, the summary effect size is defined as the effect size from the pairwise comparison with the \code{min.prop}-smallest p-value.
+This mirrors the p-value calculation but, again, is reported only for the benefit of the user.
+}
+
+\section{Consolidating against some other clusters, rank-style}{
+
+A slightly different flavor of the \dQuote{some cluster} approach is achieved by setting \code{method="any"} with \code{min.prop} set to some positive value in (0, 1).
+A gene will only be high-ranked if it is among the top-ranked genes in at least \code{min.prop} of the pairwise comparisons.
 For example, if \code{min.prop=0.3}, any gene with a value of \code{Top} less than or equal to 5 will be in the top 5 DEGs of at least 30% of the comparisons.
-This increases the stringency of the \code{"any"} setting but with similar loss of theoretical guarantees.
+
+This method increases the stringency of the \code{"any"} setting in a safer manner than \code{pval.type="some"}.
+Specifically, we avoid comparing p-values across pairwise comparisons, which can be problematic if there are power differences across comparisons, e.g., due to differences in the number of cells across the other clusters.
+
+Note that the value of \code{min.prop} does not affect the combined p-value and summary effect size calculations for \code{pval.type="any"}.
 }
 
 \section{Correcting for multiple testing}{
 
-The BH method is then applied on the Simes/IUT p-values across all genes to obtain the \code{FDR} field.
+The BH method is then applied on the consolidated p-values across all genes to obtain the \code{FDR} field.
 The reported FDRs are intended only as a rough measure of significance.
 Properly correcting for multiple testing is not generally possible when \code{clusters} is determined from the same \code{x} used for DE testing.
 

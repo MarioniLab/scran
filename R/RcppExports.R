@@ -25,6 +25,10 @@ compute_Top_statistic_from_ranks <- function(Ranks, prop) {
     .Call('_scran_compute_Top_statistic_from_ranks', PACKAGE = 'scran', Ranks, prop)
 }
 
+choose_middle_effect_size <- function(Pvals, Effects, prop) {
+    .Call('_scran_choose_middle_effect_size', PACKAGE = 'scran', Pvals, Effects, prop)
+}
+
 compute_blocked_stats_lognorm <- function(bygroup, inmat, sf, pseudo) {
     .Call('_scran_compute_blocked_stats_lognorm', PACKAGE = 'scran', bygroup, inmat, sf, pseudo)
 }
