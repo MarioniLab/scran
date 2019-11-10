@@ -244,6 +244,7 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
             stat.df <- do.call(DataFrame, c(cur.stats, list(check.names=FALSE)))
         } else if (!is.null(effect.field)) {
             all.effects <- lapply(cur.stats, "[[", i=effect.field)
+            preamble[[output.field]] <- .choose_effect_size(all.p, all.effects, pval.type, min.prop)
             stat.df <- DataFrame(all.effects)
         } else {
             stat.df <- preamble[,0] # output.field is NULL, so colnames is automatically empty.
@@ -259,4 +260,37 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
     }
 
     SimpleList(output)
+}
+
+.choose_effect_size <- function(all.p, all.effects, pval.type, min.prop) {
+    if (!length(all.p)) {
+        return(numeric(0))
+    }
+
+    ngenes <- length(all.p[[1]])
+    chosen <- rep(NA_real_, ngenes)
+
+    if (pval.type=="all") {
+        # Don't start from worst <- all.p[[i]] as this would
+        # require another layer of protection against NA's.
+        worst <- rep(-Inf, ngenes)
+        for (i in seq_along(all.p)) {
+            worse <- all.p[[i]] > worst & !is.na(all.p[[i]])
+            chosen[worse] <- all.effects[[i]][worse]
+            worst[worse] <- all.p[[i]][worse]
+        }
+
+    } else if (pval.type=="any") {
+        best <- rep(Inf, ngenes)
+        for (i in seq_along(all.p)) {
+            better <- all.p[[i]] < best & !is.na(all.p[[i]])
+            chosen[better] <- all.effects[[i]][better]
+            best[better] <- all.p[[i]][better]
+        }
+
+    } else {
+        chosen <- choose_middle_effect_size(all.p, all.effects, min.prop)
+    }
+
+    chosen
 }
