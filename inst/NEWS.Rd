@@ -3,7 +3,11 @@
 \encoding{UTF-8}
 
 \section{Version 1.16.0}{\itemize{
-\item Added the quickSubCluster() function for convenient subclustering.    
+\item Added the quickSubCluster() function for convenient subclustering.
+
+\item Added the bootstrapCluster() function to convenient bootstrapping of cluster stability.
+
+\item combineMarkers() and findMarkers() report a summary effect size for each cluster.
 }}
 
 \section{Version 1.14.0}{\itemize{
