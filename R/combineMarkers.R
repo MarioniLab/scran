@@ -20,6 +20,8 @@
 #' Defaults to \code{"stats"} if \code{full.stats=TRUE}, otherwise it is set to \code{effect.field}.
 #' @param full.stats A logical scalar indicating whether all statistics in \code{de.lists} should be stored in the output for each pairwise comparison.
 #' @param sorted Logical scalar indicating whether each output DataFrame should be sorted by a statistic relevant to \code{pval.type}.
+#' @param flatten Logical scalar indicating whether the individual effect sizes should be flattened in the output DataFrame.
+#' If \code{FALSE}, effect sizes are reported as a nested matrix for easier programmatic use.
 #' 
 #' @return
 #' A named \linkS4class{List} of \linkS4class{DataFrame}s where each DataFrame contains the consolidated marker statistics for each gene (row) for the cluster of the same name.
@@ -33,24 +35,20 @@
 #' Replaces the \code{p.value} field if \code{log.p.out=TRUE}.}
 #' \item{\code{log.FDR}:}{Numeric, the (natural) log-transformed adjusted p-value.
 #' Replaces the \code{FDR} field if \code{log.p.out=TRUE}.}
-#' \item{\code{<OUTPUT>}:}{Numeric, where the value of \code{<OUTPUT>} is set to \code{output.field}.
-#' This contains the summary effect size, obtained by combining effect sizes from all pairwise comparison into a single value.}
-#' \item{\code{<OUTPUT>.Y}:}{Numeric, where the value of \code{<OUTPUT>} is set to \code{output.field}.
-#' One of these fields is present for every other cluster \eqn{Y} in \code{clusters} and contains the effect size of the comparison of \eqn{X} to \eqn{Y}.
-#' Only reported when \code{full.stats=FALSE} and \code{effect.field} is not \code{NULL}.
+#' \item{\code{summary.<OUTPUT>}:}{Numeric, named by replacing \code{<OUTPUT>} with \code{output.field}.
+#' This contains the summary effect size, obtained by combining effect sizes from all pairwise comparison into a single value.
+#' Only reported when \code{effect.field} is not \code{NULL}.}
+#' \item{\code{<OUTPUT>.Y}:}{Comparison-specific statistics, named by replacing \code{<OUTPUT>} with \code{output.field}.
+#' One of these fields is present for every other cluster \eqn{Y} in \code{clusters} and contains statistics for the comparison of \eqn{X} to \eqn{Y}.
+#' If \code{full.stats=FALSE}, each field is numeric and contains the effect size of the comparison of \eqn{X} over \eqn{Y}.
+#' Otherwise, each field is a nested DataFrame containing the full statistics for that comparison (i.e., the same asthe corresponding entry of \code{de.lists}).
+#' Only reported if \code{flatten=FALSE} and (for \code{full.stats=FALSE}) if \code{effect.field} is not \code{NULL}.
 #' }
-#' \item{\code{stats.y}:}{A nested DataFrame containing the same fields in the corresponding entry of \code{de.lists} for the \eqn{X} versus \eqn{Y} comparison.
-#' Only reported when \code{full.stats=TRUE}.}
+#' \item{\code{each.<OUTPUT>}:}{A nested DataFrame of comparison-specific statistics, named by replacing \code{<OUTPUT>} with \code{output.field}.
+#' If \code{full.stats=FALSE}, one column is present for every other cluster \eqn{Y} in \code{clusters} and contains the effect size of the comparison of \eqn{X} to \eqn{Y}.
+#' Otherwise, each column contains another nested DataFrame containing the full set of statistics for that comparison.
+#' Only reported if \code{flatten=FALSE} and (for \code{full.stats=FALSE}) if \code{effect.field} is not \code{NULL}.
 #' }
-#' 
-#' Ordering rules are:
-#' \itemize{
-#' \item Within each DataFrame, if \code{sorted=TRUE}, genes are ranked by the \code{Top} column (if available) and then the \code{p.value} column.
-#' Otherwise, the input order of the genes is preserved.
-#' \item For the DataFrame corresponding to cluster X, the \code{<OUTPUT>.Y} columns are sorted according to the order of cluster IDs in \code{pairs[,2]} for all rows where \code{pairs[,1]} is X.
-#' \item In the output List, the DataFrames themselves are sorted according to the order of cluster IDs in \code{pairs[,1]}.
-#' Note that DataFrames are only created for clusters present in \code{pairs[,1]}.
-#' Clusters unique to \code{pairs[,2]} will only be present within a DataFrame as Y.
 #' }
 #' 
 #' @details
@@ -133,6 +131,16 @@
 #' If \code{log.p=TRUE}, log-transformed p-values and FDRs will be reported.
 #' This may be useful in over-powered studies with many cells, where directly reporting the raw p-values would result in many zeroes due to the limits of machine precision.
 #' 
+#' @section Ordering of the output:
+#' \itemize{
+#' \item Within each DataFrame, if \code{sorted=TRUE}, genes are ranked by the \code{Top} column if available and the \code{p.value} (or \code{log.p.value}) if not.
+#' Otherwise, the input order of the genes is preserved.
+#' \item For the DataFrame corresponding to cluster \eqn{X}, the \code{<OUTPUT>.Y} columns are sorted according to the order of cluster IDs in \code{pairs[,2]} for all rows where \code{pairs[,1]} is \eqn{X}.
+#' \item In the output List, the DataFrames themselves are sorted according to the order of cluster IDs in \code{pairs[,1]}.
+#' Note that DataFrames are only created for clusters present in \code{pairs[,1]}.
+#' Clusters unique to \code{pairs[,2]} will only be present within a DataFrame as \eqn{Y}.
+#' }
+#' 
 #' @seealso
 #' \code{\link{pairwiseTTests}} and \code{\link{pairwiseWilcox}}, for functions that can generate \code{de.lists} and \code{pairs}.
 #' 
@@ -179,7 +187,7 @@
 #' @importFrom methods as
 combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="logFC", 
     pval.type=c("any", "some", "all"), min.prop=NULL, log.p.in=FALSE, log.p.out=log.p.in, 
-    output.field=NULL, full.stats=FALSE, sorted=TRUE)
+    output.field=NULL, full.stats=FALSE, sorted=TRUE, flatten=TRUE)
 {
     if (length(de.lists)!=nrow(pairs)) {
         stop("'nrow(pairs)' must be equal to 'length(de.lists)'")
@@ -187,6 +195,7 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
     if (is.null(output.field)) {
         output.field <- if (full.stats) "stats" else effect.field
     }
+    report.effects <- !is.null(effect.field)
 
     pval.type <- match.arg(pval.type)
     method <- switch(pval.type, any="simes", some="holm-middle", all="berger")
@@ -224,14 +233,14 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
 
         all.p <- lapply(cur.stats, "[[", i=pval.field)
         pval <- do.call(combinePValues, c(all.p, list(method=method, log.p=log.p.in, min.prop=min.prop)))
-        preamble <- DataFrame(row.names=gene.names)
+        marker.set <- DataFrame(row.names=gene.names)
 
         # Determining rank.
         if (pval.type=="any") {
             ranked <- lapply(all.p, rank, ties.method="first", na.last="keep")
             min.rank <- compute_Top_statistic_from_ranks(ranked, min.prop)
             gene.order <- order(min.rank) 
-            preamble$Top <- min.rank
+            marker.set$Top <- min.rank
         } else {
             gene.order <- order(pval)
         }
@@ -250,24 +259,32 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
         }
         
         prefix <- if (log.p.out) "log." else ""
-        preamble[[paste0(prefix, "p.value")]] <- pval 
-        preamble[[paste0(prefix, "FDR")]] <- corrected 
+        marker.set[[paste0(prefix, "p.value")]] <- pval 
+        marker.set[[paste0(prefix, "FDR")]] <- corrected 
+
+        if (report.effects) {
+            all.effects <- lapply(cur.stats, "[[", i=effect.field)
+            marker.set[[paste0("summary.", output.field)]] <- .choose_effect_size(all.p, all.effects, pval.type, min.prop)
+        }
 
         # Saving effect sizes or all statistics.
-        if (full.stats) {
-            cur.stats <- lapply(cur.stats, FUN=function(x) { I(as(x, Class="DataFrame")) })
-            stat.df <- do.call(DataFrame, c(cur.stats, list(check.names=FALSE)))
-        } else if (!is.null(effect.field)) {
-            all.effects <- lapply(cur.stats, "[[", i=effect.field)
-            preamble[[output.field]] <- .choose_effect_size(all.p, all.effects, pval.type, min.prop)
-            stat.df <- DataFrame(all.effects)
-        } else {
-            stat.df <- preamble[,0] # output.field is NULL, so colnames is automatically empty.
-        }
-        colnames(stat.df) <- sprintf("%s.%s", output.field, targets)
+        if (full.stats || report.effects) {
+            if (full.stats) {
+                cur.stats <- lapply(cur.stats, FUN=function(x) { I(as(x, Class="DataFrame")) })
+            } else {
+                cur.stats <- all.effects
+            }
+            stat.df <- do.call(DataFrame, c(cur.stats, list(row.names=gene.names)))
 
-        # Producing the output object.
-        marker.set <- cbind(preamble, stat.df)
+            if (flatten) {
+                colnames(stat.df) <- sprintf("%s.%s", output.field, targets)
+                marker.set <- cbind(marker.set, stat.df)
+            } else {
+                colnames(stat.df) <- as.character(targets)
+                marker.set[[paste0("each.", output.field)]] <- stat.df
+            }
+        }
+
         if (sorted) {
             marker.set <- marker.set[gene.order,,drop=FALSE]
         }

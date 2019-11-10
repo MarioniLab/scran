@@ -57,7 +57,7 @@ test_that("combineMarkers is the same as a reference impementation for 'any'", {
         # Checking the summary statistic.
         mat.p <- do.call(cbind, collected.p)
         mat.effect <- do.call(cbind, lapply(current.stats, "[[", i="logFC"))
-        expect_identical(obs.any$logFC, mat.effect[cbind(seq_len(nrow(mat.p)), max.col(-mat.p))])
+        expect_identical(obs.any$summary.logFC, mat.effect[cbind(seq_len(nrow(mat.p)), max.col(-mat.p))])
     }
 })
 
@@ -81,7 +81,7 @@ test_that("combineMarkers is the same as a reference impementation for the 'all'
         # Checking the summary statistic.
         mat.p <- do.call(cbind, collected.p)
         mat.effect <- do.call(cbind, lapply(current.stats, "[[", i="logFC"))
-        expect_identical(obs.all$logFC, mat.effect[cbind(seq_len(nrow(mat.p)), max.col(mat.p))])
+        expect_identical(obs.all$summary.logFC, mat.effect[cbind(seq_len(nrow(mat.p)), max.col(mat.p))])
     }
 })
 
@@ -119,7 +119,7 @@ test_that("combineMarkers is the same as a reference impementation for the 'some
         # Checking the summary statistic.
         mat.p <- do.call(cbind, collected.p)
         mat.effect <- do.call(cbind, lapply(current.stats, "[[", i="logFC"))
-        expect_identical(obs.some$logFC, get.effect(mat.p, mat.effect, 0.5))
+        expect_identical(obs.some$summary.logFC, get.effect(mat.p, mat.effect, 0.5))
 
         # Trying with another min.prop setting.
         obs.quart <- comb.quart[[x]][genes,]
@@ -130,7 +130,7 @@ test_that("combineMarkers is the same as a reference impementation for the 'some
 
         mat.p <- do.call(cbind, collected.p)
         mat.effect <- do.call(cbind, lapply(current.stats, "[[", i="logFC"))
-        expect_identical(obs.quart$logFC, get.effect(mat.p, mat.effect, 0.25))
+        expect_identical(obs.quart$summary.logFC, get.effect(mat.p, mat.effect, 0.25))
     }
 })
 
@@ -254,6 +254,14 @@ test_that("combineMarkers correctly returns the full stats", {
             expect_identical(current, output[[correspondence]][rownames(current),])
         }
     }
+
+    # Respects no flattening.
+    stuff2 <- combineMarkers(output, groups, full.stats=TRUE, flatten=FALSE)
+    for (i in seq_along(stuff2)) {
+        ref <- stuff[[i]][,-(1:4)]
+        colnames(ref) <- sub("stats\\.", "", colnames(ref))
+        expect_identical(ref, stuff2[[i]]$each.stats)
+    }
 })
 
 test_that("combineMarkers correctly returns no effects", {
@@ -280,7 +288,7 @@ test_that("combineMarkers works with silly inputs (empty)", {
     empty.full <- combineMarkers(lapply(output, FUN=function(x){ x[0,] }), groups, full.stats=TRUE)
     expect_identical(names(empty), names(empty.full))
     expect_identical(unname(vapply(empty.full, nrow, 0L)), integer(ngroups))
-    expect_equal(unname(vapply(empty.full, ncol, 0L)), rep(ngroups + 2L, ngroups))
+    expect_equal(unname(vapply(empty.full, ncol, 0L)), rep(ngroups + 3L, ngroups))
 
     # Ignores missing levels entirely.
     as.df <- data.frame(factor(groups[,1], levels=seq_len(ngroups+1)), factor(groups[,2]))
