@@ -46,3 +46,30 @@ test_that("bootstrapCluster works correctly with transposed inputs.", {
 
     expect_identical(output, ref)
 })
+
+set.seed(500004)
+test_that("bootstrapCluster works when some clusters are not in the bootstrap.", {
+    dummy <- matrix(rnorm(10), ncol=10)
+
+    # Guaranteed to get missing clusters from resampling.
+    output <- bootstrapCluster(dummy, FUN=function(x) { seq_len(ncol(x)) })
+
+    expect_identical(rownames(output), as.character(seq_len(ncol(dummy))))
+    expect_true(all(output[upper.tri(output, diag=FALSE)]==0))
+})
+
+set.seed(500004)
+test_that("other miscellaneous tests for bootstrapCluster", {
+    dummy <- matrix(rnorm(ncells*20), nrow=ncells, ncol=20)
+
+    set.seed(20)
+    ref <- bootstrapCluster(dummy, FUN=function(x) { kmeans(x, 3)$cluster }, transposed=TRUE)
+    set.seed(20)
+    output <- bootstrapCluster(dummy, FUN=function(x) { kmeans(x, 3)$cluster }, transposed=TRUE, summarize=TRUE)
+    
+    expect_identical(rownames(ref), rownames(output))
+    expect_identical(unname(diag(ref)), output$self)
+    expect_equal(sum(ref[upper.tri(ref, diag=FALSE)]), sum(output$other)/2)
+
+    expect_error(bootstrapCluster(dummy, FUN=function(x) { seq_len(ncol(x)) }, iterations=0), "positive")
+})
