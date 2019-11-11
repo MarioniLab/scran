@@ -7,6 +7,8 @@
 
 \item Added the bootstrapCluster() function to convenient bootstrapping of cluster stability.
 
+\item Added the coassignProb() function to compute coassignment probabilities of alternative groupings.
+
 \item combineMarkers() and findMarkers() report a summary effect size for each cluster.
 }}
 

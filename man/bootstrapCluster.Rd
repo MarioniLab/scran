@@ -5,7 +5,7 @@
 \title{Assess cluster stability by bootstrapping}
 \usage{
 bootstrapCluster(x, FUN, clusters = NULL, transposed = FALSE,
-  iterations = 20, ...)
+  iterations = 20, ..., summarize = FALSE)
 }
 \arguments{
 \item{x}{A two-dimensional object containing cells in columns.
@@ -15,18 +15,22 @@ If \code{transposed=TRUE}, cells are expected to be in the rows, e.g., for preco
 
 \item{FUN}{A function that accepts \code{x} and returns a vector of cluster identities.}
 
-\item{clusters}{A vector of cluster identities obtained by calling \code{FUN(x, ...)}.
+\item{clusters}{A vector or factor of cluster identities obtained by calling \code{FUN(x, ...)}.
 This is provided as an additional argument in the case that the clusters have already been computed,
 in which case we can save a single round of computation.}
 
 \item{transposed}{Logical scalar indicating whether \code{x} is transposed with cells in the rows.}
 
-\item{iterations}{Integer scalar specifying the number of bootstrap iterations.}
+\item{iterations}{A positive integer scalar specifying the number of bootstrap iterations.}
 
 \item{...}{Further arguments to pass to \code{FUN} to control the clustering procedure.}
+
+\item{summarize}{Logical scalar indicating whether the output matrix should be converted into a per-label summary.}
 }
 \value{
-A numeric matrix with upper triangular entries filled with the co-assignment probabilities for each pair of clusters in \code{clusters}.
+If \code{summarize=FALSE}, a numeric matrix is returned with upper triangular entries filled with the co-assignment probabilities for each pair of clusters in \code{clusters}.
+
+Otherwise, a \linkS4class{DataFrame} is returned with one row per label in \code{ref} containing the \code{self} and \code{other} coassignment probabilities - see \code{?\link{coassignProb}} for details.
 }
 \description{
 Generate bootstrap replicates and recluster on them to determine the stability of clusters with respect to sampling noise.
@@ -75,6 +79,8 @@ bootstrapCluster(reducedDim(sce), transposed=TRUE, FUN=function(x) {
 \seealso{
 \code{\link{quickCluster}}, to get a quick and dirty function to use as \code{FUN}.
 It is often more computationally efficient to define your own function, though.
+
+\code{\link{coassignProb}}, for calculation of the coassignment probabilities.
 }
 \author{
 Aaron Lun
