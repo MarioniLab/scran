@@ -7,14 +7,18 @@
 #' 
 #' If \code{transposed=TRUE}, cells are expected to be in the rows, e.g., for precomputed PCs.
 #' @param FUN A function that accepts \code{x} and returns a vector of cluster identities.
-#' @param clusters A vector of cluster identities obtained by calling \code{FUN(x, ...)}.
+#' @param clusters A vector or factor of cluster identities obtained by calling \code{FUN(x, ...)}.
 #' This is provided as an additional argument in the case that the clusters have already been computed,
 #' in which case we can save a single round of computation.
 #' @param transposed Logical scalar indicating whether \code{x} is transposed with cells in the rows.
-#' @param iterations Integer scalar specifying the number of bootstrap iterations.
+#' @param iterations A positive integer scalar specifying the number of bootstrap iterations.
 #' @param ... Further arguments to pass to \code{FUN} to control the clustering procedure.
+#' @inheritParams coassignProb
 #'
-#' @return A numeric matrix with upper triangular entries filled with the co-assignment probabilities for each pair of clusters in \code{clusters}.
+#' @return 
+#' If \code{summarize=FALSE}, a numeric matrix is returned with upper triangular entries filled with the co-assignment probabilities for each pair of clusters in \code{clusters}.
+#' 
+#' Otherwise, a \linkS4class{DataFrame} is returned with one row per label in \code{ref} containing the \code{self} and \code{other} coassignment probabilities - see \code{?\link{coassignProb}} for details.
 #'
 #' @details
 #' Bootstrapping is conventionally used to evaluate the precision of an estimator by applying it to an \emph{in silico}-generated replicate dataset.
@@ -58,16 +62,20 @@
 #' @seealso
 #' \code{\link{quickCluster}}, to get a quick and dirty function to use as \code{FUN}.
 #' It is often more computationally efficient to define your own function, though.
+#'
+#' \code{\link{coassignProb}}, for calculation of the coassignment probabilities.
+#' 
 #' @export
-bootstrapCluster <- function(x, FUN, clusters=NULL, transposed=FALSE, iterations=20, ...) {
+bootstrapCluster <- function(x, FUN, clusters=NULL, transposed=FALSE, iterations=20, ..., summarize=FALSE) {
     if (is.null(clusters)) {
         clusters <- FUN(x, ...)
     }
+    clusters <- as.factor(clusters)
 
-    cluster.ids <- as.character(sort(unique(clusters)))
-    output <- matrix(0, length(cluster.ids), length(cluster.ids))
-    output[lower.tri(output)] <- NA_real_
-    dimnames(output) <- list(cluster.ids, cluster.ids)
+    nvalid <- 0
+    if (iterations <= 0L) {
+        stop("'iterations' must be a positive integer")
+    }
 
     for (i in seq_len(iterations)) {
         if (transposed) {
@@ -79,19 +87,21 @@ bootstrapCluster <- function(x, FUN, clusters=NULL, transposed=FALSE, iterations
         }
 
         reclusters <- FUN(resampled, ...)
-        tab <- table(clusters[chosen], reclusters)
+        coassign <- coassignProb(clusters[chosen], reclusters)
 
-        for (j1 in seq_along(cluster.ids)) {
-            spread1 <- tab[cluster.ids[j1],]
-            spread1 <- spread1/sum(spread1)
-
-            for (j2 in seq_len(j1)) {
-                spread2 <- tab[cluster.ids[j2],]
-                spread2 <- spread2/sum(spread2)
-                output[j2,j1] <- output[j2,j1] + sum(spread1 * spread2)/iterations
-            }
+        if (is.null(dim(nvalid))) {
+            output <- coassign
+            output[] <- 0
         }
+        keep <- is.finite(coassign)
+        output[keep] <- output[keep] + coassign[keep]
+        nvalid <- nvalid + keep
     }
 
-    output
+    output <- output/nvalid
+    if (!summarize) {
+        output
+    } else {
+        .summarize_coassign(output)
+    }
 }
