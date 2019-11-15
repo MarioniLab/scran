@@ -4,8 +4,13 @@
 \alias{convertTo}
 \title{Convert to other classes}
 \usage{
-convertTo(x, type = c("edgeR", "DESeq2", "monocle"), ...,
-  assay.type = 1, subset.row = NULL)
+convertTo(
+  x,
+  type = c("edgeR", "DESeq2", "monocle"),
+  ...,
+  assay.type = 1,
+  subset.row = NULL
+)
 }
 \arguments{
 \item{x}{A \linkS4class{SingleCellExperiment} object.}

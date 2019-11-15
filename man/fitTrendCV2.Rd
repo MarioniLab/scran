@@ -4,8 +4,16 @@
 \alias{fitTrendCV2}
 \title{Fit a trend to the CV2}
 \usage{
-fitTrendCV2(means, cv2, ncells, min.mean = 0.1, nls.args = list(),
-  simplified = TRUE, nmads = 6, max.iter = 50)
+fitTrendCV2(
+  means,
+  cv2,
+  ncells,
+  min.mean = 0.1,
+  nls.args = list(),
+  simplified = TRUE,
+  nmads = 6,
+  max.iter = 50
+)
 }
 \arguments{
 \item{means}{A numeric vector containing mean normalized expression values for all genes.}

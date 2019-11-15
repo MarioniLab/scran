@@ -4,10 +4,19 @@
 \alias{pairwiseWilcox}
 \title{Perform pairwise Wilcoxon rank sum tests}
 \usage{
-pairwiseWilcox(x, groups, block = NULL, restrict = NULL,
-  exclude = NULL, direction = c("any", "up", "down"), lfc = 0,
-  log.p = FALSE, gene.names = rownames(x), subset.row = NULL,
-  BPPARAM = SerialParam())
+pairwiseWilcox(
+  x,
+  groups,
+  block = NULL,
+  restrict = NULL,
+  exclude = NULL,
+  direction = c("any", "up", "down"),
+  lfc = 0,
+  log.p = FALSE,
+  gene.names = rownames(x),
+  subset.row = NULL,
+  BPPARAM = SerialParam()
+)
 }
 \arguments{
 \item{x}{A numeric matrix-like object of normalized log-expression values, where each column corresponds to a cell and each row corresponds to an endogenous gene.}

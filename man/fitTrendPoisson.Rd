@@ -4,8 +4,15 @@
 \alias{fitTrendPoisson}
 \title{Generate a trend for Poisson noise}
 \usage{
-fitTrendPoisson(means, size.factors, npts = 1000, dispersion = 0,
-  pseudo.count = 1, BPPARAM = SerialParam(), ...)
+fitTrendPoisson(
+  means,
+  size.factors,
+  npts = 1000,
+  dispersion = 0,
+  pseudo.count = 1,
+  BPPARAM = SerialParam(),
+  ...
+)
 }
 \arguments{
 \item{means}{A numeric vector of length 2 or more, containing the range of mean counts observed in the dataset.}

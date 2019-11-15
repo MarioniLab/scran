@@ -4,8 +4,13 @@
 \alias{combinePValues}
 \title{Combine p-values}
 \usage{
-combinePValues(..., method = c("fisher", "z", "simes", "berger",
-  "holm-middle"), weights = NULL, log.p = FALSE, min.prop = 0.5)
+combinePValues(
+  ...,
+  method = c("fisher", "z", "simes", "berger", "holm-middle"),
+  weights = NULL,
+  log.p = FALSE,
+  min.prop = 0.5
+)
 }
 \arguments{
 \item{...}{Two or more numeric vectors of p-values of the same length.}

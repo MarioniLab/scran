@@ -4,8 +4,14 @@
 \alias{scaledColRanks}
 \title{Compute scaled column ranks}
 \usage{
-scaledColRanks(x, subset.row = NULL, min.mean = NULL,
-  transposed = FALSE, as.sparse = FALSE, withDimnames = TRUE)
+scaledColRanks(
+  x,
+  subset.row = NULL,
+  min.mean = NULL,
+  transposed = FALSE,
+  as.sparse = FALSE,
+  withDimnames = TRUE
+)
 }
 \arguments{
 \item{x}{A numeric matrix-like object containing cells in columns and features in the rows.}

@@ -4,8 +4,14 @@
 \alias{correlateNull}
 \title{Build null correlations}
 \usage{
-correlateNull(ncells, iters = 1e+06, block = NULL, design = NULL,
-  equiweight = TRUE, BPPARAM = SerialParam())
+correlateNull(
+  ncells,
+  iters = 1e+06,
+  block = NULL,
+  design = NULL,
+  equiweight = TRUE,
+  BPPARAM = SerialParam()
+)
 }
 \arguments{
 \item{ncells}{An integer scalar indicating the number of cells in the data set.}

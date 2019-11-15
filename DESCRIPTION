@@ -1,6 +1,6 @@
 Package: scran
-Version: 1.15.5
-Date: 2019-11-09
+Version: 1.15.6
+Date: 2019-11-14
 Title: Methods for Single-Cell RNA-Seq Data Analysis
 Description: 
     Implements functions for low-level analyses of single-cell RNA-seq data. 
@@ -66,4 +66,4 @@ License: GPL-3
 NeedsCompilation: yes
 VignetteBuilder: knitr
 SystemRequirements: C++11
-RoxygenNote: 6.1.1
+RoxygenNote: 7.0.0

@@ -5,11 +5,23 @@
 \alias{combineCV2}
 \title{Combine variance decompositions}
 \usage{
-combineVar(..., method = "fisher", pval.field = "p.value",
-  other.fields = NULL, equiweight = TRUE, ncells = NULL)
+combineVar(
+  ...,
+  method = "fisher",
+  pval.field = "p.value",
+  other.fields = NULL,
+  equiweight = TRUE,
+  ncells = NULL
+)
 
-combineCV2(..., method = "fisher", pval.field = "p.value",
-  other.fields = NULL, equiweight = TRUE, ncells = NULL)
+combineCV2(
+  ...,
+  method = "fisher",
+  pval.field = "p.value",
+  other.fields = NULL,
+  equiweight = TRUE,
+  ncells = NULL
+)
 }
 \arguments{
 \item{...}{Two or more \linkS4class{DataFrame}s of variance modelling results.

@@ -4,8 +4,14 @@
 \alias{getClusteredPCs}
 \title{Use clusters to choose the number of PCs}
 \usage{
-getClusteredPCs(pcs, FUN = NULL, ..., min.rank = 5,
-  max.rank = ncol(pcs), by = 1)
+getClusteredPCs(
+  pcs,
+  FUN = NULL,
+  ...,
+  min.rank = 5,
+  max.rank = ncol(pcs),
+  by = 1
+)
 }
 \arguments{
 \item{pcs}{A numeric matrix of PCs, where rows are cells and columns are dimensions representing successive PCs.}

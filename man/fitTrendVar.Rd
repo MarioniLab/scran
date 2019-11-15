@@ -4,8 +4,14 @@
 \alias{fitTrendVar}
 \title{Fit a trend to the variances of log-counts}
 \usage{
-fitTrendVar(means, vars, min.mean = 0.1, parametric = TRUE,
-  nls.args = list(), ...)
+fitTrendVar(
+  means,
+  vars,
+  min.mean = 0.1,
+  parametric = TRUE,
+  nls.args = list(),
+  ...
+)
 }
 \arguments{
 \item{means}{A numeric vector containing the mean log-expression value for each gene.}

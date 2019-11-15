@@ -4,11 +4,20 @@
 \alias{pairwiseBinom}
 \title{Perform pairwise binomial tests}
 \usage{
-pairwiseBinom(x, groups, block = NULL, restrict = NULL,
-  exclude = NULL, direction = c("any", "up", "down"),
-  threshold = 1e-08, lfc = 0, log.p = FALSE,
-  gene.names = rownames(x), subset.row = NULL,
-  BPPARAM = SerialParam())
+pairwiseBinom(
+  x,
+  groups,
+  block = NULL,
+  restrict = NULL,
+  exclude = NULL,
+  direction = c("any", "up", "down"),
+  threshold = 1e-08,
+  lfc = 0,
+  log.p = FALSE,
+  gene.names = rownames(x),
+  subset.row = NULL,
+  BPPARAM = SerialParam()
+)
 }
 \arguments{
 \item{x}{A numeric matrix-like object of counts,

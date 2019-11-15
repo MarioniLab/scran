@@ -4,8 +4,15 @@
 \alias{bootstrapCluster}
 \title{Assess cluster stability by bootstrapping}
 \usage{
-bootstrapCluster(x, FUN, clusters = NULL, transposed = FALSE,
-  iterations = 20, ..., summarize = FALSE)
+bootstrapCluster(
+  x,
+  FUN,
+  clusters = NULL,
+  transposed = FALSE,
+  iterations = 20,
+  ...,
+  summarize = FALSE
+)
 }
 \arguments{
 \item{x}{A two-dimensional object containing cells in columns.

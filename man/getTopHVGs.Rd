@@ -4,9 +4,16 @@
 \alias{getTopHVGs}
 \title{Identify HVGs}
 \usage{
-getTopHVGs(stats, var.field = "bio", n = NULL, prop = NULL,
-  var.threshold = 0, fdr.field = "FDR", fdr.threshold = NULL,
-  row.names = !is.null(rownames(stats)))
+getTopHVGs(
+  stats,
+  var.field = "bio",
+  n = NULL,
+  prop = NULL,
+  var.threshold = 0,
+  fdr.field = "FDR",
+  fdr.threshold = NULL,
+  row.names = !is.null(rownames(stats))
+)
 }
 \arguments{
 \item{stats}{A \linkS4class{DataFrame} of variance modelling statistics with one row per gene.}

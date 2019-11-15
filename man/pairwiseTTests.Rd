@@ -4,11 +4,21 @@
 \alias{pairwiseTTests}
 \title{Perform pairwise t-tests}
 \usage{
-pairwiseTTests(x, groups, block = NULL, design = NULL,
-  restrict = NULL, exclude = NULL, direction = c("any", "up",
-  "down"), lfc = 0, std.lfc = FALSE, log.p = FALSE,
-  gene.names = rownames(x), subset.row = NULL,
-  BPPARAM = SerialParam())
+pairwiseTTests(
+  x,
+  groups,
+  block = NULL,
+  design = NULL,
+  restrict = NULL,
+  exclude = NULL,
+  direction = c("any", "up", "down"),
+  lfc = 0,
+  std.lfc = FALSE,
+  log.p = FALSE,
+  gene.names = rownames(x),
+  subset.row = NULL,
+  BPPARAM = SerialParam()
+)
 }
 \arguments{
 \item{x}{A numeric matrix-like object of normalized log-expression values, 

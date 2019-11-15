@@ -4,11 +4,20 @@
 \alias{combineMarkers}
 \title{Combine pairwise DE results into a marker list}
 \usage{
-combineMarkers(de.lists, pairs, pval.field = "p.value",
-  effect.field = "logFC", pval.type = c("any", "some", "all"),
-  min.prop = NULL, log.p.in = FALSE, log.p.out = log.p.in,
-  output.field = NULL, full.stats = FALSE, sorted = TRUE,
-  flatten = TRUE)
+combineMarkers(
+  de.lists,
+  pairs,
+  pval.field = "p.value",
+  effect.field = "logFC",
+  pval.type = c("any", "some", "all"),
+  min.prop = NULL,
+  log.p.in = FALSE,
+  log.p.out = log.p.in,
+  output.field = NULL,
+  full.stats = FALSE,
+  sorted = TRUE,
+  flatten = TRUE
+)
 }
 \arguments{
 \item{de.lists}{A list-like object where each element is a data.frame or \linkS4class{DataFrame}.

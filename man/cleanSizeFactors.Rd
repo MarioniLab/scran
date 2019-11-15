@@ -4,9 +4,14 @@
 \alias{cleanSizeFactors}
 \title{Clean size factors}
 \usage{
-cleanSizeFactors(size.factors, num.detected,
-  control = nls.control(warnOnly = TRUE), iterations = 3, nmads = 3,
-  ...)
+cleanSizeFactors(
+  size.factors,
+  num.detected,
+  control = nls.control(warnOnly = TRUE),
+  iterations = 3,
+  nmads = 3,
+  ...
+)
 }
 \arguments{
 \item{size.factors}{A numeric vector containing size factors for all libraries.}

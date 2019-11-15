@@ -4,8 +4,7 @@
 \alias{clusterModularity}
 \title{Compute the cluster-wise modularity}
 \usage{
-clusterModularity(graph, clusters, get.weights = FALSE,
-  as.ratio = FALSE)
+clusterModularity(graph, clusters, get.weights = FALSE, as.ratio = FALSE)
 }
 \arguments{
 \item{graph}{A \link{graph} object from \pkg{igraph}, usually where each node represents a cell.}

@@ -4,9 +4,17 @@
 \alias{getTopMarkers}
 \title{Get top markers}
 \usage{
-getTopMarkers(de.lists, pairs, n = 10, pval.field = "p.value",
-  fdr.field = "FDR", pairwise = TRUE, pval.type = c("any", "some",
-  "all"), fdr.threshold = 0.05, ...)
+getTopMarkers(
+  de.lists,
+  pairs,
+  n = 10,
+  pval.field = "p.value",
+  fdr.field = "FDR",
+  pairwise = TRUE,
+  pval.type = c("any", "some", "all"),
+  fdr.threshold = 0.05,
+  ...
+)
 }
 \arguments{
 \item{de.lists}{A list-like object where each element is a data.frame or \linkS4class{DataFrame}.
