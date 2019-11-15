@@ -9,6 +9,8 @@
 #' The names of each List should be the same; the universe of genes in each DataFrame should be the same;
 #' and the same number of columns in each DataFrame should be named.
 #' All elements in \code{...} are also expected to be named.
+#' @param repeated Character vector of columns that are present in one or more DataFrames but should only be reported once.
+#' Typically used to avoid reporting redundant copies of annotation-related columns.
 #' @param sorted Logical scalar indicating whether each output DataFrame should be sorted by some relevant statistic.
 #'
 #' @return
@@ -59,8 +61,8 @@
 #' colnames(combined[[1]])
 #' 
 #' @export
-#' @importFrom S4Vectors DataFrame List
-multiMarkerStats <- function(..., log.p=FALSE, sorted=TRUE) {
+#' @importFrom S4Vectors DataFrame SimpleList
+multiMarkerStats <- function(..., repeated=NULL, sorted=TRUE) {
     all.methods <- list(...)
     nmethods <- length(all.methods)
     if (is.null(names(all.methods))) {
@@ -83,17 +85,35 @@ multiMarkerStats <- function(..., log.p=FALSE, sorted=TRUE) {
             collected[[j]] <- all.methods[[j]][[i]]
         }
 
-        # Checking the number of columns and standardizing row order.
+        collected <- .check_element_names(collected, 
+            FUN=rownames, SUB=function(x, i) x[i,,drop=FALSE],
+            msg=sprintf("row names for '%s'", group.names[i]))
+        gene.names <- rownames(collected[[1]])
+
+        # Pulling out the redundant columns before counting the number of columns.
+        redundancies <- list()
+        for (r in repeated) {
+            curval <- NULL
+            for (j in seq_len(nmethods)) {
+                if (!is.null(collected[[j]][[r]])) {
+                    curval <- collected[[j]][[r]]
+                    collected[[j]][[r]] <- NULL
+                }
+            }
+            redundancies[[r]] <- curval
+        }
+
         ncols <- vapply(collected, ncol, 0L)
         if (length(unique(ncols))!=1L) {
             stop(sprintf("different numbers of columns for '%s'", group.names[i]))
         }
         ncols <- ncols[1]
 
-        collected <- .check_element_names(collected, 
-            FUN=rownames, SUB=function(x, i) x[i,,drop=FALSE],
-            msg=sprintf("row names for '%s'", group.names[i]))
-        gene.names <- rownames(collected[[1]])
+        collated <- DataFrame(row.names=gene.names)
+        if (length(redundancies)) {
+            redundancies <- do.call(DataFrame, redundancies)
+            collated <- cbind(collated, redundancies)
+        }
 
         # Interleave relevant statistics. We assume they're in the same order across DFs.
         interleaved <- vector("list", nmethods)
@@ -107,12 +127,11 @@ multiMarkerStats <- function(..., log.p=FALSE, sorted=TRUE) {
         interleaved <- unlist(interleaved, recursive=FALSE)[flip]
         interleaved <- do.call(DataFrame, interleaved)
 
-        # Checking that all of them or none of them have 'Top'.
+        # Computing combined statistics.
         all.top <- .extract_columns(collected, "Top")
         all.p <- .extract_columns(collected, "p.value")
         all.lp <- .extract_columns(collected, "log.p.value")
 
-        collated <- DataFrame(row.names=gene.names)
         if (!is.null(all.top)) {
             collated$Top <- do.call(pmax, all.top)
         }
@@ -126,6 +145,7 @@ multiMarkerStats <- function(..., log.p=FALSE, sorted=TRUE) {
             stop("p-value field should be 'p.value' or 'log.p.value'")
         }
 
+        # Assembling the final result.
         collated <- cbind(collated, interleaved)
         if (sorted) {
             o <- order(if (!is.null(collated$Top)) collated$Top else stats)
@@ -134,7 +154,7 @@ multiMarkerStats <- function(..., log.p=FALSE, sorted=TRUE) {
         output[[i]] <- collated
     }
 
-    List(output)
+    SimpleList(output)
 }
 
 .check_element_names <- function(things, FUN, SUB, msg) {

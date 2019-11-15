@@ -92,6 +92,20 @@ test_that("multiMarkerStats works correctly with log-transformed inputs", {
     }
 })
 
+test_that("multiMarkerStats respects annotation correctly", { 
+    stuff <- DataFrame(stuff=runif(nrow(sce)))
+    rownames(stuff) <- rownames(sce)
+
+    touta <- findMarkers(sce, groups=kout$cluster, direction="up", row.data=stuff)
+    wouta <- findMarkers(sce, groups=kout$cluster, direction="up", test="wilcox", row.data=stuff)
+    bouta <- findMarkers(sce, groups=kout$cluster, direction="up", test="binom", row.data=stuff)
+
+    combined <- multiMarkerStats(t=touta, wilcox=wouta, binom=bouta, repeated="stuff")
+    for (i in seq_along(combined)) {
+        expect_equal(combined[[i]][rownames(sce),"stuff"], stuff$stuff)
+    }
+})
+
 test_that("multiMarkerStats raises the expected set of errors", {
     toutx <- tout
     colnames(toutx[[1]]) <- paste0("A:", colnames(toutx[[1]]))
