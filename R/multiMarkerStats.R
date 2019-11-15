@@ -9,7 +9,6 @@
 #' The names of each List should be the same; the universe of genes in each DataFrame should be the same;
 #' and the same number of columns in each DataFrame should be named.
 #' All elements in \code{...} are also expected to be named.
-#' @param log.p
 #' @param sorted Logical scalar indicating whether each output DataFrame should be sorted by some relevant statistic.
 #'
 #' @return
@@ -121,7 +120,7 @@ multiMarkerStats <- function(..., log.p=FALSE, sorted=TRUE) {
             stats <-collated$p.value <- do.call(pmax, all.p)
             collated$FDR <- p.adjust(collated$p.value, method="BH")
         } else if (!is.null(all.lp)) {
-            stats <- collated$log.p.value <- do.call(pmax, all.p)
+            stats <- collated$log.p.value <- do.call(pmax, all.lp)
             collated$log.FDR <- .logBH(collated$log.p.value)
         } else {
             stop("p-value field should be 'p.value' or 'log.p.value'")
