@@ -53,15 +53,15 @@ test_that("multiMarkerStats interleaves multiple inputs correctly", {
 
         expect_equivalent(
             as.matrix(curt[,-(1:3)]), 
-            as.matrix(curcom[,grep("^t\\.logFC", colnames(curcom))])
+            as.matrix(curcom[,grep("^t\\..*logFC", colnames(curcom))])
         )
         expect_equivalent(
             as.matrix(curw[,-(1:3)]), 
-            as.matrix(curcom[,grep("^wilcox\\.AUC", colnames(curcom))])
+            as.matrix(curcom[,grep("^wilcox\\..*AUC", colnames(curcom))])
         )
         expect_equivalent(
             as.matrix(curb[,-(1:3)]), 
-            as.matrix(curcom[,grep("^binom\\.logFC", colnames(curcom))])
+            as.matrix(curcom[,grep("^binom\\..*logFC", colnames(curcom))])
         )
     }  
 })
