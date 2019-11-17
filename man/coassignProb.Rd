@@ -25,9 +25,13 @@ Compute coassignment probabilities for each label in a reference grouping when c
 The coassignment probability for each pair of labels in \code{ref} is the probability that a randomly chosen cells from each of the two reference labels will have the same label in \code{alt}.
 High coassignment probabilities indicate that a particular pair of labels in \code{ref} are frequently assigned to the same label in \code{alt}, which has some implications for cluster stability.
 
-When \code{summarize=TRUE}, we summarize the matrix of coassignment probabilities into a set of per-label value.
-The self co-assignment probability is simply the diagonal entry of the matrix, i.e., the probability that two cells from the same label in \code{ref} also have the same label in \code{alt}.
-The other coassignment probability is the sum of all other entries involving that label, i.e., the sum of probabilities across all other labels.
+When \code{summarize=TRUE}, we summarize the matrix of coassignment probabilities into a set of per-label values.
+The self coassignment probability is simply the diagonal entry of the matrix, i.e., the probability that two cells from the same label in \code{ref} also have the same label in \code{alt}.
+The other coassignment probability is the maximum probability across all pairs involving that label.
+
+% One might consider instead reporting the 'other' probability as the probability that a randomly chosen cell in the cluster and a randomly chosen cell in any other cluster belong in the same cluster.
+% However, this results in very small probabilities in all cases, simply because most of the other clusters are well seperated.
+% Reporting the maximum is more useful as at least you can tell that a cluster is well-separated from _all_ other clusters if it has a low 'other' probability.
 
 In general, \code{ref} is well-recapitulated by \code{alt} if the diagonal entries of the matrix is much higher than the sum of the off-diagonal entries.
 This manifests as higher values for the self probabilities compared to the other probabilities.
@@ -45,7 +49,7 @@ coassignProb(clust1, clust2, summarize=TRUE)
 
 }
 \seealso{
-\code{\link{bootstrapCluster}}, to compute co-assignment probabilities across bootstrap replicates.
+\code{\link{bootstrapCluster}}, to compute coassignment probabilities across bootstrap replicates.
 }
 \author{
 Aaron Lun
