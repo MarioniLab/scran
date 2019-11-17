@@ -30,6 +30,10 @@
 #' \code{clusterFUN} will then perform graph-based clustering with \code{\link{buildSNNGraph}} and \code{\link{cluster_walktrap}}.
 #' Either or both of these functions can be replaced with custom functions.
 #'
+#' % We use denoisePCA+modelGeneVar by default here, because we hope that each parent cluster is reasonably homogeneous.
+#' % This allows us to assume that the trend is actually a good estimate of the technical noise.
+#' % We don't use the other modelGeneVar*'s to avoid making assumptions about the available of spike-ins, UMI data, etc.
+#' 
 #' The default behavior of this function is the same as running \code{\link{quickCluster}} on each subset with default parameters except for \code{min.size=0}.
 #'
 #' @author Aaron Lun
