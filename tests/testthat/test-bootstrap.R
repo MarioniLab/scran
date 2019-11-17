@@ -69,7 +69,7 @@ test_that("other miscellaneous tests for bootstrapCluster", {
     
     expect_identical(rownames(ref), rownames(output))
     expect_identical(unname(diag(ref)), output$self)
-    expect_equal(sum(ref[upper.tri(ref, diag=FALSE)]), sum(output$other)/2)
+    expect_true(!isTRUE(all.equal(output$self, output$other)))
 
     expect_error(bootstrapCluster(dummy, FUN=function(x) { seq_len(ncol(x)) }, iterations=0), "positive")
 })
