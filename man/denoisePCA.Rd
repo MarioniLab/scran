@@ -132,14 +132,17 @@ For example, \code{denoisePCA} will only ever use \code{fill.missing=TRUE} when 
 
 The function's choice of \eqn{d} is only optimal if the early PCs capture all the biological variation with minimal noise.
 This is unlikely to be true as the PCA cannot distinguish between technical noise and weak biological signal in the later PCs.
-The chosen \eqn{d} can only be treated as a lower bound for the retention of signal, and it is debatable whether this has any particular relation to the \dQuote{best} choice of the number of PCs.
-Another complication is that many aspects of biological variation are not that interesting in most applications (e.g., transcriptional bursting, metabolic fluctuations).
-It is often the case that we do not need to retain this signal, in which case the chosen \eqn{d} - despite being a lower bound - may actually be higher than necessary for the desired analysis.
+In practice, the chosen \eqn{d} can only be treated as a lower bound for the retention of signal, and it is debatable whether this has any particular relation to the \dQuote{best} choice of the number of PCs.
+For example, many aspects of biological variation are not that interesting (e.g., transcriptional bursting, metabolic fluctuations) and it is often the case that we do not need to retain this signal, in which case the chosen \eqn{d} - despite being a lower bound - may actually be higher than necessary.
 
 Interpretation of the choice of \eqn{d} is even more complex if \code{technical} was generated with \code{\link{modelGeneVar}} rather than \code{\link{modelGeneVarWithSpikes}} or \code{\link{modelGeneVarByPoisson}}.
 The former includes \dQuote{uninteresting} biological variation in its technical component estimates, increasing the proportion of variance attributed to technical noise and yielding a lower value of \eqn{d}.
-Indeed, use of results from \code{\link{modelGeneVar}} often results in \eqn{d} being set to to \code{min.rank}.
-This can be problematic if secondary factors of biology variation are discarded, in which case a manual choice of \eqn{d} (e.g., via \code{\link[scater]{runPCA}}) may be preferable.
+Indeed, use of results from \code{\link{modelGeneVar}} often results in \eqn{d} being set to to \code{min.rank}, which can be problematic if secondary factors of biological variation are discarded.
+
+% We could still use modelGeneVar() results as technical= but the outcome is difficult to predict.
+% For example, the difference between uninteresting biological variation and technical noise is that the former is not random.
+% This means that the assumption that they occupy later PCs may not be entirely true.
+% One can easily imagine a situation where fluctuations within a large population take precedence over the variation introduced by a small distinct subpopulation.
 }
 
 \examples{
@@ -166,7 +169,7 @@ Discussion of PC selection methods for scRNA-seq data.
 \url{https://github.com/LTLA/PCSelection2018}
 }
 \seealso{
-\code{\link{fitTrendVar}} and \code{\link{modelGeneVarWithSpikes}}, for methods of computing technical components.
+\code{\link{modelGeneVarWithSpikes}} and \code{\link{modelGeneVarByPoisson}}, for methods of computing technical components.
 
 \code{\link{runSVD}}, for the underlying SVD algorithm(s).
 }
