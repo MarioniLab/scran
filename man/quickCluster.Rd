@@ -93,6 +93,10 @@ By default, \code{quickCluster} will apply these clustering algorithms on the pr
 These are obtained by running \code{\link{denoisePCA}} on HVGs detected using the trend fitted to endogenous genes with \code{\link{modelGeneVar}}.
 If \code{d} is specified, the PCA is directly performed on the entire \code{x} and the specified number of PCs is retained.
 
+% We use modelGeneVar because we don't know if there's spike-ins or if it's UMI data or not.
+% This could behave weirdly with denoisePCA, but it given that this function is intended for quick-and-dirty clustering,
+% some inappropriate loss of signal is not criticial.
+
 It is also possible to use the clusters from this function for actual biological interpretation.
 In such cases, users should set \code{min.size=0} to avoid aggregation of small clusters.
 However, it is often better to call the relevant functions (\code{\link{modelGeneVar}}, \code{\link{denoisePCA}} and \code{\link{buildSNNGraph}}) manually as this provides more opportunities for diagnostics when the meaning of the clusters is important.

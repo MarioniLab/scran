@@ -52,6 +52,8 @@ Alternatively, a \linkS4class{SingleCellExperiment} object containing such a mat
 \value{
 A named \linkS4class{List} of \linkS4class{SingleCellExperiment} objects.
 Each object corresponds to a level of \code{groups} and contains a \code{"subcluster"} column metadata field with the subcluster identities for each cell.
+
+The \code{\link{metadata}} of the List also contains \code{index}, a list of integer vectors specifying the cells in \code{x} in each returned SingleCellExperiment object; and \code{subcluster}, a character vector of subcluster identities for all cells in \code{x}.
 }
 \description{
 Performs a quick subclustering for all cells within each group.
@@ -68,6 +70,10 @@ In contrast, \code{clusterFUN} is only used to obtain the subcluster assignments
 By default, \code{prepFUN} will run \code{\link{modelGeneVar}}, take the top 10% of genes with large biological components with \code{\link{getTopHVGs}}, and then run \code{\link{denoisePCA}} to perform the PCA.
 \code{clusterFUN} will then perform graph-based clustering with \code{\link{buildSNNGraph}} and \code{\link{cluster_walktrap}}.
 Either or both of these functions can be replaced with custom functions.
+
+% We use denoisePCA+modelGeneVar by default here, because we hope that each parent cluster is reasonably homogeneous.
+% This allows us to assume that the trend is actually a good estimate of the technical noise.
+% We don't use the other modelGeneVar*'s to avoid making assumptions about the available of spike-ins, UMI data, etc.
 
 The default behavior of this function is the same as running \code{\link{quickCluster}} on each subset with default parameters except for \code{min.size=0}.
 }

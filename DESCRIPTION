@@ -1,6 +1,6 @@
 Package: scran
-Version: 1.15.7
-Date: 2019-11-16
+Version: 1.15.8
+Date: 2019-11-17
 Title: Methods for Single-Cell RNA-Seq Data Analysis
 Description: 
     Implements functions for low-level analyses of single-cell RNA-seq data. 
