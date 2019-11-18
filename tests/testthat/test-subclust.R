@@ -22,6 +22,19 @@ test_that("quickSubCluster's defaults are consistent with quickCluster's default
     }
 })
 
+set.seed(30001)
+test_that("quickSubCluster's metadata output makes sense", {
+    sampling <- sample(3, ncells, replace=TRUE)
+    output <- quickSubCluster(dummy, groups=sampling)
+
+    for (i in unique(sampling)) {
+        expect_identical(metadata(output)$index[[i]], which(sampling==i))
+        expect_identical(metadata(output)$subcluster[metadata(output)$index[[i]]], output[[i]]$subcluster)
+    }
+
+    expect_identical(sub("\\..*", "", metadata(output)$subcluster), as.character(sampling))
+})
+
 set.seed(30002)
 test_that("quickSubCluster behaves correctly upon changing the assay", {
     dummy <- matrix(rnbinom(ncells*ngenes, mu=10, size=20), ncol=ncells, nrow=ngenes)

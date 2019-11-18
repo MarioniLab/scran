@@ -17,6 +17,8 @@
 #' A named \linkS4class{List} of \linkS4class{SingleCellExperiment} objects.
 #' Each object corresponds to a level of \code{groups} and contains a \code{"subcluster"} column metadata field with the subcluster identities for each cell.
 #'
+#' The \code{\link{metadata}} of the List also contains \code{index}, a list of integer vectors specifying the cells in \code{x} in each returned SingleCellExperiment object; and \code{subcluster}, a character vector of subcluster identities for all cells in \code{x}.
+#'
 #' @details
 #' \code{quickSubCluster} is a simple convenience function that loops over all levels of \code{groups} to perform subclustering.
 #' It subsets \code{x} to retain all cells in one level and then runs \code{prepFUN} and \code{clusterFUN} to cluster them.
@@ -71,6 +73,7 @@
 NULL
 
 #' @importFrom scater logNormCounts
+#' @importFrom S4Vectors metadata<-
 #' @importFrom igraph cluster_walktrap
 #' @importFrom BiocSingular bsparam
 #' @importClassesFrom S4Vectors List
@@ -105,9 +108,11 @@ NULL
         }
     }
 
-    all.sce <- list()
-    for (i in as.character(sort(unique(groups)))) {
-        y <- x[,groups==i]
+    all.sce <- collated <- list()
+    by.group <- split(seq_along(groups), groups)
+
+    for (i in names(by.group)) {
+        y <- x[,by.group[[i]]]
         if (normalize) {
             y <- logNormCounts(y, exprs_values=assay.type)
         }
@@ -122,9 +127,15 @@ NULL
 
         y$subcluster <- clusters
         all.sce[[i]] <- y
+        collated[[i]] <- clusters
     }
 
-    as(all.sce, "List")
+    all.clusters <- rep(NA_character_, ncol(x))
+    all.clusters[unlist(by.group)] <- unlist(collated)
+
+    output <- as(all.sce, "List")
+    metadata(output) <- list(index=by.group, subcluster=all.clusters)
+    output
 }
 
 ############################
