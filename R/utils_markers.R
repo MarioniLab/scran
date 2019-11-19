@@ -9,11 +9,15 @@
         stop("length of 'groups' does not equal 'ncol(x)'")
     }
 
+    # Only dropping levels if 'restrict' or 'exclude' are specified,
+    # to respect any empty levels in the input grouping.
     if (!is.null(restrict)) {
         groups[!groups%in% restrict] <- NA
+        if (is.factor(groups)) groups <- droplevels(groups)
     }
     if (!is.null(exclude)) {
         groups[groups %in% exclude] <- NA
+        if (is.factor(groups)) groups <- droplevels(groups)
     }
 
     groups <- as.factor(groups)

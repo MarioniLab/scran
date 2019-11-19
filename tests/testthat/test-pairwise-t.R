@@ -143,6 +143,27 @@ test_that("pairwiseTTests responds to restriction and exclusion", {
        pairwiseTTests(X[,keep], clusters[keep]))
 })
 
+set.seed(70000012)
+test_that("pairwiseTTests handles unused levels correctly", {
+    clusters <- factor(sample(LETTERS[1:5], ncol(X), replace=TRUE))
+    ref <- pairwiseTTests(X, clusters)
+
+    restrict <- c("A", "D", "E")
+    keep <- clusters %in% restrict
+    expect_warning(raw <- pairwiseTTests(X[,keep], clusters[keep]), "no within-block")
+
+    both.present <- ref$pairs[,1] %in% restrict & ref$pairs[,2] %in% restrict
+    expect_identical(raw$statistics[both.present], ref$statistics[both.present])
+
+    expect_identical(pairwiseTTests(X, clusters, restrict=restrict),
+       pairwiseTTests(X[,keep], as.character(clusters[keep])))
+
+    exclude <- c("A", "B", "C")
+    keep <- !clusters %in% exclude
+    expect_identical(pairwiseTTests(X, clusters, exclude=exclude),
+       pairwiseTTests(X[,keep], as.character(clusters[keep])))
+})
+
 ###################################################################
 
 BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
