@@ -105,3 +105,18 @@ test_that("findMarkers and getTopMarkers work correctly", {
     ref <- getTopMarkers(nastats[[1]], nastats[[2]], pairwise=TRUE)
     expect_identical(naive, ref)
 })
+
+test_that("findMarkers and getMarkerEffects work correctly", {
+    clust <- kmeans(t(exprs(X)), centers=3)
+
+    out <- findMarkers(dummy, groups=clust$cluster)
+    eff <- getMarkerEffects(out[[1]])
+    expect_type(eff, "double")
+    expect_identical(colnames(eff), as.character(2:3))
+
+    # Works for Wilcox tests.
+    out <- findMarkers(dummy, groups=clust$cluster, test.type="wilcox")
+    eff <- getMarkerEffects(out[[2]], prefix="AUC")
+    expect_type(eff, "double")
+    expect_identical(colnames(eff), as.character(c(1,3)))
+})
