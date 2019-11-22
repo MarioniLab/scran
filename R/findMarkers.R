@@ -75,6 +75,7 @@
 #'
 #' \code{\link{combineMarkers}}, to combine pairwise statistics into a single marker list per cluster.
 #' 
+#' \code{\link{getMarkerEffects}}, to easily extract a matrix of effect sizes from each DataFrame.
 #' @examples
 #' library(scater)
 #' sce <- mockSCE()

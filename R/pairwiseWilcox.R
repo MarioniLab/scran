@@ -107,6 +107,9 @@
 #' @seealso
 #' \code{\link{wilcox.test}}, on which this function is based.
 #' 
+#' \code{\link{combineMarkers}}, to combine pairwise comparisons into a single DataFrame per group.
+#'
+#' \code{\link{getTopMarkers}}, to obtain the top markers from each pairwise comparison.
 #' @examples
 #' library(scater)
 #' sce <- mockSCE()
