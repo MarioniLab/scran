@@ -133,6 +133,8 @@ out[[1]]
 for the underlying functions that compute the pairwise DE statistics.
 
 \code{\link{combineMarkers}}, to combine pairwise statistics into a single marker list per cluster.
+
+\code{\link{getMarkerEffects}}, to easily extract a matrix of effect sizes from each DataFrame.
 }
 \author{
 Aaron Lun

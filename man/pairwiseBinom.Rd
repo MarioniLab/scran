@@ -157,6 +157,10 @@ Combining probability from independent tests: the weighted Z-method is superior 
 }
 \seealso{
 \code{\link{binom.test}}, on which this function is based.
+
+\code{\link{combineMarkers}}, to combine pairwise comparisons into a single DataFrame per group.
+
+\code{\link{getTopMarkers}}, to obtain the top markers from each pairwise comparison.
 }
 \author{
 Aaron Lun
