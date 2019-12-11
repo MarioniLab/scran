@@ -142,8 +142,9 @@ pairwiseWilcox <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, d
         lfc=lfc, gene.names=gene.names, log.p=log.p, BPPARAM=BPPARAM)
 }
 
-#' @importFrom BiocParallel bplapply SerialParam bpisup bpstart bpstop
+#' @importFrom BiocParallel bplapply SerialParam bpstart bpstop
 #' @importFrom stats pnorm 
+#' @importFrom scater .splitRowsByWorkers .bpNotSharedOrUp
 .blocked_wilcox <- function(x, subset.row, groups, block=NULL, direction="any", gene.names=NULL, 
     lfc=0, log.p=TRUE, BPPARAM=SerialParam())
 {
@@ -157,10 +158,8 @@ pairwiseWilcox <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, d
     }
 
     # Choosing the parallelization strategy.
-    wout <- .worker_assign(length(subset.row), BPPARAM)
-    by.core <- .split_vector_by_workers(subset.row - 1L, wout)
-
-    if (!bpisup(BPPARAM)) {
+    by.core <- .splitRowsByWorkers(x, BPPARAM=BPPARAM, subset_row=subset.row)
+    if (.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))
     }
@@ -177,7 +176,7 @@ pairwiseWilcox <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, d
         names(all.n[[b]]) <- group.vals
         
         by.group <- split(chosen - 1L, cur.groups)
-        bpl.out <- bplapply(by.core, FUN=overlap_exprs, exprs=x, bygroup=by.group, lfc=lfc, BPPARAM=BPPARAM)
+        bpl.out <- bplapply(by.core, FUN=overlap_exprs, bygroup=by.group, lfc=lfc, BPPARAM=BPPARAM)
         raw.stats <- lapply(bpl.out, "[[", i=1)
         raw.ties <- lapply(bpl.out, "[[", i=2)
 

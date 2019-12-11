@@ -183,7 +183,8 @@ pairwiseTTests <- function(x, groups, block=NULL, design=NULL, restrict=NULL, ex
 ###########################################################
 
 #' @importFrom S4Vectors DataFrame
-#' @importFrom BiocParallel bplapply SerialParam
+#' @importFrom BiocParallel bplapply SerialParam bpstart bpstop
+#' @importFrom scater .splitRowsByWorkers .bpNotSharedOrUp 
 .test_block_internal <- function(x, subset.row, groups, block=NULL, direction="any", lfc=0, std.lfc=FALSE,
     gene.names=NULL, log.p=TRUE, BPPARAM=SerialParam())
 # This looks at every level of the blocking factor and performs
@@ -205,9 +206,11 @@ pairwiseTTests <- function(x, groups, block=NULL, design=NULL, restrict=NULL, ex
 
     # Calculating the statistics for each block.
     all.blocks <- split(seq_along(all.groups) - 1L, all.groups)
-    wout <- .worker_assign(length(subset.row), BPPARAM)
-    by.core <- .split_vector_by_workers(subset.row, wout)
-    by.core <- .split_matrix_by_workers(x, by.core)
+    by.core <- .splitRowsByWorkers(x, BPPARAM=BPPARAM, subset_row=subset.row)
+    if (.bpNotSharedOrUp(BPPARAM)) {
+        bpstart(BPPARAM)
+        on.exit(bpstop(BPPARAM))
+    }
 
     raw.stats <- bplapply(by.core, FUN=compute_blocked_stats_none, bygroup=all.blocks, BPPARAM=BPPARAM)
     all.means <- do.call(rbind, lapply(raw.stats, FUN=function(x) t(x[[1]])))

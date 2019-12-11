@@ -144,8 +144,10 @@ pairwiseBinom <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, di
 }
 
 #' @importFrom S4Vectors DataFrame
-#' @importFrom BiocParallel bplapply SerialParam bpisup bpstart bpstop
+#' @importFrom BiocParallel bplapply SerialParam bpstart bpstop
 #' @importFrom stats pbinom
+#' @importFrom scater .splitRowsByWorkers .bpNotSharedOrUp
+#' numDetectedAcrossCells
 .blocked_binom <- function(x, subset.row, groups, block=NULL, direction="any", gene.names=NULL, log.p=TRUE, 
 	threshold=1e-8, lfc=0, BPPARAM=SerialParam())
 # This looks at every level of the blocking factor and performs
@@ -160,11 +162,7 @@ pairwiseBinom <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, di
         block <- split(seq_along(block), block)
     }
 
-    # Choosing the parallelization strategy.
-    wout <- .worker_assign(length(subset.row), BPPARAM)
-    by.core <- .split_vector_by_workers(subset.row, wout)
-
-    if (!bpisup(BPPARAM)) {
+    if (.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))
     }
@@ -176,16 +174,15 @@ pairwiseBinom <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, di
 
     for (b in seq_along(block)) {
         chosen <- block[[b]]
+        by.core <- .splitRowsByWorkers(x, BPPARAM=BPPARAM, subset_row=subset.row, subset_col=chosen)
+
         cur.groups <- groups[chosen]
         all.n[[b]] <- as.vector(table(cur.groups))
         names(all.n[[b]]) <- group.vals
 
-        by.group <- split(chosen, cur.groups)
-        raw.nzero <- bplapply(by.core, FUN=.compute_nzero_stat, x=x, by.group=by.group,
-            threshold=threshold, BPPARAM=BPPARAM)
-        cons.nzero <- do.call(rbind, raw.nzero)
-        colnames(cons.nzero) <- group.vals
-        all.nzero[[b]] <- cons.nzero
+        raw.nzero <- bplapply(by.core, FUN=numDetectedAcrossCells, ids=cur.groups,
+            detection_limit=threshold, BPPARAM=BPPARAM)
+        all.nzero[[b]] <- do.call(rbind, raw.nzero)
     }
 
     if (lfc==0) {
