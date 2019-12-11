@@ -65,12 +65,8 @@ cyclone_scores <- function(mycells, exprs, marker1, marker2, indices, iter, mini
     .Call('_scran_cyclone_scores', PACKAGE = 'scran', mycells, exprs, marker1, marker2, indices, iter, miniter, minpair, seeds, streams)
 }
 
-fit_linear_model <- function(qr, qraux, exprs, subset, get_coefs) {
-    .Call('_scran_fit_linear_model', PACKAGE = 'scran', qr, qraux, exprs, subset, get_coefs)
-}
-
-fit_oneway <- function(grouping, exprs, subset) {
-    .Call('_scran_fit_oneway', PACKAGE = 'scran', grouping, exprs, subset)
+fit_linear_model <- function(qr, qraux, exprs, get_coefs) {
+    .Call('_scran_fit_linear_model', PACKAGE = 'scran', qr, qraux, exprs, get_coefs)
 }
 
 get_residuals <- function(exprs, qr, qraux, subset, lower_bound) {
@@ -81,8 +77,8 @@ get_scaled_ranks <- function(exprs, subset, transpose, as_sparse) {
     .Call('_scran_get_scaled_ranks', PACKAGE = 'scran', exprs, subset, transpose, as_sparse)
 }
 
-overlap_exprs <- function(exprs, subset, bygroup, lfc) {
-    .Call('_scran_overlap_exprs', PACKAGE = 'scran', exprs, subset, bygroup, lfc)
+overlap_exprs <- function(exprs, bygroup, lfc) {
+    .Call('_scran_overlap_exprs', PACKAGE = 'scran', exprs, bygroup, lfc)
 }
 
 pool_size_factors <- function(exprs, pseudo_cell, order, pool_sizes) {

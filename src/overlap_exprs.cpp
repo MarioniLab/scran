@@ -112,10 +112,8 @@ private:
 };
 
 template <typename T, class V, class M>
-Rcpp::List overlap_exprs_internal(const M mat, const Rcpp::List& groups, Rcpp::IntegerVector subset, const T lfc) {
-    /// Checking the subset values.
-    auto SS=check_subset_vector(subset, mat->get_nrow());
-    const size_t slen=SS.size();
+Rcpp::List overlap_exprs_internal(const M mat, const Rcpp::List& groups, const T lfc) {
+    const size_t ngenes=mat->get_nrow();
     const size_t ncells=mat->get_ncol();
    
     // Constructing groups. 
@@ -128,14 +126,14 @@ Rcpp::List overlap_exprs_internal(const M mat, const Rcpp::List& groups, Rcpp::I
 
     for (size_t i=0; i<ngroups; ++i) {
         size_t ncols=(lfc==0 ? i : ngroups);
-        Rcpp::NumericMatrix tmpP(slen, ncols), tmpT(slen, ncols);
+        Rcpp::NumericMatrix tmpP(ngenes, ncols), tmpT(ngenes, ncols);
         auto pIt=tmpP.begin(), tIt=tmpT.begin();
         pout[i]=tmpP;
         tout[i]=tmpT;
 
         pptrs[i].reserve(ncols);
         tptrs[i].reserve(ncols);
-        for (size_t j=0; j<ncols; ++j, pIt+=slen, tIt+=slen) {
+        for (size_t j=0; j<ncols; ++j, pIt+=ngenes, tIt+=ngenes) {
             pptrs[i].push_back(pIt);
             tptrs[i].push_back(tIt);
         }
@@ -143,8 +141,8 @@ Rcpp::List overlap_exprs_internal(const M mat, const Rcpp::List& groups, Rcpp::I
 
     // Running through all genes and computing pairwise overlaps. 
     V tmp(ncells);
-    for (auto sIt=SS.begin(); sIt!=SS.end(); ++sIt) { 
-        mat->get_row(*sIt, tmp.begin());
+    for (size_t g=0; g<ngenes; ++g) {
+        mat->get_row(g, tmp.begin());
         wilcox_calc.initialize(tmp);
 
         for (size_t i1=0; i1<ngroups; ++i1) {
@@ -169,15 +167,15 @@ Rcpp::List overlap_exprs_internal(const M mat, const Rcpp::List& groups, Rcpp::I
 }
 
 // [[Rcpp::export(rng=false)]]
-Rcpp::List overlap_exprs(Rcpp::RObject exprs, Rcpp::IntegerVector subset, Rcpp::List bygroup, Rcpp::RObject lfc) {
+Rcpp::List overlap_exprs(Rcpp::RObject exprs, Rcpp::List bygroup, Rcpp::RObject lfc) {
     int rtype=beachmat::find_sexp_type(exprs);
     if (rtype==INTSXP) {
         auto mat=beachmat::create_integer_matrix(exprs);
         const int shift=check_integer_scalar(lfc, "lfc");
-        return overlap_exprs_internal<int, Rcpp::IntegerVector>(mat.get(), bygroup, subset, shift);
+        return overlap_exprs_internal<int, Rcpp::IntegerVector>(mat.get(), bygroup, shift);
     } else {
         auto mat=beachmat::create_numeric_matrix(exprs);
         const double shift=check_numeric_scalar(lfc, "lfc");
-        return overlap_exprs_internal<double, Rcpp::NumericVector>(mat.get(), bygroup, subset, shift);
+        return overlap_exprs_internal<double, Rcpp::NumericVector>(mat.get(), bygroup, shift);
     }
 }

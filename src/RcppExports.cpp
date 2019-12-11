@@ -208,28 +208,15 @@ BEGIN_RCPP
 END_RCPP
 }
 // fit_linear_model
-Rcpp::RObject fit_linear_model(Rcpp::RObject qr, SEXP qraux, SEXP exprs, SEXP subset, SEXP get_coefs);
-RcppExport SEXP _scran_fit_linear_model(SEXP qrSEXP, SEXP qrauxSEXP, SEXP exprsSEXP, SEXP subsetSEXP, SEXP get_coefsSEXP) {
+Rcpp::RObject fit_linear_model(Rcpp::RObject qr, SEXP qraux, SEXP exprs, SEXP get_coefs);
+RcppExport SEXP _scran_fit_linear_model(SEXP qrSEXP, SEXP qrauxSEXP, SEXP exprsSEXP, SEXP get_coefsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::RObject >::type qr(qrSEXP);
     Rcpp::traits::input_parameter< SEXP >::type qraux(qrauxSEXP);
     Rcpp::traits::input_parameter< SEXP >::type exprs(exprsSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type subset(subsetSEXP);
     Rcpp::traits::input_parameter< SEXP >::type get_coefs(get_coefsSEXP);
-    rcpp_result_gen = Rcpp::wrap(fit_linear_model(qr, qraux, exprs, subset, get_coefs));
-    return rcpp_result_gen;
-END_RCPP
-}
-// fit_oneway
-Rcpp::List fit_oneway(Rcpp::List grouping, SEXP exprs, SEXP subset);
-RcppExport SEXP _scran_fit_oneway(SEXP groupingSEXP, SEXP exprsSEXP, SEXP subsetSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type grouping(groupingSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type exprs(exprsSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type subset(subsetSEXP);
-    rcpp_result_gen = Rcpp::wrap(fit_oneway(grouping, exprs, subset));
+    rcpp_result_gen = Rcpp::wrap(fit_linear_model(qr, qraux, exprs, get_coefs));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -261,15 +248,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // overlap_exprs
-Rcpp::List overlap_exprs(Rcpp::RObject exprs, Rcpp::IntegerVector subset, Rcpp::List bygroup, Rcpp::RObject lfc);
-RcppExport SEXP _scran_overlap_exprs(SEXP exprsSEXP, SEXP subsetSEXP, SEXP bygroupSEXP, SEXP lfcSEXP) {
+Rcpp::List overlap_exprs(Rcpp::RObject exprs, Rcpp::List bygroup, Rcpp::RObject lfc);
+RcppExport SEXP _scran_overlap_exprs(SEXP exprsSEXP, SEXP bygroupSEXP, SEXP lfcSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::RObject >::type exprs(exprsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type subset(subsetSEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type bygroup(bygroupSEXP);
     Rcpp::traits::input_parameter< Rcpp::RObject >::type lfc(lfcSEXP);
-    rcpp_result_gen = Rcpp::wrap(overlap_exprs(exprs, subset, bygroup, lfc));
+    rcpp_result_gen = Rcpp::wrap(overlap_exprs(exprs, bygroup, lfc));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -317,11 +303,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_scran_get_null_rho_design", (DL_FUNC) &_scran_get_null_rho_design, 5},
     {"_scran_compute_rho_pairs", (DL_FUNC) &_scran_compute_rho_pairs, 3},
     {"_scran_cyclone_scores", (DL_FUNC) &_scran_cyclone_scores, 10},
-    {"_scran_fit_linear_model", (DL_FUNC) &_scran_fit_linear_model, 5},
-    {"_scran_fit_oneway", (DL_FUNC) &_scran_fit_oneway, 3},
+    {"_scran_fit_linear_model", (DL_FUNC) &_scran_fit_linear_model, 4},
     {"_scran_get_residuals", (DL_FUNC) &_scran_get_residuals, 5},
     {"_scran_get_scaled_ranks", (DL_FUNC) &_scran_get_scaled_ranks, 4},
-    {"_scran_overlap_exprs", (DL_FUNC) &_scran_overlap_exprs, 4},
+    {"_scran_overlap_exprs", (DL_FUNC) &_scran_overlap_exprs, 3},
     {"_scran_pool_size_factors", (DL_FUNC) &_scran_pool_size_factors, 4},
     {"_scran_subset_and_divide", (DL_FUNC) &_scran_subset_and_divide, 4},
     {NULL, NULL, 0}
