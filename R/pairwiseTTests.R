@@ -335,9 +335,8 @@ pairwiseTTests <- function(x, groups, block=NULL, design=NULL, restrict=NULL, ex
         stop("no residual d.f. in design matrix for variance estimation")
     }
 
-    wout <- .worker_assign(length(subset.row), BPPARAM)
-    by.core <- .split_vector_by_workers(subset.row-1L, wout)
-    raw.stats <- bplapply(by.core, FUN=fit_linear_model, qr=QR$qr, qraux=QR$qraux, exprs=x, get_coefs=TRUE, BPPARAM=BPPARAM)
+    by.core <- .splitRowsByWorkers(x, BPPARAM, subset_row=subset.row)
+    raw.stats <- bplapply(by.core, FUN=fit_linear_model, qr=QR$qr, qraux=QR$qraux, get_coefs=TRUE, BPPARAM=BPPARAM)
 
     coefficients <- do.call(cbind, lapply(raw.stats, "[[", i=1))
     coefficients[QR$pivot,] <- coefficients
@@ -386,10 +385,11 @@ pairwiseTTests <- function(x, groups, block=NULL, design=NULL, restrict=NULL, ex
         }
     }
 
-    list(
+    output <- list(
         statistics=unlist(collected.stats, recursive=FALSE), 
         pairs=do.call(rbind, collected.pairs)
     )
+    .reorder_pairwise_output(output)
 }
 
 ###########################################################

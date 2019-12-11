@@ -43,10 +43,11 @@
         gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, 
         effect.name=effect.name, BPPARAM=BPPARAM)
 
-    list(
+    output <- list(
         statistics=unlist(lapply(bp.out, "[[", i=1), recursive=FALSE),
         pairs=do.call(rbind, lapply(bp.out, "[[", i=2))
     )
+    .reorder_pairwise_output(output)
 }
 
 #' @importFrom S4Vectors DataFrame
@@ -104,6 +105,13 @@
     )
 }
 
+.reorder_pairwise_output <- function(output) {
+    o <- order(output$pairs$first, output$pairs$second)
+    output$statistics <- output$statistics[o]
+    output$pairs <- output$pairs[o,]
+    output
+}
+
 .choose_leftright_pvalues <- function(left, right, direction="any")
 # Choosing whether to use the p-values from the left (lower.tail), or
 # the p-values from the right (upper.tail), or to make it two-sided.
@@ -119,19 +127,6 @@
         log.p.out <- pmin(left, right) + log(2)
         return(pmin(0, log.p.out)) 
     }
-}
-
-.create_output_container <- function(group.vals) {
-    out <- vector("list", length(group.vals))
-    names(out) <- group.vals
-    for (i in seq_along(group.vals)) {
-        targets <- group.vals[-i]
-        collected <- vector("list", length(targets))
-        names(collected) <- targets
-        host <- group.vals[i]
-        out[[host]] <- collected
-    }
-    return(out)
 }
 
 #' @importFrom S4Vectors DataFrame

@@ -389,8 +389,8 @@ test_that("pairwiseWilcox fails gracefully with silly inputs", {
     out <- pairwiseWilcox(stuff, clusters)
     expect_true(all(out$statistics[[1]]$FDR < 1e-4))
     expect_true(all(out$statistics[[2]]$FDR < 1e-4))
-    expect_equal(out$statistics[[1]]$AUC, rep(1, ngenes))
-    expect_equal(out$statistics[[2]]$AUC, rep(0, ngenes))
+    expect_equal(out$statistics[[1]]$AUC, rep(0, ngenes))
+    expect_equal(out$statistics[[2]]$AUC, rep(1, ngenes))
 
     stuff <- matrix(0, ngenes, ncol(y))
     out <- pairwiseWilcox(stuff, clusters)
