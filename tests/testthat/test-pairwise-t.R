@@ -272,7 +272,10 @@ test_that("pairwiseTTests with blocking works across multiple cores", {
     clusters <- as.factor(clust$cluster)
     block <- sample(3, ncol(X), replace=TRUE)
     ref <- pairwiseTTests(X, clusters, block=block)
+
     expect_equal(ref, pairwiseTTests(X, clusters, block=block, BPPARAM=safeBPParam(2)))
+
+    expect_equal(ref, pairwiseTTests(X, clusters, block=block, BPPARAM=SnowParam(2)))
 })
 
 set.seed(70000022)
@@ -386,7 +389,10 @@ test_that("pairwiseTTests with linear models works across multiple cores", {
     clusters <- as.factor(clust$cluster)
     covariate <- cbind(runif(ncol(X)))
     ref <- pairwiseTTests(X, clusters, design=covariate)
+
     expect_equal(ref, pairwiseTTests(X, clusters, design=covariate, BPPARAM=safeBPParam(2)))
+
+    expect_equal(ref, pairwiseTTests(X, clusters, design=covariate, BPPARAM=SnowParam(2)))
 })
 
 set.seed(70000032)
@@ -560,12 +566,12 @@ test_that("pairwiseTTests fails gracefully with silly inputs", {
     out <- pairwiseTTests(stuff, clusters)
     expect_true(all(out$statistics[[1]]$FDR < 1e-8))
     expect_true(all(out$statistics[[2]]$FDR < 1e-8))
-    expect_equal(out$statistics[[1]]$logFC, rep(-1, ngenes))
-    expect_equal(out$statistics[[2]]$logFC, rep(1, ngenes))
+    expect_equal(out$statistics[[1]]$logFC, rep(1, ngenes))
+    expect_equal(out$statistics[[2]]$logFC, rep(-1, ngenes))
 
     out <- pairwiseTTests(stuff, clusters, design=X)
     expect_true(all(out$statistics[[1]]$FDR < 1e-8))
     expect_true(all(out$statistics[[2]]$FDR < 1e-8))
-    expect_equal(out$statistics[[1]]$logFC, rep(-1, ngenes))
-    expect_equal(out$statistics[[2]]$logFC, rep(1, ngenes))
+    expect_equal(out$statistics[[1]]$logFC, rep(1, ngenes))
+    expect_equal(out$statistics[[2]]$logFC, rep(-1, ngenes))
 })

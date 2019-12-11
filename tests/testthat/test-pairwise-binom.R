@@ -48,7 +48,7 @@ REFFUN <- function(y, grouping, direction="any", lfc=0)
             } else {
                 pval <- effect <- rep(NA_real_, nrow(y))
             }
-            
+
 			currow <- which(output$pairs[,1]==host & output$pairs[,2]==target)
             curres <- output$statistics[[currow]]
 			expect_equal(unname(curres$logFC), effect)
@@ -280,7 +280,10 @@ test_that("pairwiseBinom with blocking works across multiple cores", {
     clusters <- as.factor(clust$cluster)
     block <- sample(3, ncol(X), replace=TRUE)
     ref <- pairwiseBinom(X, clusters, block=block)
+
     expect_equal(ref, pairwiseBinom(X, clusters, block=block, BPPARAM=safeBPParam(2)))
+
+    expect_equal(ref, pairwiseBinom(X, clusters, block=block, BPPARAM=SnowParam(2)))
 })
 
 set.seed(80000022)
