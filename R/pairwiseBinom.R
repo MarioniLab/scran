@@ -139,14 +139,8 @@ pairwiseBinom <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, di
     gene.names <- .setup_gene_names(gene.names, x, subset.row)
     direction <- match.arg(direction)
 
-    results <- .blocked_binom(x, subset.row, groups, block=block, direction=direction, 
+    .blocked_binom(x, subset.row, groups, block=block, direction=direction, 
         gene.names=gene.names, log.p=log.p, threshold=threshold, lfc=lfc, BPPARAM=BPPARAM)
-
-    first <- rep(names(results), lengths(results))
-    second <- unlist(lapply(results, names), use.names=FALSE)
-    results <- unlist(results, recursive=FALSE, use.names=FALSE)
-    names(results) <- NULL
-    list(statistics=results, pairs=DataFrame(first=first, second=second))
 }
 
 #' @importFrom S4Vectors DataFrame
@@ -201,7 +195,8 @@ pairwiseBinom <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, di
     }
 
     .pairwise_blocked_template(x, group.vals, nblocks=length(block), direction=direction, 
-        gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, effect.name="logFC")
+        gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, effect.name="logFC",
+        BPPARAM=BPPARAM)
 }
 
 ##########################

@@ -170,18 +170,12 @@ pairwiseTTests <- function(x, groups, block=NULL, design=NULL, restrict=NULL, ex
     if (!is.null(block) && !is.null(design)) {
         stop("cannot specify both 'block' and 'design'")
     } else if (!is.null(design)) {
-        results <- .fit_lm_internal(x, subset.row, groups, design=design, direction=direction, lfc=lfc, 
+        .fit_lm_internal(x, subset.row, groups, design=design, direction=direction, lfc=lfc, 
             std.lfc=std.lfc, gene.names=gene.names, log.p=log.p, BPPARAM=BPPARAM)
     } else {
-        results <- .test_block_internal(x, subset.row, groups, block=block, direction=direction, lfc=lfc, 
+        .test_block_internal(x, subset.row, groups, block=block, direction=direction, lfc=lfc, 
             std.lfc=std.lfc, gene.names=gene.names, log.p=log.p, BPPARAM=BPPARAM)
     }
-
-    first <- rep(names(results), lengths(results))
-    second <- unlist(lapply(results, names), use.names=FALSE)
-    results <- unlist(results, recursive=FALSE, use.names=FALSE)
-    names(results) <- NULL
-    list(statistics=results, pairs=DataFrame(first=first, second=second))
 }
 
 ###########################################################
@@ -268,7 +262,8 @@ pairwiseTTests <- function(x, groups, block=NULL, design=NULL, restrict=NULL, ex
     }
 
     .pairwise_blocked_template(x, clust.vals, nblocks, direction=direction,
-        gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, effect.name="logFC")
+        gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, effect.name="logFC",
+        BPPARAM=BPPARAM)
 }
 
 .get_t_test_stats <- function(host.s2, target.s2, host.n, target.n)
@@ -301,6 +296,7 @@ pairwiseTTests <- function(x, groups, block=NULL, design=NULL, restrict=NULL, ex
 #' @importFrom stats model.matrix
 #' @importFrom limma lmFit contrasts.fit
 #' @importFrom BiocParallel bplapply SerialParam
+#' @importFrom S4Vectors DataFrame
 .fit_lm_internal <- function(x, subset.row, groups, design, direction="any", lfc=0, std.lfc=FALSE,
     gene.names=NULL, log.p=TRUE, BPPARAM=SerialParam())
 # This fits a linear model to each gene and performs a t-test for
@@ -345,8 +341,10 @@ pairwiseTTests <- function(x, groups, block=NULL, design=NULL, restrict=NULL, ex
     sigma2 <- unlist(lapply(raw.stats, "[[", i=3))
     sigma2 <- pmax(sigma2, 1e-8) # avoid unlikely but possible problems with discreteness.
 
+    collected.stats <- collected.pairs <- list()
+    counter <- 1L
+
     # Running through every pair of groups.
-    out.stats <- .create_output_container(clust.vals)
     ngenes <- length(subset.row)
     lfit <- lmFit(rbind(seq_len(nrow(full.design))), full.design)
 
@@ -375,12 +373,20 @@ pairwiseTTests <- function(x, groups, block=NULL, design=NULL, restrict=NULL, ex
                 # Computing Cohen's D.
                 cur.lfc <- cur.lfc / sqrt(sigma2)
             }
-            out.stats[[host]][[target]] <- .create_full_stats(cur.lfc, p=hvt.p, gene.names=gene.names, log.p=log.p)
-            out.stats[[target]][[host]] <- .create_full_stats(-cur.lfc, p=tvh.p, gene.names=gene.names, log.p=log.p)
+
+            collected.stats[[counter]] <- list(
+                .create_full_stats(cur.lfc, p=hvt.p, gene.names=gene.names, log.p=log.p),
+                .create_full_stats(-cur.lfc, p=tvh.p, gene.names=gene.names, log.p=log.p)
+            )
+            collected.pairs[[counter]] <- DataFrame(first=c(host, target), second=c(target, host))
+            counter <- counter + 1L
         }
     }
 
-    out.stats
+    list(
+        statistics=unlist(collected.stats, recursive=FALSE), 
+        pairs=do.call(rbind, collected.pairs)
+    )
 }
 
 ###########################################################
@@ -421,7 +427,8 @@ pairwiseTTests <- function(x, groups, block=NULL, design=NULL, restrict=NULL, ex
             right <- right.upper
         }
     }
-    return(list(left=left, right=right))
+
+    list(left=left, right=right)
 }
 
 .add_log_values <- function(x, y)

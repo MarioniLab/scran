@@ -34,54 +34,74 @@
     }
 }
 
+#' @importFrom BiocParallel SerialParam bplapply
 .pairwise_blocked_template <- function(x, group.vals, nblocks, direction="any", 
+    gene.names=NULL, log.p=TRUE, STATFUN, effect.name, BPPARAM=SerialParam()) 
+{
+    bp.out <- bplapply(seq_along(group.vals), FUN=.pairwise_blocked_internal,
+        group.vals=group.vals, nblocks=nblocks, direction=direction,
+        gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, 
+        effect.name=effect.name, BPPARAM=BPPARAM)
+
+    list(
+        statistics=unlist(lapply(bp.out, "[[", i=1), recursive=FALSE),
+        pairs=do.call(rbind, lapply(bp.out, "[[", i=2))
+    )
+}
+
+#' @importFrom S4Vectors DataFrame
+.pairwise_blocked_internal <- function(i, group.vals, nblocks, direction="any", 
     gene.names=NULL, log.p=TRUE, STATFUN, effect.name) 
 {
-    out.stats <- .create_output_container(group.vals)
-    for (i in seq_along(group.vals)) {
-        host <- group.vals[i]
-        targets <- group.vals[seq_len(i-1L)]
+    host <- group.vals[i]
+    targets <- group.vals[seq_len(i-1L)]
+    collected.stats <- collected.pairs <- list()
+    counter <- 1L
 
-        for (target in targets) {
-            all.forward <- all.reverse <- all.left <- all.right <- vector("list", nblocks)
-            valid.test <- logical(nblocks)
-            all.weight <- numeric(nblocks)
+    for (target in targets) {
+        all.forward <- all.reverse <- all.left <- all.right <- vector("list", nblocks)
+        valid.test <- logical(nblocks)
+        all.weight <- numeric(nblocks)
 
-            for (b in seq_len(nblocks)) {
-                out <- STATFUN(b, host, target)
-                all.forward[[b]] <- out$forward
-                all.reverse[[b]] <- out$reverse
-                all.weight[b] <- out$weight
-                valid.test[b] <- out$valid
-                all.left[[b]] <- out$left
-                all.right[[b]] <- out$right
-            }
-
-            # Combining the p-values for each side across blocks.
-            if (any(valid.test)) { 
-                all.weight <- all.weight[valid.test]
-                comb.args <- list(method="z", weights=all.weight, log.p=TRUE)
-                com.left <- do.call(combinePValues, c(all.left[valid.test], comb.args))
-                com.right <- do.call(combinePValues, c(all.right[valid.test], comb.args))
-
-                hvt.p <- .choose_leftright_pvalues(com.left, com.right, direction=direction)
-                tvh.p <- .choose_leftright_pvalues(com.right, com.left, direction=direction)
-
-                forward.effect <- .weighted_average_vals(all.forward[valid.test], all.weight)
-                reverse.effect <- .weighted_average_vals(all.reverse[valid.test], all.weight)
-            } else {
-                hvt.p <- tvh.p <- forward.effect <- reverse.effect <- rep(NA_real_, length(all.left[[1]]))
-                warning(paste("no within-block comparison between", host, "and", target))
-            }
-
-            out.stats[[host]][[target]] <- .create_full_stats(effect=forward.effect, p=hvt.p, 
-                gene.names=gene.names, log.p=log.p, effect.name=effect.name)
-            out.stats[[target]][[host]] <- .create_full_stats(effect=reverse.effect, p=tvh.p, 
-                gene.names=gene.names, log.p=log.p, effect.name=effect.name)
+        for (b in seq_len(nblocks)) {
+            out <- STATFUN(b, host, target)
+            all.forward[[b]] <- out$forward
+            all.reverse[[b]] <- out$reverse
+            all.weight[b] <- out$weight
+            valid.test[b] <- out$valid
+            all.left[[b]] <- out$left
+            all.right[[b]] <- out$right
         }
+
+        # Combining the p-values for each side across blocks.
+        if (any(valid.test)) { 
+            all.weight <- all.weight[valid.test]
+            comb.args <- list(method="z", weights=all.weight, log.p=TRUE)
+            com.left <- do.call(combinePValues, c(all.left[valid.test], comb.args))
+            com.right <- do.call(combinePValues, c(all.right[valid.test], comb.args))
+
+            hvt.p <- .choose_leftright_pvalues(com.left, com.right, direction=direction)
+            tvh.p <- .choose_leftright_pvalues(com.right, com.left, direction=direction)
+
+            forward.effect <- .weighted_average_vals(all.forward[valid.test], all.weight)
+            reverse.effect <- .weighted_average_vals(all.reverse[valid.test], all.weight)
+        } else {
+            hvt.p <- tvh.p <- forward.effect <- reverse.effect <- rep(NA_real_, length(all.left[[1]]))
+            warning(paste("no within-block comparison between", host, "and", target))
+        }
+
+        collected.stats[[counter]] <- list(
+            .create_full_stats(effect=forward.effect, p=hvt.p, gene.names=gene.names, log.p=log.p, effect.name=effect.name),
+            .create_full_stats(effect=reverse.effect, p=tvh.p, gene.names=gene.names, log.p=log.p, effect.name=effect.name)
+        )
+        collected.pairs[[counter]] <- DataFrame(first=c(host, target), second=c(target, host))
+        counter <- counter + 1L
     }
-	
-    out.stats
+
+    list(
+        statistics=unlist(collected.stats, recursive=FALSE), 
+        pairs=do.call(rbind, collected.pairs)
+    )
 }
 
 .choose_leftright_pvalues <- function(left, right, direction="any")
