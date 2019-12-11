@@ -182,7 +182,17 @@ pairwiseBinom <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, di
 
         raw.nzero <- bplapply(by.core, FUN=numDetectedAcrossCells, ids=cur.groups,
             detection_limit=threshold, BPPARAM=BPPARAM)
-        all.nzero[[b]] <- do.call(rbind, raw.nzero)
+        raw.nzero <- do.call(rbind, raw.nzero)
+
+        if (any(!group.vals %in% colnames(all.nzero))) {
+            # Handle missing levels gracefully.
+            tmp <- matrix(0L, nrow=nrow(raw.nzero), ncol=length(group.vals),
+                dimnames=list(rownames(raw.nzero), group.vals))
+            tmp[,colnames(raw.nzero)] <- raw.nzero
+            raw.nzero <- tmp
+        }
+
+        all.nzero[[b]] <- raw.nzero
     }
 
     if (lfc==0) {
