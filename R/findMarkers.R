@@ -101,11 +101,12 @@
 #' @name findMarkers
 NULL
 
-#' @importFrom BiocParallel SerialParam
+#' @importFrom BiocParallel SerialParam bpstart bpstop
 #' @importFrom BiocGenerics cbind
+#' @importFrom scater .bpNotSharedOrUp
 .findMarkers <- function(x, groups, test.type=c("t", "wilcox", "binom"), ..., 
     pval.type=c("any", "some", "all"), min.prop=NULL, log.p=FALSE, 
-    full.stats=FALSE, sorted=TRUE, row.data=NULL) 
+    full.stats=FALSE, sorted=TRUE, row.data=NULL, BPPARAM=SerialParam())
 {
     test.type <- match.arg(test.type)
     if (test.type=="t") {
@@ -119,10 +120,15 @@ NULL
         effect.field <- "logFC"
     }
 
-    fit <- FUN(x, groups, ..., log.p=TRUE)
+    if (.bpNotSharedOrUp(BPPARAM)) {
+        bpstart(BPPARAM)
+        on.exit(bpstop(BPPARAM))
+    }
+
+    fit <- FUN(x, groups, ..., log.p=TRUE, BPPARAM=BPPARAM)
     output <- combineMarkers(fit$statistics, fit$pairs, pval.type=pval.type, min.prop=min.prop, 
         log.p.in=TRUE, log.p.out=log.p, full.stats=full.stats, pval.field="log.p.value", 
-        effect.field=effect.field, sorted=sorted)
+        effect.field=effect.field, sorted=sorted, BPPARAM=BPPARAM)
 
     if (!is.null(row.data)) {
         for (i in seq_along(output)) {

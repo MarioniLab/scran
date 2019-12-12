@@ -22,6 +22,7 @@
 #' @param sorted Logical scalar indicating whether each output DataFrame should be sorted by a statistic relevant to \code{pval.type}.
 #' @param flatten Logical scalar indicating whether the individual effect sizes should be flattened in the output DataFrame.
 #' If \code{FALSE}, effect sizes are reported as a nested matrix for easier programmatic use.
+#' @param BPPARAM A \linkS4class{BiocParallelParam} object indicating whether and how parallelization should be performed across genes.
 #' 
 #' @return
 #' A named \linkS4class{List} of \linkS4class{DataFrame}s where each DataFrame contains the consolidated marker statistics for each gene (row) for the cluster of the same name.
@@ -180,14 +181,11 @@
 #' comb[["Cluster3"]]
 #'
 #' @export
-#' @importFrom S4Vectors DataFrame SimpleList
-#' @importClassesFrom S4Vectors DataFrame 
-#' @importFrom stats p.adjust
-#' @importFrom BiocGenerics cbind
-#' @importFrom methods as
+#' @importFrom S4Vectors SimpleList
+#' @importFrom BiocParallel SerialParam bplapply
 combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="logFC", 
     pval.type=c("any", "some", "all"), min.prop=NULL, log.p.in=FALSE, log.p.out=log.p.in, 
-    output.field=NULL, full.stats=FALSE, sorted=TRUE, flatten=TRUE)
+    output.field=NULL, full.stats=FALSE, sorted=TRUE, flatten=TRUE, BPPARAM=SerialParam())
 {
     if (length(de.lists)!=nrow(pairs)) {
         stop("'nrow(pairs)' must be equal to 'length(de.lists)'")
@@ -219,79 +217,89 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
     # Processing by the first element of each pair.
     first.fac <- factor(pairs[,1], unique(pairs[,1]))
     by.first <- split(seq_along(de.lists), first.fac, drop=TRUE)
-    output <- vector("list", length(by.first))
-    names(output) <- names(by.first)
 
-    for (host in names(by.first)) {
-        chosen <- by.first[[host]]
-        targets <- pairs[chosen, 2]
-        cur.stats <- de.lists[chosen]
-
-        keep <- !is.na(targets)
-        targets <- targets[keep]
-        cur.stats <- cur.stats[keep]
-
-        all.p <- lapply(cur.stats, "[[", i=pval.field)
-        pval <- do.call(combinePValues, c(all.p, list(method=method, log.p=log.p.in, min.prop=min.prop)))
-        marker.set <- DataFrame(row.names=gene.names)
-
-        # Determining rank.
-        if (pval.type=="any") {
-            ranked <- lapply(all.p, rank, ties.method="first", na.last="keep")
-            min.rank <- compute_Top_statistic_from_ranks(ranked, min.prop)
-            gene.order <- order(min.rank) 
-            marker.set$Top <- min.rank
-        } else {
-            gene.order <- order(pval)
-        }
-
-        # Correcting for multiple testing. We try to preserve the log-ness as long as we can,
-        # to avoid underflow upon exp()'ing that could be avoided by correction.
-        if (log.p.in) {
-            corrected <- .logBH(pval)
-        } else {
-            corrected <- p.adjust(pval, method="BH")
-        }
-        if (log.p.out!=log.p.in) {
-            transFUN <- if (log.p.out) log else exp
-            pval <- transFUN(pval)
-            corrected <- transFUN(corrected)
-        }
-        
-        prefix <- if (log.p.out) "log." else ""
-        marker.set[[paste0(prefix, "p.value")]] <- pval 
-        marker.set[[paste0(prefix, "FDR")]] <- corrected 
-
-        if (report.effects) {
-            all.effects <- lapply(cur.stats, "[[", i=effect.field)
-            marker.set[[paste0("summary.", output.field)]] <- .choose_effect_size(all.p, all.effects, pval.type, min.prop)
-        }
-
-        # Saving effect sizes or all statistics.
-        if (full.stats || report.effects) {
-            if (full.stats) {
-                cur.stats <- lapply(cur.stats, FUN=function(x) { I(as(x, Class="DataFrame")) })
-            } else {
-                cur.stats <- all.effects
-            }
-            stat.df <- do.call(DataFrame, c(cur.stats, list(row.names=gene.names)))
-
-            if (flatten) {
-                colnames(stat.df) <- sprintf("%s.%s", output.field, targets)
-                marker.set <- cbind(marker.set, stat.df)
-            } else {
-                colnames(stat.df) <- as.character(targets)
-                marker.set[[paste0("each.", output.field)]] <- stat.df
-            }
-        }
-
-        if (sorted) {
-            marker.set <- marker.set[gene.order,,drop=FALSE]
-        }
-        output[[host]] <- marker.set
-    }
+    output <- bplapply(by.first, FUN=.combine_markers_internal,
+        pairs=pairs, de.lists=de.lists, method=method, gene.names=gene.names, report.effects=report.effects,
+        pval.type=pval.type, effect.field=effect.field, min.prop=min.prop, log.p.in=log.p.in, log.p.out=log.p.out, 
+        pval.field=pval.field, output.field=output.field, full.stats=full.stats, sorted=sorted, flatten=flatten, 
+        BPPARAM=BPPARAM)
 
     SimpleList(output)
+}
+
+#' @importFrom methods as
+#' @importFrom stats p.adjust
+#' @importFrom BiocGenerics cbind
+#' @importFrom S4Vectors DataFrame 
+.combine_markers_internal <- function(chosen, pairs, de.lists, method, gene.names, report.effects, 
+    pval.type, effect.field, min.prop, log.p.in, log.p.out, pval.field, output.field, full.stats,
+    sorted, flatten, BPPARAM=SerialParam())
+{
+    targets <- pairs[chosen, 2]
+    cur.stats <- de.lists[chosen]
+
+    keep <- !is.na(targets)
+    targets <- targets[keep]
+    cur.stats <- cur.stats[keep]
+
+    all.p <- lapply(cur.stats, "[[", i=pval.field)
+    pval <- do.call(combinePValues, c(all.p, list(method=method, log.p=log.p.in, min.prop=min.prop)))
+    marker.set <- DataFrame(row.names=gene.names)
+
+    # Determining rank.
+    if (pval.type=="any") {
+        ranked <- lapply(all.p, rank, ties.method="first", na.last="keep")
+        min.rank <- compute_Top_statistic_from_ranks(ranked, min.prop)
+        gene.order <- order(min.rank) 
+        marker.set$Top <- min.rank
+    } else {
+        gene.order <- order(pval)
+    }
+
+    # Correcting for multiple testing. We try to preserve the log-ness as long as we can,
+    # to avoid underflow upon exp()'ing that could be avoided by correction.
+    if (log.p.in) {
+        corrected <- .logBH(pval)
+    } else {
+        corrected <- p.adjust(pval, method="BH")
+    }
+    if (log.p.out!=log.p.in) {
+        transFUN <- if (log.p.out) log else exp
+        pval <- transFUN(pval)
+        corrected <- transFUN(corrected)
+    }
+    
+    prefix <- if (log.p.out) "log." else ""
+    marker.set[[paste0(prefix, "p.value")]] <- pval 
+    marker.set[[paste0(prefix, "FDR")]] <- corrected 
+
+    if (report.effects) {
+        all.effects <- lapply(cur.stats, "[[", i=effect.field)
+        marker.set[[paste0("summary.", output.field)]] <- .choose_effect_size(all.p, all.effects, pval.type, min.prop)
+    }
+
+    # Saving effect sizes or all statistics.
+    if (full.stats || report.effects) {
+        if (full.stats) {
+            cur.stats <- lapply(cur.stats, FUN=function(x) { I(DataFrame(x)) })
+        } else {
+            cur.stats <- all.effects
+        }
+        stat.df <- do.call(DataFrame, c(cur.stats, list(row.names=gene.names)))
+
+        if (flatten) {
+            colnames(stat.df) <- sprintf("%s.%s", output.field, targets)
+            marker.set <- cbind(marker.set, stat.df)
+        } else {
+            colnames(stat.df) <- as.character(targets)
+            marker.set[[paste0("each.", output.field)]] <- stat.df
+        }
+    }
+
+    if (sorted) {
+        marker.set <- marker.set[gene.order,,drop=FALSE]
+    }
+    marker.set
 }
 
 .choose_effect_size <- function(all.p, all.effects, pval.type, min.prop) {
