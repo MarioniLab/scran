@@ -147,16 +147,13 @@ NULL
     d=NULL, subset.row=NULL, min.mean=NULL, graph.fun=cluster_walktrap,
     BSPARAM=bsparam(), BPPARAM=SerialParam(), block=NULL, block.BPPARAM=SerialParam(), 
     ...)
-# Generates a factor specifying the cluster to which each cell is assigned.
-#
-# written by Karsten Bach, with modifications by Aaron Lun
-# created 1 December 2015
 {
     if (!is.null(block) && length(unique(block))>1L) {
         # Splitting into parallel processes across blocks.
         # We create submatrices here to avoid memory allocation within each core.
         by.block <- split(seq_along(block), block)
-        x.by.block <- .split_matrix_by_workers(x, by.block, byrow=FALSE)
+        x.by.block <- lapply(by.block, function(i) x[,i,drop=FALSE])
+
         collected <- bpmapply(FUN=.quick_cluster, x.by.block, 
             MoreArgs=list(min.size=min.size, method=method, use.ranks=use.ranks,
                 subset.row=subset.row, min.mean=min.mean, 
