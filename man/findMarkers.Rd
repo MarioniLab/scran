@@ -18,7 +18,8 @@ findMarkers(x, ...)
   log.p = FALSE,
   full.stats = FALSE,
   sorted = TRUE,
-  row.data = NULL
+  row.data = NULL,
+  BPPARAM = SerialParam()
 )
 
 \S4method{findMarkers}{SingleCellExperiment}(x, ..., assay.type = "logcounts")
@@ -65,6 +66,8 @@ Defaults to 0.5 when \code{pval.type="some"}, otherwise defaults to zero.}
 to be included in each of the output DataFrames.
 If \code{sorted=TRUE}, this should have the same row names as the output of \code{\link{combineMarkers}}
 (usually \code{rownames(x)}, see the \code{gene.names} argument in functions like \code{\link{pairwiseTTests}}.}
+
+\item{BPPARAM}{A \linkS4class{BiocParallelParam} object indicating whether and how parallelization should be performed across genes.}
 
 \item{assay.type}{A string specifying which assay values to use, usually \code{"logcounts"}.}
 }

@@ -16,7 +16,8 @@ combineMarkers(
   output.field = NULL,
   full.stats = FALSE,
   sorted = TRUE,
-  flatten = TRUE
+  flatten = TRUE,
+  BPPARAM = SerialParam()
 )
 }
 \arguments{
@@ -51,6 +52,8 @@ Defaults to \code{"stats"} if \code{full.stats=TRUE}, otherwise it is set to \co
 
 \item{flatten}{Logical scalar indicating whether the individual effect sizes should be flattened in the output DataFrame.
 If \code{FALSE}, effect sizes are reported as a nested matrix for easier programmatic use.}
+
+\item{BPPARAM}{A \linkS4class{BiocParallelParam} object indicating whether and how parallelization should be performed across genes.}
 }
 \value{
 A named \linkS4class{List} of \linkS4class{DataFrame}s where each DataFrame contains the consolidated marker statistics for each gene (row) for the cluster of the same name.
