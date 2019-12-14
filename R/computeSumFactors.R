@@ -205,7 +205,7 @@ NULL
         stop("zero cells in one of the clusters")
     }
 
-    min.mean <- .guess_min_mean(x, min.mean=min.mean)
+    min.mean <- .guess_min_mean(x, min.mean=min.mean, BPPARAM=BPPARAM)
 
     # Checking sizes and subsetting.
     sizes <- sort(as.integer(sizes))
@@ -250,9 +250,14 @@ NULL
 
 #' @importFrom Matrix colSums
 #' @importFrom stats median
-.guess_min_mean <- function(x, min.mean) { 
+#' @importFrom DelayedArray getAutoBPPARAM setAutoBPPARAM
+.guess_min_mean <- function(x, min.mean, BPPARAM) { 
     # Choosing a mean filter based on the data type and then filtering:
     if (is.null(min.mean)) {
+        old <- getAutoBPPARAM()
+        setAutoBPPARAM(BPPARAM)
+        on.exit(setAutoBPPARAM(old))
+
         mid.lib <- median(colSums(x))
         if (is.na(mid.lib)) { # no column check, for safety.
             min.mean <- 1

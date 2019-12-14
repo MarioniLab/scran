@@ -94,7 +94,7 @@
 #' @name doubletCells
 NULL
 
-#' @importFrom scater librarySizeFactors normalizeCounts
+#' @importFrom scater librarySizeFactors normalizeCounts .bpNotSharedOrUp
 #' @importFrom SingleCellExperiment SingleCellExperiment logcounts
 #' @importFrom BiocParallel SerialParam bpmapply bpstart bpisup bpstop
 #' @importFrom Matrix rowMeans
@@ -102,16 +102,27 @@ NULL
 #' @importFrom BiocNeighbors findKNN findNeighbors queryNeighbors queryKNN buildIndex
 #' @importFrom BiocSingular bsparam
 #' @importFrom methods is
+#' @importFrom DelayedArray getAutoBPPARAM setAutoBPPARAM
 .doublet_cells <- function(x, size.factors.norm=NULL, size.factors.content=NULL,
     k=50, subset.row=NULL, niters=max(10000, ncol(x)), block=10000, 
     d=50, force.match=FALSE, force.k=20, force.ndist=3,
     BNPARAM=KmknnParam(), BSPARAM=bsparam(), BPPARAM=SerialParam())
 {
+    # Setting up the parallelization.
+    old <- getAutoBPPARAM()
+    setAutoBPPARAM(BPPARAM)
+    on.exit(setAutoBPPARAM(old))
+
+    if (.bpNotSharedOrUp(BPPARAM)){ 
+        bpstart(BPPARAM)
+        on.exit(bpstop(BPPARAM))
+    }
+
     if (!is.null(subset.row)) {
         x <- x[subset.row,,drop=FALSE]
     }
     if (is.null(size.factors.norm)) {
-        size.factors.norm <- librarySizeFactors(x)
+        size.factors.norm <- librarySizeFactors(x, BPPARAM=BPPARAM)
     }
 
     # Manually controlling the size factor centering here to ensure the final counts are on the same scale.
@@ -121,11 +132,6 @@ NULL
         size.factors.norm <- size.factors.norm/size.factors.content
     }
     y <- normalizeCounts(x, size.factors.norm, center_size_factors=FALSE)
-
-    if (!bpisup(BPPARAM)){ 
-        bpstart(BPPARAM)
-        on.exit(bpstop(BPPARAM))
-    }
 
     # Running the SVD.
     svd.out <- .centered_SVD(t(y), max.rank=d, keep.left=TRUE, keep.right=TRUE, BSPARAM=BSPARAM, BPPARAM=BPPARAM)

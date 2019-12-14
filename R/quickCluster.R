@@ -220,7 +220,7 @@ NULL
         htree <- hclust(distM, method='ward.D2')
         clusters <- unname(dynamicTreeCut::cutreeDynamic(htree, minClusterSize=min.size, 
             distM=as.matrix(distM), verbose=0, ...))
-        
+
         unassigned <- clusters==0L
         if (any(unassigned)) { 
             warning(paste(sum(unassigned), "cells were not assigned to any cluster"))
@@ -236,10 +236,15 @@ NULL
 
 #' @importFrom Matrix colMeans t
 #' @importFrom BiocSingular DeferredMatrix
+#' @importFrom DelayedArray getAutoBPPARAM setAutoBPPARAM
 .create_rank_matrix <- function(x, deferred, ...) {
     if (!deferred) {
         y <- scaledColRanks(x, ..., transposed=TRUE)
     } else {
+        old <- getAutoBPPARAM()
+        setAutoBPPARAM(BPPARAM)
+        on.exit(setAutoBPPARAM(old))
+
         y <- scaledColRanks(x, ..., transposed=FALSE, as.sparse=TRUE)
         y <- t(DeferredMatrix(y, center=colMeans(y)))
     }

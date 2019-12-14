@@ -255,17 +255,21 @@ NULL
 }
 
 #' @importFrom BiocParallel bpmapply 
-#' @importFrom DelayedMatrixStats rowRanks rowVars rowMeans2
-#' @importFrom DelayedArray DelayedArray
+#' @importFrom DelayedMatrixStats rowRanks rowVars
+#' @importFrom DelayedArray DelayedArray rowMeans getAutoBPPARAM setAutoBPPARAM
 #' @importFrom Matrix t
 #' @importFrom stats var
 .calculate_rho <- function(sgene1, sgene2, x, subset.row, subset.col, ties.method, BPPARAM)
 # Iterating through all blocking levels (for one-way layouts; otherwise, this is a loop of length 1).
 # Computing correlations between gene pairs, and adding a weighted value to the final average.
 {
+    old <- getAutoBPPARAM()
+    setAutoBPPARAM(BPPARAM)
+    on.exit(setAutoBPPARAM(old))
+
     ranks <- rowRanks(DelayedArray(x), rows=subset.row, cols=subset.col, ties.method="average") 
     ranks <- DelayedArray(ranks)
-    ranks <- ranks - rowMeans2(ranks)
+    ranks <- ranks - rowMeans(ranks)
 
     if (ties.method=="average") {
         rank.scale <- rowVars(ranks)

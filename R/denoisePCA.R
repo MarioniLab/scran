@@ -133,7 +133,7 @@
 #' @name denoisePCA
 NULL
 
-#' @importFrom DelayedArray DelayedArray
+#' @importFrom DelayedArray DelayedArray getAutoBPPARAM setAutoBPPARAM
 #' @importFrom DelayedMatrixStats rowVars rowMeans2
 #' @importClassesFrom S4Vectors DataFrame
 #' @importFrom methods is
@@ -148,6 +148,10 @@ NULL
 # written by Aaron Lun
 # created 13 March 2017    
 {
+    old <- getAutoBPPARAM()
+    setAutoBPPARAM(BPPARAM)
+    on.exit(setAutoBPPARAM(old))
+
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     x2 <- DelayedArray(x)
     all.var <- rowVars(x2, rows=subset.row)
