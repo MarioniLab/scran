@@ -183,8 +183,8 @@ NULL
         # - we're allowing deferred calculations for PCA.
         deferred <- !is.na(d) && is(x, "dgCMatrix") && bsdeferred(BSPARAM)
 
-        min.mean <- .guess_min_mean(x, min.mean=min.mean)
-        y <- .create_rank_matrix(x, deferred=deferred, subset.row=subset.row, min.mean=min.mean)
+        min.mean <- .guess_min_mean(x, min.mean=min.mean, BPPARAM=BPPARAM)
+        y <- .create_rank_matrix(x, deferred=deferred, subset.row=subset.row, min.mean=min.mean, BPPARAM=BPPARAM)
     } else {
         sf <- librarySizeFactors(x, subset_row=subset.row)
         y <- normalizeCounts(x, size_factors=sf, subset_row=subset.row)
@@ -237,7 +237,8 @@ NULL
 #' @importFrom Matrix colMeans t
 #' @importFrom BiocSingular DeferredMatrix
 #' @importFrom DelayedArray getAutoBPPARAM setAutoBPPARAM
-.create_rank_matrix <- function(x, deferred, ...) {
+#' @importFrom BiocParallel SerialParam
+.create_rank_matrix <- function(x, deferred, ..., BPPARAM=SerialParam()) {
     if (!deferred) {
         y <- scaledColRanks(x, ..., transposed=TRUE)
     } else {
@@ -245,7 +246,7 @@ NULL
         setAutoBPPARAM(BPPARAM)
         on.exit(setAutoBPPARAM(old))
 
-        y <- scaledColRanks(x, ..., transposed=FALSE, as.sparse=TRUE)
+        y <- scaledColRanks(x, ..., transposed=FALSE, as.sparse=TRUE, BPPARAM=BPPARAM)
         y <- t(DeferredMatrix(y, center=colMeans(y)))
     }
     y

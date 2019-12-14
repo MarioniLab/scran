@@ -9,6 +9,8 @@
 #' @param transposed A logical scalar specifying whether the output should be transposed.
 #' @param as.sparse A logical scalar indicating whether the output should be sparse.
 #' @param withDimnames A logical scalar specifying whether the output should contain the dimnames of \code{x}.
+#' @param BPPARAM A \linkS4class{BiocParallelParam} object specifying whether and how parallelization should be performed.
+#' Currently only used for filtering if \code{min.mean} is not provided.
 #' 
 #' @return
 #' A matrix of the same dimensions as \code{x}, where each column contains the centred and scaled ranks of the expression values for each cell.
@@ -43,7 +45,9 @@
 #' 
 #' @export
 #' @importFrom scater calculateAverage
-scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, as.sparse=FALSE, withDimnames=TRUE)
+#' @importFrom BiocParallel SerialParam
+scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, as.sparse=FALSE, 
+    withDimnames=TRUE, BPPARAM=SerialParam())
 # Obtaining scaled/centred ranks to compute cosine distances.
 # Using this instead of colRanks to support dgCMatrix, HDF5Array objects.
 # 
@@ -52,7 +56,7 @@ scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
 {
     subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
     if (!is.null(min.mean) && all(dim(x)>0L)) {
-        further.subset <- calculateAverage(x, subset_row=subset.row) >= min.mean
+        further.subset <- calculateAverage(x, subset_row=subset.row, BPPARAM=BPPARAM) >= min.mean
         subset.row <- subset.row[further.subset]
     }
 
