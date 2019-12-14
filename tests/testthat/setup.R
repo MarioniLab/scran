@@ -21,3 +21,16 @@ safeBPParam <- function(nworkers) {
 
 # Using ExactParam to avoid the trouble of setting the seed for all SVD-related tests.
 options(BiocSingularParam.default=BiocSingular::ExactParam())
+
+# Adding a test to flush out any uncontrolled parallelization.
+library(BiocParallel)
+failgen <- setRefClass("FailParam", 
+    contains="BiocParallelParam",     
+    fields=list(),
+    methods=list())
+
+FAIL <- failgen()
+# register(FAIL) # TODO: once DelayedArray's %*% fix gets in.
+
+library(DelayedArray)
+setAutoBPPARAM(FAIL)
