@@ -10,7 +10,8 @@ scaledColRanks(
   min.mean = NULL,
   transposed = FALSE,
   as.sparse = FALSE,
-  withDimnames = TRUE
+  withDimnames = TRUE,
+  BPPARAM = SerialParam()
 )
 }
 \arguments{
@@ -26,6 +27,9 @@ Disabled by setting to \code{NULL}.}
 \item{as.sparse}{A logical scalar indicating whether the output should be sparse.}
 
 \item{withDimnames}{A logical scalar specifying whether the output should contain the dimnames of \code{x}.}
+
+\item{BPPARAM}{A \linkS4class{BiocParallelParam} object specifying whether and how parallelization should be performed.
+Currently only used for filtering if \code{min.mean} is not provided.}
 }
 \value{
 A matrix of the same dimensions as \code{x}, where each column contains the centred and scaled ranks of the expression values for each cell.
