@@ -20,6 +20,7 @@ doubletCells(x, ...)
   force.match = FALSE,
   force.k = 20,
   force.ndist = 3,
+  use.tricube.kernel = FALSE,
   BNPARAM = KmknnParam(),
   BSPARAM = bsparam(),
   BPPARAM = SerialParam()
@@ -61,6 +62,8 @@ This is orthogonal to the values in \code{size.factors.norm}, see Details.}
 
 \item{force.ndist}{A numeric scalar specifying the bandwidth for remapping if \code{force.match=TRUE}.}
 
+\item{use.tricube.kernel}{A boolean value indicating whether or not to scale contributions to density using a tricube kernel.}
+
 \item{BNPARAM}{A \linkS4class{BiocNeighborParam} object specifying the nearest neighbor algorithm.
 This should be an algorithm supported by \code{\link{findNeighbors}}.}
 
@@ -84,7 +87,10 @@ Thus, the doublet score for each cell is defined as the ratio of densities of si
 
 Densities are calculated in low-dimensional space after a PCA on the log-normalized expression matrix of \code{x}.
 Simulated doublets are projected into the low-dimensional space using the rotation vectors computed from the original cells.
-A tricube kernel is used to compute the density around each cell.
+The numbers of original cells and simulated doublets close to each cell are counted, where "closeness" is defined as the median distance to the \code{k} nearest neighbour across all cells
+Densities are then computed for cell, as the fraction of simulated doublets that were close to the cell in question, divided by the squared fraction of all original cells that were close.
+Alternatively, if \code{use.tricube.kernel} is \code{TRUE}, a tricube kernel is used to compute the density around each cell. 
+This downweights the density contribution of original cells and simulated doublets if they are further from the cell in question.
 The bandwidth of the kernel is set to the median distance to the \code{k} nearest neighbour across all cells.
 
 The two size factor arguments have different roles:

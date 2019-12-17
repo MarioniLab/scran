@@ -20,6 +20,7 @@
 #' @param force.match A logical scalar indicating whether remapping of simulated doublets to original cells should be performed.
 #' @param force.k An integer scalar specifying the number of neighbours to use for remapping if \code{force.match=TRUE}.
 #' @param force.ndist A numeric scalar specifying the bandwidth for remapping if \code{force.match=TRUE}.
+#' @param use.tricube.kernel A boolean value indicating whether or not to scale contributions to density using a tricube kernel.
 #' @param BNPARAM A \linkS4class{BiocNeighborParam} object specifying the nearest neighbor algorithm.
 #' This should be an algorithm supported by \code{\link{findNeighbors}}.
 #' @param BSPARAM A \linkS4class{BiocSingularParam} object specifying the algorithm to use for PCA, if \code{d} is not \code{NA}.
@@ -40,7 +41,10 @@
 #' 
 #' Densities are calculated in low-dimensional space after a PCA on the log-normalized expression matrix of \code{x}.
 #' Simulated doublets are projected into the low-dimensional space using the rotation vectors computed from the original cells.
-#' A tricube kernel is used to compute the density around each cell.
+#' The numbers of original cells and simulated doublets close to each cell are counted, where "closeness" is defined as the median distance to the \code{k} nearest neighbour across all cells
+#' Densities are then computed for cell, as the fraction of simulated doublets that were close to the cell in question, divided by the squared fraction of all original cells that were close.
+#' Alternatively, if \code{use.tricube.kernel} is \code{TRUE}, a tricube kernel is used to compute the density around each cell. 
+#' This downweights the density contribution of original cells and simulated doublets if they are further from the cell in question.
 #' The bandwidth of the kernel is set to the median distance to the \code{k} nearest neighbour across all cells.
 #' 
 #' The two size factor arguments have different roles:
@@ -105,7 +109,7 @@ NULL
 #' @importFrom DelayedArray getAutoBPPARAM setAutoBPPARAM
 .doublet_cells <- function(x, size.factors.norm=NULL, size.factors.content=NULL,
     k=50, subset.row=NULL, niters=max(10000, ncol(x)), block=10000, 
-    d=50, force.match=FALSE, force.k=20, force.ndist=3,
+    d=50, force.match=FALSE, force.k=20, force.ndist=3, use.tricube.kernel = FALSE,
     BNPARAM=KmknnParam(), BSPARAM=bsparam(), BPPARAM=SerialParam())
 {
     # Setting up the parallelization.
@@ -149,14 +153,23 @@ NULL
     self.dist <- findKNN(BNINDEX=pre.pcs, k=k, BPPARAM=BPPARAM, last=1, get.index=FALSE, warn.ties=FALSE)$distance
     dist2nth <- pmax(1e-8, median(self.dist))
 
-    self.n <- findNeighbors(threshold=dist2nth, BNINDEX=pre.pcs, BNPARAM=BNPARAM, BPPARAM=BPPARAM, 
-        get.distance=FALSE, get.index=FALSE)
-    sim.n <- queryNeighbors(sim.pcs, query=pcs, threshold=dist2nth, BNPARAM=BNPARAM, BPPARAM=BPPARAM, 
-        get.distance=FALSE, get.index=FALSE)
+    if(use.tricube.kernel){
+        sim.dist <- queryNeighbors(sim.pcs, query=pcs, threshold=dist2nth, BNPARAM=BNPARAM, BPPARAM=BPPARAM, get.index=FALSE)$distance
+        rel.dens <- bpmapply(FUN=function(self, sim, limit) {
+             sum((1 - (sim/limit)^3)^3)/sum((1 - (self/limit)^3)^3)^2
+        }, self=self.dist, sim=sim.dist, limit=dist2nth, BPPARAM=BPPARAM)
 
-    self.prop <- self.n/ncol(x)
-    sim.prop <- sim.n/niters
-    sim.prop / self.prop^2
+        return(rel.dens/(niters/ncol(x)))
+    } else {
+        self.n <- findNeighbors(threshold=dist2nth, BNINDEX=pre.pcs, BNPARAM=BNPARAM, BPPARAM=BPPARAM, 
+            get.distance=FALSE, get.index=FALSE)
+        sim.n <- queryNeighbors(sim.pcs, query=pcs, threshold=dist2nth, BNPARAM=BNPARAM, BPPARAM=BPPARAM, 
+            get.distance=FALSE, get.index=FALSE)
+
+        self.prop <- self.n/ncol(x)
+        sim.prop <- sim.n/niters
+        return(sim.prop / self.prop^2)
+    }
 }
 
 #' @importFrom Matrix crossprod
