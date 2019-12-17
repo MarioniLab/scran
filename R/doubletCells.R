@@ -154,6 +154,7 @@ NULL
     dist2nth <- pmax(1e-8, median(self.dist))
 
     if(use.tricube.kernel){
+        self.dist <- findNeighbors(threshold=dist2nth, BNINDEX=pre.pcs, BNPARAM=BNPARAM, BPPARAM=BPPARAM, get.index=FALSE)$distance
         sim.dist <- queryNeighbors(sim.pcs, query=pcs, threshold=dist2nth, BNPARAM=BNPARAM, BPPARAM=BPPARAM, get.index=FALSE)$distance
         rel.dens <- bpmapply(FUN=function(self, sim, limit) {
              sum((1 - (sim/limit)^3)^3)/sum((1 - (self/limit)^3)^3)^2
