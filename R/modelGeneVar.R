@@ -139,6 +139,7 @@ NULL
 #############################
 
 #' @importFrom BiocParallel SerialParam
+#' @importFrom scater .subset2index
 .model_gene_var <- function(x, block=NULL, design=NULL, subset.row=NULL, subset.fit=NULL, 
     ..., equiweight=TRUE, method="fisher", BPPARAM=SerialParam()) 
 {
@@ -161,7 +162,7 @@ NULL
     collected <- .decompose_log_exprs(x.stats$means, x.stats$vars, fit.stats$means, fit.stats$vars, 
         x.stats$ncells, ...)
     output <- .combine_blocked_statistics(collected, method, equiweight, x.stats$ncells)
-    rownames(output) <- rownames(x)[.subset_to_index(subset.row, x)]
+    rownames(output) <- rownames(x)[.subset2index(subset.row, x)]
     output
 }
 

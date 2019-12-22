@@ -132,8 +132,9 @@ setGeneric("sandbag", function(x, ...) standardGeneric("sandbag"))
 
 #' @export
 #' @rdname sandbag
+#' @importFrom scater .subset2index
 setMethod("sandbag", "ANY", function(x, phases, gene.names=rownames(x), fraction=0.5, subset.row=NULL) {
-    subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
+    subset.row <- .subset2index(subset.row, x, byrow=TRUE)
     gene.names <- gene.names[subset.row]
 
     class.names <- names(phases)

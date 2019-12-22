@@ -127,7 +127,7 @@ NULL
 #' @importFrom S4Vectors DataFrame metadata<-
 #' @importFrom BiocParallel SerialParam
 #' @importFrom stats pnorm p.adjust
-#' @importFrom scater librarySizeFactors
+#' @importFrom scater librarySizeFactors .subset2index
 .model_gene_var_with_spikes <- function(x, spikes, size.factors=NULL, spike.size.factors=NULL, 
     block=NULL, design=NULL, subset.row=NULL, pseudo.count=1, ..., 
     equiweight=TRUE, method="fisher", BPPARAM=SerialParam()) 
@@ -143,7 +143,7 @@ NULL
     collected <- .decompose_log_exprs(all$x$means, all$x$vars, all$spikes$means, all$spikes$vars, 
         all$x$ncells, ...)
     output <- .combine_blocked_statistics(collected, method, equiweight, all$x$ncells)
-    rownames(output) <- rownames(x)[.subset_to_index(subset.row, x)]
+    rownames(output) <- rownames(x)[.subset2index(subset.row, x)]
     output
 }
 

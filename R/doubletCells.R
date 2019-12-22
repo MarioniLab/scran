@@ -96,7 +96,7 @@ NULL
 
 #' @importFrom scater librarySizeFactors normalizeCounts .bpNotSharedOrUp
 #' @importFrom SingleCellExperiment SingleCellExperiment logcounts
-#' @importFrom BiocParallel SerialParam bpmapply bpstart bpisup bpstop
+#' @importFrom BiocParallel SerialParam bpmapply bpstart bpstop
 #' @importFrom Matrix rowMeans
 #' @importFrom stats median
 #' @importFrom BiocNeighbors findKNN findNeighbors queryNeighbors queryKNN buildIndex

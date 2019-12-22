@@ -1,7 +1,7 @@
 #' @importFrom BiocParallel bplapply bpstart bpstop
-#' @importFrom scater .bpNotSharedOrUp .splitRowsByWorkers
+#' @importFrom scater .subset2index .bpNotSharedOrUp .splitRowsByWorkers
 .compute_mean_var <- function(x, block, design, subset.row, block.FUN, residual.FUN, BPPARAM, ...) {
-    subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
+    subset.row <- .subset2index(subset.row, x, byrow=TRUE)
     by.core <- .splitRowsByWorkers(x, BPPARAM, subset_row=subset.row)
 
     if (.bpNotSharedOrUp(BPPARAM)) {

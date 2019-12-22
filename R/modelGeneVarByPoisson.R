@@ -98,7 +98,7 @@ NULL
 #############################
 
 #' @importFrom BiocParallel SerialParam
-#' @importFrom scater librarySizeFactors
+#' @importFrom scater librarySizeFactors .subset2index
 .model_gene_var_by_poisson <- function(x, size.factors=NULL, 
     block=NULL, design=NULL, subset.row=NULL, npts=1000, dispersion=0, pseudo.count=1, ..., 
     equiweight=TRUE, method="fisher", BPPARAM=SerialParam()) 
@@ -118,7 +118,7 @@ NULL
     collected <- .decompose_log_exprs(x.stats$means, x.stats$vars, sim.out$means, sim.out$vars, 
         x.stats$ncells, ...)
     output <- .combine_blocked_statistics(collected, method, equiweight, x.stats$ncells)
-    rownames(output) <- rownames(x)[.subset_to_index(subset.row, x)]
+    rownames(output) <- rownames(x)[.subset2index(subset.row, x)]
     output
 }
 

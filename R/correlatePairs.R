@@ -161,9 +161,10 @@
 #' @name correlatePairs
 NULL
 
-#' @importFrom BiocParallel SerialParam bpisup bpstart bpstop
+#' @importFrom BiocParallel SerialParam bpstart bpstop
 #' @importFrom S4Vectors DataFrame
 #' @importFrom stats p.adjust
+#' @importFrom scater .bpNotSharedOrUp .assignIndicesToWorkers .splitVectorByWorkers
 .correlate_pairs <- function(x, null.dist=NULL, ties.method=c("expected", "average"), 
     iters=1e6, block=NULL, design=NULL, equiweight=TRUE, use.names=TRUE, subset.row=NULL, 
     pairings=NULL, BPPARAM=SerialParam())
@@ -179,7 +180,7 @@ NULL
     gene2 <- pair.out$gene2
     reorder <- pair.out$reorder
 
-    if (!bpisup(BPPARAM)) {
+    if (.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))
     }
@@ -189,9 +190,9 @@ NULL
     ties.method <- match.arg(ties.method)
 
     # Splitting up gene pairs into jobs for multicore execution, converting to 0-based indices.
-    wout <- .worker_assign(length(gene1), BPPARAM)
-    sgene1 <- .split_vector_by_workers(gene1 - 1L, wout)
-    sgene2 <- .split_vector_by_workers(gene2 - 1L, wout)
+    wout <- .assignIndicesToWorkers(length(gene1), BPPARAM)
+    sgene1 <- .splitVectorByWorkers(gene1 - 1L, BPPARAM, assignments=wout)
+    sgene2 <- .splitVectorByWorkers(gene2 - 1L, BPPARAM, assignments=wout)
 
     blockFUN <- function(subset.col) {
         .calculate_rho(sgene1, sgene2, x=x, subset.row=subset.row, 
@@ -307,12 +308,13 @@ NULL
 ##################################
 
 #' @importFrom utils combn
+#' @importFrom scater .subset2index
 .construct_pair_indices <- function(subset.row, x, pairings) 
 # This returns a new subset-by-row vector, along with the pairs of elements
 # indexed along that vector (i.e., "1" refers to the first element of subset.row,
 # rather than the first element of "x").
 {
-    subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
+    subset.row <- .subset2index(subset.row, x, byrow=TRUE)
     reorder <- TRUE
 
     if (is.matrix(pairings)) {
@@ -320,8 +322,8 @@ NULL
         if ((!is.numeric(pairings) && !is.character(pairings)) || ncol(pairings)!=2L) { 
             stop("'pairings' should be a numeric/character matrix with 2 columns") 
         }
-        s1 <- .subset_to_index(pairings[,1], x, byrow=TRUE)
-        s2 <- .subset_to_index(pairings[,2], x, byrow=TRUE)
+        s1 <- .subset2index(pairings[,1], x, byrow=TRUE)
+        s2 <- .subset2index(pairings[,2], x, byrow=TRUE)
 
         # Discarding elements not in subset.row.
         keep <- s1 %in% subset.row & s2 %in% subset.row
@@ -339,7 +341,7 @@ NULL
             stop("'pairings' as a list should have length 2") 
         }
         converted <- lapply(pairings, FUN=function(gene.set) {
-            gene.set <- .subset_to_index(gene.set, x=x, byrow=TRUE)
+            gene.set <- .subset2index(gene.set, x, byrow=TRUE)
             intersect(gene.set, subset.row) # automatically gets rid of duplicates.
         })
         if (any(lengths(converted)==0L)) { 

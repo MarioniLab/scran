@@ -130,11 +130,12 @@
 #' @export
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel SerialParam
+#' @importFrom scater .subset2index
 pairwiseWilcox <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, direction=c("any", "up", "down"),
     lfc=0, log.p=FALSE, gene.names=rownames(x), subset.row=NULL, BPPARAM=SerialParam())
 {
     groups <- .setup_groups(groups, x, restrict=restrict, exclude=exclude) 
-    subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
+    subset.row <- .subset2index(subset.row, x, byrow=TRUE)
     gene.names <- .setup_gene_names(gene.names, x, subset.row)
     direction <- match.arg(direction)
 

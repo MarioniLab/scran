@@ -44,7 +44,7 @@
 #' table(igraph::cluster_walktrap(g)$membership)
 #' 
 #' @export
-#' @importFrom scater calculateAverage
+#' @importFrom scater calculateAverage .subset2index
 #' @importFrom BiocParallel SerialParam
 scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, as.sparse=FALSE, 
     withDimnames=TRUE, BPPARAM=SerialParam())
@@ -54,7 +54,7 @@ scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
 # written by Aaron Lun
 # created 31 August 2018
 {
-    subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
+    subset.row <- .subset2index(subset.row, x, byrow=TRUE)
     if (!is.null(min.mean) && all(dim(x)>0L)) {
         further.subset <- calculateAverage(x, subset_row=subset.row, BPPARAM=BPPARAM) >= min.mean
         subset.row <- subset.row[further.subset]

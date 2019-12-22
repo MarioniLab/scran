@@ -49,6 +49,7 @@
 #' @importFrom SummarizedExperiment rowData colData assay rowData<-
 #' @importFrom S4Vectors "mcols<-" 
 #' @importFrom edgeR DGEList "[.DGEList" scaleOffset.DGEList
+#' @importFrom scater .subset2index
 convertTo <- function(x, type=c("edgeR", "DESeq2", "monocle"), ..., assay.type=1, subset.row=NULL) {
     type <- match.arg(type)
     if (type=="edgeR" || type=="DESeq2") { 
@@ -60,7 +61,7 @@ convertTo <- function(x, type=c("edgeR", "DESeq2", "monocle"), ..., assay.type=1
     }
 
     sf <- suppressWarnings(sizeFactors(x))
-    subset.row <- .subset_to_index(subset.row, x)
+    subset.row <- .subset2index(subset.row, x)
 
     # Constructing objects of various types.
     if (type=="edgeR") {

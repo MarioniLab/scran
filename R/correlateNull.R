@@ -56,7 +56,8 @@
 #' hist(null.dist)
 #' 
 #' @export
-#' @importFrom BiocParallel SerialParam bpmapply bpisup bpstart bpstop
+#' @importFrom BiocParallel SerialParam bpmapply bpstart bpstop bpisup
+#' @importFrom scater .bpNotSharedOrUp
 correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, equiweight=TRUE, BPPARAM=SerialParam()) {
     if (!bpisup(BPPARAM)) {
         bpstart(BPPARAM)

@@ -109,7 +109,8 @@ NULL
 #' @rdname cyclone
 setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
 
-#' @importFrom BiocParallel SerialParam bplapply bpisup bpstart bpstop
+#' @importFrom BiocParallel SerialParam bplapply bpstart bpstop
+#' @importFrom scater .bpNotSharedOrUp .subset2index .assignIndicesToWorkers
 .cyclone <- function(x, pairs, gene.names=rownames(x), iter=1000, min.iter=100, min.pairs=50, 
     BPPARAM=SerialParam(), verbose=FALSE, subset.row=NULL)
 { 
@@ -121,7 +122,7 @@ setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
     min.pairs <- as.integer(min.pairs)
    
     # Checking subset vector and blanking out the unused names.
-    subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
+    subset.row <- .subset2index(subset.row, x, byrow=TRUE)
     gene.names[-subset.row] <- NA
     
     # Only keeping training pairs where both genes are in the test data.
@@ -152,7 +153,7 @@ setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))
     }
-    wout <- .worker_assign(ncol(x), BPPARAM)
+    wout <- .assignIndicesToWorkers(ncol(x), BPPARAM)
 
     # Run the allocation algorithm.
     all.scores <- vector('list', length(pairs))

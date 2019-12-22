@@ -140,6 +140,7 @@ NULL
 #' @importFrom BiocParallel SerialParam
 #' @importFrom BiocSingular bsparam
 #' @importFrom Matrix t
+#' @importFrom scater .subset2index
 .get_denoised_pcs <- function(x, technical, subset.row=NULL, min.rank=5, max.rank=50, 
     fill.missing=FALSE, BSPARAM=bsparam(), BPPARAM=SerialParam())
 # Performs PCA and chooses the number of PCs to keep based on the technical noise.
@@ -152,7 +153,7 @@ NULL
     setAutoBPPARAM(BPPARAM)
     on.exit(setAutoBPPARAM(old))
 
-    subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
+    subset.row <- .subset2index(subset.row, x, byrow=TRUE)
     x2 <- DelayedArray(x)
     all.var <- rowVars(x2, rows=subset.row)
 

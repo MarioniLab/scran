@@ -184,6 +184,7 @@
 NULL
 
 #' @importFrom BiocParallel bplapply SerialParam
+#' @importFrom scater .subset2index
 .calculate_sum_factors <- function(x, sizes=seq(21, 101, 5), clusters=NULL, ref.clust=NULL, max.cluster.size=3000, 
     positive=TRUE, scaling=NULL, min.mean=NULL, subset.row=NULL, BPPARAM=SerialParam())
 # This contains the function that performs normalization on the summed counts.
@@ -212,7 +213,7 @@ NULL
     if (anyDuplicated(sizes)) { 
         stop("'sizes' are not unique") 
     }
-    subset.row <- .subset_to_index(subset.row, x, byrow=TRUE)
+    subset.row <- .subset2index(subset.row, x, byrow=TRUE)
 
     # Setting some other values.
     nclusters <- length(indices)
