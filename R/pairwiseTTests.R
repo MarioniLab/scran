@@ -265,7 +265,7 @@ pairwiseTTests <- function(x, groups, block=NULL, design=NULL, restrict=NULL, ex
         )
     }
 
-    .pairwise_blocked_template(x, clust.vals, nblocks, direction=direction,
+    .pairwise_blocked_template(x, clust.vals, nblocks=nblocks, direction=direction,
         gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, effect.name="logFC",
         BPPARAM=BPPARAM)
 }
@@ -390,7 +390,7 @@ pairwiseTTests <- function(x, groups, block=NULL, design=NULL, restrict=NULL, ex
         statistics=unlist(collected.stats, recursive=FALSE), 
         pairs=do.call(rbind, collected.pairs)
     )
-    .reorder_pairwise_output(output)
+    .reorder_pairwise_output(output, clust.vals)
 }
 
 ###########################################################

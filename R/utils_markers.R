@@ -35,8 +35,8 @@
 }
 
 #' @importFrom BiocParallel SerialParam bplapply
-.pairwise_blocked_template <- function(x, group.vals, nblocks, direction="any", 
-    gene.names=NULL, log.p=TRUE, STATFUN, effect.name, BPPARAM=SerialParam()) 
+.pairwise_blocked_template <- function(x, group.vals, nblocks, direction, 
+    gene.names, log.p, STATFUN, effect.name, BPPARAM=SerialParam()) 
 {
     bp.out <- bplapply(seq_along(group.vals), FUN=.pairwise_blocked_internal,
         group.vals=group.vals, nblocks=nblocks, direction=direction,
@@ -47,7 +47,7 @@
         statistics=unlist(lapply(bp.out, "[[", i=1), recursive=FALSE),
         pairs=do.call(rbind, lapply(bp.out, "[[", i=2))
     )
-    .reorder_pairwise_output(output)
+    .reorder_pairwise_output(output, group.vals)
 }
 
 #' @importFrom S4Vectors DataFrame
@@ -105,8 +105,11 @@
     )
 }
 
-.reorder_pairwise_output <- function(output) {
-    o <- order(output$pairs$first, output$pairs$second)
+.reorder_pairwise_output <- function(output, levels) {
+    o <- order(
+        match(output$pairs$first, levels), 
+        match(output$pairs$second, levels)
+    )
     output$statistics <- output$statistics[o]
     output$pairs <- output$pairs[o,]
     output
