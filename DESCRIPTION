@@ -15,7 +15,8 @@ Authors@R:
 Depends: SingleCellExperiment
 Imports: 
     SummarizedExperiment, 
-    S4Vectors, 
+    S4Vectors,
+    IRanges,
     BiocGenerics, 
     BiocParallel,
     Rcpp, 
