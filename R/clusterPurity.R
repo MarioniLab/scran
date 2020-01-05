@@ -14,6 +14,10 @@
 #' @param BNPARAM A \linkS4class{BiocNeighborParam} object specifying the nearest neighbor algorithm.
 #' This should be an algorithm supported by \code{\link{findNeighbors}}.
 #' @param BPPARAM A \linkS4class{BiocParallelParam} object indicating whether and how parallelization should be performed across genes.
+#' @param ... For the generic, arguments to pass to specific methods.
+#' For the SingleCellExperiment method, arguments to pass to the ANY method.
+#' @param assay.type A string specifying which assay values to use.
+#' @param use.dimred A string specifying whether existing values in \code{reducedDims(x)} should be used.
 #'
 #' @return
 #' A numeric vector of purity values for each cell in \code{x}.

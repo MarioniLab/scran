@@ -27,6 +27,9 @@ If \code{transposed=TRUE}, cells should be in rows and reduced dimensions should
 For the \linkS4class{SingleCellExperiment} method, a SingleCellExperiment object containing an expression matrix.
 If \code{use.dimred} is supplied, it should contain a reduced dimension result in its \code{\link{reducedDims}}.}
 
+\item{...}{For the generic, arguments to pass to specific methods.
+For the SingleCellExperiment method, arguments to pass to the ANY method.}
+
 \item{clusters}{Factor specifying the cluster identity for each cell.}
 
 \item{k}{Integer scalar specifying the number of nearest neighbors to use to determine the radius of the hyperspheres.}
@@ -39,6 +42,10 @@ If \code{use.dimred} is supplied, it should contain a reduced dimension result i
 This should be an algorithm supported by \code{\link{findNeighbors}}.}
 
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object indicating whether and how parallelization should be performed across genes.}
+
+\item{assay.type}{A string specifying which assay values to use.}
+
+\item{use.dimred}{A string specifying whether existing values in \code{reducedDims(x)} should be used.}
 }
 \value{
 A numeric vector of purity values for each cell in \code{x}.

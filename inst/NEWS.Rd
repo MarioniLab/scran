@@ -12,6 +12,8 @@
 \item combineMarkers() and findMarkers() report a summary effect size for each cluster.
 
 \item Added the multiMarkerStats() function to combine statistics from multiple findMarkers() calls.
+
+\item Added the clusterPurity() function to evaluate cluster purity as a quality measure.
 }}
 
 \section{Version 1.14.0}{\itemize{
