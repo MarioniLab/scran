@@ -13,6 +13,7 @@ clusterPurity(x, ...)
   clusters,
   k = 50,
   transposed = FALSE,
+  weighted = TRUE,
   subset.row = NULL,
   BNPARAM = KmknnParam(),
   BPPARAM = SerialParam()
@@ -35,6 +36,9 @@ For the SingleCellExperiment method, arguments to pass to the ANY method.}
 \item{k}{Integer scalar specifying the number of nearest neighbors to use to determine the radius of the hyperspheres.}
 
 \item{transposed}{Logical scalar specifying whether \code{x} contains cells in the rows.}
+
+\item{weighted}{A logical scalar indicating whether to weight each cell in inverse proportion to the size of its cluster.
+Alternatively, a numeric vector of length equal to \code{clusters} containing the weight to use for each cell.}
 
 \item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 
@@ -68,12 +72,23 @@ The choice of \code{k} is used only to determine an appropriate value for the hy
 We use hyperspheres as this is robust to changes in density throughout the coordinate space,
 in contrast to computing purity based on the proportion of k-nearest neighbors in the same cluster.
 For example, the latter will fail most obviously when the size of the cluster is less than \code{k}.
-
-Technically, purity values are computed after weighting each cell by the reciprocal of the number of cells in the same cluster.
-Otherwise, clusters with more cells will have higher purities as any contamination is offset by the bulk of cells.
-By comparison, an adjacent cluster with few cells will have lower purities.
-Without weighting, this effect would compromise comparisons between clusters.
 }
+\section{Weighting by frequency}{
+
+By default, purity values are computed after weighting each cell by the reciprocal of the number of cells in the same cluster.
+Otherwise, clusters with more cells will have higher purities as any contamination is offset by the bulk of cells.
+Without weighting, this effect would compromise comparisons between clusters.
+One can interpret the weighted purities as the expected value after downsampling all clusters to the same size.
+
+Advanced users can achieve greater control by manually supplying a numeric vector of weights to \code{weighted}.
+For example, we may wish to check the purity of batches after batch correction.
+In this application, \code{clusters} should be set to the \emph{blocking factor} (not the cluster identities!)
+and \code{weighted} should be set to 1 over the frequency of each combination of cell type and batch.
+This accounts for differences in cell type composition between batches when computing purities.
+
+If \code{weighted=FALSE}, no weighting is performed.
+}
+
 \examples{
 library(scater)
 sce <- mockSCE()

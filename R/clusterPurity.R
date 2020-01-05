@@ -14,6 +14,8 @@
 #' @param BNPARAM A \linkS4class{BiocNeighborParam} object specifying the nearest neighbor algorithm.
 #' This should be an algorithm supported by \code{\link{findNeighbors}}.
 #' @param BPPARAM A \linkS4class{BiocParallelParam} object indicating whether and how parallelization should be performed across genes.
+#' @param weighted A logical scalar indicating whether to weight each cell in inverse proportion to the size of its cluster.
+#' Alternatively, a numeric vector of length equal to \code{clusters} containing the weight to use for each cell.
 #' @param ... For the generic, arguments to pass to specific methods.
 #' For the SingleCellExperiment method, arguments to pass to the ANY method.
 #' @param assay.type A string specifying which assay values to use.
@@ -38,10 +40,19 @@
 #' in contrast to computing purity based on the proportion of k-nearest neighbors in the same cluster.
 #' For example, the latter will fail most obviously when the size of the cluster is less than \code{k}.
 #'
-#' Technically, purity values are computed after weighting each cell by the reciprocal of the number of cells in the same cluster.
+#' @section Weighting by frequency:
+#' By default, purity values are computed after weighting each cell by the reciprocal of the number of cells in the same cluster.
 #' Otherwise, clusters with more cells will have higher purities as any contamination is offset by the bulk of cells.
-#' By comparison, an adjacent cluster with few cells will have lower purities.
 #' Without weighting, this effect would compromise comparisons between clusters.
+#' One can interpret the weighted purities as the expected value after downsampling all clusters to the same size.
+#'
+#' Advanced users can achieve greater control by manually supplying a numeric vector of weights to \code{weighted}.
+#' For example, we may wish to check the purity of batches after batch correction.
+#' In this application, \code{clusters} should be set to the \emph{blocking factor} (not the cluster identities!)
+#' and \code{weighted} should be set to 1 over the frequency of each combination of cell type and batch.
+#' This accounts for differences in cell type composition between batches when computing purities.
+#' 
+#' If \code{weighted=FALSE}, no weighting is performed.
 #'
 #' @author Aaron Lun
 #' @examples
@@ -76,8 +87,8 @@ NULL
 #' @importFrom S4Vectors List
 #' @importClassesFrom IRanges IntegerList LogicalList
 #' @importMethodsFrom BiocGenerics relist
-.cluster_purity <- function(x, clusters, k=50, transposed=FALSE, subset.row=NULL,
-    BNPARAM=KmknnParam(), BPPARAM=SerialParam()) 
+.cluster_purity <- function(x, clusters, k=50, transposed=FALSE, weighted=TRUE, 
+    subset.row=NULL, BNPARAM=KmknnParam(), BPPARAM=SerialParam()) 
 {
     if (!transposed) {
         if (!is.null(subset.row)) {
@@ -98,15 +109,22 @@ NULL
     nout <- findNeighbors(BNINDEX=idx, threshold=dist, BNPARAM=BNPARAM, get.distance=FALSE)$index
 
     nout <- List(nout)
-    clust.ids <- relist(clusters[unlist(nout)], nout)
-
-    w <- 1/table(clusters)
-    weights <- relist(as.numeric(w[unlist(clust.ids)]), clust.ids)
-    total <- sum(weights)
-
-    self.ids <- relist(rep(clusters, lengths(nout)), nout)
+    clust.ids <- clusters[unlist(nout)]
+    self.ids <- rep(clusters, lengths(nout))
     is.same <- clust.ids==self.ids
-    same <- sum(weights[is.same])
+
+    if (isFALSE(weighted)) {
+        w <- rep(1, length(clust.ids))
+    } else if (isTRUE(weighted)) {
+        w <- 1/table(clusters)
+        w <- as.numeric(w[as.character(clust.ids)])
+    } else {
+        w <- as.numeric(weighted)[unlist(nout)]
+    }
+
+    weights <- relist(w, nout)
+    total <- sum(weights)
+    same <- sum(weights[relist(is.same, nout)])
 
     same/total
 }

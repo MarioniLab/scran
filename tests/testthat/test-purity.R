@@ -26,7 +26,7 @@ test_that('clusterPurity yields correct output for compromised clusters', {
 })
 
 set.seed(700011)
-test_that("clusterPurity handles correctly with the weighting", {
+test_that("clusterPurity handles the weighting correctly", {
     # Creating a bulk of points.
     y0 <- matrix(rnorm(10000), nrow=50)
     y1 <- matrix(1000, nrow=50, ncol=10)
@@ -49,6 +49,34 @@ test_that("clusterPurity handles correctly with the weighting", {
     sub <- c(1, ncol(y1) + seq_len(ncol(y2) + ncol(y0)))
     out2 <- clusterPurity(y[,sub], clusters[sub])
     expect_equal(out1[sub], out2)
+})
+
+set.seed(700012)
+test_that("clusterPurity handles other weighting options", {
+    # Creating a bulk of points.
+    y0 <- matrix(rnorm(10000), nrow=50)
+    y1 <- matrix(1000, nrow=50, ncol=10)
+    y2 <- matrix(1000, nrow=50, ncol=10)
+
+    y <- cbind(y1, y2, y0)
+    clusters <- rep(1:3, c(ncol(y1), ncol(y2), ncol(y0)))
+
+    # Turning off weighting has no effect for balanced clusters.
+    out1 <- clusterPurity(y, clusters, weighted=FALSE)
+    expect_true(all(abs(out1[1:20]-0.5) < 1e-8))
+    expect_true(all(out1[-(1:20)]==1))
+
+    # Turning off weighting has some effect for non-balanced clusters.
+    sub <- c(1:5, ncol(y1) + seq_len(ncol(y2) + ncol(y0)))
+    out2 <- clusterPurity(y[,sub], clusters[sub], weighted=FALSE)
+    expect_true(all(abs(out2[1:5]-1/3) < 1e-8))
+    expect_true(all(abs(out2[6:15]-2/3) < 1e-8))
+    expect_true(all(out2[-(1:20)]==1))
+
+    # We can replace it with our own weighting to restore the balance.
+    out3 <- clusterPurity(y[,sub], clusters[sub], weighted=rep(c(2, 1, 1), c(5, ncol(y2), ncol(y0))))
+    ref <- clusterPurity(y[,sub], clusters[sub])
+    expect_equal(out3, ref)
 })
 
 set.seed(70002)
