@@ -1,7 +1,8 @@
 #' Quickly perform pseudo-bulk DE analyses
 #'
 #' A wrapper function around \pkg{edgeR}'s quasi-likelihood methods
-#' to rapidly perform differential expression analyses on pseudo-bulk profiles.
+#' to conveniently perform differential expression analyses on pseudo-bulk profiles,
+#' allowing detection of cluster-specific changes between conditions in replicated studies.
 #'
 #' @param x For the ANY method, a numeric matrix of counts where rows are genes and columns are pseudo-bulk profiles.
 #'
@@ -16,7 +17,7 @@
 #' specifying the experimental condition for each sample (i.e., row of \code{design}).
 #' Only used for filtering. 
 #' @param coef Integer scalar or vector indicating the coefficients to drop from \code{design} to form the null hypothesis.
-#' @param contrast Numeric vector containing the contrast vector representing the null hypothesis.
+#' @param contrast Numeric vector or matrix containing the contrast of interest.
 #' Takes precedence over \code{coef}.
 #' @param lfc Numeric scalar specifying the log-fold change threshold to use in \code{\link{glmTreat}}.
 #' @param assay.type String or integer scalar specifying the assay to use from \code{x}.
@@ -25,6 +26,8 @@
 #' For the SummarizedExperiment method, additional arguments to pass to the ANY method.
 #' 
 #' @return A \linkS4class{List} with one \linkS4class{DataFrame} of DE results per unique level of \code{cluster}.
+#' This will contain at least the fields \code{"LogCPM"}, \code{"PValue"} and \code{"FDR"},
+#' and usually \code{"logFC"} depending on whether an ANOVA-like contrast is requested in \code{coef} or \code{contrast}.
 #' All DataFrames have row names equal to \code{rownames(x)}.
 #'
 #' @details
@@ -103,6 +106,8 @@
 #' )
 #' @seealso
 #' \code{\link{sumCountsAcrossCells}}, to easily generate the pseudo-bulk count matrix.
+#'
+#' \code{\link{decideTestsPerCluster}}, to generate a summary of the DE results across all clusters.
 #'
 #' \code{pbDS} from the \pkg{muscat} package, which uses a similar approach.
 #' @name pseudoBulkDGE
