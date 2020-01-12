@@ -12,8 +12,8 @@
 #' specifying the cluster or cell type assignment for each column of \code{x}.
 #' @param design A numeric matrix containing the experimental design for the multi-sample comparison.
 #' The number of rows should be equal to the total number of samples and the row names should be unique levels of \code{samples}.
-#' @param condition A vector or factor of length equal to \code{ncol(x)},
-#' specifying the experimental condition for each column of \code{x}.
+#' @param condition A vector or factor of length equal to \code{nrow(design)},
+#' specifying the experimental condition for each sample (i.e., row of \code{design}).
 #' Only used for filtering. 
 #' @param coef Integer scalar or vector indicating the coefficients to drop from \code{design} to form the null hypothesis.
 #' @param contrast Numeric vector containing the contrast vector representing the null hypothesis.
@@ -109,8 +109,8 @@
 NULL
 
 #' @importFrom S4Vectors DataFrame List
-#' @importFrom edgeR DGEList estimateDisp glmQLFit glmQLFTest calcNormFactors filterByExpr topTags
-.pseudo_bulk_dge <- function(x, sample, cluster, design, group=NULL, coef=ncol(design), contrast=NULL, lfc=0) {
+#' @importFrom edgeR DGEList estimateDisp glmQLFit glmQLFTest calcNormFactors filterByExpr topTags glmLRT glmFit glmTreat
+.pseudo_bulk_dge <- function(x, sample, cluster, design, condition=NULL, coef=ncol(design), contrast=NULL, lfc=0) {
     sample <- as.character(sample)
     cluster <- as.character(cluster)
     if (!identical(sort(rownames(design)), sort(unique(sample)))) {
@@ -118,18 +118,16 @@ NULL
     }
 
     de.results <- list()
-    for (i in unique(cluster)) {
+    for (i in sort(unique(cluster))) {
         chosen <- i==cluster
 
         curx <- x[,chosen,drop=FALSE]
         y <- DGEList(curx, samples=data.frame(sample=sample[chosen], stringsAsFactors=FALSE))
-        if (!is.null(group)) {
-            y$samples$group <- group[chosen]
-        }
 
         m <- match(as.character(y$samples$sample), rownames(design))
         curdesign <- design[m,,drop=FALSE]
-        gkeep <- filterByExpr(y, design=curdesign, group=y$samples$group)
+
+        gkeep <- filterByExpr(y, design=curdesign, group=if (!is.null(condition)) condition[m])
         y <- y[gkeep,]
         y <- calcNormFactors(y)
 
@@ -151,6 +149,8 @@ NULL
                 empty <- DataFrame(empty, row.names=rownames(x))
                 de.results[[i]] <- empty
                 next
+            } else {
+                res$table$PValue <- rep(NA_real_, nrow(res$table))
             }
         } else {
             y <- estimateDisp(y, curdesign)
