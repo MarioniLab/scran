@@ -58,7 +58,6 @@ decideTestsPerCluster <- function(results, method=c("separate", "global"), thres
 
     rownames(all.p) <- rownames(results[[1]])
     sig <- all.p <= threshold
-    storage.mode(sig) <- "integer"
 
     if (!is.null(lfc.field) && !lfc.field %in% colnames(results[[1]])) {
         lfc.field <- NULL
@@ -68,5 +67,6 @@ decideTestsPerCluster <- function(results, method=c("separate", "global"), thres
         sig <- sig * sign(all.lfc)
     }
 
+    storage.mode(sig) <- "integer"
     sig
 }

@@ -35,6 +35,7 @@ test_that("pseudoBulkDGE works correctly in vanilla cases", {
     expect_identical(names(out), as.character(sort(unique(clusters))))
 
     for (x in names(out)) {
+       expect_identical(rownames(out[[x]]), rownames(sce))
        expect_true(out[[x]]$PValue[1] < 0.01)
        expect_true(out[[x]]$PValue[2] < 0.01)
        expect_true(out[[x]]$logFC[1] < -3)
@@ -183,4 +184,31 @@ test_that("pseudoBulkDGE works with a log-fold change threshold", {
 
     expect_true(all(is.na(out[["3"]]$logFC)))
     expect_true(all(is.na(out[["3"]]$unshrunk.logFC)))
+})
+
+test_that("decideTestsPerCluster works correctly", {
+    out <- pseudoBulkDGE(pseudo,
+       sample=pseudo$sample, 
+       cluster=pseudo$cluster,
+       design=design
+    )
+
+    # Adding some DE genes to spice things up.
+    for (i in names(out)) {
+        chosen <- sample(nrow(out[[i]]), 50)
+        out[[i]]$PValue[chosen] <- 0
+    }
+
+    dt <- decideTestsPerCluster(out)
+    dt0 <- decideTestsPerCluster(out, lfc.field=NULL)
+    expect_identical(abs(dt), dt0)
+
+    dtg <- decideTestsPerCluster(out, method="global")
+    expect_identical(dimnames(dtg), dimnames(dt))
+
+    for (i in names(out)) {
+        out[[i]]$logFC <- NULL
+    }
+    dt02 <- decideTestsPerCluster(out)
+    expect_identical(dt02, dt0)
 })
