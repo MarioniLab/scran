@@ -28,7 +28,7 @@ test_that("pseudoBulkDGE works correctly in vanilla cases", {
 
     out <- pseudoBulkDGE(pseudo2, 
        sample=pseudo2$sample, 
-       cluster=pseudo2$cluster,
+       label=pseudo2$cluster,
        design=design
     )
 
@@ -50,13 +50,22 @@ test_that("pseudoBulkDGE works correctly in vanilla cases", {
 
     out <- pseudoBulkDGE(pseudo2,
        sample=pseudo2$sample,
-       cluster=pseudo2$cluster,
+       label=pseudo2$cluster,
        design=design
     )
 
     expect_true(out[[1]]$PValue[1] > 0.5)
     expect_true(out[[2]]$PValue[1] < 0.05)
     expect_true(out[[3]]$PValue[1] > 0.5)
+
+    # Spits the dummy correctly.
+    expect_error(
+        pseudoBulkDGE(pseudo2,
+            sample=pseudo2$sample,
+            label=pseudo2$cluster,
+            design=design[1:2,]
+        ), "should have the same"
+    )
 })
 
 test_that("pseudoBulkDGE handles the gene filtering correctly", {
@@ -66,13 +75,13 @@ test_that("pseudoBulkDGE handles the gene filtering correctly", {
 
     out <- pseudoBulkDGE(pseudo2, 
         sample=pseudo2$sample, 
-        cluster=pseudo2$cluster,
+        label=pseudo2$cluster,
         design=design
     )
 
     ref <- pseudoBulkDGE(pseudo2[-discard,], 
         sample=pseudo2$sample, 
-        cluster=pseudo2$cluster,
+        label=pseudo2$cluster,
         design=design
     )
 
@@ -83,7 +92,7 @@ test_that("pseudoBulkDGE handles the gene filtering correctly", {
     # Setting the group works.
     out2 <- pseudoBulkDGE(pseudo2,
         sample=pseudo$sample, 
-        cluster=pseudo$cluster,
+        label=pseudo$cluster,
         design=design,
         condition=DRUG
     )
@@ -95,7 +104,7 @@ test_that("pseudoBulkDGE handles the gene filtering correctly", {
 
     out <- pseudoBulkDGE(pseudo2, 
         sample=pseudo2$sample, 
-        cluster=pseudo2$cluster,
+        label=pseudo2$cluster,
         design=design
     )
 
@@ -112,7 +121,7 @@ test_that("pseudoBulkDGE gracefully handles impossible comparisons", {
 
     out <- pseudoBulkDGE(pseudo2, 
         sample=pseudo2$sample, 
-        cluster=pseudo2$cluster,
+        label=pseudo2$cluster,
         design=design
     )
 
@@ -122,7 +131,7 @@ test_that("pseudoBulkDGE gracefully handles impossible comparisons", {
     # Checking that each cluster is truly independent of the others.
     ref <- pseudoBulkDGE(pseudo, 
         sample=pseudo$sample, 
-        cluster=pseudo$cluster,
+        label=pseudo$cluster,
         design=design
     )
     
@@ -135,7 +144,7 @@ test_that("pseudoBulkDGE gracefully handles impossible comparisons", {
 
     out <- pseudoBulkDGE(pseudo2, 
         sample=pseudo2$sample, 
-        cluster=pseudo2$cluster,
+        label=pseudo2$cluster,
         design=design
     )
 
@@ -146,14 +155,14 @@ test_that("pseudoBulkDGE gracefully handles impossible comparisons", {
 test_that("pseudoBulkDGE works with a log-fold change threshold", {
     out <- pseudoBulkDGE(pseudo, 
        sample=pseudo$sample, 
-       cluster=pseudo$cluster,
+       label=pseudo$cluster,
        design=design,
        lfc=1
     )
 
     ref <- pseudoBulkDGE(pseudo, 
        sample=pseudo$sample, 
-       cluster=pseudo$cluster,
+       label=pseudo$cluster,
        design=design
     )
 
@@ -165,7 +174,7 @@ test_that("pseudoBulkDGE works with a log-fold change threshold", {
 
     out <- pseudoBulkDGE(pseudo2,
         sample=pseudo2$sample,
-        cluster=pseudo2$cluster,
+        label=pseudo2$cluster,
         design=design, lfc=1,
     )
 
@@ -178,7 +187,7 @@ test_that("pseudoBulkDGE works with a log-fold change threshold", {
 
     out <- pseudoBulkDGE(pseudo2,
         sample=pseudo2$sample,
-        cluster=pseudo2$cluster,
+        label=pseudo2$cluster,
         design=design, lfc=1
     )
 
@@ -186,10 +195,10 @@ test_that("pseudoBulkDGE works with a log-fold change threshold", {
     expect_true(all(is.na(out[["3"]]$unshrunk.logFC)))
 })
 
-test_that("decideTestsPerCluster works correctly", {
+test_that("decideTestsPerLabel works correctly", {
     out <- pseudoBulkDGE(pseudo,
        sample=pseudo$sample, 
-       cluster=pseudo$cluster,
+       label=pseudo$cluster,
        design=design
     )
 
@@ -199,16 +208,16 @@ test_that("decideTestsPerCluster works correctly", {
         out[[i]]$PValue[chosen] <- 0
     }
 
-    dt <- decideTestsPerCluster(out)
-    dt0 <- decideTestsPerCluster(out, lfc.field=NULL)
+    dt <- decideTestsPerLabel(out)
+    dt0 <- decideTestsPerLabel(out, lfc.field=NULL)
     expect_identical(abs(dt), dt0)
 
-    dtg <- decideTestsPerCluster(out, method="global")
+    dtg <- decideTestsPerLabel(out, method="global")
     expect_identical(dimnames(dtg), dimnames(dt))
 
     for (i in names(out)) {
         out[[i]]$logFC <- NULL
     }
-    dt02 <- decideTestsPerCluster(out)
+    dt02 <- decideTestsPerLabel(out)
     expect_identical(dt02, dt0)
 })

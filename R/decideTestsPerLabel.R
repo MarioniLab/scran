@@ -1,6 +1,6 @@
-#' Decide tests for each cluster
+#' Decide tests for each label
 #'
-#' Decide which tests (i.e., genes) are significant for differential expression between conditions in each cluster,
+#' Decide which tests (i.e., genes) are significant for differential expression between conditions in each label,
 #' using the output of \code{\link{pseudoBulkDGE}}.
 #' This mimics the \code{\link{decideTests}} functionality from \pkg{limma}.
 #'
@@ -8,14 +8,14 @@
 #' Each entry should be a DataFrame with the same number and order of rows,
 #' containing at least a numeric \code{"PValue"} column (and usually a \code{"logFC"} column).
 #' @param method String specifying whether the Benjamini-Hochberg correction should be applied across all clustesr
-#' or separately within each cluster.
+#' or separately within each label.
 #' @param threshold Numeric scalar specifying the FDR threshold to consider genes as significant.
 #' @param pval.field String containing the name of the column containing the p-value in each entry of \code{results}.
 #' @param lfc.field String containing the name of the column containing the log-fold change.
 #' Ignored if the column is not available Defaults to \code{"logFC"} if this field is available.
 #'
 #' @return
-#' An integer matrix indicating whether each gene (row) is significantly DE between conditions for each cluster (column).
+#' An integer matrix indicating whether each gene (row) is significantly DE between conditions for each label (column).
 #' 
 #' @details
 #' If a log-fold change field is available and specified in \code{lfc.field}, values of \code{1}, \code{-1} and \code{0}
@@ -25,14 +25,14 @@
 #' Otherwise, if no log-fold change is available or if \code{lfc.field=NULL},
 #' values of \code{1} or \code{0} indicate that a gene is significantly DE or not, respectively. 
 #'
-#' \code{NA} values indicate either that the relevant gene was low-abundance for a particular cluster and filtered out,
-#' or that the DE comparison for that cluster was not possible (e.g., no residual d.f.).
+#' \code{NA} values indicate either that the relevant gene was low-abundance for a particular label and filtered out,
+#' or that the DE comparison for that label was not possible (e.g., no residual d.f.).
 #' 
 #' @author Aaron Lun
 #'
 #' @examples
 #' example(pseudoBulkDGE)
-#' head(decideTestsPerCluster(out))
+#' head(decideTestsPerLabel(out))
 #' 
 #' @seealso
 #' \code{\link{pseudoBulkDGE}}, which generates the input to this function.
@@ -41,7 +41,7 @@
 #'
 #' @export
 #' @importFrom stats p.adjust
-decideTestsPerCluster <- function(results, method=c("separate", "global"), threshold=0.05, 
+decideTestsPerLabel <- function(results, method=c("separate", "global"), threshold=0.05, 
     pval.field="PValue", lfc.field="logFC") 
 {
     method <- match.arg(method)
