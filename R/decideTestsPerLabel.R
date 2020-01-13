@@ -80,7 +80,7 @@ decideTestsPerLabel <- function(results, method=c("separate", "global"), thresho
 }
 
 #' @export
-#' @rdname summarizeTestsPerLabel
+#' @rdname decideTestsPerLabel 
 summarizeTestsPerLabel <- function(results, ...) {
     if (!is.matrix(results)) {
         results <- decideTestsPerLabel(results, ...)

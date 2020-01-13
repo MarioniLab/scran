@@ -87,13 +87,6 @@ Pseudo-bulk analysis also allows direct modelling of variability between experim
 rather than that between cells in the same sample.
 The former is more relevant to any statistical analysis that aims to obtain reproducible results.
 
-For each label, abundance filtering is performed using \code{\link{filterByExpr}} prior to further analysis.
-Genes that are filtered out will still show up in the DataFrame for that label, but with all statistics set to \code{NA}.
-Note that a different set of genes may be filtered out for each label,
-which is largely to be expected if their abundances change between labels.
-If \code{condition} is specified, this will instruct \code{filterByExpr} to set the minimum group size
-according to \code{condition} instead of \code{design}.
-
 In some cases, it will be impossible to perform an \pkg{edgeR} analysis as there are no residual degrees of freedom.
 This will be represented by a DataFrame with log-fold changes but \code{NA} p-values and FDRs.
 In other cases, all statistics in the DataFrame will be \code{NA} if the contrast cannot be performed,
@@ -101,6 +94,31 @@ e.g., if a cell type only exists in one condition.
 
 Note that we assume that \code{x} has already been filtered to remove unstable pseudo-bulk profiles generated from few cells.
 }
+\section{Comment on abundance filtering}{
+
+For each label, abundance filtering is performed using \code{\link{filterByExpr}} prior to further analysis.
+Genes that are filtered out will still show up in the DataFrame for that label, but with all statistics set to \code{NA}.
+As this is done separately for each label, a different set of genes may be filtered out for each label,
+which is largely to be expected if there is any label-specific expression.
+
+By default, the minimum group size for \code{filterByExpr} is determined using the design matrix.
+However, this may not be optimal if the design matrix contains additional terms (e.g., blocking factors)
+in which case it is not easy to determine the minimum size of the groups relevant to the comparison of interest.
+To overcome this, users can specify \code{condition} to specify the group to which each sample belongs,
+which is passed to \code{filterByExpr} via its \code{group} argument to obtain a more appropriate minimum group size.
+}
+
+\section{Note about the design matrix}{
+
+We require the user to supply a design matrix and contrast for safety's sake.
+Technically, we could accept a formula and dynamically construct the design matrix for each label,
+which would be more convenient by avoiding the need for up-front construction.
+We do not do this as it can silently give incorrect results if the dimensions of the design matrix change between labels,
+especially if different labels have different numbers of pseudo-bulk profiles after QC filtering.
+The most obvious example is when the number of blocking levels change between labels,
+altering the identity of the column corresponding to the contrast of interest.
+}
+
 \examples{
 set.seed(10000)
 library(scater)

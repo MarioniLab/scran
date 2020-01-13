@@ -2,6 +2,7 @@
 % Please edit documentation in R/decideTestsPerLabel.R
 \name{decideTestsPerLabel}
 \alias{decideTestsPerLabel}
+\alias{summarizeTestsPerLabel}
 \title{Decide tests for each label}
 \usage{
 decideTestsPerLabel(
@@ -11,6 +12,8 @@ decideTestsPerLabel(
   pval.field = "PValue",
   lfc.field = "logFC"
 )
+
+summarizeTestsPerLabel(results, ...)
 }
 \arguments{
 \item{results}{A \linkS4class{List} containing the output of \code{\link{pseudoBulkDGE}}.
