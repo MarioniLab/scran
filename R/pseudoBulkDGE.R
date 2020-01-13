@@ -148,6 +148,8 @@ NULL
 
         rank <- qr(curdesign)$rank
         if (rank == nrow(curdesign) || rank < ncol(curdesign)) { 
+            failed <- c(failed, i)
+
             res <- try({ 
                 fit <- glmFit(y, curdesign, dispersion=0.05)
                 if (lfc==0) {
@@ -167,8 +169,6 @@ NULL
             } else {
                 res$table$PValue <- rep(NA_real_, nrow(res$table))
             }
-
-            failed <- c(failed, i)
         } else {
             y <- estimateDisp(y, curdesign)
             fit <- glmQLFit(y, curdesign, robust=TRUE)
