@@ -57,6 +57,10 @@ A \linkS4class{List} with one \linkS4class{DataFrame} of DE results per unique l
 This will contain at least the fields \code{"LogCPM"}, \code{"PValue"} and \code{"FDR"},
 and usually \code{"logFC"} depending on whether an ANOVA-like contrast is requested in \code{coef} or \code{contrast}.
 All DataFrames have row names equal to \code{rownames(x)}.
+
+The \code{\link{metadata}} of the List contains \code{failed},
+a character vector with the names of the labels for which the comparison could not be performed,
+e.g., due to lack of residual d.f.
 }
 \description{
 A wrapper function around \pkg{edgeR}'s quasi-likelihood methods

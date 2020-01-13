@@ -14,6 +14,9 @@
 \item Added the multiMarkerStats() function to combine statistics from multiple findMarkers() calls.
 
 \item Added the clusterPurity() function to evaluate cluster purity as a quality measure.
+
+\item Added the pseudoBulkDGE() function to easily and safely perform pseudo-bulk DE analyses.
+Also added the decideTestsPerLabel() and summarizeTestsPerLabel() utilities.
 }}
 
 \section{Version 1.14.0}{\itemize{

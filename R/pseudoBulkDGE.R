@@ -31,6 +31,10 @@
 #' This will contain at least the fields \code{"LogCPM"}, \code{"PValue"} and \code{"FDR"},
 #' and usually \code{"logFC"} depending on whether an ANOVA-like contrast is requested in \code{coef} or \code{contrast}.
 #' All DataFrames have row names equal to \code{rownames(x)}.
+#' 
+#' The \code{\link{metadata}} of the List contains \code{failed},
+#' a character vector with the names of the labels for which the comparison could not be performed,
+#' e.g., due to lack of residual d.f. 
 #'
 #' @details
 #' In replicated multi-condition scRNA-seq experiments,
@@ -115,7 +119,7 @@
 #' @name pseudoBulkDGE
 NULL
 
-#' @importFrom S4Vectors DataFrame List
+#' @importFrom S4Vectors DataFrame List metadata metadata<-
 #' @importFrom edgeR DGEList estimateDisp glmQLFit glmQLFTest calcNormFactors filterByExpr topTags glmLRT glmFit glmTreat
 .pseudo_bulk_dge <- function(x, sample, label, design, coef=ncol(design), contrast=NULL, condition=NULL, lfc=0) {
     sample <- as.character(sample)
@@ -126,6 +130,8 @@ NULL
     }
 
     de.results <- list()
+    failed <- character(0)
+
     for (i in sort(unique(label))) {
         chosen <- i==label
 
@@ -161,6 +167,8 @@ NULL
             } else {
                 res$table$PValue <- rep(NA_real_, nrow(res$table))
             }
+
+            failed <- c(failed, i)
         } else {
             y <- estimateDisp(y, curdesign)
             fit <- glmQLFit(y, curdesign, robust=TRUE)
@@ -179,7 +187,9 @@ NULL
         de.results[[i]] <- tab
     }
 
-    List(de.results)
+    output <- List(de.results)
+    metadata(output)$failed <- failed
+    output
 }
 
 #' @export
