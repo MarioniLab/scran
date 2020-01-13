@@ -7,15 +7,22 @@
 #' @param results A \linkS4class{List} containing the output of \code{\link{pseudoBulkDGE}}.
 #' Each entry should be a DataFrame with the same number and order of rows,
 #' containing at least a numeric \code{"PValue"} column (and usually a \code{"logFC"} column).
+#'
+#' For \code{summarizeTestsPerLabel}, this may also be a matrix produced by \code{decideTestsPerLabel}.
 #' @param method String specifying whether the Benjamini-Hochberg correction should be applied across all clustesr
 #' or separately within each label.
 #' @param threshold Numeric scalar specifying the FDR threshold to consider genes as significant.
 #' @param pval.field String containing the name of the column containing the p-value in each entry of \code{results}.
 #' @param lfc.field String containing the name of the column containing the log-fold change.
 #' Ignored if the column is not available Defaults to \code{"logFC"} if this field is available.
+#' @param ... Further arguments to pass to \code{decideTestsPerLabel} if \code{results} is a List.
 #'
 #' @return
-#' An integer matrix indicating whether each gene (row) is significantly DE between conditions for each label (column).
+#' For \code{decideTestsPerLabel},
+#' an integer matrix indicating whether each gene (row) is significantly DE between conditions for each label (column).
+#'
+#' For \code{summarizeTestsPerLabel},
+#' an integer matrix containing the number of genes of each DE status (column) in each label (row).
 #' 
 #' @details
 #' If a log-fold change field is available and specified in \code{lfc.field}, values of \code{1}, \code{-1} and \code{0}
@@ -33,6 +40,7 @@
 #' @examples
 #' example(pseudoBulkDGE)
 #' head(decideTestsPerLabel(out))
+#' summarizeTestsPerLabel(out)
 #' 
 #' @seealso
 #' \code{\link{pseudoBulkDGE}}, which generates the input to this function.
@@ -69,4 +77,24 @@ decideTestsPerLabel <- function(results, method=c("separate", "global"), thresho
 
     storage.mode(sig) <- "integer"
     sig
+}
+
+#' @export
+#' @rdname summarizeTestsPerLabel
+summarizeTestsPerLabel <- function(results, ...) {
+    if (!is.matrix(results)) {
+        results <- decideTestsPerLabel(results, ...)
+    }
+
+    output <- list()
+    available <- sort(unique(as.vector(results)), na.last=TRUE)
+    for (i in available) {
+        output[[as.character(i)]] <- if (is.na(i)) {
+            colSums(is.na(results)) 
+        } else {
+            colSums(results==i, na.rm=TRUE)
+        }
+    }
+
+    do.call(cbind, output)
 }

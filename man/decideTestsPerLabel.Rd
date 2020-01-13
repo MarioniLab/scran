@@ -15,7 +15,9 @@ decideTestsPerLabel(
 \arguments{
 \item{results}{A \linkS4class{List} containing the output of \code{\link{pseudoBulkDGE}}.
 Each entry should be a DataFrame with the same number and order of rows,
-containing at least a numeric \code{"PValue"} column (and usually a \code{"logFC"} column).}
+containing at least a numeric \code{"PValue"} column (and usually a \code{"logFC"} column).
+
+For \code{summarizeTestsPerLabel}, this may also be a matrix produced by \code{decideTestsPerLabel}.}
 
 \item{method}{String specifying whether the Benjamini-Hochberg correction should be applied across all clustesr
 or separately within each label.}
@@ -26,9 +28,15 @@ or separately within each label.}
 
 \item{lfc.field}{String containing the name of the column containing the log-fold change.
 Ignored if the column is not available Defaults to \code{"logFC"} if this field is available.}
+
+\item{...}{Further arguments to pass to \code{decideTestsPerLabel} if \code{results} is a List.}
 }
 \value{
-An integer matrix indicating whether each gene (row) is significantly DE between conditions for each label (column).
+For \code{decideTestsPerLabel},
+an integer matrix indicating whether each gene (row) is significantly DE between conditions for each label (column).
+
+For \code{summarizeTestsPerLabel},
+an integer matrix containing the number of genes of each DE status (column) in each label (row).
 }
 \description{
 Decide which tests (i.e., genes) are significant for differential expression between conditions in each label,
@@ -49,6 +57,7 @@ or that the DE comparison for that label was not possible (e.g., no residual d.f
 \examples{
 example(pseudoBulkDGE)
 head(decideTestsPerLabel(out))
+summarizeTestsPerLabel(out)
 
 }
 \seealso{
