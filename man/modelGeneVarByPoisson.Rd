@@ -5,7 +5,7 @@
 \alias{modelGeneVarByPoisson}
 \alias{modelGeneVarByPoisson,ANY-method}
 \alias{modelGeneVarByPoisson,SingleCellExperiment-method}
-\title{Model the per-gene variance with spike-ins}
+\title{Model the per-gene variance with Poisson noise}
 \usage{
 modelGeneVarByPoisson(x, ...)
 
@@ -74,7 +74,7 @@ Each internal DataFrame's \code{metadata} contains the output of \code{\link{fit
 }
 \description{
 Model the variance of the log-expression profiles for each gene, 
-decomposing it into technical and biological components based on a mean-variance trend fitted to spike-in transcripts.
+decomposing it into technical and biological components based on a mean-variance trend corresponding to Poisson noise.
 }
 \details{
 For each gene, we compute the variance and mean of the log-expression values.
