@@ -1,7 +1,7 @@
-#' Model the per-gene variance with spike-ins
+#' Model the per-gene variance with Poisson noise
 #'
 #' Model the variance of the log-expression profiles for each gene, 
-#' decomposing it into technical and biological components based on a mean-variance trend fitted to spike-in transcripts.
+#' decomposing it into technical and biological components based on a mean-variance trend corresponding to Poisson noise.
 #' 
 #' @param x A numeric matrix of counts for endogenous genes, or a \linkS4class{SingleCellExperiment} containing such a matrix.
 #' @param size.factors A numeric vector of size factors for each cell in \code{x}, to be used for scaling gene expression.
