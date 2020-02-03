@@ -147,8 +147,8 @@ pairwiseBinom <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, di
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel bplapply SerialParam bpstart bpstop
 #' @importFrom stats pbinom
-#' @importFrom scater .splitRowsByWorkers .bpNotSharedOrUp
-#' numDetectedAcrossCells
+#' @importFrom scater .splitRowsByWorkers .bpNotSharedOrUp numDetectedAcrossCells
+#' @importFrom SummarizedExperiment assay
 .blocked_binom <- function(x, subset.row, groups, block=NULL, direction="any", gene.names=NULL, log.p=TRUE, 
 	threshold=1e-8, lfc=0, BPPARAM=SerialParam())
 # This looks at every level of the blocking factor and performs
@@ -183,6 +183,7 @@ pairwiseBinom <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, di
 
         raw.nzero <- bplapply(by.core, FUN=numDetectedAcrossCells, ids=cur.groups,
             detection_limit=threshold, BPPARAM=BPPARAM)
+        raw.nzero <- lapply(raw.nzero, assay)
         raw.nzero <- do.call(rbind, raw.nzero)
 
         if (any(!group.vals %in% colnames(all.nzero))) {
