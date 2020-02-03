@@ -156,7 +156,7 @@ Combining probability from independent tests: the weighted Z-method is superior 
 \emph{J. Evol. Biol.} 18, 5:1368-73.
 }
 \seealso{
-\code{\link{binom.test}}, on which this function is based.
+\code{\link{binom.test}} and \code{\link{binomTest}}, on which this function is based.
 
 \code{\link{combineMarkers}}, to combine pairwise comparisons into a single DataFrame per group.
 

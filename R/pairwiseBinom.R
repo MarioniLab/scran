@@ -122,7 +122,7 @@
 #' out
 #'
 #' @seealso
-#' \code{\link{binom.test}}, on which this function is based.
+#' \code{\link{binom.test}} and \code{\link{binomTest}}, on which this function is based.
 #'
 #' \code{\link{combineMarkers}}, to combine pairwise comparisons into a single DataFrame per group.
 #'
