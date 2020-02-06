@@ -5,7 +5,7 @@
 \description{Details on how gene selection is performed in almost all \pkg{scran} functions.}
 
 \section{Subsetting by row}{ 
-For functions accepting some matrix \code{x}, we can choose to perform calculations only on a subset of rows with \code{subset.row}.
+For functions accepting some gene-by-cell matrix \code{x}, we can choose to perform calculations only on a subset of rows (i.e., genes) with the \code{subset.row} argument.
 This can be a logical, integer or character vector indicating the rows of \code{x} to use.
 If a character vector, it must contain the names of the rows in \code{x}.
 Future support will be added for more esoteric subsetting vectors like the Bioconductor \linkS4class{Rle} classes.

@@ -25,13 +25,7 @@ buildSNNGraph(x, ...)
   BPPARAM = SerialParam()
 )
 
-\S4method{buildSNNGraph}{SingleCellExperiment}(
-  x,
-  ...,
-  subset.row = NULL,
-  assay.type = "logcounts",
-  use.dimred = NULL
-)
+\S4method{buildSNNGraph}{SingleCellExperiment}(x, ..., assay.type = "logcounts", use.dimred = NULL)
 
 buildKNNGraph(x, ...)
 
@@ -47,13 +41,7 @@ buildKNNGraph(x, ...)
   BPPARAM = SerialParam()
 )
 
-\S4method{buildKNNGraph}{SingleCellExperiment}(
-  x,
-  ...,
-  subset.row = NULL,
-  assay.type = "logcounts",
-  use.dimred = NULL
-)
+\S4method{buildKNNGraph}{SingleCellExperiment}(x, ..., assay.type = "logcounts", use.dimred = NULL)
 
 neighborsToSNNGraph(indices, type = c("rank", "number", "jaccard"))
 
@@ -72,13 +60,15 @@ For the SingleCellExperiment methods, additional arguments to pass to the corres
 
 \item{k}{An integer scalar specifying the number of nearest neighbors to consider during graph construction.}
 
-\item{d}{An integer scalar specifying the number of dimensions to use for the search.}
+\item{d}{An integer scalar specifying the number of dimensions to use for the search.
+Ignored for the SingleCellExperiment methods if \code{use.dimred} is set.}
 
 \item{type}{A string specifying the type of weighting scheme to use for shared neighbors.}
 
 \item{transposed}{A logical scalar indicating whether \code{x} is transposed (i.e., rows are cells).}
 
-\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.
+Only used when \code{transposed=FALSE}.}
 
 \item{BNPARAM}{A \linkS4class{BiocNeighborParam} object specifying the nearest neighbor algorithm.}
 
@@ -100,7 +90,7 @@ For \code{buildSNNGraph}, these edges are weighted by the number of shared neare
 For \code{buildKNNGraph}, edges are not weighted but may be directed if \code{directed=TRUE}.
 }
 \description{
-Build a shared or k-nearest-neighbors graph for cells based on their expression profiles.
+Build a shared or k-nearest-neighbors graph of cells based on similarities in their expression profiles.
 }
 \details{
 The \code{buildSNNGraph} method builds a shared nearest-neighbour graph using cells as nodes.
