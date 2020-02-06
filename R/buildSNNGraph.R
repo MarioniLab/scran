@@ -1,6 +1,6 @@
 #' Build a nearest-neighbor graph
 #'
-#' Build a shared or k-nearest-neighbors graph for cells based on their expression profiles.
+#' Build a shared or k-nearest-neighbors graph of cells based on similarities in their expression profiles.
 #'
 #' @param x For the ANY method, a matrix-like object containing expression values for each gene (row) in each cell (column).
 #' These dimensions can be transposed if \code{transposed=TRUE}.
@@ -9,10 +9,12 @@
 #' Alternatively, graph building will be performed from its \code{\link{reducedDims}} if \code{use.dimred} is set.
 #' @param k An integer scalar specifying the number of nearest neighbors to consider during graph construction.
 #' @param d An integer scalar specifying the number of dimensions to use for the search.
+#' Ignored for the SingleCellExperiment methods if \code{use.dimred} is set.
 #' @param type A string specifying the type of weighting scheme to use for shared neighbors.
 #' @param directed A logical scalar indicating whether the output of \code{buildKNNGraph} should be a directed graph.
 #' @param transposed A logical scalar indicating whether \code{x} is transposed (i.e., rows are cells).
 #' @param subset.row See \code{?"\link{scran-gene-selection}"}.
+#' Only used when \code{transposed=FALSE}.
 #' @param BNPARAM A \linkS4class{BiocNeighborParam} object specifying the nearest neighbor algorithm.
 #' @param BSPARAM A \linkS4class{BiocSingularParam} object specifying the algorithm to use for PCA, if \code{d} is not \code{NA}.
 #' @param BPPARAM A \linkS4class{BiocParallelParam} object to use for parallel processing.
@@ -166,12 +168,10 @@ NULL
 
 #' @importFrom BiocNeighbors findKNN
 .setup_knn_data <- function(x, subset.row, d, transposed, k, BNPARAM, BSPARAM, BPPARAM) {
-    ncells <- ncol(x)
-    if (!is.null(subset.row)) {
-        x <- x[subset.row,,drop=FALSE]
-    }
-    
     if (!transposed) {
+        if (!is.null(subset.row)) {
+            x <- x[subset.row,,drop=FALSE]
+        }
         x <- t(x)
     } 
     
@@ -201,11 +201,11 @@ setMethod("buildSNNGraph", "ANY", .buildSNNGraph)
 #' @rdname buildSNNGraph
 #' @importFrom SummarizedExperiment assay
 #' @importFrom SingleCellExperiment reducedDim 
-setMethod("buildSNNGraph", "SingleCellExperiment", function(x, ..., subset.row=NULL, assay.type="logcounts", use.dimred=NULL) {
+setMethod("buildSNNGraph", "SingleCellExperiment", function(x, ..., assay.type="logcounts", use.dimred=NULL) {
     if (!is.null(use.dimred)) {
-        .buildSNNGraph(reducedDim(x, use.dimred), d=NA, transposed=TRUE, ..., subset.row=NULL)
+        .buildSNNGraph(reducedDim(x, use.dimred), d=NA, transposed=TRUE, ...)
     } else {
-        .buildSNNGraph(assay(x, i=assay.type), transposed=FALSE, ..., subset.row=subset.row)
+        .buildSNNGraph(assay(x, i=assay.type), transposed=FALSE, ...)
     }
 })
 
@@ -221,11 +221,11 @@ setMethod("buildKNNGraph", "ANY", .buildKNNGraph)
 #' @rdname buildSNNGraph
 #' @importFrom SummarizedExperiment assay
 #' @importFrom SingleCellExperiment reducedDim 
-setMethod("buildKNNGraph", "SingleCellExperiment", function(x, ..., subset.row=NULL, assay.type="logcounts", use.dimred=NULL) {
+setMethod("buildKNNGraph", "SingleCellExperiment", function(x, ..., assay.type="logcounts", use.dimred=NULL) {
     if (!is.null(use.dimred)) {
-        .buildKNNGraph(reducedDim(x, use.dimred), d=NA, transposed=TRUE, ..., subset.row=NULL)
+        .buildKNNGraph(reducedDim(x, use.dimred), d=NA, transposed=TRUE, ...)
     } else {
-        .buildKNNGraph(assay(x, i=assay.type), transposed=FALSE, ..., subset.row=subset.row)
+        .buildKNNGraph(assay(x, i=assay.type), transposed=FALSE, ...)
     }
 })
 
