@@ -103,10 +103,12 @@ sce <- runPCA(sce, ncomponents=10)
 clusters3 <- clusterSNNGraph(sce, use.dimred="PCA")
 table(clusters3)
 
-# Works with large datasets, e.g., assuming we already have a PCA result:
-bigpc <- matrix(rnorm(10000000), ncol=50)
+# Turn on k-means for larger datasets, e.g., 
+# assuming we already have a PCA result:
+set.seed(101010)
+bigpc <- matrix(rnorm(2000000), ncol=20)
 clusters4 <- clusterSNNGraph(bigpc, d=NA, use.kmeans=TRUE, transposed=TRUE)
-
+table(clusters4)
 
 }
 \seealso{

@@ -17,6 +17,9 @@
 
 \item Added the pseudoBulkDGE() function to easily and safely perform pseudo-bulk DE analyses.
 Also added the decideTestsPerLabel() and summarizeTestsPerLabel() utilities.
+
+\item Added the clusterSNNGraph() and clusterKNNGraph() wrapper functions for easier graph-based clustering.
+Provided a k-means pre-clustering option to handle large datasets.
 }}
 
 \section{Version 1.14.0}{\itemize{
