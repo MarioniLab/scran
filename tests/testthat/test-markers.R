@@ -114,6 +114,13 @@ test_that("findMarkers and getMarkerEffects work correctly", {
     expect_type(eff, "double")
     expect_identical(colnames(eff), as.character(2:3))
 
+    # Removes NAs properly.
+    copy <- out[[1]]
+    ref <- getMarkerEffects(copy)
+    copy$logFC.2 <- NA
+    eff <- getMarkerEffects(copy, remove.na.col=TRUE)
+    expect_identical(ref[,-1,drop=FALSE], eff)
+
     # Works for Wilcox tests.
     out <- findMarkers(dummy, groups=clust$cluster, test.type="wilcox")
     eff <- getMarkerEffects(out[[2]], prefix="AUC")
