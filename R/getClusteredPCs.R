@@ -22,8 +22,8 @@
 #' an integer scalar specifying the \dQuote{ideal} number of PCs to use.
 #'
 #' @details
-#' We assume that the data contains multiple subpopulations, each of which is separated from the others on a different axis.
-#' For example, each subpopulation could be defined by a unique set of marker genes driving its own PC.
+#' Assume that the data contains multiple subpopulations, each of which is separated from the others on a different axis.
+#' For example, each subpopulation could be defined by a unique set of marker genes that drives separation on its own PC.
 #' If we had \eqn{x} subpopulations, we would need at least \eqn{x-1} PCs to successfully distinguish all of them.
 #' This motivates the choice of the number of PCs provided we know the number of subpopulations in the data.
 #'
@@ -85,7 +85,7 @@ getClusteredPCs <- function(pcs, FUN=NULL, ..., min.rank=5, max.rank=ncol(pcs), 
     nc <- vapply(collected, FUN=function(x) length(unique(x)), 0L)
     output <- DataFrame(n.pcs=n, n.clusters=nc, clusters=I(List(collected)))
 
-    keep <- which(nc < n-1)
+    keep <- which(nc <= n+1)
     if (length(keep)) {
         chosen <- n[keep][which.max(nc[keep])]
     } else {
