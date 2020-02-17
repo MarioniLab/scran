@@ -43,8 +43,8 @@ Cluster cells after using varying number of PCs,
 and pick the number of PCs using a heuristic based on the number of clusters.
 }
 \details{
-We assume that the data contains multiple subpopulations, each of which is separated from the others on a different axis.
-For example, each subpopulation could be defined by a unique set of marker genes driving its own PC.
+Assume that the data contains multiple subpopulations, each of which is separated from the others on a different axis.
+For example, each subpopulation could be defined by a unique set of marker genes that drives separation on its own PC.
 If we had \eqn{x} subpopulations, we would need at least \eqn{x-1} PCs to successfully distinguish all of them.
 This motivates the choice of the number of PCs provided we know the number of subpopulations in the data.
 

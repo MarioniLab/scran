@@ -37,6 +37,7 @@ out <- findMarkers(sce, groups=kout$cluster)
 
 eff1 <- getMarkerEffects(out[[1]])
 str(eff1)
+
 }
 \seealso{
 \code{\link{findMarkers}} and \code{\link{combineMarkers}}, to generate the DataFrames.
