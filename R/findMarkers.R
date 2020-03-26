@@ -1,13 +1,16 @@
 #' Find marker genes
 #' 
-#' Find candidate marker genes for groups of cells (e.g., clusters) by testing for differential expression between pairs of groups.
+#' Find candidate marker genes for groups of cells (e.g., clusters) 
+#' by testing for differential expression between pairs of groups.
 #' 
 #' @param x A numeric matrix-like object of expression values, 
 #' where each column corresponds to a cell and each row corresponds to an endogenous gene.
 #' This is expected to be normalized log-expression values for most tests - see Details.
 #'
-#' Alternatively, a \linkS4class{SingleCellExperiment} object containing such a matrix.
-#' @param groups A vector of group assignments for all cells.
+#' Alternatively, a \linkS4class{SummarizedExperiemnt} or \linkS4class{SingleCellExperiment} object containing such a matrix.
+#' @param groups A vector of length equal to \code{ncol(x)}, 
+#' specifying the group to which each cell is assigned.
+#' If \code{x} is a \linkS4class{SingleCellExperiment}, this defaults to \code{\link{colLabels}(x)} if available.
 #' @param test.type String specifying the type of pairwise test to perform -
 #' a t-test with \code{"t"}, a Wilcoxon rank sum test with \code{"wilcox"}, 
 #' or a binomial test with \code{"binom"}.
@@ -29,7 +32,9 @@
 #' \code{block} and \code{BPPARAM}.
 #' Test-specific arguments are also supported for the appropriate \code{test.type}.
 #' 
-#' For the SingleCellExperiment method, further arguments to pass to the ANY method.
+#' For the SummarizedExperiment method, further arguments to pass to the ANY method.
+#'
+#' For the SingleCellExperiment method, further arguments to pass to the SummarizedExperiment method.
 #' @param assay.type A string specifying which assay values to use, usually \code{"logcounts"}.
 #' 
 #' @details
@@ -158,6 +163,13 @@ setMethod("findMarkers", "ANY", .findMarkers)
 #' @export
 #' @rdname findMarkers
 #' @importFrom SummarizedExperiment assay
-setMethod("findMarkers", "SingleCellExperiment", function(x, ..., assay.type="logcounts") {
+setMethod("findMarkers", "SummarizedExperiment", function(x, ..., assay.type="logcounts") {
     .findMarkers(assay(x, i=assay.type), ...)
+})
+
+#' @export
+#' @rdname findMarkers
+#' @importFrom SingleCellExperiment colLabels
+setMethod("findMarkers", "SingleCellExperiment", function(x, groups=colLabels(x, onAbsence="error"), ...) { 
+    callNextMethod(x=x, groups=groups, ...)
 })

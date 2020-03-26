@@ -13,13 +13,25 @@ X <- SingleCellExperiment(list(counts=dummy))
 sizeFactors(X) <- colSums(dummy)
 X <- logNormCounts(X)
 
-test_that("findMarkers works correctly with subsetting and spikes", {   
+test_that("findMarkers dispatches correctly", {   
     # Works with an SCE object.
     clust <- kmeans(t(exprs(X)), centers=3)
     out <- findMarkers(X, groups=clust$cluster)
     out2 <- findMarkers(exprs(X), groups=clust$cluster)
     expect_identical(out, out2)
 
+    Xbase <- as(X, "SummarizedExperiment")
+    rownames(Xbase) <- rownames(X) # TODO: Bioconductor/SummarizedExperiment#29
+    out3 <- findMarkers(Xbase, groups=clust$cluster)
+    expect_identical(out, out3)
+
+    Xlab <- X
+    colLabels(Xlab) <- clust$cluster
+    out4 <- findMarkers(Xlab)
+    expect_identical(out, out4)
+})
+
+test_that("findMarkers works correctly with subsetting and spikes", {   
     # Works with subsetting.
     out <- findMarkers(X, groups=clust$cluster, subset.row=100:1)
     out2 <- findMarkers(X[100:1,], groups=clust$cluster)
