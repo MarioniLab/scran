@@ -32,7 +32,7 @@ findMarkers(x, ...)
 where each column corresponds to a cell and each row corresponds to an endogenous gene.
 This is expected to be normalized log-expression values for most tests - see Details.
 
-Alternatively, a \linkS4class{SummarizedExperiemnt} or \linkS4class{SingleCellExperiment} object containing such a matrix.}
+Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} object containing such a matrix.}
 
 \item{...}{For the generic, further arguments to pass to specific methods.
 

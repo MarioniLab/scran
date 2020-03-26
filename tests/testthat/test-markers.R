@@ -14,7 +14,6 @@ sizeFactors(X) <- colSums(dummy)
 X <- logNormCounts(X)
 
 test_that("findMarkers dispatches correctly", {   
-    # Works with an SCE object.
     clust <- kmeans(t(exprs(X)), centers=3)
     out <- findMarkers(X, groups=clust$cluster)
     out2 <- findMarkers(exprs(X), groups=clust$cluster)
@@ -32,6 +31,8 @@ test_that("findMarkers dispatches correctly", {
 })
 
 test_that("findMarkers works correctly with subsetting and spikes", {   
+    clust <- kmeans(t(exprs(X)), centers=3)
+
     # Works with subsetting.
     out <- findMarkers(X, groups=clust$cluster, subset.row=100:1)
     out2 <- findMarkers(X[100:1,], groups=clust$cluster)

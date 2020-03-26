@@ -7,7 +7,7 @@
 #' where each column corresponds to a cell and each row corresponds to an endogenous gene.
 #' This is expected to be normalized log-expression values for most tests - see Details.
 #'
-#' Alternatively, a \linkS4class{SummarizedExperiemnt} or \linkS4class{SingleCellExperiment} object containing such a matrix.
+#' Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} object containing such a matrix.
 #' @param groups A vector of length equal to \code{ncol(x)}, 
 #' specifying the group to which each cell is assigned.
 #' If \code{x} is a \linkS4class{SingleCellExperiment}, this defaults to \code{\link{colLabels}(x)} if available.
