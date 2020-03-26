@@ -3,6 +3,7 @@
 \name{findMarkers}
 \alias{findMarkers}
 \alias{findMarkers,ANY-method}
+\alias{findMarkers,SummarizedExperiment-method}
 \alias{findMarkers,SingleCellExperiment-method}
 \title{Find marker genes}
 \usage{
@@ -22,14 +23,16 @@ findMarkers(x, ...)
   BPPARAM = SerialParam()
 )
 
-\S4method{findMarkers}{SingleCellExperiment}(x, ..., assay.type = "logcounts")
+\S4method{findMarkers}{SummarizedExperiment}(x, ..., assay.type = "logcounts")
+
+\S4method{findMarkers}{SingleCellExperiment}(x, groups = colLabels(x, onAbsence = "error"), ...)
 }
 \arguments{
 \item{x}{A numeric matrix-like object of expression values, 
 where each column corresponds to a cell and each row corresponds to an endogenous gene.
 This is expected to be normalized log-expression values for most tests - see Details.
 
-Alternatively, a \linkS4class{SingleCellExperiment} object containing such a matrix.}
+Alternatively, a \linkS4class{SummarizedExperiemnt} or \linkS4class{SingleCellExperiment} object containing such a matrix.}
 
 \item{...}{For the generic, further arguments to pass to specific methods.
 
@@ -43,9 +46,13 @@ Common arguments for all testing functions include \code{gene.names}, \code{dire
 \code{block} and \code{BPPARAM}.
 Test-specific arguments are also supported for the appropriate \code{test.type}.
 
-For the SingleCellExperiment method, further arguments to pass to the ANY method.}
+For the SummarizedExperiment method, further arguments to pass to the ANY method.
 
-\item{groups}{A vector of group assignments for all cells.}
+For the SingleCellExperiment method, further arguments to pass to the SummarizedExperiment method.}
+
+\item{groups}{A vector of length equal to \code{ncol(x)}, 
+specifying the group to which each cell is assigned.
+If \code{x} is a \linkS4class{SingleCellExperiment}, this defaults to \code{\link{colLabels}(x)} if available.}
 
 \item{test.type}{String specifying the type of pairwise test to perform -
 a t-test with \code{"t"}, a Wilcoxon rank sum test with \code{"wilcox"}, 
@@ -80,7 +87,8 @@ Log-fold changes are reported as differences in average \code{x} between groups
 See \code{?\link{combineMarkers}} for more details on the output format.
 }
 \description{
-Find candidate marker genes for groups of cells (e.g., clusters) by testing for differential expression between pairs of groups.
+Find candidate marker genes for groups of cells (e.g., clusters) 
+by testing for differential expression between pairs of groups.
 }
 \details{
 This function provides a convenience wrapper for marker gene identification between groups of cells,

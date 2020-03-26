@@ -2,9 +2,14 @@
 % Please edit documentation in R/pairwiseWilcox.R
 \name{pairwiseWilcox}
 \alias{pairwiseWilcox}
+\alias{pairwiseWilcox,ANY-method}
+\alias{pairwiseWilcox,SummarizedExperiment-method}
+\alias{pairwiseWilcox,SingleCellExperiment-method}
 \title{Perform pairwise Wilcoxon rank sum tests}
 \usage{
-pairwiseWilcox(
+pairwiseWilcox(x, ...)
+
+\S4method{pairwiseWilcox}{ANY}(
   x,
   groups,
   block = NULL,
@@ -17,11 +22,25 @@ pairwiseWilcox(
   subset.row = NULL,
   BPPARAM = SerialParam()
 )
+
+\S4method{pairwiseWilcox}{SummarizedExperiment}(x, ..., assay.type = "logcounts")
+
+\S4method{pairwiseWilcox}{SingleCellExperiment}(x, groups = colLabels(x, onAbsence = "error"), ...)
 }
 \arguments{
-\item{x}{A numeric matrix-like object of normalized log-expression values, where each column corresponds to a cell and each row corresponds to an endogenous gene.}
+\item{x}{A numeric matrix-like object of normalized (and possibly log-transformed) expression values, 
+where each column corresponds to a cell and each row corresponds to an endogenous gene.
 
-\item{groups}{A vector specifying the group assignment for each cell.}
+Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} object containing such a matrix.}
+
+\item{...}{For the generic, further arguments to pass to specific methods.
+
+For the SummarizedExperiment method, further arguments to pass to the ANY method.
+
+For the SingleCellExperiment method, further arguments to pass to the SummarizedExperiment method.}
+
+\item{groups}{A vector of length equal to \code{ncol(x)}, specifying the group assignment for each cell.
+If \code{x} is a SingleCellExperiment, this is automatically derived from \code{\link{colLabels}}.}
 
 \item{block}{A factor specifying the blocking level for each cell.}
 
@@ -29,7 +48,7 @@ pairwiseWilcox(
 
 \item{exclude}{A vector specifying the levels of \code{groups} for which \emph{not} to perform pairwise comparisons.}
 
-\item{direction}{A string specifying the direction of effects to be considered in the alternative hypothesis.}
+\item{direction}{A string specifying the direction of differences to be considered in the alternative hypothesis.}
 
 \item{lfc}{Numeric scalar specifying the minimum log-fold change for one observation to be considered to be \dQuote{greater} than another.}
 
@@ -40,6 +59,8 @@ pairwiseWilcox(
 \item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object indicating whether and how parallelization should be performed across genes.}
+
+\item{assay.type}{A string specifying which assay values to use, usually \code{"logcounts"}.}
 }
 \value{
 A list is returned containing \code{statistics} and \code{pairs}.

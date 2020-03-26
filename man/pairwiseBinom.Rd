@@ -2,9 +2,14 @@
 % Please edit documentation in R/pairwiseBinom.R
 \name{pairwiseBinom}
 \alias{pairwiseBinom}
+\alias{pairwiseBinom,ANY-method}
+\alias{pairwiseBinom,SummarizedExperiment-method}
+\alias{pairwiseBinom,SingleCellExperiment-method}
 \title{Perform pairwise binomial tests}
 \usage{
-pairwiseBinom(
+pairwiseBinom(x, ...)
+
+\S4method{pairwiseBinom}{ANY}(
   x,
   groups,
   block = NULL,
@@ -18,12 +23,23 @@ pairwiseBinom(
   subset.row = NULL,
   BPPARAM = SerialParam()
 )
+
+\S4method{pairwiseBinom}{SummarizedExperiment}(x, ..., assay.type = "logcounts")
+
+\S4method{pairwiseBinom}{SingleCellExperiment}(x, groups = colLabels(x, onAbsence = "error"), ...)
 }
 \arguments{
 \item{x}{A numeric matrix-like object of counts,
 where each column corresponds to a cell and each row corresponds to a gene.}
 
-\item{groups}{A vector specifying the group assignment for each cell.}
+\item{...}{For the generic, further arguments to pass to specific methods.
+
+For the SummarizedExperiment method, further arguments to pass to the ANY method.
+
+For the SingleCellExperiment method, further arguments to pass to the SummarizedExperiment method.}
+
+\item{groups}{A vector of length equal to \code{ncol(x)}, specifying the group assignment for each cell.
+If \code{x} is a SingleCellExperiment, this is automatically derived from \code{\link{colLabels}}.}
 
 \item{block}{A factor specifying the blocking level for each cell.}
 
@@ -43,7 +59,9 @@ where each column corresponds to a cell and each row corresponds to a gene.}
 
 \item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 
-\item{BPPARAM}{A \linkS4class{BiocParallelParam} object indicating how parallelization should be performed across genes.}
+\item{BPPARAM}{A \linkS4class{BiocParallelParam} object indicating whether and how parallelization should be performed across genes.}
+
+\item{assay.type}{A string specifying which assay values to use, usually \code{"logcounts"}.}
 }
 \value{
 A list is returned containing \code{statistics} and \code{pairs}.

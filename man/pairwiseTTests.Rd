@@ -2,9 +2,14 @@
 % Please edit documentation in R/pairwiseTTests.R
 \name{pairwiseTTests}
 \alias{pairwiseTTests}
+\alias{pairwiseTTests,ANY-method}
+\alias{pairwiseTTests,SummarizedExperiment-method}
+\alias{pairwiseTTests,SingleCellExperiment-method}
 \title{Perform pairwise t-tests}
 \usage{
-pairwiseTTests(
+pairwiseTTests(x, ...)
+
+\S4method{pairwiseTTests}{ANY}(
   x,
   groups,
   block = NULL,
@@ -19,12 +24,25 @@ pairwiseTTests(
   subset.row = NULL,
   BPPARAM = SerialParam()
 )
+
+\S4method{pairwiseTTests}{SummarizedExperiment}(x, ..., assay.type = "logcounts")
+
+\S4method{pairwiseTTests}{SingleCellExperiment}(x, groups = colLabels(x, onAbsence = "error"), ...)
 }
 \arguments{
 \item{x}{A numeric matrix-like object of normalized log-expression values, 
-where each column corresponds to a cell and each row corresponds to an endogenous gene.}
+where each column corresponds to a cell and each row corresponds to an endogenous gene.
 
-\item{groups}{A vector specifying the group assignment for each cell.}
+Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} object containing such a matrix.}
+
+\item{...}{For the generic, further arguments to pass to specific methods.
+
+For the SummarizedExperiment method, further arguments to pass to the ANY method.
+
+For the SingleCellExperiment method, further arguments to pass to the SummarizedExperiment method.}
+
+\item{groups}{A vector of length equal to \code{ncol(x)}, specifying the group assignment for each cell.
+If \code{x} is a SingleCellExperiment, this is automatically derived from \code{\link{colLabels}}.}
 
 \item{block}{A factor specifying the blocking level for each cell.}
 
@@ -48,6 +66,8 @@ Note that these factors should not be confounded with \code{groups}.}
 \item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object indicating whether and how parallelization should be performed across genes.}
+
+\item{assay.type}{A string specifying which assay values to use, usually \code{"logcounts"}.}
 }
 \value{
 A list is returned containing \code{statistics} and \code{pairs}.
