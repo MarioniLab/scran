@@ -5,17 +5,10 @@
 #' 
 #' @param x A numeric matrix-like object of counts,
 #' where each column corresponds to a cell and each row corresponds to a gene.
-#' @param groups A vector specifying the group assignment for each cell.
-#' @param block A factor specifying the blocking level for each cell.
 #' @param direction A string specifying the direction of effects to be considered for the alternative hypothesis.
-#' @param log.p A logical scalar indicating if log-transformed p-values/FDRs should be returned.
 #' @param lfc Numeric scalar specifying the minimum absolute log-ratio in the proportion of expressing genes between groups.
-#' @param gene.names A character vector of gene names with one value for each row of \code{x}.
-#' @param restrict A vector specifying the levels of \code{groups} for which to perform pairwise comparisons.
-#' @param exclude A vector specifying the levels of \code{groups} for which \emph{not} to perform pairwise comparisons.
-#' @param subset.row See \code{?"\link{scran-gene-selection}"}.
 #' @param threshold Numeric scalar specifying the value below which a gene is presumed to be not expressed.
-#' @param BPPARAM A \linkS4class{BiocParallelParam} object indicating how parallelization should be performed across genes.
+#' @inheritParams pairwiseTTests
 #' 
 #' @details
 #' This function performs exact binomial tests to identify marker genes between pairs of groups of cells.
@@ -128,10 +121,13 @@
 #'
 #' \code{\link{getTopMarkers}}, to obtain the top markers from each pairwise comparison.
 #' @export
+#' @name pairwiseBinom
+NULL
+
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel SerialParam
 #' @importFrom scater .subset2index
-pairwiseBinom <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, direction=c("any", "up", "down"),
+.pairwiseBinom <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, direction=c("any", "up", "down"),
     threshold=1e-8, lfc=0, log.p=FALSE, gene.names=rownames(x), 
     subset.row=NULL, BPPARAM=SerialParam())
 {
@@ -143,6 +139,32 @@ pairwiseBinom <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, di
     .blocked_binom(x, subset.row, groups, block=block, direction=direction, 
         gene.names=gene.names, log.p=log.p, threshold=threshold, lfc=lfc, BPPARAM=BPPARAM)
 }
+
+#' @export
+#' @rdname pairwiseBinom
+setGeneric("pairwiseBinom", function(x, ...) standardGeneric("pairwiseBinom"))
+
+#' @export
+#' @rdname pairwiseBinom
+setMethod("pairwiseBinom", "ANY", .pairwiseBinom)
+
+#' @export
+#' @rdname pairwiseBinom
+#' @importFrom SummarizedExperiment assay
+setMethod("pairwiseBinom", "SummarizedExperiment", function(x, ..., assay.type="logcounts") {
+    .pairwiseBinom(assay(x, i=assay.type), ...)
+})
+
+#' @export
+#' @rdname pairwiseBinom
+#' @importFrom SingleCellExperiment colLabels
+setMethod("pairwiseBinom", "SingleCellExperiment", function(x, groups=colLabels(x, onAbsence="error"), ...) {
+    callNextMethod(x=x, groups=groups, ...)
+})
+
+###########################################################
+# Internal functions (blocking)
+###########################################################
 
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel bplapply SerialParam bpstart bpstop

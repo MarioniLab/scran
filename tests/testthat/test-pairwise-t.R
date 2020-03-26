@@ -538,6 +538,21 @@ test_that("pairwiseTTests behaves with standardization of the log-fold changes",
     expect_equal(ref[[1]][[1]]$logFC / sqrt(s2), std[[1]][[1]]$logFC)
 })
 
+set.seed(70000051)
+test_that("pairwiseTTests works with SEs and SCEs", {
+    y <- matrix(rnorm(1200), ncol=12)
+    g <- gl(4,3)
+
+    out <- pairwiseTTests(y, g)
+    out2 <- pairwiseTTests(SummarizedExperiment(list(logcounts=y)), g)
+    expect_identical(out, out2)
+
+    X2 <- SingleCellExperiment(list(logcounts=y))
+    colLabels(X2) <- g
+    out3 <- pairwiseTTests(X2)
+    expect_identical(out, out3)
+})
+
 set.seed(7000006)
 test_that("pairwiseTTests fails gracefully with silly inputs", {
     y <- matrix(rnorm(12000), ncol=20)

@@ -2,17 +2,13 @@
 #' 
 #' Perform pairwise Wilcoxon rank sum tests between groups of cells, possibly after blocking on uninteresting factors of variation.
 #' 
-#' @param x A numeric matrix-like object of normalized log-expression values, where each column corresponds to a cell and each row corresponds to an endogenous gene.
-#' @param groups A vector specifying the group assignment for each cell.
-#' @param block A factor specifying the blocking level for each cell.
-#' @param restrict A vector specifying the levels of \code{groups} for which to perform pairwise comparisons.
-#' @param exclude A vector specifying the levels of \code{groups} for which \emph{not} to perform pairwise comparisons.
-#' @param direction A string specifying the direction of effects to be considered in the alternative hypothesis.
-#' @param log.p A logical scalar indicating if log-transformed p-values/FDRs should be returned.
-#' @param gene.names A character vector of gene names with one value for each row of \code{x}.
-#' @param subset.row See \code{?"\link{scran-gene-selection}"}.
+#' @param x A numeric matrix-like object of normalized (and possibly log-transformed) expression values, 
+#' where each column corresponds to a cell and each row corresponds to an endogenous gene.
+#'
+#' Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} object containing such a matrix.
+#' @param direction A string specifying the direction of differences to be considered in the alternative hypothesis.
 #' @param lfc Numeric scalar specifying the minimum log-fold change for one observation to be considered to be \dQuote{greater} than another.
-#' @param BPPARAM A \linkS4class{BiocParallelParam} object indicating whether and how parallelization should be performed across genes.
+#' @inheritParams pairwiseTTests
 #' 
 #' @details
 #' This function performs Wilcoxon rank sum tests to identify differentially expressed genes (DEGs) between pairs of groups of cells.
@@ -128,10 +124,13 @@
 #' out
 #' 
 #' @export
+#' @name pairwiseWilcox
+NULL
+
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel SerialParam
 #' @importFrom scater .subset2index
-pairwiseWilcox <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, direction=c("any", "up", "down"),
+.pairwiseWilcox <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, direction=c("any", "up", "down"),
     lfc=0, log.p=FALSE, gene.names=rownames(x), subset.row=NULL, BPPARAM=SerialParam())
 {
     groups <- .setup_groups(groups, x, restrict=restrict, exclude=exclude) 
@@ -142,6 +141,32 @@ pairwiseWilcox <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, d
     .blocked_wilcox(x, subset.row, groups, block=block, direction=direction, 
         lfc=lfc, gene.names=gene.names, log.p=log.p, BPPARAM=BPPARAM)
 }
+
+#' @export
+#' @rdname pairwiseWilcox
+setGeneric("pairwiseWilcox", function(x, ...) standardGeneric("pairwiseWilcox"))
+
+#' @export
+#' @rdname pairwiseWilcox
+setMethod("pairwiseWilcox", "ANY", .pairwiseWilcox)
+
+#' @export
+#' @rdname pairwiseWilcox
+#' @importFrom SummarizedExperiment assay
+setMethod("pairwiseWilcox", "SummarizedExperiment", function(x, ..., assay.type="logcounts") {
+    .pairwiseWilcox(assay(x, i=assay.type), ...)
+})
+
+#' @export
+#' @rdname pairwiseWilcox
+#' @importFrom SingleCellExperiment colLabels
+setMethod("pairwiseWilcox", "SingleCellExperiment", function(x, groups=colLabels(x, onAbsence="error"), ...) {
+    callNextMethod(x=x, groups=groups, ...)
+})
+
+###########################################################
+# Internal functions (blocking)
+###########################################################
 
 #' @importFrom BiocParallel bplapply SerialParam bpstart bpstop
 #' @importFrom stats pnorm 

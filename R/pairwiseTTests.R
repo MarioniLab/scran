@@ -4,7 +4,10 @@
 #' 
 #' @param x A numeric matrix-like object of normalized log-expression values, 
 #' where each column corresponds to a cell and each row corresponds to an endogenous gene.
-#' @param groups A vector specifying the group assignment for each cell.
+#'
+#' Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} object containing such a matrix.
+#' @param groups A vector of length equal to \code{ncol(x)}, specifying the group assignment for each cell.
+#' If \code{x} is a SingleCellExperiment, this is automatically derived from \code{\link{colLabels}}.
 #' @param block A factor specifying the blocking level for each cell.
 #' @param design A numeric matrix containing blocking terms for uninteresting factors.
 #' Note that these factors should not be confounded with \code{groups}.
@@ -16,7 +19,13 @@
 #' @param log.p A logical scalar indicating if log-transformed p-values/FDRs should be returned.
 #' @param gene.names A character vector of gene names with one value for each row of \code{x}.
 #' @param subset.row See \code{?"\link{scran-gene-selection}"}.
+#' @param assay.type A string specifying which assay values to use, usually \code{"logcounts"}.
 #' @param BPPARAM A \linkS4class{BiocParallelParam} object indicating whether and how parallelization should be performed across genes.
+#' @param ... For the generic, further arguments to pass to specific methods.
+#'
+#' For the SummarizedExperiment method, further arguments to pass to the ANY method.
+#'
+#' For the SingleCellExperiment method, further arguments to pass to the SummarizedExperiment method.
 #' 
 #' @details
 #' This function performs t-tests to identify differentially expressed genes (DEGs) between pairs of groups of cells.
@@ -156,11 +165,13 @@
 #'     direction="up", lfc=0.2)
 #' out
 #' 
-#' @export
+#' @name pairwiseTTests
+NULL
+
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel SerialParam
 #' @importFrom scater .subset2index
-pairwiseTTests <- function(x, groups, block=NULL, design=NULL, restrict=NULL, exclude=NULL, direction=c("any", "up", "down"),
+.pairwiseTTests <- function(x, groups, block=NULL, design=NULL, restrict=NULL, exclude=NULL, direction=c("any", "up", "down"),
     lfc=0, std.lfc=FALSE, log.p=FALSE, gene.names=rownames(x), subset.row=NULL, BPPARAM=SerialParam())
 {
     groups <- .setup_groups(groups, x, restrict=restrict, exclude=exclude)
@@ -178,6 +189,28 @@ pairwiseTTests <- function(x, groups, block=NULL, design=NULL, restrict=NULL, ex
             std.lfc=std.lfc, gene.names=gene.names, log.p=log.p, BPPARAM=BPPARAM)
     }
 }
+
+#' @export
+#' @rdname pairwiseTTests
+setGeneric("pairwiseTTests", function(x, ...) standardGeneric("pairwiseTTests"))
+
+#' @export
+#' @rdname pairwiseTTests
+setMethod("pairwiseTTests", "ANY", .pairwiseTTests)
+
+#' @export
+#' @rdname pairwiseTTests
+#' @importFrom SummarizedExperiment assay
+setMethod("pairwiseTTests", "SummarizedExperiment", function(x, ..., assay.type="logcounts") { 
+    .pairwiseTTests(assay(x, i=assay.type), ...)
+})
+
+#' @export
+#' @rdname pairwiseTTests
+#' @importFrom SingleCellExperiment colLabels
+setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels(x, onAbsence="error"), ...) {
+    callNextMethod(x=x, groups=groups, ...)
+})
 
 ###########################################################
 # Internal functions (blocking)

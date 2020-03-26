@@ -368,6 +368,21 @@ test_that("pairwiseWilcox behaves as expected with log-transformation", {
     }
 })
 
+set.seed(80000051)
+test_that("pairwiseWilcox works with SEs and SCEs", {
+    y <- matrix(rnorm(1200), ncol=12)
+    g <- gl(4,3)
+
+    out <- pairwiseWilcox(y, g)
+    out2 <- pairwiseWilcox(SummarizedExperiment(list(logcounts=y)), g)
+    expect_identical(out, out2)
+
+    X2 <- SingleCellExperiment(list(logcounts=y))
+    colLabels(X2) <- g
+    out3 <- pairwiseWilcox(X2)
+    expect_identical(out, out3)
+})
+
 set.seed(8000006)
 test_that("pairwiseWilcox fails gracefully with silly inputs", {
     y <- matrix(rnorm(1200), ncol=20)
