@@ -121,24 +121,27 @@ test_that("doubletCluster works correctly with row subsets", {
     expect_error(doubletCluster(counts[,0], clusters[0]), "need at least three")
 })
 
-test_that("doubletCluster works correctly with SingleCellExperiment", {
+test_that("doubletCluster works correctly with SE/SCEs", {
     sce <- SingleCellExperiment(list(counts=counts))
     ref <- doubletCluster(counts, clusters)
+
     dbl <- doubletCluster(sce, clusters)
     expect_identical(ref, dbl)
+
+    # Works with the base class.
+    dbl2 <- doubletCluster(as(sce, "SummarizedExperiment"), clusters)
+    expect_identical(ref, dbl2)
+
+    # Works with column labels.
+    colLabels(sce) <- clusters
+    dbl3 <- doubletCluster(sce)
+    expect_identical(ref, dbl3)
 
     # With a different assay.
     assay(sce, "whee") <- counts + rpois(length(counts), lambda=2)
     ref2 <- doubletCluster(assay(sce, "whee"), clusters)
     dbl2 <- doubletCluster(sce, clusters, assay.type="whee")
     expect_identical(ref2, dbl2)
-
-    # With subsetting.
-    keep <- sample(nrow(sce), 10)
-    dbl5 <- doubletCluster(sce, clusters, subset.row=keep)
-    ref4 <- doubletCluster(counts(sce)[keep,], clusters)
-    same.fields <- setdiff(colnames(ref4), c("best", "all.pairs")) # avoid checking different indices.
-    expect_identical(ref4[,same.fields], dbl5[,same.fields])
 })
 
 ###################################################

@@ -25,6 +25,24 @@ test_that('clusterPurity yields correct output for compromised clusters', {
     expect_true(all(out[-1] > 0.9))
 })
 
+set.seed(700001)
+test_that('clusterPurity handles subsetting correctly', {
+    y <- matrix(rnorm(10000), nrow=50)
+    clusters <- kmeans(t(y), 4)$cluster
+
+    expect_equal(
+        clusterPurity(y, clusters, subset.row=1:10),
+        clusterPurity(y[1:10,], clusters)
+    )
+
+    # Has no effect when transposed.
+    expect_equal(
+        clusterPurity(t(y), clusters, subset.row=1:10, transposed=TRUE),
+        clusterPurity(t(y), clusters, transposed=TRUE)
+    )
+})
+
+
 set.seed(700011)
 test_that("clusterPurity handles the weighting correctly", {
     # Creating a bulk of points.
@@ -87,16 +105,11 @@ test_that('clusterPurity handles SCEs correctly', {
     g <- buildSNNGraph(sce)
     clusters <- igraph::cluster_walktrap(g)$membership
 
-    expect_equal(
-        clusterPurity(logcounts(sce), clusters),
-        clusterPurity(sce, clusters)
-    )
+    ref <- clusterPurity(logcounts(sce), clusters)
+    expect_equal(ref, clusterPurity(sce, clusters))
 
-    # Handles subsetting correctly.
-    expect_equal(
-        clusterPurity(sce, clusters, subset.row=1:10),
-        clusterPurity(sce[1:10,], clusters)
-    )
+    # Works with base SE's.
+    expect_equal(ref, clusterPurity(as(sce, "SummarizedExperiment"), clusters))
 
     # Also deals with reducedDims.
     sce <- runPCA(sce)
@@ -105,4 +118,8 @@ test_that('clusterPurity handles SCEs correctly', {
         clusterPurity(reducedDim(sce), clusters, transposed=TRUE)
     )
     expect_equal(length(out), ncol(sce))
+
+    # Works with the supplied clusters.
+    colLabels(sce) <- clusters
+    expect_equal(ref, clusterPurity(sce))
 })

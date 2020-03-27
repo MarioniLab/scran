@@ -2,12 +2,14 @@
 #'
 #' Use a hypersphere-based approach to compute the \dQuote{purity} of each cluster based on the number of contaminating cells in its region of the coordinate space.
 #'
-#' @param x For the ANY method, a numeric matrix-like object containing expression values for genes (rows) and cells (columns).
+#' @param x A numeric matrix-like object containing expression values for genes (rows) and cells (columns).
 #' If \code{transposed=TRUE}, cells should be in rows and reduced dimensions should be in the columns.
 #'
-#' For the \linkS4class{SingleCellExperiment} method, a SingleCellExperiment object containing an expression matrix.
-#' If \code{use.dimred} is supplied, it should contain a reduced dimension result in its \code{\link{reducedDims}}.
-#' @param clusters Factor specifying the cluster identity for each cell.
+#' Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} object containing such a matrix.
+#'
+#' For the SingleCellExperiment method, if \code{use.dimred} is supplied, 
+#' \code{x} contain an appropriate reduced dimension result in its \code{\link{reducedDims}}.
+#' @param clusters Vector of length equal to \code{ncol(x)}, specifying the cluster identity for each cell.
 #' @param k Integer scalar specifying the number of nearest neighbors to use to determine the radius of the hyperspheres.
 #' @param transposed Logical scalar specifying whether \code{x} contains cells in the rows.
 #' @param subset.row See \code{?"\link{scran-gene-selection}"}.
@@ -17,7 +19,10 @@
 #' @param weighted A logical scalar indicating whether to weight each cell in inverse proportion to the size of its cluster.
 #' Alternatively, a numeric vector of length equal to \code{clusters} containing the weight to use for each cell.
 #' @param ... For the generic, arguments to pass to specific methods.
-#' For the SingleCellExperiment method, arguments to pass to the ANY method.
+#'
+#' For the SummarizedExperiment method, arguments to pass to the ANY method.
+#'
+#' For the SingleCellExperiment method, arguments to pass to the SummarizedExperiment method.
 #' @param assay.type A string specifying which assay values to use.
 #' @param use.dimred A string specifying whether existing values in \code{reducedDims(x)} should be used.
 #'
@@ -139,9 +144,19 @@ setMethod("clusterPurity", "ANY", .cluster_purity)
 
 #' @export
 #' @rdname clusterPurity
-#' @importFrom SingleCellExperiment reducedDim
 #' @importFrom SummarizedExperiment assay
-setMethod("clusterPurity", "SingleCellExperiment", function(x, ..., assay.type="logcounts", use.dimred=NULL) {
+setMethod("clusterPurity", "SummarizedExperiment", function(x, ..., assay.type="logcounts") {
+    .cluster_purity(assay(x, assay.type), ..., transposed=FALSE)
+})
+
+#' @export
+#' @rdname clusterPurity
+#' @importFrom SingleCellExperiment reducedDim colLabels
+#' @importFrom SummarizedExperiment assay
+setMethod("clusterPurity", "SingleCellExperiment", function(x, clusters=colLabels(x, onAbsence="error"),
+    ..., assay.type="logcounts", use.dimred=NULL)
+{
+    force(clusters)
     if (!is.null(use.dimred)) {
         transposed <- TRUE
         x <- reducedDim(x, use.dimred)
@@ -149,5 +164,5 @@ setMethod("clusterPurity", "SingleCellExperiment", function(x, ..., assay.type="
         x <- assay(x, assay.type)
         transposed <- FALSE
     }
-    .cluster_purity(x, ..., transposed=transposed)
+    .cluster_purity(x, clusters=clusters, ..., transposed=transposed)
 })
