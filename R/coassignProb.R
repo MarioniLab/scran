@@ -12,12 +12,12 @@
 #' Otherwise, a \linkS4class{DataFrame} is returned with one row per label in \code{ref} containing the \code{self} and \code{other} coassignment probabilities.
 #'
 #' @details
-#' The coassignment probability for each pair of labels in \code{ref} is the probability that a randomly chosen cells from each of the two reference labels will have the same label in \code{alt}.
+#' The coassignment probability for each pair of labels in \code{ref} is the probability that a randomly chosen cell from each of the two reference labels will have the same label in \code{alt}.
 #' High coassignment probabilities indicate that a particular pair of labels in \code{ref} are frequently assigned to the same label in \code{alt}, which has some implications for cluster stability.
 #'
 #' When \code{summarize=TRUE}, we summarize the matrix of coassignment probabilities into a set of per-label values.
-#' The self coassignment probability is simply the diagonal entry of the matrix, i.e., the probability that two cells from the same label in \code{ref} also have the same label in \code{alt}.
-#' The other coassignment probability is the maximum probability across all pairs involving that label.
+#' The \dQuote{self} coassignment probability is simply the diagonal entry of the matrix, i.e., the probability that two cells from the same label in \code{ref} also have the same label in \code{alt}.
+#' The \dQuote{other} coassignment probability is the maximum probability across all pairs involving that label.
 #'
 #' % One might consider instead reporting the 'other' probability as the probability that a randomly chosen cell in the cluster and a randomly chosen cell in any other cluster belong in the same cluster.
 #' % However, this results in very small probabilities in all cases, simply because most of the other clusters are well seperated.
