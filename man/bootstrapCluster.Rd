@@ -16,13 +16,14 @@ bootstrapCluster(
 }
 \arguments{
 \item{x}{A two-dimensional object containing cells in columns.
-This is usually a numeric matrix of log-expression values, but can also be a \linkS4class{SingleCellExperiment} object.
+This is usually a numeric matrix of log-expression values, 
+but can also be a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} object.
 
-If \code{transposed=TRUE}, cells are expected to be in the rows, e.g., for precomputed PCs.}
+If \code{transposed=TRUE}, a matrix is expected where cells are in the rows, e.g., for precomputed PCs.}
 
-\item{FUN}{A function that accepts \code{x} and returns a vector of cluster identities.}
+\item{FUN}{A function that accepts a value of the same type as \code{x} and returns a vector or factor of cluster identities.}
 
-\item{clusters}{A vector or factor of cluster identities obtained by calling \code{FUN(x, ...)}.
+\item{clusters}{A vector or factor of cluster identities equivalent to that obtained by calling \code{FUN(x, ...)}.
 This is provided as an additional argument in the case that the clusters have already been computed,
 in which case we can save a single round of computation.}
 

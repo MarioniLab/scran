@@ -3,6 +3,7 @@
 \name{doubletCluster}
 \alias{doubletCluster}
 \alias{doubletCluster,ANY-method}
+\alias{doubletCluster,SummarizedExperiment-method}
 \alias{doubletCluster,SingleCellExperiment-method}
 \title{Detect doublet clusters}
 \usage{
@@ -10,21 +11,26 @@ doubletCluster(x, ...)
 
 \S4method{doubletCluster}{ANY}(x, clusters, subset.row = NULL, threshold = 0.05, ...)
 
-\S4method{doubletCluster}{SingleCellExperiment}(x, ..., assay.type = "counts")
+\S4method{doubletCluster}{SummarizedExperiment}(x, ..., assay.type = "counts")
+
+\S4method{doubletCluster}{SingleCellExperiment}(x, clusters = colLabels(x, onAbsence = "error"), ...)
 }
 \arguments{
 \item{x}{A numeric matrix-like object of count values, 
 where each column corresponds to a cell and each row corresponds to an endogenous gene.
 
-Alternatively, a \linkS4class{SingleCellExperiment} object containing such a matrix.}
+Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} object containing such a matrix.}
 
 \item{...}{For the generic, additional arguments to pass to specific methods.
 
 For the ANY method, additional arguments to pass to \code{\link{findMarkers}}. 
 
-For the SingleCellExperiment method, additional arguments to pass to the ANY method.}
+For the SummarizedExperiment method, additional arguments to pass to the ANY method.
 
-\item{clusters}{A vector of cluster identities for all cells.}
+For the SingleCellExperiment method, additional arguments to pass to the SummarizedExperiment method.}
+
+\item{clusters}{A vector of length equal to \code{ncol(x)}, containing cluster identities for all cells.
+If \code{x} is a SingleCellExperiment, this is taken from \code{\link{colLabels}(x)} by default.}
 
 \item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 
@@ -48,7 +54,8 @@ A \linkS4class{DataFrame} containing one row per query cluster with the followin
 Each row is named according to its query cluster.
 }
 \description{
-Identify potential clusters of doublet cells based on intermediate expression profiles.
+Identify potential clusters of doublet cells based on whether they have intermediate expression profiles,
+i.e., their profiles lie between two other \dQuote{source} clusters.
 }
 \details{
 This function detects clusters of doublet cells in a manner similar to the method used by Bach et al. (2017).

@@ -3,6 +3,7 @@
 \name{clusterPurity}
 \alias{clusterPurity}
 \alias{clusterPurity,ANY-method}
+\alias{clusterPurity,SummarizedExperiment-method}
 \alias{clusterPurity,SingleCellExperiment-method}
 \title{Evaluate cluster purity}
 \usage{
@@ -19,19 +20,32 @@ clusterPurity(x, ...)
   BPPARAM = SerialParam()
 )
 
-\S4method{clusterPurity}{SingleCellExperiment}(x, ..., assay.type = "logcounts", use.dimred = NULL)
+\S4method{clusterPurity}{SummarizedExperiment}(x, ..., assay.type = "logcounts")
+
+\S4method{clusterPurity}{SingleCellExperiment}(
+  x,
+  clusters = colLabels(x, onAbsence = "error"),
+  ...,
+  assay.type = "logcounts",
+  use.dimred = NULL
+)
 }
 \arguments{
-\item{x}{For the ANY method, a numeric matrix-like object containing expression values for genes (rows) and cells (columns).
+\item{x}{A numeric matrix-like object containing expression values for genes (rows) and cells (columns).
 If \code{transposed=TRUE}, cells should be in rows and reduced dimensions should be in the columns.
 
-For the \linkS4class{SingleCellExperiment} method, a SingleCellExperiment object containing an expression matrix.
-If \code{use.dimred} is supplied, it should contain a reduced dimension result in its \code{\link{reducedDims}}.}
+Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} object containing such a matrix.
+
+For the SingleCellExperiment method, if \code{use.dimred} is supplied, 
+\code{x} contain an appropriate reduced dimension result in its \code{\link{reducedDims}}.}
 
 \item{...}{For the generic, arguments to pass to specific methods.
-For the SingleCellExperiment method, arguments to pass to the ANY method.}
 
-\item{clusters}{Factor specifying the cluster identity for each cell.}
+For the SummarizedExperiment method, arguments to pass to the ANY method.
+
+For the SingleCellExperiment method, arguments to pass to the SummarizedExperiment method.}
+
+\item{clusters}{Vector of length equal to \code{ncol(x)}, specifying the cluster identity for each cell.}
 
 \item{k}{Integer scalar specifying the number of nearest neighbors to use to determine the radius of the hyperspheres.}
 
