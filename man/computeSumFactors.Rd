@@ -104,27 +104,27 @@ If there are fewer cells than the smallest window size, the function will natura
 This yields results that are the same as \code{\link{librarySizeFactors}}.
 }
 
-\section{Prescaling to improve accuracy}{
+\section{Prescaling of the counts}{
 
 The simplest approach to pooling is to simply add the counts together for all cells in each pool.
 However, this is suboptimal as any errors in the estimation of the pooled size factor will propagate to all component cell-specific size factors upon solving the linear system.
 If the error is distributed evenly across all cell-specific size factors, the small size factors will have larger relative errors compared to the large size factors.
 
 To avoid this, we perform \dQuote{prescaling} where we divide the counts by a cell-specific factor prior to pooling.
-The prescaling factor should be close to the true size factor for each cell.
-(Obviously, the true size factor is unknown so we use the library size for each cell instead.)
+Ideally, the prescaling factor should be close to the true size factor for each cell.
 Solving the linear system constructed with prescaled values should yield estimates that are more-or-less equal across all cells.
 Thus, given similar absolute errors, the relative errors for all cells will also be similar.
 
-The default usage assumes that the library size is roughly proportional to the true size factor.
-This can be violated in pathological scenarios involving extreme differential expression.
-In such cases, we recommend running \code{computeSumFactors} twice to improve accuracy.
-The first run is done as usual and will yield an initial estimate of the size factor for each cell.
-In the second run, we use our initial estimates for prescaling by supplying them to the \code{scaling} argument, 
-This weakens the assumption above by avoiding large inaccuracies in the prescaling factor.
+Obviously, the true size factor is unknown (otherwise why bother running this function?)
+so we use the library size for each cell as a proxy instead.
+This may perform poorly in pathological scenarios involving extreme differential expression and strong composition biases.
+In cases where a more appropriate initial estimate is available, 
+this can be used as the prescaling factor by setting the \code{scaling} argument.
 
-Obviously, this involves twice as much computational work.
-As a result, performing multiple iterations is not the default recommendation, especially as the benefits are only apparent in extreme circumstances.
+One potential approach is to run \code{computeSumFactors} twice to improve accuracy.
+The first run is done as usual and will yield an initial estimate of the size factor for each cell.
+In the second run, we supply our initial estimates in the \code{scaling} argument to serve as better prescaling factors.
+Obviously, this involves twice as much computational work so we would only recommend attempting this in extreme circumstances.
 }
 
 \section{Solving the linear system}{
@@ -195,6 +195,12 @@ Mean library sizes in between these two limits will trigger a warning and revert
 
 If \code{clusters} is specified, filtering by \code{min.mean} is performed on the per-cluster average during within-cluster normalization,
 and then on the (library size-adjusted) average of the per-cluster averages during between-cluster normalization.
+
+Performance can generally be improved by removing genes that are known to be strongly DE between cells.
+This weakens the assumption of a non-DE majority and avoids the error associated with DE genes.
+For example, we might remove viral genes when our population contains both infected and non-infected cells.
+Of course, \code{computeSumFactors} is robust to some level of DE genes - that is, after all, its raison d'etre -
+so one should only explicitly remove DE genes if it is convenient to do so.
 }
 
 \section{Obtaining standard errors}{
