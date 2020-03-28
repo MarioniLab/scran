@@ -3,23 +3,23 @@
 \name{sandbag}
 \alias{sandbag}
 \alias{sandbag,ANY-method}
-\alias{sandbag,SingleCellExperiment-method}
+\alias{sandbag,SummarizedExperiment-method}
 \title{Cell cycle phase training}
 \usage{
 sandbag(x, ...)
 
 \S4method{sandbag}{ANY}(x, phases, gene.names = rownames(x), fraction = 0.5, subset.row = NULL)
 
-\S4method{sandbag}{SingleCellExperiment}(x, ..., assay.type = "counts")
+\S4method{sandbag}{SummarizedExperiment}(x, ..., assay.type = "counts")
 }
 \arguments{
 \item{x}{A numeric matrix of gene expression values where rows are genes and columns are cells.
 
-Alternatively, a \linkS4class{SingleCellExperiment} object containing such a matrix.}
+Alternatively, a \linkS4class{SummarizedExperiment} object containing such a matrix.}
 
 \item{...}{For the generic, additional arguments to pass to specific methods.
 
-For the SingleCellExperiment method, additional arguments to pass to the ANY method.}
+For the SummarizedExperiment method, additional arguments to pass to the ANY method.}
 
 \item{phases}{A list of subsetting vectors specifying which cells are in each phase of the cell cycle.
 This should typically be of length 3, with elements named as \code{"G1"}, \code{"S"} and \code{"G2M"}.}

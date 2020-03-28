@@ -3,6 +3,7 @@
 \name{modelGeneVarWithSpikes}
 \alias{modelGeneVarWithSpikes}
 \alias{modelGeneVarWithSpikes,ANY-method}
+\alias{modelGeneVarWithSpikes,SummarizedExperiment-method}
 \alias{modelGeneVarWithSpikes,SingleCellExperiment-method}
 \title{Model the per-gene variance with spike-ins}
 \usage{
@@ -23,6 +24,8 @@ modelGeneVarWithSpikes(x, ...)
   BPPARAM = SerialParam()
 )
 
+\S4method{modelGeneVarWithSpikes}{SummarizedExperiment}(x, ..., assay.type = "counts")
+
 \S4method{modelGeneVarWithSpikes}{SingleCellExperiment}(
   x,
   spikes,
@@ -33,17 +36,23 @@ modelGeneVarWithSpikes(x, ...)
 )
 }
 \arguments{
-\item{x}{A numeric matrix of counts for endogenous genes, or a \linkS4class{SingleCellExperiment} containing such a matrix.}
+\item{x}{A numeric matrix of counts where rows are (usually endogenous) genes and columns are cells.
+
+Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} containing such a matrix.}
 
 \item{...}{For the generic, further arguments to pass to each method.
 
 For the ANY method, further arguments to pass to \code{\link{fitTrendVar}}.
 
-For the \linkS4class{SingleCellExperiment} method, further arguments to pass to the ANY method.}
+For the \linkS4class{SummarizedExperiment} method, further arguments to pass to the ANY method.
 
-\item{spikes}{A numeric matrix of counts for spike-in transcripts.
+For the \linkS4class{SingleCellExperiment} method, further arguments to pass to the SummarizedExperiment method.}
 
-Alternatively, for the SingleCellExperiment method, this can be a string or an integer scalar specifying the \code{\link{altExp}} containing the spike-in count matrix.}
+\item{spikes}{A numeric matrix of counts where each row corresponds to a spike-in transcript.
+This should have the same number of columns as \code{x}.
+
+Alternatively, for the SingleCellExperiment method, 
+this can be a string or an integer scalar specifying the \code{\link{altExp}} containing the spike-in count matrix.}
 
 \item{size.factors}{A numeric vector of size factors for each cell in \code{x}, to be used for scaling gene expression.}
 
@@ -67,7 +76,9 @@ Only used if \code{block} is specified.}
 
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object indicating whether parallelization should be performed across genes.}
 
-\item{assay.type}{String or integer scalar specifying the assay containing the log-expression values.}
+\item{assay.type}{String or integer scalar specifying the assay containing the counts.
+
+For the SingleCellExperiment method, this is used to retrieve both the endogenous and spike-in counts.}
 }
 \value{
 A \linkS4class{DataFrame} is returned where each row corresponds to a gene in \code{x} (or in \code{subset.row}, if specified).

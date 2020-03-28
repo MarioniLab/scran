@@ -3,20 +3,15 @@
 \name{quickSubCluster}
 \alias{quickSubCluster}
 \alias{quickSubCluster,ANY-method}
+\alias{quickSubCluster,SummarizedExperiment-method}
 \alias{quickSubCluster,SingleCellExperiment-method}
 \title{Quick and dirty subclustering}
 \usage{
 quickSubCluster(x, ...)
 
-\S4method{quickSubCluster}{ANY}(
-  x,
-  groups,
-  normalize = TRUE,
-  prepFUN = NULL,
-  min.ncells = 50,
-  clusterFUN = NULL,
-  format = "\%s.\%s"
-)
+\S4method{quickSubCluster}{ANY}(x, normalize = TRUE, ...)
+
+\S4method{quickSubCluster}{SummarizedExperiment}(x, ...)
 
 \S4method{quickSubCluster}{SingleCellExperiment}(
   x,
@@ -30,14 +25,18 @@ quickSubCluster(x, ...)
 )
 }
 \arguments{
-\item{x}{A matrix of counts or log-normalized expression values (if \code{normalize=FALSE}).
-Alternatively, a \linkS4class{SingleCellExperiment} object containing such a matrix.}
+\item{x}{A matrix of counts or log-normalized expression values (if \code{normalize=FALSE}),
+where each row corresponds to a gene and each column corresponds to a cell.
 
-\item{...}{Further arguments to pass to specific methods.}
+Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} object containing such a matrix.}
 
-\item{groups}{A vector of group assignments for all cells, usually corresponding to cluster identities.}
+\item{...}{For the generic, further arguments to pass to specific methods.
+
+For the ANY and SummarizedExperiment methods, further arguments to pass to the SingleCellExperiment method.}
 
 \item{normalize}{Logical scalar indicating whether each subset of \code{x} should be log-transformed prior to further analysis.}
+
+\item{groups}{A vector of group assignments for all cells, usually corresponding to cluster identities.}
 
 \item{prepFUN}{A function that accepts a single \linkS4class{SingleCellExperiment} object and returns another \linkS4class{SingleCellExperiment} containing any additional elements required for clustering (e.g., PCA results).}
 

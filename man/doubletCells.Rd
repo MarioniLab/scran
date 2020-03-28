@@ -3,6 +3,7 @@
 \name{doubletCells}
 \alias{doubletCells}
 \alias{doubletCells,ANY-method}
+\alias{doubletCells,SummarizedExperiment-method}
 \alias{doubletCells,SingleCellExperiment-method}
 \title{Detect doublet cells}
 \usage{
@@ -25,17 +26,19 @@ doubletCells(x, ...)
   BPPARAM = SerialParam()
 )
 
-\S4method{doubletCells}{SingleCellExperiment}(x, size.factors.norm = sizeFactors(x), ..., assay.type = "counts")
+\S4method{doubletCells}{SummarizedExperiment}(x, ..., assay.type = "counts")
+
+\S4method{doubletCells}{SingleCellExperiment}(x, size.factors.norm = sizeFactors(x), ...)
 }
 \arguments{
 \item{x}{A numeric matrix-like object of count values, 
 where each column corresponds to a cell and each row corresponds to an endogenous gene.
 
-Alternatively, a \linkS4class{SingleCellExperiment} object containing such a matrix.}
+Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} object containing such a matrix.}
 
 \item{...}{For the generic, additional arguments to pass to specific methods.
 
-For the SingleCellExperiment method, additional arguments to pass to the ANY method.}
+For the SummarizedExperiment and SingleCellExperiment methods, additional arguments to pass to the ANY method.}
 
 \item{size.factors.norm}{A numeric vector of size factors for normalization of \code{x} prior to PCA and distance calculations.
 If \code{NULL}, defaults to size factors derived from the library sizes of \code{x}.

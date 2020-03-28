@@ -3,6 +3,7 @@
 \name{buildSNNGraph}
 \alias{buildSNNGraph}
 \alias{buildSNNGraph,ANY-method}
+\alias{buildSNNGraph,SummarizedExperiment-method}
 \alias{buildSNNGraph,SingleCellExperiment-method}
 \alias{buildKNNGraph}
 \alias{buildKNNGraph,ANY-method}
@@ -25,7 +26,9 @@ buildSNNGraph(x, ...)
   BPPARAM = SerialParam()
 )
 
-\S4method{buildSNNGraph}{SingleCellExperiment}(x, ..., assay.type = "logcounts", use.dimred = NULL)
+\S4method{buildSNNGraph}{SummarizedExperiment}(x, ..., assay.type = "logcounts")
+
+\S4method{buildSNNGraph}{SingleCellExperiment}(x, ..., use.dimred = NULL)
 
 buildKNNGraph(x, ...)
 
@@ -41,22 +44,28 @@ buildKNNGraph(x, ...)
   BPPARAM = SerialParam()
 )
 
-\S4method{buildKNNGraph}{SingleCellExperiment}(x, ..., assay.type = "logcounts", use.dimred = NULL)
+\S4method{buildKNNGraph}{SingleCellExperiment}(x, ..., use.dimred = NULL)
+
+\S4method{buildKNNGraph}{SingleCellExperiment}(x, ..., use.dimred = NULL)
 
 neighborsToSNNGraph(indices, type = c("rank", "number", "jaccard"))
 
 neighborsToKNNGraph(indices, directed = FALSE)
 }
 \arguments{
-\item{x}{For the ANY method, a matrix-like object containing expression values for each gene (row) in each cell (column).
+\item{x}{A matrix-like object containing expression values for each gene (row) in each cell (column).
 These dimensions can be transposed if \code{transposed=TRUE}.
 
-For the \linkS4class{SingleCellExperiment} method, a SingleCellExperiment containing such an expression matrix.
-Alternatively, graph building will be performed from its \code{\link{reducedDims}} if \code{use.dimred} is set.}
+Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} containing such an expression matrix.
+
+If \code{x} is a SingleCellExperiment and \code{use.dimred} is set,
+graph building will be performed from its \code{\link{reducedDims}}.}
 
 \item{...}{For the generics, additional arguments to pass to the specific methods.
 
-For the SingleCellExperiment methods, additional arguments to pass to the corresponding ANY method.}
+For the SummarizedExperiment methods, additional arguments to pass to the corresponding ANY method.
+
+For the SingleCellExperiment methods, additional arguments to pass to the corresponding SummarizedExperiment method.}
 
 \item{k}{An integer scalar specifying the number of nearest neighbors to consider during graph construction.}
 

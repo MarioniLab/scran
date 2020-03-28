@@ -3,7 +3,7 @@
 \name{cyclone}
 \alias{cyclone}
 \alias{cyclone,ANY-method}
-\alias{cyclone,SingleCellExperiment-method}
+\alias{cyclone,SummarizedExperiment-method}
 \title{Cell cycle phase classification}
 \usage{
 cyclone(x, ...)
@@ -20,16 +20,16 @@ cyclone(x, ...)
   subset.row = NULL
 )
 
-\S4method{cyclone}{SingleCellExperiment}(x, ..., assay.type = "counts")
+\S4method{cyclone}{SummarizedExperiment}(x, ..., assay.type = "counts")
 }
 \arguments{
 \item{x}{A numeric matrix-like object of gene expression values where rows are genes and columns are cells.
 
-Alternatively, a \linkS4class{SingleCellExperiment} object containing such a matrix.}
+Alternatively, a \linkS4class{SummarizedExperiment} object containing such a matrix.}
 
 \item{...}{For the generic, additional arguments to pass to specific methods.
 
-For the SingleCellExperiment method, additional arguments to pass to the ANY method.}
+For the SummarizedExperiment method, additional arguments to pass to the ANY method.}
 
 \item{pairs}{A list of data.frames produced by \code{\link{sandbag}}, containing pairs of marker genes.}
 

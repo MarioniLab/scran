@@ -4,6 +4,7 @@
 \alias{modelGeneCV2}
 \alias{modelGeneCV2,ANY-method}
 \alias{modelGeneCV2,SingleCellExperiment-method}
+\alias{modelGeneCV2,SummarizedExperiment-method}
 \title{Model the per-gene CV2}
 \usage{
 modelGeneCV2(x, ...)
@@ -20,16 +21,22 @@ modelGeneCV2(x, ...)
   BPPARAM = SerialParam()
 )
 
-\S4method{modelGeneCV2}{SingleCellExperiment}(x, size.factors = NULL, ..., assay.type = "counts")
+\S4method{modelGeneCV2}{SummarizedExperiment}(x, ..., assay.type = "counts")
+
+\S4method{modelGeneCV2}{SingleCellExperiment}(x, size.factors = NULL, ...)
 }
 \arguments{
-\item{x}{A numeric matrix of counts, or a \linkS4class{SingleCellExperiment} containing such a matrix.}
+\item{x}{A numeric matrix of counts where rows are genes and columns are cells.
+
+Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} containing such a matrix.}
 
 \item{...}{For the generic, further arguments to pass to each method.
 
 For the ANY method, further arguments to pass to \code{\link{fitTrendCV2}}.
 
-For the \linkS4class{SingleCellExperiment} method, further arguments to pass to the ANY method.}
+For the \linkS4class{SummarizedExperiment} method, further arguments to pass to the ANY method.
+
+For the \linkS4class{SingleCellExperiment} method, further arguments to pass to the SummarizedExperiment method.}
 
 \item{size.factors}{A numeric vector of size factors for each cell in \code{x}.}
 
@@ -50,7 +57,7 @@ Only used if \code{block} is specified.}
 
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object indicating whether parallelization should be performed across genes.}
 
-\item{assay.type}{String or integer scalar specifying the assay containing the log-expression values.}
+\item{assay.type}{String or integer scalar specifying the assay containing the counts.}
 }
 \value{
 A \linkS4class{DataFrame} is returned where each row corresponds to a gene in \code{x} (or in \code{subset.row}, if specified).

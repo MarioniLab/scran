@@ -4,6 +4,7 @@
 \alias{modelGeneVar}
 \alias{modelGeneVar,ANY-method}
 \alias{modelGeneVar,SingleCellExperiment-method}
+\alias{modelGeneVar,SummarizedExperiment-method}
 \title{Model the per-gene variance}
 \usage{
 \S4method{modelGeneVar}{ANY}(
@@ -18,10 +19,12 @@
   BPPARAM = SerialParam()
 )
 
-\S4method{modelGeneVar}{SingleCellExperiment}(x, ..., assay.type = "logcounts")
+\S4method{modelGeneVar}{SummarizedExperiment}(x, ..., assay.type = "logcounts")
 }
 \arguments{
-\item{x}{A numeric matrix of log-counts, or a \linkS4class{SingleCellExperiment} containing such a matrix.}
+\item{x}{A numeric matrix of log-normalized expression values where rows are genes and columns are cells.
+
+Alternatively, a \linkS4class{SummarizedExperiment} containing such a matrix.}
 
 \item{block}{A factor specifying the blocking levels for each cell in \code{x}.
 If specified, variance modelling is performed separately within each block and statistics are combined across blocks.}
@@ -38,7 +41,7 @@ Defaults to \code{subset.row}.}
 
 For the ANY method, further arguments to pass to \code{\link{fitTrendVar}}.
 
-For the \linkS4class{SingleCellExperiment} method, further arguments to pass to the ANY method.}
+For the \linkS4class{SummarizedExperiment} method, further arguments to pass to the ANY method.}
 
 \item{equiweight}{A logical scalar indicating whether statistics from each block should be given equal weight.
 Otherwise, each block is weighted according to its number of cells.

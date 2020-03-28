@@ -3,9 +3,11 @@
 \name{clusterSNNGraph}
 \alias{clusterSNNGraph}
 \alias{clusterSNNGraph,ANY-method}
+\alias{clusterSNNGraph,SummarizedExperiment-method}
 \alias{clusterSNNGraph,SingleCellExperiment-method}
 \alias{clusterKNNGraph}
 \alias{clusterKNNGraph,ANY-method}
+\alias{clusterKNNGraph,SummarizedExperiment-method}
 \alias{clusterKNNGraph,SingleCellExperiment-method}
 \title{Wrappers for graph-based clustering}
 \usage{
@@ -21,7 +23,9 @@ clusterSNNGraph(x, ...)
   kmeans.args = list()
 )
 
-\S4method{clusterSNNGraph}{SingleCellExperiment}(x, ..., use.dimred = NULL, assay.type = "logcounts")
+\S4method{clusterSNNGraph}{SummarizedExperiment}(x, ..., assay.type = "logcounts")
+
+\S4method{clusterSNNGraph}{SingleCellExperiment}(x, ..., use.dimred = NULL)
 
 clusterKNNGraph(x, ...)
 
@@ -35,20 +39,26 @@ clusterKNNGraph(x, ...)
   kmeans.args = list()
 )
 
-\S4method{clusterKNNGraph}{SingleCellExperiment}(x, ..., use.dimred = NULL, assay.type = "logcounts")
+\S4method{clusterKNNGraph}{SummarizedExperiment}(x, ..., assay.type = "logcounts")
+
+\S4method{clusterKNNGraph}{SingleCellExperiment}(x, ..., use.dimred = NULL)
 }
 \arguments{
-\item{x}{For the ANY method, a matrix-like object containing expression values for each gene (row) in each cell (column).
+\item{x}{A matrix-like object containing expression values for each gene (row) in each cell (column).
 These dimensions can be transposed if \code{transposed=TRUE}.
 
-For the \linkS4class{SingleCellExperiment} method, a SingleCellExperiment containing such an expression matrix.
-Alternatively, graph building will be performed from its \code{\link{reducedDims}} if \code{use.dimred} is set.}
+Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} containing such an expression matrix.
+
+If \code{x} is a SingleCellExperiment and \code{use.dimred} is set,
+graph building will be performed from its \code{\link{reducedDims}}.}
 
 \item{...}{For the generics, additional arguments to pass to the specific methods.
 
 For the ANY methods, additional arguments to pass to \code{\link{buildSNNGraph}} or \code{\link{buildKNNGraph}}.
 
-For the SingleCellExperiment methods, additional arguments to pass to the corresponding ANY method.}
+For the SummarizedExperiment method, additional arguments to pass to the corresponding ANY method.
+
+For the SingleCellExperiment method, additional arguments to pass to the corresponding SummarizedExperiment method.}
 
 \item{clusterFUN}{Function that can take a \link{graph} object and return a \link{communities} object,
 see examples in the \pkg{igraph} package.}
@@ -62,9 +72,9 @@ Defaults to the square root of the number of cells in \code{x}.}
 
 \item{kmeans.args}{List containing additional named arguments to pass to \code{\link{kmeans}}.}
 
-\item{use.dimred}{A string specifying whether existing values in \code{reducedDims(x)} should be used.}
-
 \item{assay.type}{A string specifying which assay values to use.}
+
+\item{use.dimred}{A string specifying whether existing values in \code{reducedDims(x)} should be used.}
 }
 \value{
 A factor containing the cluster assignment for each cell.

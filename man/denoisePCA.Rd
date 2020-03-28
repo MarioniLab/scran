@@ -4,7 +4,7 @@
 \alias{denoisePCA}
 \alias{getDenoisedPCs}
 \alias{getDenoisedPCs,ANY-method}
-\alias{getDenoisedPCs,SingleCellExperiment-method}
+\alias{getDenoisedPCs,SummarizedExperiment-method}
 \alias{denoisePCANumber}
 \title{Denoise expression with PCA}
 \usage{
@@ -21,16 +21,17 @@ getDenoisedPCs(x, ...)
   BPPARAM = SerialParam()
 )
 
-\S4method{getDenoisedPCs}{SingleCellExperiment}(x, ..., assay.type = "logcounts")
+\S4method{getDenoisedPCs}{SummarizedExperiment}(x, ..., assay.type = "logcounts")
 
 denoisePCA(x, ..., value = c("pca", "lowrank"), assay.type = "logcounts")
 
 denoisePCANumber(var.exp, var.tech, var.total)
 }
 \arguments{
-\item{x}{A numeric matrix of log-expression values.
+\item{x}{For \code{getDenoisedPCs}, a numeric matrix of log-expression values, where rows are genes and columns are cells.
+Alternatively, a \linkS4class{SummarizedExperiment} object containing such a matrix.
 
-Alternatively, a \linkS4class{SingleCellExperiment} object containing such values.}
+For \code{denoisePCA}, a \linkS4class{SingleCellExperiment} object containing a log-expression amtrix.}
 
 \item{...}{For the \code{getDenoisedPCs} generic, further arguments to pass to specific methods.
 For the SingleCellExperiment method, further arguments to pass to the ANY method.

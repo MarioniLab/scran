@@ -3,7 +3,7 @@
 \name{correlatePairs}
 \alias{correlatePairs}
 \alias{correlatePairs,ANY-method}
-\alias{correlatePairs,SingleCellExperiment-method}
+\alias{correlatePairs,SummarizedExperiment-method}
 \title{Test for significant correlations}
 \usage{
 correlatePairs(x, ...)
@@ -22,13 +22,15 @@ correlatePairs(x, ...)
   BPPARAM = SerialParam()
 )
 
-\S4method{correlatePairs}{SingleCellExperiment}(x, ..., assay.type = "logcounts")
+\S4method{correlatePairs}{SummarizedExperiment}(x, ..., assay.type = "logcounts")
 }
 \arguments{
 \item{x}{A numeric matrix-like object of log-normalized expression values, where rows are genes and columns are cells.
-Alternatively, a \linkS4class{SingleCellExperiment} object containing such a matrix.}
+Alternatively, a \linkS4class{SummarizedExperiment} object containing such a matrix.}
 
-\item{...}{Additional arguments to pass to \code{correlatePairs,ANY-method}.}
+\item{...}{For the generic, additional arguments to pass to specific methods.
+
+For the SummarizedExperiment method, additional methods to pass to the ANY method.}
 
 \item{null.dist}{A numeric vector of rho values under the null hypothesis.}
 

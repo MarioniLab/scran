@@ -3,7 +3,7 @@
 \name{quickCluster}
 \alias{quickCluster}
 \alias{quickCluster,ANY-method}
-\alias{quickCluster,SingleCellExperiment-method}
+\alias{quickCluster,SummarizedExperiment-method}
 \title{Quick clustering of cells}
 \usage{
 quickCluster(x, ...)
@@ -24,19 +24,19 @@ quickCluster(x, ...)
   ...
 )
 
-\S4method{quickCluster}{SingleCellExperiment}(x, ..., assay.type = "counts")
+\S4method{quickCluster}{SummarizedExperiment}(x, ..., assay.type = "counts")
 }
 \arguments{
 \item{x}{A numeric count matrix where rows are genes and columns are cells.
 
-Alternatively, a \linkS4class{SingleCellExperiment} object containing such a matrix.}
+Alternatively, a \linkS4class{SummarizedExperiment} object containing such a matrix.}
 
 \item{...}{For the generic, further arguments to pass to specific methods.
 
 For the ANY method, additional arguments to be passed to \code{\link{buildSNNGraph}} for \code{method="igraph"}.
 or to \code{\link[dynamicTreeCut]{cutreeDynamic}} for \code{method="hclust"}.
 
-For the \linkS4class{SingleCellExperiment} method, additional arguments to pass to the ANY method.}
+For the \linkS4class{SummarizedExperiment} method, additional arguments to pass to the ANY method.}
 
 \item{min.size}{An integer scalar specifying the minimum size of each cluster.}
 

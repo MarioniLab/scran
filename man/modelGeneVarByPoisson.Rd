@@ -3,6 +3,7 @@
 \name{modelGeneVarByPoisson}
 \alias{modelGeneVarByPoisson}
 \alias{modelGeneVarByPoisson,ANY-method}
+\alias{modelGeneVarByPoisson,SummarizedExperiment-method}
 \alias{modelGeneVarByPoisson,SingleCellExperiment-method}
 \title{Model the per-gene variance with Poisson noise}
 \usage{
@@ -23,21 +24,22 @@ modelGeneVarByPoisson(x, ...)
   BPPARAM = SerialParam()
 )
 
-\S4method{modelGeneVarByPoisson}{SingleCellExperiment}(
-  x,
-  size.factors = sizeFactors(x),
-  ...,
-  assay.type = "counts"
-)
+\S4method{modelGeneVarByPoisson}{SummarizedExperiment}(x, ..., assay.type = "counts")
+
+\S4method{modelGeneVarByPoisson}{SingleCellExperiment}(x, size.factors = sizeFactors(x), ...)
 }
 \arguments{
-\item{x}{A numeric matrix of counts for endogenous genes, or a \linkS4class{SingleCellExperiment} containing such a matrix.}
+\item{x}{A numeric matrix of counts where rows are (usually endogenous) genes and columns are cells.
+
+Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} containing such a matrix.}
 
 \item{...}{For the generic, further arguments to pass to each method.
 
 For the ANY method, further arguments to pass to \code{\link{fitTrendVar}}.
 
-For the \linkS4class{SingleCellExperiment} method, further arguments to pass to the ANY method.}
+For the \linkS4class{SummarizedExperiment} method, further arguments to pass to the ANY method.
+
+For the \linkS4class{SingleCellExperiment} method, further arguments to pass to the SummarizedExperiment method.}
 
 \item{size.factors}{A numeric vector of size factors for each cell in \code{x}, to be used for scaling gene expression.}
 
