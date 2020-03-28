@@ -4,7 +4,7 @@
 #' 
 #' @param x A numeric matrix-like object of gene expression values where rows are genes and columns are cells.
 #' 
-#' Alternatively, a \linkS4class{SingleCellExperiment} object containing such a matrix.
+#' Alternatively, a \linkS4class{SummarizedExperiment} object containing such a matrix.
 #' @param pairs A list of data.frames produced by \code{\link{sandbag}}, containing pairs of marker genes.
 #' @param gene.names A character vector of gene names, with one value per row in \code{x}.
 #' @param iter An integer scalar specifying the number of iterations for random sampling to obtain a cycle score.
@@ -15,7 +15,7 @@
 #' @param subset.row See \code{?"\link{scran-gene-selection}"}.
 #' @param ... For the generic, additional arguments to pass to specific methods.
 #'
-#' For the SingleCellExperiment method, additional arguments to pass to the ANY method.
+#' For the SummarizedExperiment method, additional arguments to pass to the ANY method.
 #' @param assay.type A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.
 #' 
 #' @details
@@ -185,6 +185,6 @@ setMethod("cyclone", "ANY", .cyclone)
 #' @export
 #' @rdname cyclone
 #' @importFrom SummarizedExperiment assay
-setMethod("cyclone", "SingleCellExperiment", function(x, ..., assay.type="counts") {
+setMethod("cyclone", "SummarizedExperiment", function(x, ..., assay.type="counts") {
     cyclone(assay(x, i=assay.type), ...)
 })

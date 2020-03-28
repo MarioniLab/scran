@@ -2,11 +2,13 @@
 #'
 #' Build a shared or k-nearest-neighbors graph of cells based on similarities in their expression profiles.
 #'
-#' @param x For the ANY method, a matrix-like object containing expression values for each gene (row) in each cell (column).
+#' @param x A matrix-like object containing expression values for each gene (row) in each cell (column).
 #' These dimensions can be transposed if \code{transposed=TRUE}.
 #' 
-#' For the \linkS4class{SingleCellExperiment} method, a SingleCellExperiment containing such an expression matrix.
-#' Alternatively, graph building will be performed from its \code{\link{reducedDims}} if \code{use.dimred} is set.
+#' Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} containing such an expression matrix.
+#'
+#' If \code{x} is a SingleCellExperiment and \code{use.dimred} is set,
+#' graph building will be performed from its \code{\link{reducedDims}}.
 #' @param k An integer scalar specifying the number of nearest neighbors to consider during graph construction.
 #' @param d An integer scalar specifying the number of dimensions to use for the search.
 #' Ignored for the SingleCellExperiment methods if \code{use.dimred} is set.
@@ -20,7 +22,9 @@
 #' @param BPPARAM A \linkS4class{BiocParallelParam} object to use for parallel processing.
 #' @param ... For the generics, additional arguments to pass to the specific methods.
 #' 
-#' For the SingleCellExperiment methods, additional arguments to pass to the corresponding ANY method.
+#' For the SummarizedExperiment methods, additional arguments to pass to the corresponding ANY method.
+#'
+#' For the SingleCellExperiment methods, additional arguments to pass to the corresponding SummarizedExperiment method.
 #' @param assay.type A string specifying which assay values to use.
 #' @param use.dimred A string specifying whether existing values in \code{reducedDims(x)} should be used.
 #' @param indices An integer matrix where each row corresponds to a cell and contains the indices of the \code{k} nearest neighbors (by increasing distance) from that cell.
@@ -200,12 +204,19 @@ setMethod("buildSNNGraph", "ANY", .buildSNNGraph)
 #' @export
 #' @rdname buildSNNGraph
 #' @importFrom SummarizedExperiment assay
+setMethod("buildSNNGraph", "SummarizedExperiment", function(x, ..., assay.type="logcounts") {
+    .buildSNNGraph(assay(x, i=assay.type), transposed=FALSE, ...)
+})
+
+#' @export
+#' @rdname buildSNNGraph
+#' @importFrom SummarizedExperiment assay
 #' @importFrom SingleCellExperiment reducedDim 
-setMethod("buildSNNGraph", "SingleCellExperiment", function(x, ..., assay.type="logcounts", use.dimred=NULL) {
+setMethod("buildSNNGraph", "SingleCellExperiment", function(x, ..., use.dimred=NULL) {
     if (!is.null(use.dimred)) {
         .buildSNNGraph(reducedDim(x, use.dimred), d=NA, transposed=TRUE, ...)
     } else {
-        .buildSNNGraph(assay(x, i=assay.type), transposed=FALSE, ...)
+        callNextMethod(x=x, ...)
     }
 })
 
@@ -220,12 +231,19 @@ setMethod("buildKNNGraph", "ANY", .buildKNNGraph)
 #' @export
 #' @rdname buildSNNGraph
 #' @importFrom SummarizedExperiment assay
+setMethod("buildKNNGraph", "SingleCellExperiment", function(x, ..., assay.type="logcounts"){ 
+    .buildKNNGraph(assay(x, i=assay.type), transposed=FALSE, ...)
+})
+
+#' @export
+#' @rdname buildSNNGraph
+#' @importFrom SummarizedExperiment assay
 #' @importFrom SingleCellExperiment reducedDim 
-setMethod("buildKNNGraph", "SingleCellExperiment", function(x, ..., assay.type="logcounts", use.dimred=NULL) {
+setMethod("buildKNNGraph", "SingleCellExperiment", function(x, ..., use.dimred=NULL) {
     if (!is.null(use.dimred)) {
         .buildKNNGraph(reducedDim(x, use.dimred), d=NA, transposed=TRUE, ...)
     } else {
-        .buildKNNGraph(assay(x, i=assay.type), transposed=FALSE, ...)
+        callNextMethod(x=x, ...)
     }
 })
 

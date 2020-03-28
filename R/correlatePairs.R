@@ -6,7 +6,7 @@
 #' @param BPPARAM A \linkS4class{BiocParallelParam} object that specifies the manner of parallel processing to use.
 #' @param x 
 #'     A numeric matrix-like object of log-normalized expression values, where rows are genes and columns are cells.
-#'     Alternatively, a \linkS4class{SingleCellExperiment} object containing such a matrix.
+#'     Alternatively, a \linkS4class{SummarizedExperiment} object containing such a matrix.
 #' 
 #' @param null.dist A numeric vector of rho values under the null hypothesis.
 #' @param ties.method String specifying how tied ranks should be handled.
@@ -23,7 +23,10 @@
 #' Otherwise, each block is weighted according to its number of cells.
 #' Only used if \code{block} is specified.
 #' @param iters Integer scalar specifying the number of iterations to use in \code{\link{correlateNull}} to build the null distribution.
-#' @param ... Additional arguments to pass to \code{correlatePairs,ANY-method}.
+#' @param ... 
+#' For the generic, additional arguments to pass to specific methods.
+#'
+#' For the SummarizedExperiment method, additional methods to pass to the ANY method.
 #' @param assay.type A string specifying which assay values to use.
 #' 
 #' @details
@@ -420,7 +423,6 @@ setMethod("correlatePairs", "ANY", .correlate_pairs)
 #' @export
 #' @rdname correlatePairs
 #' @importFrom SummarizedExperiment assay
-setMethod("correlatePairs", "SingleCellExperiment", function(x, ..., assay.type="logcounts") 
-{
+setMethod("correlatePairs", "SummarizedExperiment", function(x, ..., assay.type="logcounts") {
     .correlate_pairs(assay(x, i=assay.type), ...)
 })

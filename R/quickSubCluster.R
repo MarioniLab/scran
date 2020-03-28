@@ -2,8 +2,10 @@
 #'
 #' Performs a quick subclustering for all cells within each group.
 #'
-#' @param x A matrix of counts or log-normalized expression values (if \code{normalize=FALSE}).
-#' Alternatively, a \linkS4class{SingleCellExperiment} object containing such a matrix.
+#' @param x A matrix of counts or log-normalized expression values (if \code{normalize=FALSE}),
+#' where each row corresponds to a gene and each column corresponds to a cell.
+#' 
+#' Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} object containing such a matrix.
 #' @param groups A vector of group assignments for all cells, usually corresponding to cluster identities.
 #' @param normalize Logical scalar indicating whether each subset of \code{x} should be log-transformed prior to further analysis.
 #' @param prepFUN A function that accepts a single \linkS4class{SingleCellExperiment} object and returns another \linkS4class{SingleCellExperiment} containing any additional elements required for clustering (e.g., PCA results).
@@ -11,7 +13,9 @@
 #' @param clusterFUN A function that accepts a single \linkS4class{SingleCellExperiment} object and returns a vector of cluster assignments for each cell in that object.
 #' @param format A string to be passed to \code{\link{sprintf}}, specifying how the subclusters should be named with respect to the parent level in \code{groups} and the level returned by \code{clusterFUN}.
 #' @param assay.type String or integer scalar specifying the relevant assay.
-#' @param ... Further arguments to pass to specific methods.
+#' @param ... For the generic, further arguments to pass to specific methods.
+#'
+#' For the ANY and SummarizedExperiment methods, further arguments to pass to the SingleCellExperiment method.
 #'
 #' @return
 #' A named \linkS4class{List} of \linkS4class{SingleCellExperiment} objects.
@@ -142,6 +146,12 @@ NULL
 # S4 method definitions
 ############################
 
+# NOTE: normally, I would have dispatch flow "downwards" towards base
+# classes or simpler objects. However, in this case, I have implemented
+# it to flow upwards because prepFUN and clustFUN expect SCE inputs.
+# This means that everything ends up being promoted to an SCE anyway,
+# and it's too hard to require users write their functions endomorphically.
+
 #' @export
 #' @rdname quickSubCluster
 setGeneric("quickSubCluster", function(x, ...) standardGeneric("quickSubCluster"))
@@ -149,18 +159,22 @@ setGeneric("quickSubCluster", function(x, ...) standardGeneric("quickSubCluster"
 #' @export
 #' @rdname quickSubCluster
 #' @importFrom SingleCellExperiment SingleCellExperiment
-setMethod("quickSubCluster", "ANY", function(x, groups, normalize=TRUE, 
-    prepFUN=NULL, min.ncells=50, clusterFUN=NULL, format="%s.%s") 
+setMethod("quickSubCluster", "ANY", function(x, normalize=TRUE, ...)
 {
     assays <- list(x)
     assay.type <- if (normalize) "counts" else "logcounts"
-    names(assays) <- assay.type
-    .quick_sub_cluster(SingleCellExperiment(assays), groups, 
-        normalize=normalize, prepFUN=prepFUN, min.ncells=min.ncells, 
-        clusterFUN=clusterFUN, format=format, assay.type=assay.type)
+    names(assays) <- assay.type 
+    .quick_sub_cluster(SingleCellExperiment(assays), normalize=normalize, assay.type=assay.type, ...)
 })
 
 #' @export
 #' @rdname quickSubCluster
-#' @importFrom SummarizedExperiment assay
+#' @importFrom methods as
+#' @importClassesFrom SingleCellExperiment SingleCellExperiment
+setMethod("quickSubCluster", "SummarizedExperiment", function(x, ...) {
+    .quick_sub_cluster(as(x, "SingleCellExperiment"), ...)
+})
+
+#' @export
+#' @rdname quickSubCluster
 setMethod("quickSubCluster", "SingleCellExperiment", .quick_sub_cluster)

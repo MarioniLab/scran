@@ -4,7 +4,7 @@
 #' 
 #' @param x A numeric matrix of gene expression values where rows are genes and columns are cells.
 #'
-#' Alternatively, a \linkS4class{SingleCellExperiment} object containing such a matrix.
+#' Alternatively, a \linkS4class{SummarizedExperiment} object containing such a matrix.
 #' @param phases A list of subsetting vectors specifying which cells are in each phase of the cell cycle.
 #' This should typically be of length 3, with elements named as \code{"G1"}, \code{"S"} and \code{"G2M"}.
 #' @param gene.names A character vector of gene names.
@@ -12,7 +12,7 @@
 #' @param subset.row See \code{?"\link{scran-gene-selection}"}.
 #' @param ... For the generic, additional arguments to pass to specific methods.
 #'
-#' For the SingleCellExperiment method, additional arguments to pass to the ANY method.
+#' For the SummarizedExperiment method, additional arguments to pass to the ANY method.
 #' @param assay.type A string specifying which assay values to use, e.g., \code{"counts"} or \code{"logcounts"}.
 #' 
 #' @details
@@ -156,6 +156,6 @@ setMethod("sandbag", "ANY", function(x, phases, gene.names=rownames(x), fraction
 #' @export
 #' @rdname sandbag
 #' @importFrom SummarizedExperiment assay
-setMethod("sandbag", "SingleCellExperiment", function(x, ..., assay.type="counts") {
+setMethod("sandbag", "SummarizedExperiment", function(x, ..., assay.type="counts") {
     sandbag(assay(x, i=assay.type), ...)
 })

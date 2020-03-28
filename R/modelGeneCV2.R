@@ -3,13 +3,18 @@
 #' Model the squared coefficient of variation (CV2) of the normalized expression profiles for each gene,
 #' fitting a trend to account for the mean-variance relationship across genes.
 #' 
-#' @param x A numeric matrix of counts, or a \linkS4class{SingleCellExperiment} containing such a matrix.
+#' @param x A numeric matrix of counts where rows are genes and columns are cells.
+#'
+#' Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} containing such a matrix.
 #' @param size.factors A numeric vector of size factors for each cell in \code{x}.
 #' @param ... For the generic, further arguments to pass to each method.
 #' 
 #' For the ANY method, further arguments to pass to \code{\link{fitTrendCV2}}.
 #'
-#' For the \linkS4class{SingleCellExperiment} method, further arguments to pass to the ANY method.
+#' For the \linkS4class{SummarizedExperiment} method, further arguments to pass to the ANY method.
+#'
+#' For the \linkS4class{SingleCellExperiment} method, further arguments to pass to the SummarizedExperiment method.
+#' @param assay.type String or integer scalar specifying the assay containing the counts.
 #' @inheritParams modelGeneVar
 #'
 #' @details
@@ -152,11 +157,18 @@ setMethod("modelGeneCV2", "ANY", .model_gene_cv2)
 
 #' @export
 #' @importFrom SummarizedExperiment assay
+#' @rdname modelGeneCV2
+setMethod("modelGeneCV2", "SummarizedExperiment", function(x, ..., assay.type="counts") {
+    .model_gene_cv2(assay(x, i=assay.type), ...)
+})
+
+#' @export
+#' @importFrom SummarizedExperiment assay
 #' @importFrom BiocGenerics sizeFactors
 #' @rdname modelGeneCV2
-setMethod("modelGeneCV2", "SingleCellExperiment", function(x, size.factors=NULL, ..., assay.type="counts") {
+setMethod("modelGeneCV2", "SingleCellExperiment", function(x, size.factors=NULL, ...) {
     if (is.null(size.factors)) {
         size.factors <- sizeFactors(x)
     }
-    .model_gene_cv2(assay(x, i=assay.type), ..., size.factors=size.factors)
+    callNextMethod(x=x, ..., size.factors=size.factors)
 }) 

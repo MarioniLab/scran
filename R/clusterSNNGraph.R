@@ -14,7 +14,9 @@
 #'
 #' For the ANY methods, additional arguments to pass to \code{\link{buildSNNGraph}} or \code{\link{buildKNNGraph}}.
 #'
-#' For the SingleCellExperiment methods, additional arguments to pass to the corresponding ANY method.
+#' For the SummarizedExperiment method, additional arguments to pass to the corresponding ANY method.
+#'
+#' For the SingleCellExperiment method, additional arguments to pass to the corresponding SummarizedExperiment method.
 #'
 #' @return A factor containing the cluster assignment for each cell.
 #'
@@ -127,12 +129,19 @@ setMethod("clusterSNNGraph", "ANY", .clusterSNNGraph)
 #' @export
 #' @rdname clusterSNNGraph
 #' @importFrom SummarizedExperiment assay
+setMethod("clusterSNNGraph", "SummarizedExperiment", function(x, ..., assay.type="logcounts") {
+    .clusterSNNGraph(assay(x, assay.type), ..., transposed=FALSE)
+})
+
+#' @export
+#' @rdname clusterSNNGraph
+#' @importFrom SummarizedExperiment assay
 #' @importFrom SingleCellExperiment reducedDim
-setMethod("clusterSNNGraph", "SingleCellExperiment", function(x, ..., use.dimred=NULL, assay.type="logcounts") {
+setMethod("clusterSNNGraph", "SingleCellExperiment", function(x, ..., use.dimred=NULL) {
     if (!is.null(use.dimred)) {
         .clusterSNNGraph(reducedDim(x, use.dimred), ..., d=NA, transposed=TRUE)
     } else {
-        .clusterSNNGraph(assay(x, assay.type), ..., transposed=FALSE)
+        callNextMethod(x=x, ...)
     }
 })
 
@@ -147,11 +156,18 @@ setMethod("clusterKNNGraph", "ANY", .clusterKNNGraph)
 #' @export
 #' @rdname clusterSNNGraph
 #' @importFrom SummarizedExperiment assay
+setMethod("clusterKNNGraph", "SummarizedExperiment", function(x, ..., assay.type="logcounts") {
+    .clusterKNNGraph(assay(x, assay.type), ..., transposed=FALSE)
+})
+
+#' @export
+#' @rdname clusterSNNGraph
+#' @importFrom SummarizedExperiment assay
 #' @importFrom SingleCellExperiment reducedDim
-setMethod("clusterKNNGraph", "SingleCellExperiment", function(x, ..., use.dimred=NULL, assay.type="logcounts") {
+setMethod("clusterKNNGraph", "SingleCellExperiment", function(x, ..., use.dimred=NULL) {
     if (!is.null(use.dimred)) {
         .clusterKNNGraph(reducedDim(x, use.dimred), ..., d=NA, transposed=TRUE)
     } else {
-        .clusterKNNGraph(assay(x, assay.type), ..., transposed=FALSE)
+        callNextMethod(x=x, ...)
     }
 })

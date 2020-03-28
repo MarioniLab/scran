@@ -2,9 +2,11 @@
 #'
 #' Denoise log-expression data by removing principal components corresponding to technical noise.
 #'
-#' @param x A numeric matrix of log-expression values.
+#' @param x 
+#' For \code{getDenoisedPCs}, a numeric matrix of log-expression values, where rows are genes and columns are cells.
+#' Alternatively, a \linkS4class{SummarizedExperiment} object containing such a matrix.
 #'
-#' Alternatively, a \linkS4class{SingleCellExperiment} object containing such values.
+#' For \code{denoisePCA}, a \linkS4class{SingleCellExperiment} object containing a log-expression amtrix.
 #' @param technical An object containing the technical components of variation for each gene in \code{x}.
 #' This can be: 
 #' \itemize{
@@ -244,7 +246,7 @@ setMethod("getDenoisedPCs", "ANY", .get_denoised_pcs)
 #' @export
 #' @rdname denoisePCA
 #' @importFrom SummarizedExperiment assay
-setMethod("getDenoisedPCs", "SingleCellExperiment", function(x, ..., assay.type="logcounts") {
+setMethod("getDenoisedPCs", "SummarizedExperiment", function(x, ..., assay.type="logcounts") {
     .get_denoised_pcs(assay(x, assay.type), ...)
 })
 

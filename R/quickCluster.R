@@ -4,7 +4,7 @@
 #' 
 #' @param x A numeric count matrix where rows are genes and columns are cells.
 #' 
-#' Alternatively, a \linkS4class{SingleCellExperiment} object containing such a matrix.
+#' Alternatively, a \linkS4class{SummarizedExperiment} object containing such a matrix.
 #' @param min.size An integer scalar specifying the minimum size of each cluster.
 #' @param method String specifying the clustering method to use.
 #' \code{"hclust"} uses hierarchical clustering while \code{"igraph"} uses graph-based clustering.
@@ -30,7 +30,7 @@
 #' For the ANY method, additional arguments to be passed to \code{\link{buildSNNGraph}} for \code{method="igraph"}.
 #' or to \code{\link[dynamicTreeCut]{cutreeDynamic}} for \code{method="hclust"}.
 #' 
-#' For the \linkS4class{SingleCellExperiment} method, additional arguments to pass to the ANY method.
+#' For the \linkS4class{SummarizedExperiment} method, additional arguments to pass to the ANY method.
 #' @param assay.type A string specifying which assay values to use. 
 #' 
 #' @details
@@ -302,7 +302,7 @@ setMethod("quickCluster", "ANY", .quick_cluster)
 #' @export
 #' @rdname quickCluster
 #' @importFrom SummarizedExperiment assay
-setMethod("quickCluster", "SingleCellExperiment", function(x, ..., assay.type="counts") {
+setMethod("quickCluster", "SummarizedExperiment", function(x, ..., assay.type="counts") {
     .quick_cluster(assay(x, i=assay.type), ...)
 })
 

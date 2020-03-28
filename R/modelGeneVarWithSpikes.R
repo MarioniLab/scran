@@ -3,10 +3,14 @@
 #' Model the variance of the log-expression profiles for each gene, 
 #' decomposing it into technical and biological components based on a mean-variance trend fitted to spike-in transcripts.
 #' 
-#' @param x A numeric matrix of counts for endogenous genes, or a \linkS4class{SingleCellExperiment} containing such a matrix.
-#' @param spikes A numeric matrix of counts for spike-in transcripts.
+#' @param x A numeric matrix of counts where rows are (usually endogenous) genes and columns are cells.
 #'
-#' Alternatively, for the SingleCellExperiment method, this can be a string or an integer scalar specifying the \code{\link{altExp}} containing the spike-in count matrix.
+#' Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} containing such a matrix.
+#' @param spikes A numeric matrix of counts where each row corresponds to a spike-in transcript.
+#' This should have the same number of columns as \code{x}.
+#'
+#' Alternatively, for the SingleCellExperiment method, 
+#' this can be a string or an integer scalar specifying the \code{\link{altExp}} containing the spike-in count matrix.
 #' @param size.factors A numeric vector of size factors for each cell in \code{x}, to be used for scaling gene expression.
 #' @param spike.size.factors A numeric vector of size factors for each cell in \code{spikes}, to be used for scaling spike-ins.
 #' @param pseudo.count Numeric scalar specifying the pseudo-count to add prior to log-transformation.
@@ -14,7 +18,12 @@
 #' 
 #' For the ANY method, further arguments to pass to \code{\link{fitTrendVar}}.
 #'
-#' For the \linkS4class{SingleCellExperiment} method, further arguments to pass to the ANY method.
+#' For the \linkS4class{SummarizedExperiment} method, further arguments to pass to the ANY method.
+#'
+#' For the \linkS4class{SingleCellExperiment} method, further arguments to pass to the SummarizedExperiment method.
+#' @param assay.type String or integer scalar specifying the assay containing the counts.
+#'
+#' For the SingleCellExperiment method, this is used to retrieve both the endogenous and spike-in counts.
 #' @inheritParams modelGeneVar
 #'
 #' @details
@@ -161,6 +170,13 @@ setMethod("modelGeneVarWithSpikes", "ANY", .model_gene_var_with_spikes)
 
 #' @export
 #' @importFrom SummarizedExperiment assay
+#' @rdname modelGeneVarWithSpikes
+setMethod("modelGeneVarWithSpikes", "SummarizedExperiment", function(x, ..., assay.type="counts") {
+    .model_gene_var_with_spikes(x=assay(x, i=assay.type), ...)
+})
+
+#' @export
+#' @importFrom SummarizedExperiment assay
 #' @importFrom BiocGenerics sizeFactors
 #' @importFrom SingleCellExperiment altExp
 #' @importFrom methods selectMethod
@@ -183,6 +199,6 @@ setMethod("modelGeneVarWithSpikes", "SingleCellExperiment", function(x, spikes,
         spikes <- assay(spikes, assay.type)
     }
 
-    .model_gene_var_with_spikes(x=assay(x, i=assay.type), spikes=spikes,
+    callNextMethod(x=x, assay.type=assay.type, spikes=spikes,
         size.factors=size.factors, spike.size.factors=spike.size.factors, ...)
 }) 

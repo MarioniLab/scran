@@ -3,7 +3,9 @@
 #' Model the variance of the log-expression profiles for each gene, 
 #' decomposing it into technical and biological components based on a fitted mean-variance trend.
 #' 
-#' @param x A numeric matrix of log-counts, or a \linkS4class{SingleCellExperiment} containing such a matrix.
+#' @param x A numeric matrix of log-normalized expression values where rows are genes and columns are cells.
+#'
+#' Alternatively, a \linkS4class{SummarizedExperiment} containing such a matrix.
 #' @param design A numeric matrix containing blocking terms for uninteresting factors of variation.
 #' @param subset.row See \code{?"\link{scran-gene-selection}"}, specifying the rows for which to model the variance.
 #' Defaults to all genes in \code{x}.
@@ -14,7 +16,7 @@
 #' 
 #' For the ANY method, further arguments to pass to \code{\link{fitTrendVar}}.
 #'
-#' For the \linkS4class{SingleCellExperiment} method, further arguments to pass to the ANY method.
+#' For the \linkS4class{SummarizedExperiment} method, further arguments to pass to the ANY method.
 #' @param block A factor specifying the blocking levels for each cell in \code{x}.
 #' If specified, variance modelling is performed separately within each block and statistics are combined across blocks.
 #' @param equiweight A logical scalar indicating whether statistics from each block should be given equal weight.
@@ -180,7 +182,6 @@ setMethod("modelGeneVar", "ANY", .model_gene_var)
 #' @export
 #' @importFrom SummarizedExperiment assay
 #' @rdname modelGeneVar
-setMethod("modelGeneVar", "SingleCellExperiment", function(x, ..., assay.type="logcounts")
-{
+setMethod("modelGeneVar", "SummarizedExperiment", function(x, ..., assay.type="logcounts") {
     .model_gene_var(x=assay(x, i=assay.type), ...)
 }) 

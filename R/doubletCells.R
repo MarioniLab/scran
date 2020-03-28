@@ -5,7 +5,7 @@
 #' @param x A numeric matrix-like object of count values, 
 #' where each column corresponds to a cell and each row corresponds to an endogenous gene.
 #' 
-#' Alternatively, a \linkS4class{SingleCellExperiment} object containing such a matrix.
+#' Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} object containing such a matrix.
 #' @param size.factors.norm A numeric vector of size factors for normalization of \code{x} prior to PCA and distance calculations.
 #' If \code{NULL}, defaults to size factors derived from the library sizes of \code{x}.
 #' 
@@ -26,7 +26,7 @@
 #' @param BPPARAM A \linkS4class{BiocParallelParam} object specifying whether the neighbour searches should be parallelized.
 #' @param ... For the generic, additional arguments to pass to specific methods.
 #' 
-#' For the SingleCellExperiment method, additional arguments to pass to the ANY method.
+#' For the SummarizedExperiment and SingleCellExperiment methods, additional arguments to pass to the ANY method.
 #' @param assay.type A string specifying which assay values contain the count matrix. 
 #' 
 #' @return 
@@ -204,8 +204,15 @@ setMethod("doubletCells", "ANY", .doublet_cells)
 #' @export
 #' @rdname doubletCells
 #' @importFrom SummarizedExperiment assay
-#' @importFrom BiocGenerics sizeFactors
-setMethod("doubletCells", "SingleCellExperiment", function(x, size.factors.norm=sizeFactors(x), ..., assay.type="counts")  
+setMethod("doubletCells", "SummarizedExperiment", function(x, ..., assay.type="counts")
 {
-    .doublet_cells(assay(x, i=assay.type), size.factors.norm=size.factors.norm, ...)
+    .doublet_cells(assay(x, i=assay.type), ...)
+})
+
+#' @export
+#' @rdname doubletCells
+#' @importFrom SummarizedExperiment assay
+#' @importFrom BiocGenerics sizeFactors
+setMethod("doubletCells", "SingleCellExperiment", function(x, size.factors.norm=sizeFactors(x), ...) {
+    callNextMethod(x=x, size.factors.norm=size.factors.norm, ...)
 })

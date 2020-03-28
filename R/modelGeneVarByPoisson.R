@@ -3,14 +3,18 @@
 #' Model the variance of the log-expression profiles for each gene, 
 #' decomposing it into technical and biological components based on a mean-variance trend corresponding to Poisson noise.
 #' 
-#' @param x A numeric matrix of counts for endogenous genes, or a \linkS4class{SingleCellExperiment} containing such a matrix.
+#' @param x A numeric matrix of counts where rows are (usually endogenous) genes and columns are cells.
+#'
+#' Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} containing such a matrix.
 #' @param size.factors A numeric vector of size factors for each cell in \code{x}, to be used for scaling gene expression.
 #' @param pseudo.count Numeric scalar specifying the pseudo-count to add prior to log-transformation.
 #' @param ... For the generic, further arguments to pass to each method.
 #' 
 #' For the ANY method, further arguments to pass to \code{\link{fitTrendVar}}.
 #'
-#' For the \linkS4class{SingleCellExperiment} method, further arguments to pass to the ANY method.
+#' For the \linkS4class{SummarizedExperiment} method, further arguments to pass to the ANY method.
+#'
+#' For the \linkS4class{SingleCellExperiment} method, further arguments to pass to the SummarizedExperiment method.
 #' @inheritParams modelGeneVar
 #' @inheritParams fitTrendPoisson
 #'
@@ -136,10 +140,17 @@ setMethod("modelGeneVarByPoisson", "ANY", .model_gene_var_by_poisson)
 
 #' @export
 #' @importFrom SummarizedExperiment assay
+#' @rdname modelGeneVarByPoisson
+setMethod("modelGeneVarByPoisson", "SummarizedExperiment", function(x, ..., assay.type="counts")
+{
+    .model_gene_var_by_poisson(assay(x, i=assay.type), ...)
+}) 
+
+#' @export
 #' @importFrom BiocGenerics sizeFactors
 #' @importFrom methods selectMethod
 #' @rdname modelGeneVarByPoisson
-setMethod("modelGeneVarByPoisson", "SingleCellExperiment", function(x, size.factors=sizeFactors(x), ..., assay.type="counts")
+setMethod("modelGeneVarByPoisson", "SingleCellExperiment", function(x, size.factors=sizeFactors(x), ...)
 {
-    .model_gene_var_by_poisson(assay(x, i=assay.type), size.factors=size.factors, ...)
+    callNextMethod(x=x, size.factors=size.factors, ...)
 }) 

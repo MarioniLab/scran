@@ -7,7 +7,9 @@
 #' 
 #' For the ANY method, further arguments to pass to \code{\link{fitTrendCV2}}.
 #'
-#' For the \linkS4class{SingleCellExperiment} method, further arguments to pass to the ANY method.
+#' For the \linkS4class{SummarizedExperiment} method, further arguments to pass to the ANY method.
+#'
+#' For the \linkS4class{SingleCellExperiment} method, further arguments to pass to the SummarizedExperiment method.
 #' @inheritParams modelGeneVarWithSpikes
 #'
 #' @details
@@ -126,6 +128,13 @@ setMethod("modelGeneCV2WithSpikes", "ANY", .model_gene_cv2_with_spikes)
 
 #' @export
 #' @importFrom SummarizedExperiment assay
+#' @rdname modelGeneCV2WithSpikes
+setMethod("modelGeneCV2WithSpikes", "SummarizedExperiment", function(x, ..., assay.type="counts") {
+    .model_gene_cv2_with_spikes(x=assay(x, i=assay.type), ...)
+}) 
+
+#' @export
+#' @importFrom SummarizedExperiment assay
 #' @importFrom BiocGenerics sizeFactors
 #' @importFrom SingleCellExperiment altExp
 #' @importFrom methods selectMethod
@@ -148,6 +157,6 @@ setMethod("modelGeneCV2WithSpikes", "SingleCellExperiment", function(x, spikes,
         spikes <- assay(spikes, assay.type)
     }
 
-    .model_gene_cv2_with_spikes(x=assay(x, i=assay.type), spikes=spikes,
+    callNextMethod(x=x, assay.type=assay.type, spikes=spikes,
         size.factors=size.factors, spike.size.factors=spike.size.factors, ...)
 }) 
