@@ -20,7 +20,8 @@ clusterSNNGraph(x, ...)
   transposed = FALSE,
   use.kmeans = FALSE,
   kmeans.centers = NULL,
-  kmeans.args = list()
+  kmeans.args = list(),
+  full.stats = FALSE
 )
 
 \S4method{clusterSNNGraph}{SummarizedExperiment}(x, ..., assay.type = "logcounts")
@@ -36,7 +37,8 @@ clusterKNNGraph(x, ...)
   transposed = FALSE,
   use.kmeans = FALSE,
   kmeans.centers = NULL,
-  kmeans.args = list()
+  kmeans.args = list(),
+  full.stats = FALSE
 )
 
 \S4method{clusterKNNGraph}{SummarizedExperiment}(x, ..., assay.type = "logcounts")
@@ -72,12 +74,20 @@ Defaults to the square root of the number of cells in \code{x}.}
 
 \item{kmeans.args}{List containing additional named arguments to pass to \code{\link{kmeans}}.}
 
+\item{full.stats}{Logical scalar indicating whether to return more statistics regarding the k-means clustering.}
+
 \item{assay.type}{A string specifying which assay values to use.}
 
 \item{use.dimred}{A string specifying whether existing values in \code{reducedDims(x)} should be used.}
 }
 \value{
-A factor containing the cluster assignment for each cell.
+If \code{full.stats=FALSE}, a factor is returned containing the cluster assignment for each cell.
+
+If \code{full.stats=TRUE} and \code{use.kmeans=TRUE}, a \linkS4class{DataFrame} is returned with one row per cell.
+This contains the columns \code{kmeans}, specifying the assignment of each cell to a k-means cluster;
+and \code{igraph}, specifying the assignment of each cell to a graph-based cluster operating on the k-means clusters.
+In addition, the \code{\link{metadata}} contains \code{graph}, a \link{graph} object where each node is a k-means cluster;
+and \code{membership}, the graph-based cluster to which each node is assigned.
 }
 \description{
 Perform graph-based clustering using community detection methods on a nearest-neighbor graph,
@@ -91,7 +101,7 @@ but users can feel free to swap it for some other algorithm (e.g., \code{\link{c
 
 For large datasets, we can perform vector quantization with k-means
 to create centroids that are then subjected to graph-based clustering.
-The label for each cell si then defined as the label of the centroid to which it was assigned.
+The label for each cell is then defined as the label of the centroid to which it was assigned.
 In this approach, k-means and graph-based clustering complement each other;
 the former improves computational efficiency and mitigates density-dependent dilation,
 while the latter aggregates the centroids for easier interpretation.
@@ -113,12 +123,17 @@ sce <- runPCA(sce, ncomponents=10)
 clusters3 <- clusterSNNGraph(sce, use.dimred="PCA")
 table(clusters3)
 
+# Extract the graph for more details:
+clusters4 <- clusterSNNGraph(sce, use.dimred="PCA", full.stats=TRUE)
+head(clusters4)
+metadata(clusters4)$graph
+
 # Turn on k-means for larger datasets, e.g., 
 # assuming we already have a PCA result:
 set.seed(101010)
 bigpc <- matrix(rnorm(2000000), ncol=20)
-clusters4 <- clusterSNNGraph(bigpc, d=NA, use.kmeans=TRUE, transposed=TRUE)
-table(clusters4)
+clusters5 <- clusterSNNGraph(bigpc, d=NA, use.kmeans=TRUE, transposed=TRUE)
+table(clusters5)
 
 }
 \seealso{
