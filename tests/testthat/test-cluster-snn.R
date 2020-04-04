@@ -3,7 +3,7 @@
 
 set.seed(1000)
 library(scater)
-sce <- mockSCE(ncells=500)
+sce <- mockSCE(ncells=500, ngenes=1000)
 sce <- logNormCounts(sce)
 
 test_that("clusterSNNGraph works correctly for standard applications", {
@@ -37,6 +37,13 @@ test_that("clusterSNNGraph works correctly for k-means", {
     set.seed(10)
     clusters2b <- clusterSNNGraph(sce, use.kmeans=TRUE, kmeans.centers=100)
     expect_identical(clusters2a, clusters2b)
+
+    # Fetches more details when requested.
+    set.seed(10)
+    clusters2c <- clusterSNNGraph(sce, use.kmeans=TRUE, kmeans.centers=100, full.stats=TRUE)
+    expect_identical(clusters2a, clusters2c$igraph)
+    expect_s3_class(metadata(clusters2c)$graph, "igraph")
+    expect_identical(clusters2c$igraph, factor(metadata(clusters2c)$membership[clusters2c$kmeans]))
 })
 
 test_that("clusterKNNGraph works correctly for standard applications", {
@@ -70,4 +77,11 @@ test_that("clusterKNNGraph works correctly for k-means", {
     set.seed(20)
     clusters2b <- clusterKNNGraph(sce, use.kmeans=TRUE, kmeans.centers=100)
     expect_identical(clusters2a, clusters2b)
+
+    # Fetches more details when requested.
+    set.seed(20)
+    clusters2c <- clusterKNNGraph(sce, use.kmeans=TRUE, kmeans.centers=100, full.stats=TRUE)
+    expect_identical(clusters2a, clusters2c$igraph)
+    expect_s3_class(metadata(clusters2c)$graph, "igraph")
+    expect_identical(clusters2c$igraph, factor(metadata(clusters2c)$membership[clusters2c$kmeans]))
 })
