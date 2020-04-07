@@ -123,17 +123,18 @@ sce <- runPCA(sce, ncomponents=10)
 clusters3 <- clusterSNNGraph(sce, use.dimred="PCA")
 table(clusters3)
 
-# Extract the graph for more details:
-clusters4 <- clusterSNNGraph(sce, use.dimred="PCA", full.stats=TRUE)
-head(clusters4)
-metadata(clusters4)$graph
-
 # Turn on k-means for larger datasets, e.g., 
 # assuming we already have a PCA result:
 set.seed(101010)
 bigpc <- matrix(rnorm(2000000), ncol=20)
-clusters5 <- clusterSNNGraph(bigpc, d=NA, use.kmeans=TRUE, transposed=TRUE)
-table(clusters5)
+clusters4 <- clusterSNNGraph(bigpc, d=NA, use.kmeans=TRUE, transposed=TRUE)
+table(clusters4)
+
+# Extract the graph for more details:
+clusters5 <- clusterSNNGraph(sce, use.dimred="PCA", 
+    use.kmeans=TRUE, full.stats=TRUE)
+head(clusters5)
+metadata(clusters5)$graph
 
 }
 \seealso{
