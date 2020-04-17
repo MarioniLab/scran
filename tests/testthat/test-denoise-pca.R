@@ -120,8 +120,15 @@ test_that("getDenoisedPCs works with different technical inputs", {
     ref <- getDenoisedPCs(lcounts, technical=dec)
     pcs <- getDenoisedPCs(lcounts, technical=dec$tech)
     expect_equal(ref, pcs)
-    alt <- getDenoisedPCs(lcounts, technical=metadata(dec)$trend)
-    expect_equal(ref, alt)
+
+    # Row sums in C++ have different precision from row sums in R on 32 bit,
+    # as the latter uses long double and thus 80-bit precision. This seems
+    # to be enough to change the mean, and thus the technical trend, and thus
+    # whether or not a gene is kept or retained. Insane stuff.
+    if (.Platform$r_arch=="") {
+        alt <- getDenoisedPCs(lcounts, technical=metadata(dec)$trend)
+        expect_equal(ref, alt)
+    }
 
     # Testing the rescaling to force the total variance in dec$total to match the observed variance.
     # This occasionally fails if you are unfortunate to get something where tech==bio,
