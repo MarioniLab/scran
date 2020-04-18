@@ -78,12 +78,14 @@ clusterModularity <- function(graph, clusters, get.weights=FALSE, as.ratio=FALSE
     clust.total <- numeric(nclust)
     names(clust.total) <- uclust
 
+    fullmat <- graph[]
+
     # Calculating the observed weight within/between clusters.
     for (x in seq_along(by.clust)) {
         current <- by.clust[[x]] 
         for (y in seq_len(x)) { 
             other <- by.clust[[y]]
-            grmat <- graph[current,other,drop=FALSE]
+            grmat <- fullmat[current,other,drop=FALSE]
             grsum <- sum(grmat)
                 
             if (x==y) {
