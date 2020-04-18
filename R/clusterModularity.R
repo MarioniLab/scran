@@ -60,6 +60,14 @@
 #' # (log-transform to improve range of colors).
 #' out <- clusterModularity(g, clusters, as.ratio=TRUE)
 #' image(log2(out+1))
+#'
+#' # This can also be used to construct a graph of clusters,
+#' # for use in further plotting, a.k.a. graph abstraction.
+#' # (Fiddle with the scaling values for a nicer plot.)
+#' g2 <- igraph::graph_from_adjacency_matrix(out, mode="upper",
+#'     diag=FALSE, weighted=TRUE)
+#' plot(g2, edge.width=igraph::E(g2)$weight*10,
+#'     vertex.size=sqrt(table(clusters))*10)
 #' 
 #' # Alternatively, get the edge weights directly:
 #' out <- clusterModularity(g, clusters, get.weights=TRUE)
