@@ -17,20 +17,33 @@ test_that("getTopHVGs works correctly", {
         rownames(stats)[stats$bio > 0 & stats$FDR <= 0.05])
 
     # Handles top choices correctly.
-    expect_identical_sorted(getTopHVGs(stats, n=200, var.threshold=NULL), 
+    expect_identical(getTopHVGs(stats, n=200, var.threshold=NULL), 
         head(rownames(stats)[order(-stats$bio)], 200))
 
-    expect_identical_sorted(getTopHVGs(stats, n=200, prop=0.1, var.threshold=NULL), 
+    expect_identical(getTopHVGs(stats, n=200, prop=0.1, var.threshold=NULL), 
         head(rownames(stats)[order(-stats$bio)], 0.1*nrow(stats)))
 
-    expect_identical_sorted(getTopHVGs(stats, n=2000, prop=0.001, var.threshold=NULL), 
+    expect_identical(getTopHVGs(stats, n=2000, prop=0.001, var.threshold=NULL), 
         head(rownames(stats)[order(-stats$bio)], 2000))
 
-    expect_identical_sorted(getTopHVGs(stats, n=NULL, prop=0.1, var.threshold=NULL), 
+    expect_identical(getTopHVGs(stats, n=NULL, prop=0.1, var.threshold=NULL), 
         head(rownames(stats)[order(-stats$bio)], 0.1*nrow(stats)))
 
-    expect_identical_sorted(getTopHVGs(stats, n=Inf, var.threshold=NULL), 
+    expect_identical(getTopHVGs(stats, n=Inf, var.threshold=NULL), 
         rownames(stats)[order(-stats$bio)])
+})
+
+test_that("getTopHVGs handles unnamed inputs correctly", {
+    stats <- modelGeneVar(sce)
+    rownames(stats) <- NULL
+
+    expect_identical_sorted(getTopHVGs(stats), which(stats$bio > 0))
+
+    expect_identical_sorted(getTopHVGs(stats, fdr.threshold=0.05),
+        which(stats$bio > 0 & stats$FDR <= 0.05))
+
+    expect_identical(getTopHVGs(stats, var.threshold=NULL),
+        head(order(stats$bio, decreasing=TRUE), 2000))
 })
 
 test_that("getTopHVGs handles NA values", {

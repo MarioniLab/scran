@@ -55,13 +55,20 @@
 getTopHVGs <- function(stats, var.field="bio", n=NULL, prop=NULL, var.threshold=0,
     fdr.field="FDR", fdr.threshold=NULL, row.names=!is.null(rownames(stats))) 
 {
+    survivors <- seq_len(nrow(stats))
+
     if (!is.null(fdr.threshold)) {
         fdr <- stats[[fdr.field]]
-        stats <- stats[!is.na(fdr) & fdr <= fdr.threshold,,drop=FALSE]
+        keep <- !is.na(fdr) & fdr <= fdr.threshold
+        survivors <- survivors[keep]
+        stats <- stats[keep,,drop=FALSE]
     }
+
     if (!is.null(var.threshold)) {
         var <- stats[[var.field]]
-        stats <- stats[!is.na(var) & var > var.threshold,,drop=FALSE]
+        keep <- !is.na(var) & var > var.threshold
+        survivors <- survivors[keep]
+        stats <- stats[keep,,drop=FALSE]
     }
 
     o <- order(stats[[var.field]], decreasing=TRUE)
@@ -73,6 +80,6 @@ getTopHVGs <- function(stats, var.field="bio", n=NULL, prop=NULL, var.threshold=
     if (row.names) {
         rownames(stats)[o]
     } else {
-        o
+        survivors[o]
     }
 }
