@@ -54,15 +54,21 @@ Rcpp::List compute_blocked_stats(Rcpp::RObject mat, Rcpp::IntegerVector block, i
     }
 
     for (int b=0; b<nblocks; ++b) {
+        auto M=outmean.column(b);
+        if (count[b] <= 0) {
+            std::fill(M.begin(), M.end(), R_NaReal);
+        }
+
         auto S=outvar.column(b);
-        int N=count[b]-1;
-        if (N) {
+        if (count[b] > 1) {
+            const double rdf=count[b]-1;
             for (auto& s : S) {
-                s/=N;
+                s/=rdf;
             }
         } else {
             std::fill(S.begin(), S.end(), R_NaReal);
         }
+
     }
 
     return(Rcpp::List::create(outmean, outvar));
