@@ -241,6 +241,7 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
     # Calculating the statistics for each block.
     stats <- .compute_mean_var(x, BPPARAM=BPPARAM, subset.row=subset.row, design=NULL, 
         block.FUN=compute_blocked_stats_none, block=all.groups)
+
     all.means <- stats$means
     all.vars <- stats$vars
     all.n <- stats$ncells
@@ -253,7 +254,9 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
         sigma2 <- all.vars[,chosen,drop=FALSE]
         cur.n <- as.vector(all.n[chosen])
 
-        colnames(means) <- colnames(sigma2) <- names(cur.n) <- clust.vals
+        dimnames(means) <- dimnames(sigma2) <- list(NULL, clust.vals)
+        names(cur.n) <- clust.vals
+
         out.means[[b]] <- means
         out.s2[[b]] <- sigma2
         out.n[[b]] <- cur.n 

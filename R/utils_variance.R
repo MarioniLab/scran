@@ -159,7 +159,7 @@ dummy.trend.fit <- list(trend=function(x) { rep(NA_real_, length(x)) }, std.dev=
     combined$FDR <- p.adjust(combined$p.value, method="BH")
 
     output <- DataFrame(combined)
-    output$per.block <- do.call(DataFrame, lapply(original, I))
+    output$per.block <- do.call(DataFrame, c(lapply(original, I), list(check.names=FALSE)))
 
     output
 }
