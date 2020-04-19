@@ -13,8 +13,8 @@ dummy <- normalizeCounts(dummy)
 
 test_that("modelGeneVar works correctly without blocking", {
     out <- modelGeneVar(dummy)
-    expect_equal(out$mean, rowMeans(dummy))
-    expect_equal(unname(out$total), DelayedMatrixStats::rowVars(dummy))
+    expect_equal(out$mean, unname(rowMeans(dummy)))
+    expect_equal(out$total, DelayedMatrixStats::rowVars(dummy))
     expect_equal(out$tech, metadata(out)$trend(out$mean))
     expect_equal(out$bio, out$total-out$tech)
     expect_equal(order(out$p.value), order(out$bio/out$tech, decreasing=TRUE))
@@ -328,8 +328,8 @@ test_that("modelGeneVarWithSpikes works with design matrices", {
 
     expect_equal(out$mean, genes$mean)
     expect_equal(out$total, genes$total)
-    expect_equal(metadata(out)$mean, spiked$mean)
-    expect_equal(metadata(out)$var, spiked$total)
+    expect_equal(metadata(out)$mean, setNames(spiked$mean, rownames(spikes)))
+    expect_equal(metadata(out)$var, setNames(spiked$total, rownames(spikes)))
 })
 
 test_that("modelGeneVar works with SingleCellExperiment objects", {

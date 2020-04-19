@@ -75,8 +75,9 @@ dummy.trend.fit <- list(trend=function(x) { rep(NA_real_, length(x)) }, std.dev=
             fit <- dummy.trend.fit
         }
 
-        xm <- x.means[,i]
-        output <- DataFrame(mean=xm, total=x.vars[,i], tech=fit$trend(xm))
+        xm <- unname(x.means[,i])
+        xv <- unname(x.vars[,i])
+        output <- DataFrame(mean=xm, total=xv, tech=fit$trend(xm))
         output$bio <- output$total - output$tech
         output$p.value <- pnorm(output$bio/output$tech, sd=fit$std.dev, lower.tail=FALSE)
         output$FDR <- p.adjust(output$p.value, method="BH")
@@ -102,8 +103,8 @@ dummy.trend.fit <- list(trend=function(x) { rep(NA_real_, length(x)) }, std.dev=
             fit <- dummy.trend.fit
         }
 
-        xm <- x.means[,i]
-        xcv2 <- x.vars[,i]/xm^2
+        xm <- unname(x.means[,i])
+        xcv2 <- unname(x.vars[,i])/xm^2
         output <- DataFrame(mean=xm, total=xcv2, trend=fit$trend(xm))
 
         output$ratio <- output$total/output$trend

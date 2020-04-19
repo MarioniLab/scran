@@ -79,7 +79,7 @@ test_that("getDenoisedPCs works as expected", {
         expect_equal(reported, exp.var[seq_along(reported)]/sum(exp.var) * 100)
     }
 
-    keep <- rownames(dec)[dec$bio > 0]
+    keep <- dec$bio > 0
     pc.out <- prcomp(t(lcounts[keep,]))
     total.tech <- sum(dec$tech[keep])
     verify_npcs(d.out, pc.out$sdev, total.tech)
@@ -95,7 +95,7 @@ test_that("getDenoisedPCs works as expected", {
         d.out2 <- getDenoisedPCs(lcounts, technical=tmp)
         expect_false(ncol(d.out$components)==ncol(d.out2$components))
 
-        keep <- rownames(tmp)[tmp$total > tmp$tech]
+        keep <- tmp$total > tmp$tech
         pc.out <- prcomp(t(lcounts[keep,]))
         total.tech <- sum(tmp$tech[keep])
         verify_npcs(d.out2, pc.out$sdev, total.tech)
@@ -168,17 +168,18 @@ test_that("getDenoisedPCs works with different technical inputs", {
 })
 
 test_that("getDenoisedPCs works with subsetting", {
-    not.spike <- setdiff(seq_len(ngenes), is.spike)
-    pcs <- getDenoisedPCs(lcounts, technical=dec, subset.row=not.spike)
-    pcs2 <- getDenoisedPCs(lcounts[not.spike,], technical=dec[not.spike,])
+    sub <- sample(ngenes, ngenes/2)
+    pcs <- getDenoisedPCs(lcounts, technical=dec, subset.row=sub)
+    pcs2 <- getDenoisedPCs(lcounts[sub,], technical=dec[sub,])
+
     are_PCs_equal(pcs$components, pcs2$components)
     are_PCs_equal(pcs$rotation, pcs2$rotation)
     expect_equal(pcs$percent.var, pcs2$percent.var)
 
     # Works with different technical inputs.
-    alt.pcs <- getDenoisedPCs(lcounts, technical=metadata(dec)$trend, subset.row=not.spike)
+    alt.pcs <- getDenoisedPCs(lcounts, technical=metadata(dec)$trend, subset.row=sub)
     expect_equal(alt.pcs, pcs)
-    alt.pcs <- getDenoisedPCs(lcounts, technical=dec$tech, subset.row=not.spike)
+    alt.pcs <- getDenoisedPCs(lcounts, technical=dec$tech, subset.row=sub)
     expect_equal(alt.pcs, pcs)
 })
 

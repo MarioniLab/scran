@@ -13,7 +13,7 @@ dummy2 <- normalizeCounts(dummy, log=FALSE)
 
 test_that("modelGeneCV2 works correctly without blocking", {
     out <- modelGeneCV2(dummy)
-    expect_equal(out$mean, rowMeans(dummy2))
+    expect_equal(out$mean, unname(rowMeans(dummy2)))
     expect_equal(out$total, DelayedMatrixStats::rowVars(dummy2)/out$mean^2)
     expect_equal(out$trend, metadata(out)$trend(out$mean))
     expect_equal(out$ratio, out$total/out$trend)
