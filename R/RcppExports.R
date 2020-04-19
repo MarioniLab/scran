@@ -29,20 +29,20 @@ choose_middle_effect_size <- function(Pvals, Effects, prop) {
     .Call('_scran_choose_middle_effect_size', PACKAGE = 'scran', Pvals, Effects, prop)
 }
 
-compute_blocked_stats_lognorm <- function(bygroup, inmat, sf, pseudo) {
-    .Call('_scran_compute_blocked_stats_lognorm', PACKAGE = 'scran', bygroup, inmat, sf, pseudo)
+compute_blocked_stats_lognorm <- function(mat, block, sf, pseudo) {
+    .Call('_scran_compute_blocked_stats_lognorm', PACKAGE = 'scran', mat, block, sf, pseudo)
+}
+
+compute_blocked_stats_norm <- function(mat, block, sf) {
+    .Call('_scran_compute_blocked_stats_norm', PACKAGE = 'scran', mat, block, sf)
+}
+
+compute_blocked_stats_none <- function(mat, block) {
+    .Call('_scran_compute_blocked_stats_none', PACKAGE = 'scran', mat, block)
 }
 
 compute_residual_stats_lognorm <- function(qr, qraux, inmat, sf, pseudo) {
     .Call('_scran_compute_residual_stats_lognorm', PACKAGE = 'scran', qr, qraux, inmat, sf, pseudo)
-}
-
-compute_blocked_stats_norm <- function(bygroup, inmat, sf) {
-    .Call('_scran_compute_blocked_stats_norm', PACKAGE = 'scran', bygroup, inmat, sf)
-}
-
-compute_blocked_stats_none <- function(bygroup, inmat) {
-    .Call('_scran_compute_blocked_stats_none', PACKAGE = 'scran', bygroup, inmat)
 }
 
 compute_residual_stats_none <- function(qr, qraux, inmat) {

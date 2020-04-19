@@ -88,15 +88,38 @@ BEGIN_RCPP
 END_RCPP
 }
 // compute_blocked_stats_lognorm
-Rcpp::List compute_blocked_stats_lognorm(Rcpp::List bygroup, SEXP inmat, Rcpp::NumericVector sf, double pseudo);
-RcppExport SEXP _scran_compute_blocked_stats_lognorm(SEXP bygroupSEXP, SEXP inmatSEXP, SEXP sfSEXP, SEXP pseudoSEXP) {
+Rcpp::List compute_blocked_stats_lognorm(Rcpp::RObject mat, Rcpp::IntegerVector block, Rcpp::NumericVector sf, double pseudo);
+RcppExport SEXP _scran_compute_blocked_stats_lognorm(SEXP matSEXP, SEXP blockSEXP, SEXP sfSEXP, SEXP pseudoSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type bygroup(bygroupSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type inmat(inmatSEXP);
+    Rcpp::traits::input_parameter< Rcpp::RObject >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type block(blockSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type sf(sfSEXP);
     Rcpp::traits::input_parameter< double >::type pseudo(pseudoSEXP);
-    rcpp_result_gen = Rcpp::wrap(compute_blocked_stats_lognorm(bygroup, inmat, sf, pseudo));
+    rcpp_result_gen = Rcpp::wrap(compute_blocked_stats_lognorm(mat, block, sf, pseudo));
+    return rcpp_result_gen;
+END_RCPP
+}
+// compute_blocked_stats_norm
+Rcpp::List compute_blocked_stats_norm(Rcpp::RObject mat, Rcpp::IntegerVector block, Rcpp::NumericVector sf);
+RcppExport SEXP _scran_compute_blocked_stats_norm(SEXP matSEXP, SEXP blockSEXP, SEXP sfSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::RObject >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type block(blockSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type sf(sfSEXP);
+    rcpp_result_gen = Rcpp::wrap(compute_blocked_stats_norm(mat, block, sf));
+    return rcpp_result_gen;
+END_RCPP
+}
+// compute_blocked_stats_none
+Rcpp::List compute_blocked_stats_none(Rcpp::RObject mat, Rcpp::IntegerVector block);
+RcppExport SEXP _scran_compute_blocked_stats_none(SEXP matSEXP, SEXP blockSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::RObject >::type mat(matSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type block(blockSEXP);
+    rcpp_result_gen = Rcpp::wrap(compute_blocked_stats_none(mat, block));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -111,29 +134,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type sf(sfSEXP);
     Rcpp::traits::input_parameter< double >::type pseudo(pseudoSEXP);
     rcpp_result_gen = Rcpp::wrap(compute_residual_stats_lognorm(qr, qraux, inmat, sf, pseudo));
-    return rcpp_result_gen;
-END_RCPP
-}
-// compute_blocked_stats_norm
-Rcpp::List compute_blocked_stats_norm(Rcpp::List bygroup, SEXP inmat, Rcpp::NumericVector sf);
-RcppExport SEXP _scran_compute_blocked_stats_norm(SEXP bygroupSEXP, SEXP inmatSEXP, SEXP sfSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type bygroup(bygroupSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type inmat(inmatSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type sf(sfSEXP);
-    rcpp_result_gen = Rcpp::wrap(compute_blocked_stats_norm(bygroup, inmat, sf));
-    return rcpp_result_gen;
-END_RCPP
-}
-// compute_blocked_stats_none
-Rcpp::List compute_blocked_stats_none(Rcpp::List bygroup, SEXP inmat);
-RcppExport SEXP _scran_compute_blocked_stats_none(SEXP bygroupSEXP, SEXP inmatSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type bygroup(bygroupSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type inmat(inmatSEXP);
-    rcpp_result_gen = Rcpp::wrap(compute_blocked_stats_none(bygroup, inmat));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -295,9 +295,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_scran_compute_Top_statistic_from_ranks", (DL_FUNC) &_scran_compute_Top_statistic_from_ranks, 2},
     {"_scran_choose_middle_effect_size", (DL_FUNC) &_scran_choose_middle_effect_size, 3},
     {"_scran_compute_blocked_stats_lognorm", (DL_FUNC) &_scran_compute_blocked_stats_lognorm, 4},
-    {"_scran_compute_residual_stats_lognorm", (DL_FUNC) &_scran_compute_residual_stats_lognorm, 5},
     {"_scran_compute_blocked_stats_norm", (DL_FUNC) &_scran_compute_blocked_stats_norm, 3},
     {"_scran_compute_blocked_stats_none", (DL_FUNC) &_scran_compute_blocked_stats_none, 2},
+    {"_scran_compute_residual_stats_lognorm", (DL_FUNC) &_scran_compute_residual_stats_lognorm, 5},
     {"_scran_compute_residual_stats_none", (DL_FUNC) &_scran_compute_residual_stats_none, 3},
     {"_scran_get_null_rho", (DL_FUNC) &_scran_get_null_rho, 4},
     {"_scran_get_null_rho_design", (DL_FUNC) &_scran_get_null_rho_design, 5},
