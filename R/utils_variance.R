@@ -15,29 +15,31 @@
                 stop("length of 'block' should be the same as 'ncol(x)'")
             }
 
-            # Checking residual d.f.
-            by.block <- split(seq_len(ncol(x))-1L, block, drop=TRUE)
+            bfac <- factor(block)
+            block <- as.integer(bfac)
+            bnames <- levels(bfac)
         } else {
-            by.block <- list(seq_len(ncol(x))-1L)
+            block <- rep(1L, ncol(x))
+            bnames <- NULL
         }
 
-        resid.df <- lengths(by.block) - 1L
-        if (all(resid.df<=0L)){ 
+        ncells <- as.integer(tabulate(block))
+        resid.df <- ncells - 1L
+        if (all(resid.df <= 0L)){ 
             stop("no residual d.f. in any level of 'block' for variance estimation")
         }
 
-	    raw.stats <- bplapply(by.core, FUN=block.FUN, bygroup=by.block, ..., BPPARAM=BPPARAM)
-        means <- do.call(rbind, lapply(raw.stats, FUN=function(x) t(x[[1]])))
-        vars <- do.call(rbind, lapply(raw.stats, FUN=function(x) t(x[[2]])))
-        ncells <- lengths(by.block)
-        colnames(means) <- colnames(vars) <- names(ncells) <- names(by.block)
+        raw.stats <- bplapply(by.core, FUN=block.FUN, block=block - 1L, ..., BPPARAM=BPPARAM)
+        means <- do.call(rbind, lapply(raw.stats, "[[", i=1))
+        vars <- do.call(rbind, lapply(raw.stats, "[[", i=2))
+        colnames(means) <- colnames(vars) <- names(ncells) <- bnames
     } else {
         if (!is.null(block)) {
             stop("cannot specify 'design' with multi-level 'block'")
         }
 
-        # Checking residual d.f.
-        resid.df <- nrow(design) - ncol(design)
+        ncells <- nrow(design)
+        resid.df <- ncells - ncol(design)
         if (resid.df <= 0L) {
             stop("no residual d.f. in 'design' for variance estimation")
         }
@@ -47,7 +49,6 @@
         raw.stats <- bplapply(by.core, FUN=residual.FUN, qr=QR$qr, qraux=QR$qraux, ..., BPPARAM=BPPARAM)
         means <- matrix(unlist(lapply(raw.stats, FUN="[[", i=1)))
         vars <- matrix(unlist(lapply(raw.stats, FUN="[[", i=2)))
-        ncells <- nrow(design)
     }
 
 	rownames(means) <- rownames(vars) <- rownames(x)[subset.row]

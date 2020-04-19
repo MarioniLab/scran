@@ -239,17 +239,11 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
     }
 
     # Calculating the statistics for each block.
-    all.blocks <- split(seq_along(all.groups) - 1L, all.groups)
-    by.core <- .splitRowsByWorkers(x, BPPARAM=BPPARAM, subset_row=subset.row)
-    if (.bpNotSharedOrUp(BPPARAM)) {
-        bpstart(BPPARAM)
-        on.exit(bpstop(BPPARAM))
-    }
-
-    raw.stats <- bplapply(by.core, FUN=compute_blocked_stats_none, bygroup=all.blocks, BPPARAM=BPPARAM)
-    all.means <- do.call(rbind, lapply(raw.stats, FUN=function(x) t(x[[1]])))
-    all.vars <- do.call(rbind, lapply(raw.stats, FUN=function(x) t(x[[2]])))
-    all.n <- table(all.groups)
+    stats <- .compute_mean_var(x, BPPARAM=BPPARAM, subset.row=subset.row, design=NULL, 
+        block.FUN=compute_blocked_stats_none, block=all.groups)
+    all.means <- stats$means
+    all.vars <- stats$vars
+    all.n <- stats$ncells
 
     clust.vals <- levels(groups)
     out.s2 <- out.means <- out.n <- vector("list", nblocks)
