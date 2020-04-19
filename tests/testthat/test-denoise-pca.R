@@ -38,8 +38,6 @@ ncells <- 200
 means <- 2^runif(ngenes, -1, 10)
 pops <- matrix(2^rnorm(npops * ngenes), ncol=npops) * means
 
-is.spike <- 1:100
-pops[is.spike,] <- means[is.spike] # spike ins are constant across subpopulations.
 in.pop <- sample(npops, ncells, replace=TRUE)
 true.means <- pops[,in.pop,drop=FALSE]
 
@@ -47,8 +45,17 @@ dispersions <- 10/means + 0.2
 counts <- matrix(rnbinom(ngenes*ncells, mu=true.means, size=1/dispersions), ncol=ncells)
 rownames(counts) <- paste0("Gene", seq_len(ngenes))
 
+nspikes <- 100
+chosen <- sample(ngenes, nspikes)
+spikes <- matrix(rnbinom(nspikes*ncells, mu=true.means[chosen], size=1/dispersions[chosen]), ncol=ncells)
+rownames(spikes) <- paste0("SPIKE", seq_len(nspikes))
+
+# We use a spike-in-based trend to avoid potential issues with bio==0 when
+# fitting directly to genes. These lead to fragile tests due to numerical
+# imprecision breaking equality upon certain operations.
+dec <- modelGeneVarWithSpikes(counts, spikes=spikes, 
+    size.factors=rep(1, ncells), spike.size.factors=rep(1, ncells))
 lcounts <- log2(counts + 1)
-dec <- modelGeneVar(lcounts, subset.fit=is.spike)
 
 ##########################################
 ##########################################
@@ -125,6 +132,8 @@ test_that("getDenoisedPCs works with different technical inputs", {
     # as the latter uses long double and thus 80-bit precision. This seems
     # to be enough to change the mean, and thus the technical trend, and thus
     # whether or not a gene is kept or retained. Insane stuff.
+    #
+    # Maybe this was fixed by my use of modelGeneVar above, but I'm not sure.
     if (.Platform$r_arch=="") {
         alt <- getDenoisedPCs(lcounts, technical=metadata(dec)$trend)
         expect_equal(ref, alt)
@@ -133,6 +142,9 @@ test_that("getDenoisedPCs works with different technical inputs", {
     # Testing the rescaling to force the total variance in dec$total to match the observed variance.
     # This occasionally fails if you are unfortunate to get something where tech==bio,
     # and the equality is broken when you do the rescaling manually.
+    #
+    # Maybe this was fixed by my use of modelGeneVar above, but I'm not willing to take the chance,
+    # what with us being so close to release. 
     rescaled <- runif(nrow(lcounts))
     lcountsX <- lcounts * rescaled
     ref <- scran:::.get_denoised_pcs(lcountsX, technical=dec$tech * rescaled^2)
@@ -195,7 +207,7 @@ test_that("getDenoisedPCs works with min/max rank settings", {
 
 test_that("denoisePCA throws errors correctly", {
     expect_error(getDenoisedPCs(lcounts[0,], dec), "a dimension is zero")
-    expect_error(getDenoisedPCs(lcounts[,0], dec), "a dimension is zero")
+    expect_error(getDenoisedPCs(lcounts[,0], dec), "no residual d.f. in any level")
 })
 
 test_that("denoisePCA works with SingleCellExperiment inputs", {

@@ -135,8 +135,6 @@
 #' @name denoisePCA
 NULL
 
-#' @importFrom DelayedArray DelayedArray getAutoBPPARAM setAutoBPPARAM
-#' @importFrom DelayedMatrixStats rowVars rowMeans2
 #' @importClassesFrom S4Vectors DataFrame
 #' @importFrom methods is
 #' @importFrom BiocParallel SerialParam
@@ -151,13 +149,10 @@ NULL
 # written by Aaron Lun
 # created 13 March 2017    
 {
-    old <- getAutoBPPARAM()
-    setAutoBPPARAM(BPPARAM)
-    on.exit(setAutoBPPARAM(old))
-
     subset.row <- .subset2index(subset.row, x, byrow=TRUE)
-    x2 <- DelayedArray(x)
-    all.var <- rowVars(x2, rows=subset.row)
+    stats <- .compute_mean_var(x, BPPARAM=BPPARAM, subset.row=subset.row, design=NULL,
+        block.FUN=compute_blocked_stats_none, block=NULL)
+    all.var <- stats$vars
 
     # Processing different mechanisms through which we specify the technical component.
     if (is(technical, "DataFrame")) { 
@@ -169,8 +164,7 @@ NULL
         tech.var[all.var!=0 & total.var==0] <- Inf
     } else {
         if (is.function(technical)) {
-            all.means <- rowMeans2(x2, rows=subset.row)
-            tech.var <- technical(all.means)
+            tech.var <- technical(stats$means)
         } else {
             tech.var <- technical[subset.row]
         }
