@@ -10,19 +10,34 @@ Rcpp::List compute_residual_stats(Rcpp::RObject qr, Rcpp::RObject qraux, SEXP in
     const size_t ncells=emat->get_ncol();
     const size_t ngenes=emat->get_nrow();
 
-    residual_stats_calculator RSC(qr, qraux);
-   
+    run_dormqr multQ(qr, qraux, 'T');
+    const size_t ncoefs(multQ.get_ncoefs());
+
     // Setting up the output objects.
     Rcpp::NumericMatrix outvar(1, ngenes);
     Rcpp::NumericMatrix outmean(1, ngenes);
     Rcpp::NumericVector incoming(ncells);
 
     for (size_t counter=0; counter<ngenes; ++counter) {
-        emat->get_row(counter, incoming.begin());
-        trans(incoming.begin(), incoming.end());
+        auto iIt=incoming.begin(), iEnd=incoming.end();
+        emat->get_row(counter, iIt);
+        trans(iIt, iEnd);
+
         auto curvarrow=outvar.column(counter);
+        auto curvar=curvarrow.begin();
         auto curmeanrow=outmean.column(counter);
-        RSC.compute(incoming.begin(), curmeanrow.begin(),  curvarrow.begin());
+        auto curmean=curmeanrow.begin();
+
+        (*curmean)=std::accumulate(iIt, iEnd, 0.0)/ncells;
+        multQ.run(iIt);
+
+        double& v=(*curvar);
+        iIt+=ncoefs;
+        while (iIt!=iEnd) { // only using the residual effects.
+            v += (*iIt) * (*iIt);
+            ++iIt;
+        }
+        v /= ncells - ncoefs;
     }
 
     return(Rcpp::List::create(outmean, outvar));
