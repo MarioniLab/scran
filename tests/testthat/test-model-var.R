@@ -106,6 +106,28 @@ test_that("modelGeneVar handles blocks with no residual d.f.", {
     expect_identical(out$total, ref$total)
 
     expect_error(modelGeneVar(dummy[,1,drop=FALSE]), "no residual d.f. in any level")
+
+    # Also handles blocks with no observations whatsoever.
+    block <- sample(2:5, ncells, replace=TRUE)
+    ref  <- modelGeneVar(dummy, block=block)
+    ref.empty <- modelGeneVar(dummy, block=factor(block, seq_len(5)))
+
+    empty <- ref.empty$per.block[,"1"]
+    expect_true(all(is.na(empty$p.value)))
+    ref.empty$per.block <- ref.empty$per.block[,-1]
+    expect_equal(ref.empty, ref)
+})
+
+test_that("modelGeneVar handles NAs in the blocking factor", {
+    block <- sample(LETTERS[1:5], ncells, replace=TRUE)
+    keep <- !block %in% "A"
+    ref <- modelGeneVar(dummy[,keep], block=block[keep])
+    
+    block2 <- block
+    block2[!keep] <- NA
+    out <- modelGeneVar(dummy, block=block2)
+
+    expect_equal(out, ref)
 })
 
 test_that("modelGeneVar works with subsetting options", {

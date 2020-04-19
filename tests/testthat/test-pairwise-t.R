@@ -148,6 +148,7 @@ test_that("pairwiseTTests handles unused levels correctly", {
     clusters <- factor(sample(LETTERS[1:5], ncol(X), replace=TRUE))
     ref <- pairwiseTTests(X, clusters)
 
+    # Correctly spawns a bunch of NA's.
     restrict <- c("A", "D", "E")
     keep <- clusters %in% restrict
     expect_warning(raw <- pairwiseTTests(X[,keep], clusters[keep]), "no within-block")
@@ -155,13 +156,27 @@ test_that("pairwiseTTests handles unused levels correctly", {
     both.present <- ref$pairs[,1] %in% restrict & ref$pairs[,2] %in% restrict
     expect_identical(raw$statistics[both.present], ref$statistics[both.present])
 
-    expect_identical(pairwiseTTests(X, clusters, restrict=restrict),
-       pairwiseTTests(X[,keep], as.character(clusters[keep])))
+    for (other in which(!both.present)) {
+        expect_true(all(is.na(raw$statistics[[other]][,"p.value"])))
+    }
 
+    # First attempting restriction.
+    attempt <- pairwiseTTests(X, clusters, restrict=restrict)
+    expect_identical(attempt, pairwiseTTests(X[,keep], as.character(clusters[keep])))
+
+    clust2 <- clusters
+    clust2[!clust2 %in% restrict] <- NA
+    expect_identical(attempt, pairwiseTTests(X, as.character(clust2)))
+
+    # Now attempting exclusion.
     exclude <- c("A", "B", "C")
     keep <- !clusters %in% exclude
-    expect_identical(pairwiseTTests(X, clusters, exclude=exclude),
-       pairwiseTTests(X[,keep], as.character(clusters[keep])))
+    attempt <- pairwiseTTests(X, clusters, exclude=exclude)
+    expect_identical(attempt, pairwiseTTests(X[,keep], as.character(clusters[keep])))
+
+    clust2 <- clusters
+    clust2[clust2 %in% exclude] <- NA
+    expect_identical(attempt, pairwiseTTests(X, as.character(clust2)))
 })
 
 ###################################################################
