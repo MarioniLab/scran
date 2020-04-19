@@ -14,20 +14,11 @@
  *********************************************/
 
 template<class MAT, class TRANSFORMER>
-Rcpp::List compute_blocked_stats(Rcpp::RObject mat, Rcpp::IntegerVector block, TRANSFORMER trans) {
+Rcpp::List compute_blocked_stats(Rcpp::RObject mat, Rcpp::IntegerVector block, int nblocks, TRANSFORMER trans) {
     auto emat=beachmat::create_matrix<MAT>(mat);
     const size_t ncells=emat->get_ncol();
     const size_t ngenes=emat->get_nrow();
 
-    // Holding the number of unique blocks.
-    int nblocks=-1;
-    for (auto b : block) {
-        if (!isNA(b) && b > nblocks) {
-            nblocks=b;
-        }
-    }
-    ++nblocks;
-   
     // Setting up the output objects.
     Rcpp::NumericMatrix outvar(ngenes, nblocks);
     Rcpp::NumericMatrix outmean(ngenes, nblocks);
@@ -97,14 +88,15 @@ private:
 
 
 // [[Rcpp::export(rng=false)]]
-Rcpp::List compute_blocked_stats_lognorm(Rcpp::RObject mat, Rcpp::IntegerVector block, Rcpp::NumericVector sf, double pseudo) 
+Rcpp::List compute_blocked_stats_lognorm(Rcpp::RObject mat, Rcpp::IntegerVector block, 
+    int nblocks, Rcpp::NumericVector sf, double pseudo) 
 {
     int rtype=beachmat::find_sexp_type(mat);
     lognorm LN(sf, pseudo);
     if (rtype==INTSXP) {
-        return compute_blocked_stats<beachmat::integer_matrix>(mat, block, LN);
+        return compute_blocked_stats<beachmat::integer_matrix>(mat, block, nblocks, LN);
     } else {
-        return compute_blocked_stats<beachmat::numeric_matrix>(mat, block, LN);
+        return compute_blocked_stats<beachmat::numeric_matrix>(mat, block, nblocks, LN);
     }
 }
 
@@ -126,14 +118,15 @@ private:
 };
 
 // [[Rcpp::export(rng=false)]]
-Rcpp::List compute_blocked_stats_norm(Rcpp::RObject mat, Rcpp::IntegerVector block, Rcpp::NumericVector sf)
+Rcpp::List compute_blocked_stats_norm(Rcpp::RObject mat, Rcpp::IntegerVector block, 
+    int nblocks, Rcpp::NumericVector sf)
 {
     int rtype=beachmat::find_sexp_type(mat);
     norm N(sf);
     if (rtype==INTSXP) {
-        return compute_blocked_stats<beachmat::integer_matrix>(mat, block, N);
+        return compute_blocked_stats<beachmat::integer_matrix>(mat, block, nblocks, N);
     } else {
-        return compute_blocked_stats<beachmat::numeric_matrix>(mat, block, N);
+        return compute_blocked_stats<beachmat::numeric_matrix>(mat, block, nblocks, N);
     }
 }
 
@@ -147,12 +140,12 @@ struct none {
 };
 
 // [[Rcpp::export(rng=false)]]
-Rcpp::List compute_blocked_stats_none(Rcpp::RObject mat, Rcpp::IntegerVector block) {
+Rcpp::List compute_blocked_stats_none(Rcpp::RObject mat, Rcpp::IntegerVector block, int nblocks) {
     int rtype=beachmat::find_sexp_type(mat);
     none N;
     if (rtype==INTSXP) {
-        return compute_blocked_stats<beachmat::integer_matrix>(mat, block, N);
+        return compute_blocked_stats<beachmat::integer_matrix>(mat, block, nblocks, N);
     } else {
-        return compute_blocked_stats<beachmat::numeric_matrix>(mat, block, N);
+        return compute_blocked_stats<beachmat::numeric_matrix>(mat, block, nblocks, N);
     }
 }

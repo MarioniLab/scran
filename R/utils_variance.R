@@ -14,25 +14,30 @@
             if (ncol(x)!=length(block)) {
                 stop("length of 'block' should be the same as 'ncol(x)'")
             }
-
-            bfac <- factor(block)
-            block <- as.integer(bfac)
-            bnames <- levels(bfac)
+            block <- as.factor(block)
+            bnames <- levels(block)
         } else {
-            block <- rep(1L, ncol(x))
+            block <- factor(integer(ncol(x)))
             bnames <- NULL
         }
 
-        ncells <- as.integer(tabulate(block))
+        ncells <- as.integer(table(block))
         resid.df <- ncells - 1L
         if (all(resid.df <= 0L)){ 
             stop("no residual d.f. in any level of 'block' for variance estimation")
         }
 
-        raw.stats <- bplapply(by.core, FUN=block.FUN, block=block - 1L, ..., BPPARAM=BPPARAM)
+        raw.stats <- bplapply(by.core, 
+            FUN=block.FUN, 
+            block=as.integer(block) - 1L, 
+            nblocks=nlevels(block), 
+            ..., 
+            BPPARAM=BPPARAM)
+
         means <- do.call(rbind, lapply(raw.stats, "[[", i=1))
         vars <- do.call(rbind, lapply(raw.stats, "[[", i=2))
         colnames(means) <- colnames(vars) <- names(ncells) <- bnames
+
     } else {
         if (!is.null(block)) {
             stop("cannot specify 'design' with multi-level 'block'")
