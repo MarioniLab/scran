@@ -106,31 +106,30 @@ set.seed(3000012)
 test_that("quickCluster functions correctly with blocking", {
     skip_on_os('windows') # 32-bit failure. Who knows, man. Who knows.
 
-    # Comparison to a slow manual method
     mat <- matrix(rpois(10000, lambda=5), nrow=20)
     block <- sample(3, ncol(mat), replace=TRUE)
-    obs <- quickCluster(mat, min.size=10, block=block, use.ranks=FALSE)
+
+    # Using 'hclust' to avoid problems with tied ranks and igraph.
+    obs <- quickCluster(mat, min.size=10, block=block, method="hclust", use.ranks=FALSE)
 
     collected <- numeric(ncol(mat))
     last <- 0L
     for (x in sort(unique(block))) {
         chosen <- block==x
-        current <- quickCluster(mat[,chosen], min.size=10, use.ranks=FALSE)
+        current <- quickCluster(mat[,chosen], min.size=10, method="hclust", use.ranks=FALSE)
         collected[chosen] <- as.integer(current) + last
         last <- last + nlevels(current)
     }
     expect_identical(obs, factor(collected))
 
     # Should behave properly with NULL or single-level.
-    ref <- quickCluster(mat, min.size=10, block=NULL, use.ranks=FALSE)
-    obs <- quickCluster(mat, min.size=10, block=integer(ncol(mat)), use.ranks=FALSE)
-    skip_on_os("windows") # why? who knows?
+    ref <- quickCluster(mat, min.size=10, block=NULL, method="hclust", use.ranks=FALSE)
+    obs <- quickCluster(mat, min.size=10, block=integer(ncol(mat)), method="hclust", use.ranks=FALSE)
     expect_identical(ref, obs)
 
     # Should avoid problems with multiple BPPARAM specifications.
-    ref <- quickCluster(mat, min.size=10, block=block, method="igraph", use.ranks=FALSE)
-    obs <- quickCluster(mat, min.size=10, block=block, method="igraph", use.ranks=FALSE, 
-        block.BPPARAM=safeBPParam(2))
+    ref <- quickCluster(mat, min.size=10, block=block, method="hclust", use.ranks=FALSE)
+    obs <- quickCluster(mat, min.size=10, block=block, method="hclust", use.ranks=FALSE, block.BPPARAM=safeBPParam(2))
     expect_identical(obs, ref)
 })
 
