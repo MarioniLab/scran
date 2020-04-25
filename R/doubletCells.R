@@ -14,6 +14,7 @@
 #' This is orthogonal to the values in \code{size.factors.norm}, see Details.
 #' @param k An integer scalar specifying the number of nearest neighbours to use to determine the bandwidth for density calculations.
 #' @param subset.row See \code{?"\link{scran-gene-selection}"}.
+#' @param known.doublets Integer, logical or character vector indicating which columns of \code{x} are known doublets.
 #' @param niters An integer scalar specifying how many simulated doublets should be generated.
 #' @param block An integer scalar controlling the rate of doublet generation, to keep memory usage low.
 #' @param d An integer scalar specifying the number of components to retain after the PCA.
@@ -59,6 +60,15 @@
 #' The tricube bandwidth for remapping is chosen by taking the median distance and multiplying it by \code{force.ndist}, to protect against later neighbours that might be outliers.
 #' The aim is to adjust for unknown differences in RNA content that would cause the simulated doublets to be systematically displaced from their true locations.
 #' However, it may also result in spuriously high scores for single cells that happen to be close to a cluster of simulated doublets.
+#'
+#' If \code{known.doublets} is specified, the simulated doublets are directly replaced by the known doublets in \code{x}.
+#' This is helpful in multiplexed experiments where doublets can only be detected between samples
+#' (or between labels, if a single sample is split into multiple labels).
+#' Unmarked doublets from the same sample/label can subsequently be identified as those with high doublet scores,
+#' effectively implementing \dQuote{guilt by association}.
+#' Note that scores will still be returned for all cells, including those specified by \code{known.doublets}.
+#' 
+#'
 #' @author
 #' Aaron Lun
 #' 
@@ -104,8 +114,8 @@ NULL
 #' @importFrom methods is
 #' @importFrom DelayedArray getAutoBPPARAM setAutoBPPARAM
 .doublet_cells <- function(x, size.factors.norm=NULL, size.factors.content=NULL,
-    k=50, subset.row=NULL, niters=max(10000, ncol(x)), block=10000, 
-    d=50, force.match=FALSE, force.k=20, force.ndist=3,
+    k=50, subset.row=NULL, niters=max(10000, ncol(x)), block=10000, d=50, 
+    known.doublets=NULL, force.match=FALSE, force.k=20, force.ndist=3,
     BNPARAM=KmknnParam(), BSPARAM=bsparam(), BPPARAM=SerialParam())
 {
     # Setting up the parallelization.
@@ -134,15 +144,23 @@ NULL
     y <- normalizeCounts(x, size.factors.norm, center_size_factors=FALSE)
 
     # Running the SVD.
-    svd.out <- .centered_SVD(t(y), max.rank=d, keep.left=TRUE, keep.right=TRUE, BSPARAM=BSPARAM, BPPARAM=BPPARAM)
+    centers <- rowMeans(y)
+    svd.out <- .centered_SVD(t(y), max.rank=d, center=centers,
+        keep.left=TRUE, keep.right=TRUE, BSPARAM=BSPARAM, BPPARAM=BPPARAM)
     pcs <- .svd_to_pca(svd.out, ncomp=d, named=FALSE)
-    sim.pcs <- .spawn_doublet_pcs(x, size.factors.norm, V=svd.out$v, centers=rowMeans(y), niters=niters, block=block)
+
+    if (!is.null(known.doublets)) {
+        doub.pcs <- pcs[known.doublets,,drop=FALSE]
+    } else {
+        doub.pcs <- .spawn_doublet_pcs(x, size.factors=size.factors.norm, 
+            V=svd.out$v, centers=centers, niters=niters, block=block)
+    }
 
     # Force doublets to nearest neighbours in the original data set.
     pre.pcs <- buildIndex(pcs, BNPARAM=BNPARAM)
     if (force.match) {
-        closest <- queryKNN(query=sim.pcs, k=force.k, BNINDEX=pre.pcs, BPPARAM=BPPARAM)
-        sim.pcs <- .compute_tricube_average(pcs, closest$index, closest$distance, ndist=force.ndist)
+        closest <- queryKNN(query=doub.pcs, k=force.k, BNINDEX=pre.pcs, BPPARAM=BPPARAM)
+        doub.pcs <- .compute_tricube_average(pcs, closest$index, closest$distance, ndist=force.ndist)
     }
 
     # Computing densities, using a distance computed from the kth nearest neighbor.
@@ -151,7 +169,7 @@ NULL
 
     self.n <- findNeighbors(threshold=dist2nth, BNINDEX=pre.pcs, BNPARAM=BNPARAM, BPPARAM=BPPARAM, 
         get.distance=FALSE, get.index=FALSE)
-    sim.n <- queryNeighbors(sim.pcs, query=pcs, threshold=dist2nth, BNPARAM=BNPARAM, BPPARAM=BPPARAM, 
+    sim.n <- queryNeighbors(doub.pcs, query=pcs, threshold=dist2nth, BNPARAM=BNPARAM, BPPARAM=BPPARAM, 
         get.distance=FALSE, get.index=FALSE)
 
     self.prop <- self.n/ncol(x)

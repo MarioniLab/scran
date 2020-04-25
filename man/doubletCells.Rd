@@ -18,6 +18,7 @@ doubletCells(x, ...)
   niters = max(10000, ncol(x)),
   block = 10000,
   d = 50,
+  known.doublets = NULL,
   force.match = FALSE,
   force.k = 20,
   force.ndist = 3,
@@ -57,6 +58,8 @@ This is orthogonal to the values in \code{size.factors.norm}, see Details.}
 \item{block}{An integer scalar controlling the rate of doublet generation, to keep memory usage low.}
 
 \item{d}{An integer scalar specifying the number of components to retain after the PCA.}
+
+\item{known.doublets}{Integer, logical or character vector indicating which columns of \code{x} are known doublets.}
 
 \item{force.match}{A logical scalar indicating whether remapping of simulated doublets to original cells should be performed.}
 
@@ -106,6 +109,13 @@ This is done by taking the (tricube-weighted) average of the PC scores for the \
 The tricube bandwidth for remapping is chosen by taking the median distance and multiplying it by \code{force.ndist}, to protect against later neighbours that might be outliers.
 The aim is to adjust for unknown differences in RNA content that would cause the simulated doublets to be systematically displaced from their true locations.
 However, it may also result in spuriously high scores for single cells that happen to be close to a cluster of simulated doublets.
+
+If \code{known.doublets} is specified, the simulated doublets are directly replaced by the known doublets in \code{x}.
+This is helpful in multiplexed experiments where doublets can only be detected between samples
+(or between labels, if a single sample is split into multiple labels).
+Unmarked doublets from the same sample/label can subsequently be identified as those with high doublet scores,
+effectively implementing \dQuote{guilt by association}.
+Note that scores will still be returned for all cells, including those specified by \code{known.doublets}.
 }
 \examples{
 # Mocking up an example.

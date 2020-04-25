@@ -252,6 +252,27 @@ test_that("high-level tests for doubletCells work correctly", {
     expect_true(min(out[clusters==3]) > 2*max(out[clusters!=3]))
 })
 
+set.seed(99000041)
+test_that("doubletCells works correctly with known doublets", {
+    mu1 <- 2^rnorm(ngenes)
+    mu2 <- 2^rnorm(ngenes)
+    ncA <- 100
+    ncB <- 100
+    ncC <- 20
+
+    counts.A <- matrix(mu1, ncol=ncA, nrow=ngenes)
+    counts.B <- matrix(mu2, ncol=ncB, nrow=ngenes)
+    counts.C <- matrix(mu1+mu2, ncol=ncC, nrow=ngenes)
+    clusters <- rep(1:3, c(ncA, ncB, ncC))
+
+    out <- doubletCells(cbind(counts.A, counts.B, counts.C), 
+        known.doublets=c(seq_len(ncC/2)+ ncA + ncB))
+
+    expect_true(all(out[clusters==1]==0))
+    expect_true(all(out[clusters==2]==0))
+    expect_true(mad(out[clusters==3]) < 1e-8)
+})
+
 set.seed(9900005)
 test_that("other settings for doubletCells work correctly", {
     # Subsetting behaves correctly.
