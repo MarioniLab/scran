@@ -84,17 +84,21 @@ NULL
 #' @importFrom Matrix t
 #' @importFrom stats kmeans 
 #' @importFrom igraph V V<-
-.clusterXNNGraph <- function(x, ..., transposed=FALSE, use.kmeans=FALSE, kmeans.centers=NULL, 
+.clusterXNNGraph <- function(x, ..., subset.row=NULL, transposed=FALSE, use.kmeans=FALSE, kmeans.centers=NULL, 
     kmeans.args=list(), full.stats=FALSE, graphFUN, clusterFUN) 
 {
-    if (!transposed) {
-        x <- t(x)
-    }
-
     if (use.kmeans) {
         if (is.null(kmeans.centers)) {
             kmeans.centers <- ceiling(sqrt(nrow(x)))
         }
+
+        if (!transposed) {
+            if (!is.null(subset.row)) {
+                x <- x[subset.row,,drop=FALSE]
+            }
+            x <- t(x)
+        }
+
         kmeans.args <- c(list(as.matrix(x), centers=kmeans.centers), kmeans.args)
         k.out <- do.call(kmeans, kmeans.args)
 
@@ -112,7 +116,7 @@ NULL
         }
 
     } else {
-        nn.g <- graphFUN(x, ..., transposed=TRUE)
+        nn.g <- graphFUN(x, ..., subset.row=subset.row, transposed=transposed)
         output <- clusterFUN(nn.g)$membership
     }
 
@@ -120,19 +124,19 @@ NULL
 }
 
 #' @importFrom igraph cluster_walktrap
-.clusterKNNGraph <- function(x, ..., clusterFUN=cluster_walktrap, transposed=FALSE, 
+.clusterKNNGraph <- function(x, ..., clusterFUN=cluster_walktrap, subset.row=NULL, transposed=FALSE, 
     use.kmeans=FALSE, kmeans.centers=NULL, kmeans.args=list(), full.stats=FALSE) 
 {
-    .clusterXNNGraph(x=x, ..., clusterFUN=clusterFUN, transposed=transposed,
+    .clusterXNNGraph(x=x, ..., clusterFUN=clusterFUN, subset.row=subset.row, transposed=transposed,
         use.kmeans=use.kmeans, kmeans.centers=kmeans.centers, kmeans.args=kmeans.args,
         full.stats=full.stats, graphFUN=buildKNNGraph)
 }
 
 #' @importFrom igraph cluster_walktrap
-.clusterSNNGraph <- function(x, ..., clusterFUN=cluster_walktrap, transposed=FALSE, 
+.clusterSNNGraph <- function(x, ..., clusterFUN=cluster_walktrap, subset.row=NULL, transposed=FALSE, 
     use.kmeans=FALSE, kmeans.centers=NULL, kmeans.args=list(), full.stats=FALSE) 
 {
-    .clusterXNNGraph(x=x, ..., clusterFUN=clusterFUN, transposed=transposed,
+    .clusterXNNGraph(x=x, ..., clusterFUN=clusterFUN, subset.row=subset.row, transposed=transposed,
         use.kmeans=use.kmeans, kmeans.centers=kmeans.centers, kmeans.args=kmeans.args,
         full.stats=full.stats, graphFUN=buildSNNGraph)
 }

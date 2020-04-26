@@ -17,6 +17,7 @@ clusterSNNGraph(x, ...)
   x,
   ...,
   clusterFUN = cluster_walktrap,
+  subset.row = NULL,
   transposed = FALSE,
   use.kmeans = FALSE,
   kmeans.centers = NULL,
@@ -34,6 +35,7 @@ clusterKNNGraph(x, ...)
   x,
   ...,
   clusterFUN = cluster_walktrap,
+  subset.row = NULL,
   transposed = FALSE,
   use.kmeans = FALSE,
   kmeans.centers = NULL,
@@ -64,6 +66,9 @@ For the SingleCellExperiment method, additional arguments to pass to the corresp
 
 \item{clusterFUN}{Function that can take a \link{graph} object and return a \link{communities} object,
 see examples in the \pkg{igraph} package.}
+
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.
+Only used when \code{transposed=FALSE}.}
 
 \item{transposed}{A logical scalar indicating whether \code{x} is transposed (i.e., rows are cells).}
 
