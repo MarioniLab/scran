@@ -1,11 +1,11 @@
 #' @importFrom BiocSingular runSVD bsparam
 #' @importFrom BiocParallel SerialParam
-.centered_SVD <- function(y, max.rank, center=TRUE, BSPARAM=bsparam(), BPPARAM=SerialParam(), keep.left=TRUE, keep.right=TRUE)
+.centered_SVD <- function(y, max.rank, BSPARAM=bsparam(), BPPARAM=SerialParam(), keep.left=TRUE, keep.right=TRUE)
 # Performs the PCA given a log-expression matrix.
 # Switches between svd() and irlba() on request.
 # Output format is guaranteed to be the same.
 {
-    runSVD(y, center=center, BSPARAM=BSPARAM, k=max.rank, 
+    runSVD(y, center=TRUE, BSPARAM=BSPARAM, k=max.rank, 
         nu=if (keep.left) max.rank else 0L,
         nv=if (keep.right) max.rank else 0L,
         BPPARAM=BPPARAM)
