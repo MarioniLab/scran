@@ -178,7 +178,7 @@ NULL
             lib.size1=unname(med.lib.size[parent1]/med.lib.size[ref]), 
 			lib.size2=unname(med.lib.size[parent2]/med.lib.size[ref]))
 
-        o <- order(all.N)
+        o <- order(all.N, -all.p)
         top <- cbind(stats[o[1],], prop=n.cluster[[ref]])
         rownames(top) <- ref
         collected.top[[ref]] <- top

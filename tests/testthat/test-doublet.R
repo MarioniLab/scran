@@ -86,7 +86,7 @@ test_that("doubletCluster agrees with a reference implementation", {
         })
 
         collected <- do.call(rbind, collected)
-        o <- order(collected$N)
+        o <- order(collected$N, -collected$p.val)
 
         obs <- dbl[x,"all.pairs"][[1]]
         expect_identical(obs$source1, pmax(combos[2,], combos[1,])[o])
