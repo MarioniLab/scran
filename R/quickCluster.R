@@ -137,7 +137,7 @@
 NULL
 
 #' @importFrom stats hclust dist
-#' @importFrom scater librarySizeFactors normalizeCounts
+#' @importFrom scuttle librarySizeFactors normalizeCounts
 #' @importFrom igraph cluster_walktrap
 #' @importFrom BiocParallel SerialParam bpmapply
 #' @importFrom Matrix t

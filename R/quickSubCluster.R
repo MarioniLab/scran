@@ -76,7 +76,7 @@
 #' @name quickSubCluster
 NULL
 
-#' @importFrom scater logNormCounts
+#' @importFrom scuttle logNormCounts
 #' @importFrom S4Vectors metadata<-
 #' @importFrom igraph cluster_walktrap
 #' @importFrom BiocSingular bsparam

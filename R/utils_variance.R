@@ -1,8 +1,8 @@
 #' @importFrom BiocParallel bplapply bpstart bpstop
-#' @importFrom scater .subset2index .bpNotSharedOrUp .splitRowsByWorkers
+#' @importFrom scuttle .subset2index .bpNotSharedOrUp .splitRowsByWorkers
 .compute_mean_var <- function(x, block, design, subset.row, block.FUN, residual.FUN, BPPARAM, ...) {
     subset.row <- .subset2index(subset.row, x, byrow=TRUE)
-    by.core <- .splitRowsByWorkers(x, BPPARAM, subset_row=subset.row)
+    by.core <- .splitRowsByWorkers(x, BPPARAM, subset.row=subset.row)
 
     if (.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
@@ -166,7 +166,7 @@ dummy.trend.fit <- list(trend=function(x) { rep(NA_real_, length(x)) }, std.dev=
 }
 
 #' @importFrom BiocParallel SerialParam
-#' @importFrom scater librarySizeFactors
+#' @importFrom scuttle librarySizeFactors
 .compute_var_stats_with_spikes <- function(x, spikes, size.factors=NULL, spike.size.factors=NULL, 
     subset.row=NULL, block=NULL, BPPARAM=SerialParam(), ...)
 {

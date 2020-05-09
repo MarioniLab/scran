@@ -113,7 +113,7 @@
 #' @name doubletCluster
 NULL
 
-#' @importFrom scater librarySizeFactors 
+#' @importFrom scuttle librarySizeFactors 
 #' @importFrom BiocGenerics "sizeFactors<-" sizeFactors
 #' @importFrom stats p.adjust
 #' @importFrom methods as

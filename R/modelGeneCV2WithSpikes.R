@@ -94,7 +94,7 @@ NULL
 #' @importFrom S4Vectors DataFrame metadata<-
 #' @importFrom BiocParallel SerialParam
 #' @importFrom stats pnorm p.adjust
-#' @importFrom scater librarySizeFactors .subset2index
+#' @importFrom scuttle librarySizeFactors .subset2index
 .model_gene_cv2_with_spikes <- function(x, spikes, size.factors=NULL, spike.size.factors=NULL, 
     block=NULL, subset.row=NULL, ..., 
     equiweight=TRUE, method="fisher", BPPARAM=SerialParam()) 

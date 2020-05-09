@@ -140,7 +140,7 @@ NULL
 #' @importFrom BiocParallel SerialParam
 #' @importFrom BiocSingular bsparam
 #' @importFrom Matrix t
-#' @importFrom scater .subset2index
+#' @importFrom scuttle .subset2index
 .get_denoised_pcs <- function(x, technical, subset.row=NULL, min.rank=5, max.rank=50, 
     fill.missing=FALSE, BSPARAM=bsparam(), BPPARAM=SerialParam())
 # Performs PCA and chooses the number of PCs to keep based on the technical noise.

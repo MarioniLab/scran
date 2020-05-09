@@ -24,7 +24,7 @@ Imports:
     methods, 
     utils, 
     Matrix, 
-    scater, 
+    scuttle, 
     edgeR, 
     limma, 
     BiocNeighbors, 

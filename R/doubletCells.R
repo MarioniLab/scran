@@ -94,7 +94,7 @@
 #' @name doubletCells
 NULL
 
-#' @importFrom scater librarySizeFactors normalizeCounts .bpNotSharedOrUp
+#' @importFrom scuttle librarySizeFactors normalizeCounts .bpNotSharedOrUp
 #' @importFrom SingleCellExperiment SingleCellExperiment logcounts
 #' @importFrom BiocParallel SerialParam bpmapply bpstart bpstop
 #' @importFrom Matrix rowMeans
@@ -160,7 +160,7 @@ NULL
 }
 
 #' @importFrom Matrix crossprod
-#' @importFrom scater normalizeCounts
+#' @importFrom scuttle normalizeCounts
 .spawn_doublet_pcs <- function(x, size.factors, V, centers, niters=10000L, block=10000L) {
     collected <- list()
     counter <- 1L

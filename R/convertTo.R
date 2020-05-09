@@ -49,7 +49,7 @@
 #' @importFrom SummarizedExperiment rowData colData assay rowData<-
 #' @importFrom S4Vectors "mcols<-" 
 #' @importFrom edgeR DGEList "[.DGEList" scaleOffset.DGEList
-#' @importFrom scater .subset2index
+#' @importFrom scuttle .subset2index
 convertTo <- function(x, type=c("edgeR", "DESeq2", "monocle"), ..., assay.type=1, subset.row=NULL) {
     type <- match.arg(type)
     if (type=="edgeR" || type=="DESeq2") { 

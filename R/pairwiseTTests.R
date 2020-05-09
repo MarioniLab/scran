@@ -170,7 +170,7 @@ NULL
 
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel SerialParam
-#' @importFrom scater .subset2index
+#' @importFrom scuttle .subset2index
 .pairwiseTTests <- function(x, groups, block=NULL, design=NULL, restrict=NULL, exclude=NULL, direction=c("any", "up", "down"),
     lfc=0, std.lfc=FALSE, log.p=FALSE, gene.names=rownames(x), subset.row=NULL, BPPARAM=SerialParam())
 {
@@ -218,7 +218,7 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
 
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel bplapply SerialParam bpstart bpstop
-#' @importFrom scater .splitRowsByWorkers .bpNotSharedOrUp 
+#' @importFrom scuttle .splitRowsByWorkers .bpNotSharedOrUp 
 .test_block_internal <- function(x, subset.row, groups, block=NULL, direction="any", lfc=0, std.lfc=FALSE,
     gene.names=NULL, log.p=TRUE, BPPARAM=SerialParam())
 # This looks at every level of the blocking factor and performs
@@ -366,7 +366,7 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
         stop("no residual d.f. in design matrix for variance estimation")
     }
 
-    by.core <- .splitRowsByWorkers(x, BPPARAM, subset_row=subset.row)
+    by.core <- .splitRowsByWorkers(x, BPPARAM, subset.row=subset.row)
     raw.stats <- bplapply(by.core, FUN=fit_linear_model, qr=QR$qr, qraux=QR$qraux, get_coefs=TRUE, BPPARAM=BPPARAM)
 
     coefficients <- do.call(cbind, lapply(raw.stats, "[[", i=1))

@@ -57,7 +57,7 @@
 #' 
 #' @export
 #' @importFrom BiocParallel SerialParam bpmapply bpstart bpstop bpisup
-#' @importFrom scater .bpNotSharedOrUp
+#' @importFrom scuttle .bpNotSharedOrUp
 correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, equiweight=TRUE, BPPARAM=SerialParam()) {
     if (!bpisup(BPPARAM)) {
         bpstart(BPPARAM)

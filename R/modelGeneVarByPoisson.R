@@ -102,7 +102,7 @@ NULL
 #############################
 
 #' @importFrom BiocParallel SerialParam
-#' @importFrom scater librarySizeFactors .subset2index
+#' @importFrom scuttle librarySizeFactors .subset2index
 .model_gene_var_by_poisson <- function(x, size.factors=NULL, 
     block=NULL, design=NULL, subset.row=NULL, npts=1000, dispersion=0, pseudo.count=1, ..., 
     equiweight=TRUE, method="fisher", BPPARAM=SerialParam()) 

@@ -126,7 +126,7 @@ NULL
 
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel SerialParam
-#' @importFrom scater .subset2index
+#' @importFrom scuttle .subset2index
 .pairwiseBinom <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, direction=c("any", "up", "down"),
     threshold=1e-8, lfc=0, log.p=FALSE, gene.names=rownames(x), 
     subset.row=NULL, BPPARAM=SerialParam())
@@ -169,7 +169,7 @@ setMethod("pairwiseBinom", "SingleCellExperiment", function(x, groups=colLabels(
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel bplapply SerialParam bpstart bpstop
 #' @importFrom stats pbinom
-#' @importFrom scater .splitRowsByWorkers .bpNotSharedOrUp numDetectedAcrossCells
+#' @importFrom scuttle .splitRowsByWorkers .bpNotSharedOrUp numDetectedAcrossCells
 #' @importFrom SummarizedExperiment assay
 .blocked_binom <- function(x, subset.row, groups, block=NULL, direction="any", gene.names=NULL, log.p=TRUE, 
 	threshold=1e-8, lfc=0, BPPARAM=SerialParam())
@@ -197,7 +197,7 @@ setMethod("pairwiseBinom", "SingleCellExperiment", function(x, groups=colLabels(
 
     for (b in seq_along(block)) {
         chosen <- block[[b]]
-        by.core <- .splitRowsByWorkers(x, BPPARAM=BPPARAM, subset_row=subset.row, subset_col=chosen)
+        by.core <- .splitRowsByWorkers(x, BPPARAM=BPPARAM, subset.row=subset.row, subset.col=chosen)
 
         cur.groups <- groups[chosen]
         all.n[[b]] <- as.vector(table(cur.groups))
@@ -324,12 +324,4 @@ setMethod("pairwiseBinom", "SingleCellExperiment", function(x, groups=colLabels(
 
         output
     }
-}
-
-#' @importFrom scater nexprs
-.compute_nzero_stat <- function(x, by.group, rows, threshold) {
-    collected <- lapply(by.group, FUN=function(s) {
-        nexprs(x, subset_col=s, subset_row=rows, byrow=TRUE, detection_limit=threshold)
-    })
-    do.call(cbind, collected)
 }

@@ -190,7 +190,7 @@
 NULL
 
 #' @importFrom BiocParallel bplapply SerialParam
-#' @importFrom scater .subset2index
+#' @importFrom scuttle .subset2index
 .calculate_sum_factors <- function(x, sizes=seq(21, 101, 5), clusters=NULL, ref.clust=NULL, max.cluster.size=3000, 
     positive=TRUE, scaling=NULL, min.mean=NULL, subset.row=NULL, BPPARAM=SerialParam())
 # This contains the function that performs normalization on the summed counts.
@@ -286,8 +286,7 @@ NULL
 # Internal functions.
 #############################################################
 
-#' @importFrom Matrix qr qr.coef 
-#' @importFrom scater nexprs
+#' @importFrom Matrix qr qr.coef colSums
 .per_cluster_normalize <- function(x, curdex, sizes, subset.row, min.mean=NULL, positive=FALSE, scaling=NULL) 
 # Computes the normalization factors _within_ each cluster,
 # along with the reference pseudo-cell used for normalization. 
@@ -322,7 +321,7 @@ NULL
     if (any(final.nf < 0)) {
         warning("encountered negative size factor estimates")
         if (positive) {
-            num.detected <- nexprs(exprs, byrow=FALSE)
+            num.detected <- colSums(exprs > 0)
             final.nf <- cleanSizeFactors(final.nf, num.detected) 
         }
     }

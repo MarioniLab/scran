@@ -129,7 +129,7 @@ NULL
 
 #' @importFrom S4Vectors DataFrame
 #' @importFrom BiocParallel SerialParam
-#' @importFrom scater .subset2index
+#' @importFrom scuttle .subset2index
 .pairwiseWilcox <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, direction=c("any", "up", "down"),
     lfc=0, log.p=FALSE, gene.names=rownames(x), subset.row=NULL, BPPARAM=SerialParam())
 {
@@ -170,7 +170,7 @@ setMethod("pairwiseWilcox", "SingleCellExperiment", function(x, groups=colLabels
 
 #' @importFrom BiocParallel bplapply SerialParam bpstart bpstop
 #' @importFrom stats pnorm 
-#' @importFrom scater .splitRowsByWorkers .bpNotSharedOrUp
+#' @importFrom scuttle .splitRowsByWorkers .bpNotSharedOrUp
 .blocked_wilcox <- function(x, subset.row, groups, block=NULL, direction="any", gene.names=NULL, 
     lfc=0, log.p=TRUE, BPPARAM=SerialParam())
 {
@@ -184,7 +184,7 @@ setMethod("pairwiseWilcox", "SingleCellExperiment", function(x, groups=colLabels
     }
 
     # Choosing the parallelization strategy.
-    by.core <- .splitRowsByWorkers(x, BPPARAM=BPPARAM, subset_row=subset.row)
+    by.core <- .splitRowsByWorkers(x, BPPARAM=BPPARAM, subset.row=subset.row)
     if (.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))

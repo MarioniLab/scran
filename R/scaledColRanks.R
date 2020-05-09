@@ -44,7 +44,7 @@
 #' table(igraph::cluster_walktrap(g)$membership)
 #' 
 #' @export
-#' @importFrom scater calculateAverage .subset2index
+#' @importFrom scuttle calculateAverage .subset2index
 #' @importFrom BiocParallel SerialParam
 scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, as.sparse=FALSE, 
     withDimnames=TRUE, BPPARAM=SerialParam())

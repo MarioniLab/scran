@@ -167,7 +167,7 @@ NULL
 #' @importFrom BiocParallel SerialParam bpstart bpstop
 #' @importFrom S4Vectors DataFrame
 #' @importFrom stats p.adjust
-#' @importFrom scater .bpNotSharedOrUp .assignIndicesToWorkers .splitVectorByWorkers
+#' @importFrom scuttle .bpNotSharedOrUp .assignIndicesToWorkers .splitVectorByWorkers
 .correlate_pairs <- function(x, null.dist=NULL, ties.method=c("expected", "average"), 
     iters=1e6, block=NULL, design=NULL, equiweight=TRUE, use.names=TRUE, subset.row=NULL, 
     pairings=NULL, BPPARAM=SerialParam())
@@ -311,7 +311,7 @@ NULL
 ##################################
 
 #' @importFrom utils combn
-#' @importFrom scater .subset2index
+#' @importFrom scuttle .subset2index
 .construct_pair_indices <- function(subset.row, x, pairings) 
 # This returns a new subset-by-row vector, along with the pairs of elements
 # indexed along that vector (i.e., "1" refers to the first element of subset.row,

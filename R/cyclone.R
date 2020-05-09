@@ -110,7 +110,7 @@ NULL
 setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
 
 #' @importFrom BiocParallel SerialParam bplapply bpstart bpstop
-#' @importFrom scater .bpNotSharedOrUp .subset2index .assignIndicesToWorkers
+#' @importFrom scuttle .bpNotSharedOrUp .subset2index .assignIndicesToWorkers
 .cyclone <- function(x, pairs, gene.names=rownames(x), iter=1000, min.iter=100, min.pairs=50, 
     BPPARAM=SerialParam(), verbose=FALSE, subset.row=NULL)
 { 

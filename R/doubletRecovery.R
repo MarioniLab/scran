@@ -93,7 +93,7 @@ NULL
 #' @importFrom BiocNeighbors findKNN
 #' @importFrom utils head
 #' @importFrom S4Vectors DataFrame
-#' @importFrom scater .subset2index
+#' @importFrom scuttle .subset2index
 .doublet_recovery <- function(x, doublets, samples,
     k=50, transposed=FALSE, subset.row=NULL, BNPARAM=KmknnParam(), BPPARAM=SerialParam()) 
 {

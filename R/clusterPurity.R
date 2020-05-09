@@ -86,7 +86,7 @@ NULL
 
 #' @importFrom BiocNeighbors KmknnParam buildIndex findKNN findNeighbors
 #' @importFrom BiocParallel SerialParam bpstart bpstop
-#' @importFrom scater .bpNotSharedOrUp
+#' @importFrom scuttle .bpNotSharedOrUp
 #' @importFrom Matrix t
 #' @importFrom stats median
 #' @importFrom S4Vectors List

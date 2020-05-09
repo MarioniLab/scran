@@ -141,7 +141,7 @@ NULL
 #############################
 
 #' @importFrom BiocParallel SerialParam
-#' @importFrom scater .subset2index
+#' @importFrom scuttle .subset2index
 .model_gene_var <- function(x, block=NULL, design=NULL, subset.row=NULL, subset.fit=NULL, 
     ..., equiweight=TRUE, method="fisher", BPPARAM=SerialParam()) 
 {

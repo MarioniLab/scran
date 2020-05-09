@@ -108,7 +108,7 @@ NULL
 
 #' @importFrom BiocParallel SerialParam bpstart bpstop
 #' @importFrom BiocGenerics cbind
-#' @importFrom scater .bpNotSharedOrUp
+#' @importFrom scuttle .bpNotSharedOrUp
 .findMarkers <- function(x, groups, test.type=c("t", "wilcox", "binom"), ..., 
     pval.type=c("any", "some", "all"), min.prop=NULL, log.p=FALSE, 
     full.stats=FALSE, sorted=TRUE, row.data=NULL, BPPARAM=SerialParam())

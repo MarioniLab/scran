@@ -49,7 +49,7 @@
 #' @export
 #' @importFrom SingleCellExperiment altExp
 #' @importFrom BiocGenerics sizeFactors<-
-#' @importFrom scater librarySizeFactors
+#' @importFrom scuttle librarySizeFactors
 computeSpikeFactors <- function(x, spikes, assay.type="counts") {
     sizeFactors(x) <- librarySizeFactors(altExp(x, spikes), exprs_values=assay.type)
     x
