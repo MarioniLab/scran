@@ -44,6 +44,8 @@
 #' \code{\link{buildSNNGraph}}, for one method to construct \code{graph}.
 #'
 #' \code{\link{modularity}}, for the calculation of the entire graph modularity.
+#'
+#' \code{\link{clusterRand}}, which applies a similar breakdown to the Rand index.
 #' 
 #' @examples
 #' library(scater)

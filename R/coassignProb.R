@@ -3,7 +3,7 @@
 #' Compute coassignment probabilities for each label in a reference grouping when compared to an alternative grouping of samples.
 #'
 #' @param ref A character vector or factor containing one set of groupings, considered to be the reference.
-#' @param alt A character vector or factor containing another set of groupings.
+#' @param alt A character vector or factor containing another set of groupings, to be compared to \code{alt}.
 #' @param summarize Logical scalar indicating whether the output matrix should be converted into a per-label summary.
 #' 
 #' @return 
@@ -30,6 +30,8 @@
 #'
 #' @seealso
 #' \code{\link{bootstrapCluster}}, to compute coassignment probabilities across bootstrap replicates.
+#'
+#' \code{\link{clusterRand}}, for another way to compare different clusterings.
 #'
 #' @examples
 #' library(scater)
