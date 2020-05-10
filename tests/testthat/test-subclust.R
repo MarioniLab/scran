@@ -39,14 +39,14 @@ set.seed(30002)
 test_that("quickSubCluster behaves correctly upon changing the assay", {
     dummy <- matrix(rnbinom(ncells*ngenes, mu=10, size=20), ncol=ncells, nrow=ngenes)
     sampling <- sample(3, ncells, replace=TRUE)
-    sce <- SingleCellExperiment(list(whee=dummy, blah=scater::normalizeCounts(dummy)))
+    sce <- SingleCellExperiment(list(whee=dummy, blah=scuttle::normalizeCounts(dummy)))
 
     output <- quickSubCluster(dummy, groups=sampling)
     output2 <- quickSubCluster(sce, groups=sampling, assay.type="whee")
     expect_identical(lapply(output, reducedDim), lapply(output2, reducedDim))
 
     # Checking that we get the same output when we turn off normalization.
-    expect_error(output <- quickSubCluster(scater::normalizeCounts(dummy), groups=sampling, normalize=FALSE), NA)
+    expect_error(output <- quickSubCluster(scuttle::normalizeCounts(dummy), groups=sampling, normalize=FALSE), NA)
     output2 <- quickSubCluster(sce, groups=sampling, normalize=FALSE, assay.type="blah")
     expect_identical(lapply(output, reducedDim), lapply(output2, reducedDim))
 })

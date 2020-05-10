@@ -64,7 +64,7 @@ test_that("scaledColRanks responds to other options", {
 
     # Minimum mean.
     rnks <- scaledColRanks(mat, min.mean=10)
-    expect_identical(rnks, scaledColRanks(mat, subset.row=scater::calculateAverage(mat) >= 10))
+    expect_identical(rnks, scaledColRanks(mat, subset.row=scuttle::calculateAverage(mat) >= 10))
 
     # Transposition.
     rnks <- scaledColRanks(mat, transposed=TRUE)

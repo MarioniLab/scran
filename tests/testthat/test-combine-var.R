@@ -10,7 +10,7 @@ rownames(dummy) <- paste0("X", seq_len(ngenes))
 
 X <- SingleCellExperiment(list(counts=dummy))
 sizeFactors(X) <- colSums(dummy)
-X <- scater::logNormCounts(X)
+X <- scuttle::logNormCounts(X)
 dec <- modelGeneVar(X)
 
 sub.d <- X[,seq_len(ncells/2)]

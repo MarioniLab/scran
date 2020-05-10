@@ -7,16 +7,16 @@ ngenes <- 250
 means <- 2^runif(ngenes, -1, 5)
 dummy <- matrix(rnbinom(ngenes*ncells, mu=means, size=5), ncol=ncells, nrow=ngenes)
 
-library(scater)
+library(scuttle)
 rownames(dummy) <- paste0("X", seq_len(ngenes))
 X <- SingleCellExperiment(list(counts=dummy))
 sizeFactors(X) <- colSums(dummy)
 X <- logNormCounts(X)
 
 test_that("findMarkers dispatches correctly", {   
-    clust <- kmeans(t(exprs(X)), centers=3)
+    clust <- kmeans(t(logcounts(X)), centers=3)
     out <- findMarkers(X, groups=clust$cluster)
-    out2 <- findMarkers(exprs(X), groups=clust$cluster)
+    out2 <- findMarkers(logcounts(X), groups=clust$cluster)
     expect_identical(out, out2)
 
     Xbase <- as(X, "SummarizedExperiment")
@@ -31,7 +31,7 @@ test_that("findMarkers dispatches correctly", {
 })
 
 test_that("findMarkers works correctly with subsetting and spikes", {   
-    clust <- kmeans(t(exprs(X)), centers=3)
+    clust <- kmeans(t(logcounts(X)), centers=3)
 
     # Works with subsetting.
     out <- findMarkers(X, groups=clust$cluster, subset.row=100:1)
@@ -53,13 +53,13 @@ test_that("findMarkers works correctly with subsetting and spikes", {
     # Repeating with a design matrix, to check that subsetting works in both branches for coefficient calculation.
     block <- factor(sample(2, ncol(X), replace=TRUE))
     design <- model.matrix(~block)[,-1,drop=FALSE]
-    out.des <- findMarkers(exprs(X), groups=clust$cluster, design=design, subset.row=100:1)
-    out.des2 <- findMarkers(exprs(X)[100:1,,drop=FALSE], groups=clust$cluster, design=design)
+    out.des <- findMarkers(logcounts(X), groups=clust$cluster, design=design, subset.row=100:1)
+    out.des2 <- findMarkers(logcounts(X)[100:1,,drop=FALSE], groups=clust$cluster, design=design)
     expect_identical(out.des, out.des2)
 })
 
 test_that("findMarkers works correctly with row metadata", {
-    clust <- kmeans(t(exprs(X)), centers=3)
+    clust <- kmeans(t(logcounts(X)), centers=3)
     meta <- DataFrame(Y=runif(nrow(X)), row.names=rownames(dummy))
     out <- findMarkers(dummy, groups=clust$cluster, row.data=meta)
 
@@ -78,7 +78,7 @@ test_that("findMarkers works correctly with row metadata", {
 })
 
 test_that("findMarkers and getTopMarkers work correctly", {
-    clust <- kmeans(t(exprs(X)), centers=3)
+    clust <- kmeans(t(logcounts(X)), centers=3)
     stats <- pairwiseTTests(dummy, groups=clust$cluster)
 
     out <- findMarkers(dummy, groups=clust$cluster)
@@ -120,7 +120,7 @@ test_that("findMarkers and getTopMarkers work correctly", {
 })
 
 test_that("findMarkers and getMarkerEffects work correctly", {
-    clust <- kmeans(t(exprs(X)), centers=3)
+    clust <- kmeans(t(logcounts(X)), centers=3)
 
     out <- findMarkers(dummy, groups=clust$cluster)
     eff <- getMarkerEffects(out[[1]])

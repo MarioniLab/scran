@@ -89,29 +89,26 @@ test_that("standard rho calculation works correctly", {
 test_that("correlatePairs works with a design matrix", {
     grouping <- gl(2, 50)
     design <- model.matrix(~grouping)
+    X <- matrix(rnorm(Ngenes*Ncells), nrow=Ngenes) # avoid problems with ties.
 
-    # Test the residual calculator.
-    QR <- qr(design, LAPACK=TRUE)
-    ref.resid <- t(lm.fit(y=t(X), x=design)$residuals)
-    out.resid <- scran:::get_residuals(X, QR$qr, QR$qraux, seq_len(nrow(X))-1L, NA_real_) 
-    expect_equal(unname(ref.resid), out.resid)
-    
-    subset.chosen <- sample(nrow(X), 10)
-    out.resid.sub <- scran:::get_residuals(X, QR$qr, QR$qraux, subset.chosen-1L, NA_real_) 
-    expect_equal(unname(ref.resid[subset.chosen,]), out.resid.sub)
-
-    # Manual calculation (note; using out.resid as ties are slightly different with ref.resid).
     set.seed(200)
     out <- correlatePairs(X, design=design, iters=1e4)
 
     set.seed(200)
     nulls <- correlateNull(design=design, iter=1e4)
-    rownames(out.resid) <- rownames(X)
-    ref <- checkCorrelations(out, out.resid, null.dist=nulls)
+    resids <- t(lm.fit(y=t(X), x=design)$residuals)
+    ref <- checkCorrelations(out, resids, null.dist=nulls)
 
     expect_equal(out$rho, ref$rho)
     expect_equal(out$p.value, ref$pvalue)
     expect_equal(out$FDR, ref$FDR)
+
+    # Works with subsetting.
+    set.seed(200)
+    sub <- correlatePairs(X, design=design, iters=1e4, subset.row=1:10)
+    keep <- out$gene1 %in% 1:10 & out$gene2 %in% 1:10
+    sub$FDR <- out$FDR <- NULL
+    expect_identical(sub, out[keep,])
 })
 
 test_that("correlatePairs works with blocking", {

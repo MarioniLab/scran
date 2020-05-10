@@ -67,7 +67,7 @@ test_that("doubletCluster agrees with a reference implementation", {
     clusters <- rep(1:4, c(ncol(counts.1), ncol(counts.2), ncol(counts.3), ncol(counts.m)))
 
     dbl <- doubletCluster(counts, clusters)
-    ref <- findMarkers(scater::normalizeCounts(counts, scater::librarySizeFactors(counts)), clusters, full.stats=TRUE)
+    ref <- findMarkers(scuttle::normalizeCounts(counts, scuttle::librarySizeFactors(counts)), clusters, full.stats=TRUE)
 
     for (x in rownames(dbl)) {
         stats <- ref[[x]]
@@ -184,7 +184,7 @@ test_that("size factor variations in doubletCells work correctly", {
     set.seed(12345)
     out <- doubletCells(counts)
     set.seed(12345)
-    ref <- doubletCells(counts, size.factors.norm=scater::librarySizeFactors(counts))
+    ref <- doubletCells(counts, size.factors.norm=scuttle::librarySizeFactors(counts))
     expect_equal(out, ref)
 
     # Normalization size factors get centered.
@@ -327,7 +327,7 @@ counts <- cbind(counts.1, counts.2, counts.m)
 clusters <- rep(1:3, c(ncol(counts.1), ncol(counts.2), ncol(counts.m)))
 
 sce <- SingleCellExperiment(list(counts=counts))
-sce <- scater::logNormCounts(sce)
+sce <- scuttle::logNormCounts(sce)
 
 set.seed(99000007)
 test_that("doubletRecovery works as expected", {

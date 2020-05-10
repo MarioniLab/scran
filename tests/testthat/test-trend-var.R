@@ -7,7 +7,7 @@ ngenes <- 1000
 means <- 2^runif(ngenes, -1, 5)
 dummy <- matrix(rnbinom(ngenes*ncells, mu=means, size=5), ncol=ncells, nrow=ngenes)
 
-library(scater)
+library(scuttle)
 out <- normalizeCounts(dummy)
 
 library(DelayedMatrixStats)

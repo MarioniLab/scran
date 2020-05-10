@@ -186,7 +186,7 @@ test_that("buildKNNGraph works correctly", {
     expect_equal(g[], KMAKE(t(pc.out$x), k=20))
 })
 
-# Avoid normalize() overwriting scater's normalize() in other files.
+# Avoid normalize() overwriting scuttle's normalize() in other files.
 
 detach("package:igraph", character.only=TRUE)
 

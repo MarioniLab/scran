@@ -2,7 +2,7 @@
 # library(testthat); library(scran); source("setup.R"); source("test-pseudo-dge.R")
 
 set.seed(10000)
-library(scater)
+library(scuttle)
 sce <- mockSCE(ncells=1000)
 sce$samples <- gl(8, 125) # Pretending we have 8 samples.
 

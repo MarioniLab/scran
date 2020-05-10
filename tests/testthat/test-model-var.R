@@ -8,7 +8,7 @@ means <- 2^runif(ngenes, -1, 5)
 dummy <- matrix(rnbinom(ngenes*ncells, mu=means, size=5), ncol=ncells, nrow=ngenes)
 rownames(dummy) <- paste0("X", seq_len(ngenes))
 
-library(scater)
+library(scuttle)
 dummy <- normalizeCounts(dummy)
 
 test_that("modelGeneVar works correctly without blocking", {
@@ -209,11 +209,11 @@ rownames(spikes) <- paste0("X", seq_len(nspikes))
 
 test_that("modelGeneVarWithSpikes works correctly in the basic case", {
     out <- modelGeneVarWithSpikes(dummy, spikes)
-    ref <- modelGeneVar(scater::normalizeCounts(dummy))
+    ref <- modelGeneVar(scuttle::normalizeCounts(dummy))
     expect_equal(out$mean, ref$mean)
     expect_equal(out$total, ref$total)
 
-    lspikes <- scater::normalizeCounts(spikes)
+    lspikes <- scuttle::normalizeCounts(spikes)
     expect_equal(metadata(out)$mean, rowMeans(lspikes))
     expect_equal(unname(metadata(out)$var), DelayedMatrixStats::rowVars(lspikes))
 
@@ -228,13 +228,13 @@ test_that("modelGeneVarWithSpikes works correctly with blocking", {
     block <- sample(LETTERS[1:5], ncells, replace=TRUE)
     out <- modelGeneVarWithSpikes(dummy, spikes, block=block)
 
-    ref <- modelGeneVar(scater::normalizeCounts(dummy), block=block)
+    ref <- modelGeneVar(scuttle::normalizeCounts(dummy), block=block)
     expect_equal(out$mean, ref$mean)
     expect_equal(out$total, ref$total)
 
     accumulated.mean <- accumulated.total <- accumulated.tech <- 0
-    sf1 <- scater::librarySizeFactors(dummy)
-    sf2 <- scater::librarySizeFactors(spikes)
+    sf1 <- scuttle::librarySizeFactors(dummy)
+    sf2 <- scuttle::librarySizeFactors(spikes)
 
     for (i in unique(block)) {
         current <- i==block
@@ -322,8 +322,8 @@ test_that("modelGeneVarWithSpikes works with design matrices", {
     Y <- runif(ncol(dummy))
     design <- model.matrix(~Y)
 
-    genes <- modelGeneVar(scater::normalizeCounts(dummy), design=design)
-    spiked <- modelGeneVar(scater::normalizeCounts(spikes), design=design)
+    genes <- modelGeneVar(scuttle::normalizeCounts(dummy), design=design)
+    spiked <- modelGeneVar(scuttle::normalizeCounts(spikes), design=design)
     out <- modelGeneVarWithSpikes(dummy, spikes, design=design)
 
     expect_equal(out$mean, genes$mean)

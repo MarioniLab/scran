@@ -2,7 +2,7 @@
 # library(scran); library(testthat); source("test-multi-markers.R")
 
 set.seed(1000)
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 sce <- logNormCounts(sce)
 

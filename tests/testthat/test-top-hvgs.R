@@ -1,7 +1,7 @@
 # This tests the getTopHVGs function.
 # library(testthat); library(scran); source("test-top-hvgs.R")
 
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 sce <- logNormCounts(sce)
 

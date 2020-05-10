@@ -2,7 +2,7 @@
 # library(testthat); library(scran); source("setup.R"); source("test-cluster-snn.R")
 
 set.seed(1000)
-library(scater)
+library(scuttle)
 sce <- mockSCE(ncells=500, ngenes=1000)
 sce <- logNormCounts(sce)
 
@@ -14,9 +14,9 @@ test_that("clusterSNNGraph works correctly for standard applications", {
     expect_identical(clusters, clusters2)
 
     # Works with low-dimensional arguments:
-    sce <- runPCA(sce, ncomponents=10)
-    clusters3a <- clusterSNNGraph(sce, use.dimred="PCA")
-    clusters3b <- clusterSNNGraph(reducedDim(sce), transposed=TRUE)
+    reducedDim(sce, "stuff") <- matrix(rnorm(10*ncol(sce)), ncol=10)
+    clusters3a <- clusterSNNGraph(sce, use.dimred="stuff")
+    clusters3b <- clusterSNNGraph(reducedDim(sce, "stuff"), transposed=TRUE)
     expect_identical(clusters3a, clusters3b)
 
     # Passes arguments down:
@@ -54,9 +54,9 @@ test_that("clusterKNNGraph works correctly for standard applications", {
     expect_identical(clusters, clusters2)
 
     # Works with low-dimensional arguments:
-    sce <- runPCA(sce, ncomponents=10)
-    clusters3a <- clusterKNNGraph(sce, use.dimred="PCA")
-    clusters3b <- clusterKNNGraph(reducedDim(sce), transposed=TRUE)
+    reducedDim(sce, "stuff") <- matrix(rnorm(10*ncol(sce)), ncol=10)
+    clusters3a <- clusterKNNGraph(sce, use.dimred="stuff")
+    clusters3b <- clusterKNNGraph(reducedDim(sce, "stuff"), transposed=TRUE)
     expect_identical(clusters3a, clusters3b)
 
     # Passes arguments down:

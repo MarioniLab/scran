@@ -58,7 +58,7 @@ ncells <- 200
 ngenes <- 250
 means <- 2^runif(ngenes, -1, 5)
 dummy <- matrix(rnbinom(ngenes*ncells, mu=means, size=5), ncol=ncells, nrow=ngenes)
-X <- scater::normalizeCounts(dummy, colSums(dummy))
+X <- scuttle::normalizeCounts(dummy, colSums(dummy))
 rownames(X) <- seq_len(nrow(X))
 
 set.seed(7000001)

@@ -55,7 +55,7 @@ test_that("subset and division is correct", {
     expect_equal(cur.out[[1]], colSums(chosen))
     divved <- t(t(chosen)/colSums(chosen))
     expect_equal(cur.out[[2]], divved)
-    expect_equal(cur.out[[3]], scater::calculateAverage(chosen))
+    expect_equal(cur.out[[3]], scuttle::calculateAverage(chosen))
 
     # Works with sparse matrices (and returns sparse matrices).
     y <- matrix(rpois(ngenes*ncells, lambda=1), nrow=ngenes, ncol=ncells)
@@ -69,7 +69,7 @@ test_that("subset and division is correct", {
     divved <- t(t(chosen)/Matrix::colSums(chosen))
     expect_equal(cur.out[[2]], divved)
     expect_s4_class(cur.out[[2]], "dgCMatrix")
-    expect_equal(cur.out[[3]], scater::calculateAverage(chosen))
+    expect_equal(cur.out[[3]], scuttle::calculateAverage(chosen))
 
     # Check scaling behaviour.
     truth <- runif(ncells)
@@ -145,7 +145,7 @@ library(Matrix)
 sumInR <- function(x, sizes, center=TRUE, min.mean=0)
 # Creating a quick R implementation for comparison.
 {
-    keep <- scater::calculateAverage(x) >= pmax(1e-8, min.mean)
+    keep <- scuttle::calculateAverage(x) >= pmax(1e-8, min.mean)
     lib.sizes <- colSums(x)
     x <- t(t(x)/lib.sizes)
     x <- x[keep,,drop=FALSE]
@@ -205,7 +205,7 @@ test_that("calculateSumFactors correctly ignores low-abundance genes", {
     expect_equal(outB, sumInR(dummy, sizes=sizes, min.mean=1))
 
     expect_false(isTRUE(all.equal(outA, outB))) # ensure it's not trivial equality.
-    expect_equal(scater::calculateAverage(dummy), colMeans(t(dummy)/colSums(dummy)) * mean(colSums(dummy))) # checking the calculation.
+    expect_equal(scuttle::calculateAverage(dummy), colMeans(t(dummy)/colSums(dummy)) * mean(colSums(dummy))) # checking the calculation.
 
     # Interacts properly with the subsetting.
     out <- calculateSumFactors(dummy, min.mean=1, subset.row=1:500, sizes=sizes)
@@ -222,7 +222,7 @@ test_that("calculateSumFactors responds to scaling requests", {
     dummy <- matrix(rpois(ngenes*ncells, lambda=truth), nrow=ngenes, ncol=ncells, byrow=TRUE)
 
     outA <- calculateSumFactors(dummy, min.mean=0, scaling=NULL)
-    outB <- calculateSumFactors(dummy, min.mean=0, scaling=scater::librarySizeFactors(dummy))
+    outB <- calculateSumFactors(dummy, min.mean=0, scaling=scuttle::librarySizeFactors(dummy))
     expect_equal(outA, outB)
 
     outC <- calculateSumFactors(dummy, min.mean=0, scaling=truth)
@@ -280,9 +280,9 @@ test_that("calculateSumFactors behaves correctly with clustering and a mean thre
     pseudo1 <- rowMeans(adj1)
     pseudo2 <- rowMeans(adj2)
 
-    ave1 <- scater::calculateAverage(l1)
-    ave2 <- scater::calculateAverage(l2)
-    grand <- scater::calculateAverage(cbind(ave1, ave2))
+    ave1 <- scuttle::calculateAverage(l1)
+    ave2 <- scuttle::calculateAverage(l2)
+    grand <- scuttle::calculateAverage(cbind(ave1, ave2))
     expect_equal(grand, (ave1/sum(ave1) + ave2/sum(ave2))/2 * (sum(ave1) + sum(ave2))/2) # check calculation.
 
     keep <- grand >= 1 # The grand mean applies during re-scaling across clusters.
@@ -324,7 +324,7 @@ test_that("calculateSumFactors correctly subsets 'sizes' for small clusters", {
     subdummy <- dummy[,1:20]
     expect_equal(
             calculateSumFactors(subdummy, sizes=100L, min.mean=0),
-            scater::librarySizeFactors(subdummy)
+            scuttle::librarySizeFactors(subdummy)
     )
 })
 

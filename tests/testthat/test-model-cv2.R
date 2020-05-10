@@ -8,7 +8,7 @@ means <- 2^runif(ngenes, -1, 5)
 dummy <- matrix(rnbinom(ngenes*ncells, mu=means, size=5), ncol=ncells, nrow=ngenes)
 rownames(dummy) <- paste0("X", seq_len(ngenes))
 
-library(scater)
+library(scuttle)
 dummy2 <- normalizeCounts(dummy, log=FALSE)
 
 test_that("modelGeneCV2 works correctly without blocking", {
@@ -162,8 +162,8 @@ smeans <- 2^runif(nspikes, -1, 5)
 spikes <- matrix(rnbinom(nspikes*ncells, mu=smeans, size=5), ncol=ncells, nrow=nspikes)
 rownames(spikes) <- paste0("X", seq_len(nspikes))
 
-normdummy <- scater::normalizeCounts(dummy, log=FALSE)
-normspikes <- scater::normalizeCounts(spikes, log=FALSE)
+normdummy <- scuttle::normalizeCounts(dummy, log=FALSE)
+normspikes <- scuttle::normalizeCounts(spikes, log=FALSE)
 
 test_that("modelGeneCV2WithSpikes works correctly in the basic case", {
     out <- modelGeneCV2WithSpikes(dummy, spikes)
@@ -190,8 +190,8 @@ test_that("modelGeneCV2WithSpikes works correctly with blocking", {
     expect_equal(out$total, ref$total)
 
     accumulated.mean <- accumulated.total <- accumulated.trend <- 0
-    sf1 <- scater::librarySizeFactors(dummy)
-    sf2 <- scater::librarySizeFactors(spikes)
+    sf1 <- scuttle::librarySizeFactors(dummy)
+    sf2 <- scuttle::librarySizeFactors(spikes)
 
     for (i in unique(block)) {
         current <- i==block
