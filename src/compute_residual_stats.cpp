@@ -1,17 +1,16 @@
 #include "Rcpp.h"
 #include "beachmat/numeric_matrix.h"
 #include "beachmat/integer_matrix.h"
-
-#include "run_dormqr.h"
+#include "scuttle/linear_model_fit.h"
 
 template<class M, class TRANSFORMER>
-Rcpp::List compute_residual_stats(Rcpp::RObject qr, Rcpp::RObject qraux, SEXP inmat, TRANSFORMER trans) {
+Rcpp::List compute_residual_stats(Rcpp::NumericMatrix qr, Rcpp::NumericVector qraux, Rcpp::RObject inmat, TRANSFORMER trans) {
     auto emat=beachmat::create_matrix<M>(inmat);
     const size_t ncells=emat->get_ncol();
     const size_t ngenes=emat->get_nrow();
 
-    run_dormqr multQ(qr, qraux, 'T');
-    const size_t ncoefs(multQ.get_ncoefs());
+    scuttle::linear_model_fit fitter(qr, qraux);
+    const size_t ncoefs=fitter.get_ncoefs();
 
     // Setting up the output objects.
     Rcpp::NumericMatrix outvar(1, ngenes);
@@ -29,7 +28,7 @@ Rcpp::List compute_residual_stats(Rcpp::RObject qr, Rcpp::RObject qraux, SEXP in
         auto curmean=curmeanrow.begin();
 
         (*curmean)=std::accumulate(iIt, iEnd, 0.0)/ncells;
-        multQ.run(iIt);
+        fitter.multiply(iIt);
 
         double& v=(*curvar);
         iIt+=ncoefs;
@@ -40,7 +39,7 @@ Rcpp::List compute_residual_stats(Rcpp::RObject qr, Rcpp::RObject qraux, SEXP in
         v /= ncells - ncoefs;
     }
 
-    return(Rcpp::List::create(outmean, outvar));
+    return Rcpp::List::create(outmean, outvar);
 }
 
 /************************************************
@@ -63,7 +62,7 @@ private:
 };
 
 // [[Rcpp::export(rng=false)]]
-Rcpp::List compute_residual_stats_lognorm(Rcpp::RObject qr, Rcpp::RObject qraux, SEXP inmat,
+Rcpp::List compute_residual_stats_lognorm(Rcpp::NumericMatrix qr, Rcpp::NumericVector qraux, Rcpp::RObject inmat,
     Rcpp::NumericVector sf, double pseudo)
 {
     int rtype=beachmat::find_sexp_type(inmat);
@@ -85,7 +84,7 @@ struct none {
 };
 
 // [[Rcpp::export(rng=false)]]
-Rcpp::List compute_residual_stats_none(Rcpp::RObject qr, Rcpp::RObject qraux, SEXP inmat) {
+Rcpp::List compute_residual_stats_none(Rcpp::NumericMatrix qr, Rcpp::NumericVector qraux, Rcpp::RObject inmat) {
     int rtype=beachmat::find_sexp_type(inmat);
     none N;
     if (rtype==INTSXP) {
