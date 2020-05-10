@@ -56,7 +56,7 @@ It is provided as a `SingleCellExperiment` object (from the `r Biocpkg("SingleCe
 We perform some cursory quality control to remove cells with low total counts or high spike-in percentages:
 
 ```{r}
-library(scater)
+library(scuttle)
 qcstats <- perCellQCMetrics(sce)
 qcfilter <- quickPerCellQC(qcstats, percent_subsets="altexps_ERCC_percent")
 sce <- sce[,!qcfilter$discard]
@@ -64,8 +64,6 @@ summary(qcfilter$discard)
 ```
 
 # Normalizing cell-specific biases
-
-## Based on the gene counts
 
 Cell-specific biases are normalized using the `computeSumFactors` method, which implements the deconvolution strategy for scaling normalization [@lun2016pooling].
 This computes size factors that are used to scale the counts in each cell.
@@ -81,11 +79,7 @@ summary(sizeFactors(sce))
 For larger data sets, clustering should be performed with the `quickCluster` function before normalization.
 Briefly, cells are grouped into clusters of similar expression; normalization is applied within each cluster to compute size factors for each cell; and the factors are rescaled by normalization between clusters.
 This reduces the risk of violating the above assumption when many genes are DE between clusters in a heterogeneous population.
-
-Note that `computeSumFactors` will automatically remove low-abundance genes, which provides some protection against zero or negative size factor estimates.
 We also assume that quality control on the cells has already been performed, as low-quality cells with few expressed genes can often have negative size factor estimates.
-
-## Based on the spike-in counts
 
 An alternative approach is to normalize based on the spike-in counts [@lun2017assessing].
 The idea is that the same quantity of spike-in RNA was added to each cell prior to library preparation.
@@ -97,10 +91,8 @@ sce2 <- computeSpikeFactors(sce, "ERCC")
 summary(sizeFactors(sce2))
 ```
 
-## Computing normalized expression values
-
-Normalized expression values are calculated using the `logNormCounts()` method from `r Biocpkg("scater")` [@mccarthy2017scater].
-This will use the deconvolution size factors for the endogenous genes, and the spike-in-based size factors for the spike-in transcripts.
+Regardless of which size factor calculation we choose,
+we will use the size factors to compute normalized expression values using `logNormCounts()` from `r Biocpkg("scuttle")`.
 Each expression value can be interpreted as a log-transformed "normalized count", and can be used in downstream applications like clustering or dimensionality reduction.
 
 ```{r}
@@ -110,7 +102,7 @@ sce <- logNormCounts(sce)
 # Variance modelling 
 
 We identify genes that drive biological heterogeneity in the data set by modelling the per-gene variance.
-The aim is use a subset of highly variable genes in downstream analyses like clustering, to improve resolution by removing genes driven by technical noise.
+By only using a subset of highly variable genes in downstream analyses like clustering, we improve resolution of biological structure by removing uninteresting genes driven by technical noise.
 We decompose the total variance of each gene into its biological and technical components by fitting a trend to the endogenous variances [@lun2016step].
 The fitted value of the trend is used as an estimate of the technical component, and we subtract the fitted value from the total variance to obtain the biological component for each gene.
 
@@ -146,8 +138,8 @@ for (i in seq_along(per.block)) {
 }
 ```
 
-We can then extract some top genes for use in downstream procedures.
-This is usually done by passing the selected subset of genes to the `subset.row` argument (or equivalent) in the desired downstream function, as shown below for the PCA step.
+We can then extract some top genes for use in downstream procedures using the `getTopHVGs()` function.
+A variety of different strategies can be used to define a subset of interesting genes:
 
 ```{r}
 # Get the top 10% of genes.
@@ -161,8 +153,14 @@ top.hvgs3 <- getTopHVGs(dec, var.threshold=0)
 
 # Get all genes with FDR below 5%.
 top.hvgs4 <- getTopHVGs(dec, fdr.threshold=0.05)
+```
 
+The selected subset of genes can then be passed to the `subset.row` argument (or equivalent) in downstream steps.
+This process is demonstrated below for the PCA step, using the `runPCA()` function from the `r Biocpkg("scater")` package.
+
+```{r}
 # Running the PCA with the 10% of HVGs.
+library(scater)
 sce <- runPCA(sce, subset_row=top.hvgs)
 reducedDimNames(sce)
 ```
@@ -182,7 +180,7 @@ ncol(reducedDim(sced, "PCA"))
 
 Another approach is based on the assumption that each subpopulation should be separated from each other on a different axis of variation.
 Thus, we choose the number of PCs that is not less than the number of subpopulations (which are unknown, of course, so we use the number of clusters as a proxy).
-It is then a simple to subset the dimensionality reduction result to the desired number of PCs.
+It is then a simple matter to subset the dimensionality reduction result to the desired number of PCs.
 
 ```{r}
 output <- getClusteredPCs(reducedDim(sce))
@@ -195,24 +193,28 @@ npcs
 
 Clustering of scRNA-seq data is commonly performed with graph-based methods due to their relative scalability and robustness. 
 `r Biocpkg('scran')` provides several graph construction methods based on shared nearest neighbors [@xu2015identification] through the `buildSNNGraph()` function.
-This is most commonly generated from the selected PCs, after which methods from the `r CRANpkg("igraph")` package can be used to identify clusters.
+This is most commonly generated from the selected PCs, after which community detection methods from the `r CRANpkg("igraph")` package can be used to explicitly identify clusters.
 
 ```{r}
 # In this case, using the PCs that we chose from getClusteredPCs().
 g <- buildSNNGraph(sce, use.dimred="PCAsub")
 cluster <- igraph::cluster_walktrap(g)$membership
-sce$cluster <- factor(cluster)
-table(sce$cluster)
+
+# Assigning to the 'colLabels' of the 'sce'.
+colLabels(sce) <- factor(cluster)
+table(colLabels(sce))
 ```
 
 By default, `buildSNNGraph()` uses the mode of shared neighbor weighting described by @xu2015identification, but other weighting methods (e.g., the Jaccard index) are also available by setting `type=`.
 An unweighted $k$-nearest neighbor graph can also be constructed with `buildKNNGraph()`.
 
-We can then use methods from `r Biocpkg("scater")` to visualize this on a $t$-SNE plot, as shown below.
+We can then use methods from `r Biocpkg("scater")` to visualize this clustering on a $t$-SNE plot.
+Note that `colLabels()<-` will just add the cluster assignments to the `"label"` field of the `colData`;
+however, any name can be used as long as downstream functions are adjusted appropriately.
 
 ```{r}
 sce <- runTSNE(sce, dimred="PCAsub")
-plotTSNE(sce, colour_by="cluster", text_by="cluster")
+plotTSNE(sce, colour_by="label", text_by="label")
 ```
 
 For graph-based methods, another diagnostic is to examine the ratio of observed to expected edge weights for each pair of clusters (closely related to the modularity score used in many `cluster_*`  functions).
@@ -245,7 +247,7 @@ If necessary, further subclustering can be performed conveniently using the `qui
 This splits the input `SingleCellExperiment` into several smaller objects containing cells from each cluster and performs another round of clustering within that cluster, using a freshly identified set of HVGs to improve resolution for internal structure.
 
 ```{r}
-subout <- quickSubCluster(sce, sce$cluster)
+subout <- quickSubCluster(sce, groups=colLabels(sce))
 table(subout[[1]]$subcluster) # subclusters for cluster 1
 ```
 
@@ -258,7 +260,8 @@ For example, if we take all genes with `Top <= 5`, this is equivalent to the uni
 This aims to provide a set of genes that is guaranteed to be able to distinguish the chosen cluster from all others.
 
 ```{r}
-markers <- findMarkers(sce, sce$cluster)
+# Uses clustering information from 'colLabels(sce)' by default:
+markers <- findMarkers(sce)
 markers[[1]][,1:3]
 ```
 
@@ -268,8 +271,7 @@ only identify genes that are upregulated in the target cluster compared to each 
 and require a minimum log~2~-fold change of 1 to be considered significant.
 
 ```{r}
-wmarkers <- findMarkers(sce, sce$cluster, 
-    test.type="wilcox", direction="up", lfc=1)
+wmarkers <- findMarkers(sce, test.type="wilcox", direction="up", lfc=1)
 wmarkers[[1]][,1:3]
 ```
 
@@ -278,7 +280,7 @@ Setting `pval.type="all"` requires a gene to be DE between each cluster and _eve
 This is a more stringent definition that can yield a more focused set of markers but may also fail to detect any markers in the presence of overclustering. 
 
 ```{r}
-markers <- findMarkers(sce, sce$cluster, pval.type="all")
+markers <- findMarkers(sce, pval.type="all")
 markers[[1]][,1:2]
 ```
 
