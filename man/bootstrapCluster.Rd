@@ -11,6 +11,7 @@ bootstrapCluster(
   transposed = FALSE,
   iterations = 20,
   ...,
+  compare = NULL,
   summarize = FALSE
 )
 }
@@ -33,12 +34,18 @@ in which case we can save a single round of computation.}
 
 \item{...}{Further arguments to pass to \code{FUN} to control the clustering procedure.}
 
+\item{compare}{A function that accepts the original clustering and the bootstrapped clustering,
+and returns a numeric vector or matrix containing some measure of similarity between them - see Details.}
+
 \item{summarize}{Logical scalar indicating whether the output matrix should be converted into a per-label summary.}
 }
 \value{
-If \code{summarize=FALSE}, a numeric matrix is returned with upper triangular entries filled with the co-assignment probabilities for each pair of clusters in \code{clusters}.
+If \code{compare=NULL} and \code{summarize=FALSE}, a numeric matrix is returned with upper triangular entries filled with the co-assignment probabilities for each pair of clusters in \code{clusters}.
 
-Otherwise, a \linkS4class{DataFrame} is returned with one row per label in \code{ref} containing the \code{self} and \code{other} coassignment probabilities - see \code{?\link{coassignProb}} for details.
+If \code{compare=NULL} and \code{summarize=TRUE}, a \linkS4class{DataFrame} is returned with one row per label in \code{ref} containing the \code{self} and \code{other} coassignment probabilities - see \code{?\link{coassignProb}} for details.
+
+If \code{compare} is provided, a numeric array of the same type as the output of \code{compare},
+containing the average statistic(s) across bootstrap replicates.
 }
 \description{
 Generate bootstrap replicates and recluster on them to determine the stability of clusters with respect to sampling noise.
@@ -48,19 +55,33 @@ Bootstrapping is conventionally used to evaluate the precision of an estimator b
 We can (ab)use this framework to determine the stability of the clusters in the context of a scRNA-seq analysis.
 We sample cells with replacement from \code{x}, perform clustering with \code{FUN} and compare the new clusters to \code{clusters}.
 
-The relevant statistic is the co-assignment probability for each pair of original clusters, i.e., the probability that a randomly chosen cells from each of the two original clusters will be put in the same bootstrap cluster.
+For comparing clusters, the default statistic is the co-assignment probability for each pair of original clusters, i.e., the probability that a randomly chosen cells from each of the two original clusters will be put in the same bootstrap cluster.
 High co-assignment probabilities indicate that the two original clusters were not stably separated.
 We might then only trust separation between two clusters if their co-assignment probability was less than some threshold, e.g., 5\%.
 
 The co-assignment probability of each cluster to itself provides some measure of per-cluster stability.
 A probability of 1 indicates that all cells are always assigned to the same cluster across bootstrap iterations, while internal structure that encourages the formation of subclusters will lower this probability.
 }
-\section{Statistical notes}{
+\section{Rationale for using coassignment probabilities}{
 
 We use the co-assignment probability as it is more interpretable than, say, the Jaccard index (see the \pkg{fpc} package).
 It also focuses on the relevant differences between clusters, allowing us to determine which aspects of a clustering are stable.
 For example, A and B may be well separated but A and C may not be, which is difficult to represent in a single stability measure for A.
 If our main interest lies in the A/B separation, we do not want to be overly pessimistic about the stability of A, even though it might not be well-separated from all other clusters.
+
+That said, it is entirely possible to use a different method for comparing clusterings by passing a function to \code{compare}.
+This is expected to be a function that takes two arguments - 
+the original clustering first, and the bootstrapped clustering second - 
+and returns some kind of numeric scalar, vector or matrix containing 
+statistics for the similarity or difference between the original and bootstrapped clustering.
+These statistics are then averaged across all bootstrap iterations.
+
+Any numeric output of \code{compare} is acceptable as long as the dimensions are only dependent on the \emph{levels} of the original clustering - including levels that have no cells, due to resampling! - and thus do not change across bootstrap iterations.
+One example of a compatible function is \code{\link{clusterRand}}, 
+which provides a cluster-wise breakdown of the Rand index.
+}
+
+\section{Statistical note on bootstrap comparisons}{
 
 Technically speaking, some mental gymnastics are required to compare the original and bootstrap clusters in this manner.
 After bootstrapping, the sampled cells represent distinct entities from the original dataset (otherwise it would be difficult to treat them as independent replicates) for which the original clusters do not immediately apply.
@@ -74,14 +95,19 @@ Thus, any stability inferences from bootstrapping are likely to be overly optimi
 \examples{
 library(scater)
 sce <- mockSCE(ncells=200)
+
+# Using 'quickCluster' as one potential 'FUN':
 bootstrapCluster(sce, FUN=quickCluster, min.size=10)
 
 # Defining your own function:
 sce <- logNormCounts(sce)
 sce <- runPCA(sce)
-bootstrapCluster(reducedDim(sce), transposed=TRUE, FUN=function(x) {
-    kmeans(x, 2)$cluster  
-})
+kFUN <- function(x) kmeans(x, 2)$cluster  
+bootstrapCluster(reducedDim(sce), transposed=TRUE, FUN=kFUN)
+
+# Using an alternative comparison, in this case the Rand index:
+bootstrapCluster(reducedDim(sce), transposed=TRUE, FUN=kFUN, 
+    compare=clusterRand)
 
 }
 \seealso{
@@ -89,6 +115,8 @@ bootstrapCluster(reducedDim(sce), transposed=TRUE, FUN=function(x) {
 It is often more computationally efficient to define your own function, though.
 
 \code{\link{coassignProb}}, for calculation of the coassignment probabilities.
+
+\code{\link{clusterRand}}, for another approach to comparing two clusterings.
 }
 \author{
 Aaron Lun

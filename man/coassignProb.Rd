@@ -9,7 +9,7 @@ coassignProb(ref, alt, summarize = FALSE)
 \arguments{
 \item{ref}{A character vector or factor containing one set of groupings, considered to be the reference.}
 
-\item{alt}{A character vector or factor containing another set of groupings.}
+\item{alt}{A character vector or factor containing another set of groupings, to be compared to \code{alt}.}
 
 \item{summarize}{Logical scalar indicating whether the output matrix should be converted into a per-label summary.}
 }
@@ -50,6 +50,8 @@ coassignProb(clust1, clust2, summarize=TRUE)
 }
 \seealso{
 \code{\link{bootstrapCluster}}, to compute coassignment probabilities across bootstrap replicates.
+
+\code{\link{clusterRand}}, for another way to compare different clusterings.
 }
 \author{
 Aaron Lun
