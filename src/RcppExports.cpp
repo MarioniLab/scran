@@ -127,13 +127,13 @@ BEGIN_RCPP
 END_RCPP
 }
 // compute_residual_stats_lognorm
-Rcpp::List compute_residual_stats_lognorm(Rcpp::RObject qr, Rcpp::RObject qraux, SEXP inmat, Rcpp::NumericVector sf, double pseudo);
+Rcpp::List compute_residual_stats_lognorm(Rcpp::NumericMatrix qr, Rcpp::NumericVector qraux, Rcpp::RObject inmat, Rcpp::NumericVector sf, double pseudo);
 RcppExport SEXP _scran_compute_residual_stats_lognorm(SEXP qrSEXP, SEXP qrauxSEXP, SEXP inmatSEXP, SEXP sfSEXP, SEXP pseudoSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type qr(qrSEXP);
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type qraux(qrauxSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type inmat(inmatSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type qr(qrSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type qraux(qrauxSEXP);
+    Rcpp::traits::input_parameter< Rcpp::RObject >::type inmat(inmatSEXP);
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type sf(sfSEXP);
     Rcpp::traits::input_parameter< double >::type pseudo(pseudoSEXP);
     rcpp_result_gen = Rcpp::wrap(compute_residual_stats_lognorm(qr, qraux, inmat, sf, pseudo));
@@ -141,13 +141,13 @@ BEGIN_RCPP
 END_RCPP
 }
 // compute_residual_stats_none
-Rcpp::List compute_residual_stats_none(Rcpp::RObject qr, Rcpp::RObject qraux, SEXP inmat);
+Rcpp::List compute_residual_stats_none(Rcpp::NumericMatrix qr, Rcpp::NumericVector qraux, Rcpp::RObject inmat);
 RcppExport SEXP _scran_compute_residual_stats_none(SEXP qrSEXP, SEXP qrauxSEXP, SEXP inmatSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type qr(qrSEXP);
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type qraux(qrauxSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type inmat(inmatSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type qr(qrSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type qraux(qrauxSEXP);
+    Rcpp::traits::input_parameter< Rcpp::RObject >::type inmat(inmatSEXP);
     rcpp_result_gen = Rcpp::wrap(compute_residual_stats_none(qr, qraux, inmat));
     return rcpp_result_gen;
 END_RCPP
@@ -166,12 +166,12 @@ BEGIN_RCPP
 END_RCPP
 }
 // get_null_rho_design
-Rcpp::NumericVector get_null_rho_design(SEXP qr, SEXP qraux, int Niters, Rcpp::List Seeds, Rcpp::IntegerVector Streams);
+Rcpp::NumericVector get_null_rho_design(Rcpp::NumericMatrix qr, Rcpp::NumericVector qraux, int Niters, Rcpp::List Seeds, Rcpp::IntegerVector Streams);
 RcppExport SEXP _scran_get_null_rho_design(SEXP qrSEXP, SEXP qrauxSEXP, SEXP NitersSEXP, SEXP SeedsSEXP, SEXP StreamsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< SEXP >::type qr(qrSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type qraux(qrauxSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type qr(qrSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type qraux(qrauxSEXP);
     Rcpp::traits::input_parameter< int >::type Niters(NitersSEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type Seeds(SeedsSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type Streams(StreamsSEXP);
@@ -192,60 +192,33 @@ BEGIN_RCPP
 END_RCPP
 }
 // cyclone_scores
-Rcpp::NumericVector cyclone_scores(Rcpp::IntegerVector mycells, SEXP exprs, SEXP marker1, SEXP marker2, SEXP indices, SEXP iter, SEXP miniter, SEXP minpair, SEXP seeds, SEXP streams);
-RcppExport SEXP _scran_cyclone_scores(SEXP mycellsSEXP, SEXP exprsSEXP, SEXP marker1SEXP, SEXP marker2SEXP, SEXP indicesSEXP, SEXP iterSEXP, SEXP miniterSEXP, SEXP minpairSEXP, SEXP seedsSEXP, SEXP streamsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type mycells(mycellsSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type exprs(exprsSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type marker1(marker1SEXP);
-    Rcpp::traits::input_parameter< SEXP >::type marker2(marker2SEXP);
-    Rcpp::traits::input_parameter< SEXP >::type indices(indicesSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type iter(iterSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type miniter(miniterSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type minpair(minpairSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type seeds(seedsSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type streams(streamsSEXP);
-    rcpp_result_gen = Rcpp::wrap(cyclone_scores(mycells, exprs, marker1, marker2, indices, iter, miniter, minpair, seeds, streams));
-    return rcpp_result_gen;
-END_RCPP
-}
-// fit_linear_model
-Rcpp::RObject fit_linear_model(Rcpp::RObject qr, SEXP qraux, SEXP exprs, SEXP get_coefs);
-RcppExport SEXP _scran_fit_linear_model(SEXP qrSEXP, SEXP qrauxSEXP, SEXP exprsSEXP, SEXP get_coefsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type qr(qrSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type qraux(qrauxSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type exprs(exprsSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type get_coefs(get_coefsSEXP);
-    rcpp_result_gen = Rcpp::wrap(fit_linear_model(qr, qraux, exprs, get_coefs));
-    return rcpp_result_gen;
-END_RCPP
-}
-// get_residuals
-Rcpp::RObject get_residuals(Rcpp::RObject exprs, SEXP qr, SEXP qraux, SEXP subset, SEXP lower_bound);
-RcppExport SEXP _scran_get_residuals(SEXP exprsSEXP, SEXP qrSEXP, SEXP qrauxSEXP, SEXP subsetSEXP, SEXP lower_boundSEXP) {
+Rcpp::NumericVector cyclone_scores(Rcpp::RObject exprs, Rcpp::IntegerVector mycells, Rcpp::IntegerVector marker1, Rcpp::IntegerVector marker2, Rcpp::IntegerVector indices, int niters, int miniters, int minpairs, Rcpp::List seeds, Rcpp::IntegerVector streams);
+RcppExport SEXP _scran_cyclone_scores(SEXP exprsSEXP, SEXP mycellsSEXP, SEXP marker1SEXP, SEXP marker2SEXP, SEXP indicesSEXP, SEXP nitersSEXP, SEXP minitersSEXP, SEXP minpairsSEXP, SEXP seedsSEXP, SEXP streamsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::RObject >::type exprs(exprsSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type qr(qrSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type qraux(qrauxSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type subset(subsetSEXP);
-    Rcpp::traits::input_parameter< SEXP >::type lower_bound(lower_boundSEXP);
-    rcpp_result_gen = Rcpp::wrap(get_residuals(exprs, qr, qraux, subset, lower_bound));
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type mycells(mycellsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type marker1(marker1SEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type marker2(marker2SEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type indices(indicesSEXP);
+    Rcpp::traits::input_parameter< int >::type niters(nitersSEXP);
+    Rcpp::traits::input_parameter< int >::type miniters(minitersSEXP);
+    Rcpp::traits::input_parameter< int >::type minpairs(minpairsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type seeds(seedsSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type streams(streamsSEXP);
+    rcpp_result_gen = Rcpp::wrap(cyclone_scores(exprs, mycells, marker1, marker2, indices, niters, miniters, minpairs, seeds, streams));
     return rcpp_result_gen;
 END_RCPP
 }
 // get_scaled_ranks
-Rcpp::RObject get_scaled_ranks(Rcpp::RObject exprs, Rcpp::RObject subset, Rcpp::RObject transpose, Rcpp::RObject as_sparse);
+Rcpp::RObject get_scaled_ranks(Rcpp::RObject exprs, Rcpp::IntegerVector subset, bool transpose, bool as_sparse);
 RcppExport SEXP _scran_get_scaled_ranks(SEXP exprsSEXP, SEXP subsetSEXP, SEXP transposeSEXP, SEXP as_sparseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::RObject >::type exprs(exprsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type subset(subsetSEXP);
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type transpose(transposeSEXP);
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type as_sparse(as_sparseSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type subset(subsetSEXP);
+    Rcpp::traits::input_parameter< bool >::type transpose(transposeSEXP);
+    Rcpp::traits::input_parameter< bool >::type as_sparse(as_sparseSEXP);
     rcpp_result_gen = Rcpp::wrap(get_scaled_ranks(exprs, subset, transpose, as_sparse));
     return rcpp_result_gen;
 END_RCPP
@@ -276,13 +249,13 @@ BEGIN_RCPP
 END_RCPP
 }
 // subset_and_divide
-Rcpp::RObject subset_and_divide(Rcpp::RObject matrix, Rcpp::RObject row_subset, Rcpp::RObject col_subset, Rcpp::RObject scaling);
+Rcpp::RObject subset_and_divide(Rcpp::RObject matrix, Rcpp::IntegerVector row_subset, Rcpp::IntegerVector col_subset, Rcpp::RObject scaling);
 RcppExport SEXP _scran_subset_and_divide(SEXP matrixSEXP, SEXP row_subsetSEXP, SEXP col_subsetSEXP, SEXP scalingSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::RObject >::type matrix(matrixSEXP);
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type row_subset(row_subsetSEXP);
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type col_subset(col_subsetSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type row_subset(row_subsetSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type col_subset(col_subsetSEXP);
     Rcpp::traits::input_parameter< Rcpp::RObject >::type scaling(scalingSEXP);
     rcpp_result_gen = Rcpp::wrap(subset_and_divide(matrix, row_subset, col_subset, scaling));
     return rcpp_result_gen;
@@ -306,8 +279,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_scran_get_null_rho_design", (DL_FUNC) &_scran_get_null_rho_design, 5},
     {"_scran_compute_rho_pairs", (DL_FUNC) &_scran_compute_rho_pairs, 3},
     {"_scran_cyclone_scores", (DL_FUNC) &_scran_cyclone_scores, 10},
-    {"_scran_fit_linear_model", (DL_FUNC) &_scran_fit_linear_model, 4},
-    {"_scran_get_residuals", (DL_FUNC) &_scran_get_residuals, 5},
     {"_scran_get_scaled_ranks", (DL_FUNC) &_scran_get_scaled_ranks, 4},
     {"_scran_overlap_exprs", (DL_FUNC) &_scran_overlap_exprs, 3},
     {"_scran_pool_size_factors", (DL_FUNC) &_scran_pool_size_factors, 4},

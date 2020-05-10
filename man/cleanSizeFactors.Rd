@@ -55,7 +55,7 @@ counts <- matrix(rpois(20000, lambda=1), ncol=100)
 
 library(scater)
 sf <- librarySizeFactors(counts)
-ngenes <- nexprs(counts, byrow=FALSE)
+ngenes <- colSums(counts > 0)
 
 # Adding negative size factor values to be cleaned.
 out <- cleanSizeFactors(c(-1, -1, sf), c(100, 50, ngenes))

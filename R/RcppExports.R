@@ -61,16 +61,8 @@ compute_rho_pairs <- function(gene1, gene2, ranks) {
     .Call('_scran_compute_rho_pairs', PACKAGE = 'scran', gene1, gene2, ranks)
 }
 
-cyclone_scores <- function(mycells, exprs, marker1, marker2, indices, iter, miniter, minpair, seeds, streams) {
-    .Call('_scran_cyclone_scores', PACKAGE = 'scran', mycells, exprs, marker1, marker2, indices, iter, miniter, minpair, seeds, streams)
-}
-
-fit_linear_model <- function(qr, qraux, exprs, get_coefs) {
-    .Call('_scran_fit_linear_model', PACKAGE = 'scran', qr, qraux, exprs, get_coefs)
-}
-
-get_residuals <- function(exprs, qr, qraux, subset, lower_bound) {
-    .Call('_scran_get_residuals', PACKAGE = 'scran', exprs, qr, qraux, subset, lower_bound)
+cyclone_scores <- function(exprs, mycells, marker1, marker2, indices, niters, miniters, minpairs, seeds, streams) {
+    .Call('_scran_cyclone_scores', PACKAGE = 'scran', exprs, mycells, marker1, marker2, indices, niters, miniters, minpairs, seeds, streams)
 }
 
 get_scaled_ranks <- function(exprs, subset, transpose, as_sparse) {
