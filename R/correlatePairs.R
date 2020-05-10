@@ -167,14 +167,10 @@ NULL
 #' @importFrom BiocParallel SerialParam bpstart bpstop
 #' @importFrom S4Vectors DataFrame
 #' @importFrom stats p.adjust
-#' @importFrom scuttle .bpNotSharedOrUp .assignIndicesToWorkers .splitVectorByWorkers
+#' @importFrom scuttle .bpNotSharedOrUp .assignIndicesToWorkers .splitVectorByWorkers fitLinearModel
 .correlate_pairs <- function(x, null.dist=NULL, ties.method=c("expected", "average"), 
     iters=1e6, block=NULL, design=NULL, equiweight=TRUE, use.names=TRUE, subset.row=NULL, 
     pairings=NULL, BPPARAM=SerialParam())
-# This calculates a (modified) Spearman's rho for each pair of genes.
-#
-# written by Aaron Lun
-# created 10 February 2016
 {
     # Checking which pairwise correlations should be computed.
     pair.out <- .construct_pair_indices(subset.row=subset.row, x=x, pairings=pairings)
@@ -202,17 +198,17 @@ NULL
             subset.col=subset.col, ties.method=ties.method, BPPARAM=BPPARAM)
     }
 
-    designFUN <- function(QR) {
-        x <- get_residuals(x, QR$qr, QR$qraux, subset.row - 1L, NA_real_)
-        .calculate_rho(sgene1, sgene2, x=x, subset.row=NULL, 
+    designFUN <- function(design) {
+        fitted <- fitLinearModel(x, design, subset.row=subset.row)
+        resids <- x[subset.row,,drop=FALSE] - fitted$coefficients %*% design
+        .calculate_rho(sgene1, sgene2, x=resids, subset.row=NULL, 
             subset.col=NULL, ties.method=ties.method, BPPARAM=BPPARAM)
     }
 
-    if (!is.null(block) && !is.null(design)) {
-        stop("cannot specify both 'block' and 'design'")
+    all.rho <- .correlator_base(ncol(x), block, design, equiweight, blockFUN, designFUN)
+    if (is.null(all.rho)) {
+        all.rho <- rep(NA_real_, length(gene1))
     }
-    all.rho <- .correlator_base(ncol(x), block, design, equiweight, 
-        blockFUN, designFUN, BPPARAM, length(gene1))
 
     # Computing p-values and formatting the output.
     stats <- .rho_to_pval(all.rho, null.dist)

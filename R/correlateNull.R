@@ -57,7 +57,7 @@
 #' 
 #' @export
 #' @importFrom BiocParallel SerialParam bpmapply bpstart bpstop bpisup
-#' @importFrom scuttle .bpNotSharedOrUp
+#' @importFrom scuttle .bpNotSharedOrUp .ranksafeQR
 correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, equiweight=TRUE, BPPARAM=SerialParam()) {
     if (!bpisup(BPPARAM)) {
         bpstart(BPPARAM)
@@ -75,7 +75,8 @@ correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, equiweight
         unlist(out.g) 
     }
 
-    designFUN <- function(QR) {
+    designFUN <- function(design) {
+        QR <- .ranksafeQR(design)
         pcg.state <- .setup_pcg_state(iters.per.core)
         out.g <- bpmapply(Niters=iters.per.core, Seeds=pcg.state$seeds, Streams=pcg.state$streams, 
             MoreArgs=list(qr=QR$qr, qraux=QR$qraux), FUN=get_null_rho_design,
@@ -83,26 +84,19 @@ correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, equiweight
         unlist(out.g) 
     }
 
-    # Additional error messages.
-    if (is.null(design)) {
-        if (!is.null(block) && !missing(ncells)) { 
-            stop("cannot specify both 'ncells' and 'block'")
-        }
-    } else {
-        if (!missing(ncells)) { 
-            stop("cannot specify both 'ncells' and 'design'")
-        } else if (!is.null(block)) {
-            stop("cannot specify both 'block' and 'design'")
-        }
+    output <- .correlator_base(ncells, block, design, equiweight, blockFUN, designFUN)
+    if (is.null(output)) {
+        output <- rep(NA_real_, iters)
     }
-
-    .correlator_base(ncells, block, design, equiweight, blockFUN, designFUN, BPPARAM, iters)
+    output
 }
 
-.correlator_base <- function(ncells, block, design, equiweight, blockFUN, designFUN, BPPARAM, outlen) {
+.correlator_base <- function(ncells, block, design, equiweight, blockFUN, designFUN) {
     if (is.null(design)) { 
         if (is.null(block)) {
             block <- rep(1L, ncells)
+        } else if (!missing(ncells) && ncells!=length(block)) { 
+            stop("cannot specify both 'ncells' and 'block'")
         }
 
         groupings <- split(seq_along(block), block)
@@ -126,18 +120,21 @@ correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, equiweight
             out <- out + unlist(out.g) * w
             total <- total + w
         }
-        out <- out/total
+        out/total
 
     } else {
-        QR <- .ranksafe_qr(design)
+        if (!is.null(block)) {
+            stop("cannot specify both 'block' and 'design'")
+        }
+        if (!missing(ncells) && ncells!=nrow(design)) {
+            stop("cannot specify both 'ncells' and 'design'")
+        }
         if (nrow(design) - ncol(design) > 2L) {
-            out <- designFUN(QR)
+            designFUN(design)
         } else {
-            out <- rep(NA_real_, outlen)
+            NULL
         }
     }
-
-    out
 }
 
 #' @importFrom BiocParallel bpnworkers

@@ -329,6 +329,7 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
 
 #' @importFrom stats model.matrix
 #' @importFrom limma lmFit contrasts.fit
+#' @importFrom scuttle fitLinearModel
 #' @importFrom BiocParallel bplapply SerialParam
 #' @importFrom S4Vectors DataFrame
 .fit_lm_internal <- function(x, subset.row, groups, design, direction="any", lfc=0, std.lfc=FALSE,
@@ -358,20 +359,15 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
 
     # Linear dependencies will trigger errors in .ranksafe_QR.
     full.design <- cbind(full.design, design) 
+    stats <- fitLinearModel(x, full.design, subset.row=subset.row, BPPARAM=BPPARAM)
 
-    # Getting coefficient estimates (need to undo column pivoting to get the actual estimates).
-    QR <- .ranksafe_qr(full.design)
-    resid.df <- nrow(full.design) - ncol(full.design)
+    resid.df <- stats$residual.df
     if (resid.df <= 0L) {
         stop("no residual d.f. in design matrix for variance estimation")
     }
 
-    by.core <- .splitRowsByWorkers(x, BPPARAM, subset.row=subset.row)
-    raw.stats <- bplapply(by.core, FUN=fit_linear_model, qr=QR$qr, qraux=QR$qraux, get_coefs=TRUE, BPPARAM=BPPARAM)
-
-    coefficients <- do.call(cbind, lapply(raw.stats, "[[", i=1))
-    coefficients[QR$pivot,] <- coefficients
-    sigma2 <- unlist(lapply(raw.stats, "[[", i=3))
+    coefficients <- stats$coefficients
+    sigma2 <- stats$sigma2
     sigma2 <- pmax(sigma2, 1e-8) # avoid unlikely but possible problems with discreteness.
 
     collected.stats <- collected.pairs <- list()
