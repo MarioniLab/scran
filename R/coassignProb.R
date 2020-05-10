@@ -77,6 +77,8 @@ coassignProb <- function(ref, alt, summarize=FALSE) {
     flipped <- forceSymmetric(mat)
     self <- diag(flipped)
     diag(flipped) <- 0
-    DataFrame(self=self, other=rowMaxs(as.matrix(flipped)), 
+
+    # Define against NA coassignments when empty levels are involved.
+    DataFrame(self=self, other=rowMaxs(as.matrix(flipped), na.rm=TRUE), 
         row.names=rownames(flipped))
 }

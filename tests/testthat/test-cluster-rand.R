@@ -9,7 +9,7 @@ set.seed(8000)
 clust1 <- kmeans(t(logcounts(sce)),3)$cluster
 clust2 <- kmeans(t(logcounts(sce)),5)$cluster
 
-test_that("clusterRand gives output of the right shape", {
+test_that("clusterRand gives the expected output", {
     ratio <- clusterRand(clust1, clust2)
 
     expect_identical(dim(ratio), c(3L, 3L))
@@ -17,8 +17,15 @@ test_that("clusterRand gives output of the right shape", {
     expect_identical(colnames(ratio), as.character(1:3))
 
     expect_true(all(is.na(ratio[lower.tri(ratio)])))
-    expect_true(all(!is.na(diag(ratio))))
-    expect_true(all(!is.na(ratio[upper.tri(ratio)])))
+
+    vals <- ratio[upper.tri(ratio, diag=TRUE)]
+    expect_true(all(!is.na(vals)))
+    expect_true(all(vals >= 0))
+    expect_true(all(vals <= 1))
+
+    # Correct values emitted.
+    ratio <- clusterRand(clust1, clust1)
+    expect_true(all(ratio[upper.tri(ratio, diag=TRUE)]==1))
 })
 
 test_that("clusterRand mimics the original rand index", {
