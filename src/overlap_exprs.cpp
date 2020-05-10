@@ -119,7 +119,7 @@ Rcpp::List overlap_exprs_internal(M mat, Rcpp::List groups, Rcpp::RObject LFC) {
     // Constructing groups. 
     const size_t ngroups=groups.size();
     wilcoxer<T, V> wilcox_calc(groups, ncells);
-    const int lfc=Rcpp::as<T>(LFC);
+    const T lfc=Rcpp::as<T>(LFC);
 
     // Setting up the output matrices to hold the overlap proportions, number of ties.
     Rcpp::List pout(ngroups), tout(ngroups);

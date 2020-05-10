@@ -367,7 +367,7 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
     }
 
     coefficients <- stats$coefficients
-    sigma2 <- stats$sigma2
+    sigma2 <- stats$variance
     sigma2 <- pmax(sigma2, 1e-8) # avoid unlikely but possible problems with discreteness.
 
     collected.stats <- collected.pairs <- list()
@@ -389,10 +389,10 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
         # Computing log-fold changes, t-statistics and p-values on a per-contrast basis.
         # This _could_ be vectorised, but it's less confusing to do it like this,
         # and there's not much speed gain to be had from vectorizing over contrasts.
-        ref.coef <- coefficients[h,]
+        ref.coef <- coefficients[,h]
         for (tdex in seq_len(h-1L)) {
             target <- clust.vals[tdex]
-            cur.lfc <- ref.coef - coefficients[tdex,]
+            cur.lfc <- ref.coef - coefficients[,tdex]
 
             test.out <- .run_t_test(cur.lfc, lfit2$stdev.unscaled[tdex]^2*sigma2, resid.df, thresh.lfc=lfc, direction=direction)
             hvt.p <- .choose_leftright_pvalues(test.out$left, test.out$right, direction=direction)

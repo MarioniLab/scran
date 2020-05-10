@@ -87,7 +87,7 @@ Rcpp::NumericVector get_null_rho_design (Rcpp::NumericMatrix qr, Rcpp::NumericVe
 
             auto hdIt=holding_idx.begin();
             auto& rank=(mode ? rank1 : rank2);
-            for (int row=0; row<Nobs; ++row, hdIt) {
+            for (int row=0; row<Nobs; ++row, ++hdIt) {
                 rank[*hdIt]=row;
             }
         }

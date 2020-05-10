@@ -149,7 +149,7 @@ setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
         }
     }
 
-    if (!bpisup(BPPARAM)) {
+    if (!.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))
     }
@@ -161,8 +161,8 @@ setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
     for (cl in names(pairs)) { 
         pcg.state <- .setup_pcg_state(ncol(x))
         pairings <- pairs[[cl]]
-        cur.scores <- bplapply(wout, FUN=cyclone_scores, exprs=x, iter=iter, miniter=min.iter, 
-            minpair=min.pairs, marker1=pairings$first, marker2=pairings$second, indices=pairings$index,
+        cur.scores <- bplapply(wout, FUN=cyclone_scores, exprs=x, niters=iter, miniters=min.iter, 
+            minpairs=min.pairs, marker1=pairings$first, marker2=pairings$second, indices=pairings$index,
             seeds=pcg.state$seeds[[1]], streams=pcg.state$streams[[1]], BPPARAM=BPPARAM)
         all.scores[[cl]] <- unlist(cur.scores)
     }

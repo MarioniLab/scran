@@ -136,8 +136,8 @@ Rcpp::NumericVector cyclone_scores_internal (Rcpp::RObject input, Rcpp::IntegerV
 }
 
 // [[Rcpp::export(rng=false)]]
-Rcpp::NumericVector cyclone_scores (Rcpp::RObject input, Rcpp::IntegerVector mycells,
-    Rcpp::IntegerVector marker1, Rcpp::IntegerVector marker2, Rcpp::IntegerVector used, 
+Rcpp::NumericVector cyclone_scores (Rcpp::RObject exprs, Rcpp::IntegerVector mycells,
+    Rcpp::IntegerVector marker1, Rcpp::IntegerVector marker2, Rcpp::IntegerVector indices, 
     int niters, int miniters, int minpairs, Rcpp::List seeds, Rcpp::IntegerVector streams) 
 {
     int rtype=beachmat::find_sexp_type(exprs);

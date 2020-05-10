@@ -1,5 +1,5 @@
 #' @importFrom BiocParallel bplapply bpstart bpstop
-#' @importFrom scuttle .subset2index .bpNotSharedOrUp .splitRowsByWorkers
+#' @importFrom scuttle .subset2index .bpNotSharedOrUp .splitRowsByWorkers .ranksafeQR
 .compute_mean_var <- function(x, block, design, subset.row, block.FUN, residual.FUN, BPPARAM, ...) {
     subset.row <- .subset2index(subset.row, x, byrow=TRUE)
     by.core <- .splitRowsByWorkers(x, BPPARAM, subset.row=subset.row)
@@ -48,7 +48,7 @@
         if (resid.df <= 0L) {
             stop("no residual d.f. in 'design' for variance estimation")
         }
-        QR <- .ranksafe_qr(design)
+        QR <- .ranksafeQR(design)
 
         # Calculating the residual variance of the fitted linear model.
         raw.stats <- bplapply(by.core, FUN=residual.FUN, qr=QR$qr, qraux=QR$qraux, ..., BPPARAM=BPPARAM)

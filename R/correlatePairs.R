@@ -200,7 +200,7 @@ NULL
 
     designFUN <- function(design) {
         fitted <- fitLinearModel(x, design, subset.row=subset.row)
-        resids <- x[subset.row,,drop=FALSE] - fitted$coefficients %*% design
+        resids <- x[subset.row,,drop=FALSE] - tcrossprod(fitted$coefficients, design)
         .calculate_rho(sgene1, sgene2, x=resids, subset.row=NULL, 
             subset.col=NULL, ties.method=ties.method, BPPARAM=BPPARAM)
     }
