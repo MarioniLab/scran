@@ -45,7 +45,8 @@ Suggests:
     DESeq2, 
     monocle, 
     Biobase,
-    pheatmap
+    pheatmap,
+    scater
 biocViews: 
     ImmunoOncology, 
     Normalization, 
@@ -62,7 +63,8 @@ LinkingTo:
     Rcpp, 
     beachmat, 
     BH, 
-    dqrng
+    dqrng,
+    scuttle
 License: GPL-3
 NeedsCompilation: yes
 VignetteBuilder: knitr
