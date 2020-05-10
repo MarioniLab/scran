@@ -14,21 +14,21 @@
  */
 
 template <class M>
-Rcpp::RObject subset_and_divide_internal(Rcpp::RObject incoming, Rcpp::RObject row_subset, Rcpp::RObject col_subset, Rcpp::RObject scaling) {
+Rcpp::RObject subset_and_divide_internal(Rcpp::RObject incoming, Rcpp::IntegerVector row_subset, 
+    Rcpp::IntegerVector col_subset, Rcpp::RObject scaling) 
+{
     auto in=beachmat::create_matrix<M>(incoming);
     beachmat::const_column<M> col_holder(in.get(), false); // need to index by rows, so turn off sparsity.
 
     // Checking subset vectors
-    auto rsubout=check_subset_vector(row_subset, in->get_nrow());
-    const size_t rslen=rsubout.size();
-    auto csubout=check_subset_vector(col_subset, in->get_ncol());
-    const size_t cslen=csubout.size();
+    const size_t rslen=row_subset.size();
+    const size_t cslen=col_subset.size();
 
     // Cutting out extraction costs for unneeded start/end elements.
     size_t start_row=0, end_row=0;
     if (rslen) {
-        start_row=*std::min_element(rsubout.begin(), rsubout.end());
-        end_row=*std::max_element(rsubout.begin(), rsubout.end())+1;
+        start_row=*std::min_element(row_subset.begin(), row_subset.end());
+        end_row=*std::max_element(row_subset.begin(), row_subset.end())+1;
     }
 
     const bool use_custom_scale=(scaling!=R_NilValue);
@@ -51,13 +51,13 @@ Rcpp::RObject subset_and_divide_internal(Rcpp::RObject incoming, Rcpp::RObject r
     auto omat=beachmat::create_numeric_output(rslen, cslen, OPARAM);
 
     for (size_t cs=0; cs<cslen; ++cs) {
-        const auto& curdex=csubout[cs];
+        const auto& curdex=col_subset[cs];
         col_holder.fill(curdex, start_row, end_row);
 
         // Extracting the column, subsetting the rows.
         auto val=col_holder.get_values();
         auto oIt=outgoing.begin();
-        for (const auto& r : rsubout) {
+        for (const auto& r : row_subset) {
             (*oIt)=*(val + r - start_row);
             ++oIt;
         }
@@ -100,7 +100,9 @@ Rcpp::RObject subset_and_divide_internal(Rcpp::RObject incoming, Rcpp::RObject r
 }
 
 // [[Rcpp::export(rng=false)]]
-Rcpp::RObject subset_and_divide(Rcpp::RObject matrix, Rcpp::RObject row_subset, Rcpp::RObject col_subset, Rcpp::RObject scaling) {
+Rcpp::RObject subset_and_divide(Rcpp::RObject matrix, Rcpp::IntegerVector row_subset, 
+    Rcpp::IntegerVector col_subset, Rcpp::RObject scaling) 
+{
     int rtype=beachmat::find_sexp_type(matrix);
     if (rtype==INTSXP) {
         return subset_and_divide_internal<beachmat::integer_matrix>(matrix, row_subset, col_subset, scaling);

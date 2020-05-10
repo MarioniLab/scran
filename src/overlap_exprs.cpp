@@ -112,14 +112,15 @@ private:
 };
 
 template <typename T, class V, class M>
-Rcpp::List overlap_exprs_internal(const M mat, const Rcpp::List& groups, const T lfc) {
+Rcpp::List overlap_exprs_internal(M mat, Rcpp::List groups, Rcpp::RObject LFC) {
     const size_t ngenes=mat->get_nrow();
     const size_t ncells=mat->get_ncol();
    
     // Constructing groups. 
     const size_t ngroups=groups.size();
     wilcoxer<T, V> wilcox_calc(groups, ncells);
-    
+    const int lfc=Rcpp::as<T>(LFC);
+
     // Setting up the output matrices to hold the overlap proportions, number of ties.
     Rcpp::List pout(ngroups), tout(ngroups);
     std::vector<std::vector<Rcpp::NumericMatrix::iterator> > pptrs(ngroups), tptrs(ngroups);
@@ -171,11 +172,9 @@ Rcpp::List overlap_exprs(Rcpp::RObject exprs, Rcpp::List bygroup, Rcpp::RObject 
     int rtype=beachmat::find_sexp_type(exprs);
     if (rtype==INTSXP) {
         auto mat=beachmat::create_integer_matrix(exprs);
-        const int shift=check_integer_scalar(lfc, "lfc");
-        return overlap_exprs_internal<int, Rcpp::IntegerVector>(mat.get(), bygroup, shift);
+        return overlap_exprs_internal<int, Rcpp::IntegerVector>(mat.get(), bygroup, lfc);
     } else {
         auto mat=beachmat::create_numeric_matrix(exprs);
-        const double shift=check_numeric_scalar(lfc, "lfc");
-        return overlap_exprs_internal<double, Rcpp::NumericVector>(mat.get(), bygroup, shift);
+        return overlap_exprs_internal<double, Rcpp::NumericVector>(mat.get(), bygroup, lfc);
     }
 }

@@ -6,29 +6,25 @@
 #include "utils.h"
 
 #include <vector>
-#include <utility>
 #include <algorithm>
 #include <stdexcept>
 
 template <class M> 
-SEXP average_ranks_internal(SEXP input, SEXP subset, SEXP transpose, SEXP as_sparse) { 
+Rcpp::RObject average_ranks_internal(Rcpp::RObject input, Rcpp::IntegerVector subset, bool transpose, bool as_sparse) { 
     auto mat=beachmat::create_matrix<M>(input);
 
     // Checking the subset values.
     const size_t ncells=mat->get_ncol();
     const size_t ngenes=mat->get_nrow();
-    auto SS=check_subset_vector(subset, ngenes);
-    const size_t slen=SS.size();
+    const size_t slen=subset.size();
 
     // Checking if we should transpose or not.
-    const bool do_transpose=check_logical_scalar(transpose, "transpose specification");
-    int out_nr=(do_transpose ? ncells : slen);
-    int out_nc=(do_transpose ? slen : ncells);
+    int out_nr=(transpose ? ncells : slen);
+    int out_nc=(transpose ? slen : ncells);
 
     // Creating the output matrix.
-    const bool sparsify=check_logical_scalar(as_sparse, "sparse specification");
     beachmat::output_param OPARAM;
-    if (sparsify) {
+    if (as_sparse) {
         OPARAM=beachmat::output_param("dgCMatrix", "Matrix");
     }
     auto omat=beachmat::create_numeric_output(out_nr, out_nc, OPARAM);
@@ -50,7 +46,7 @@ SEXP average_ranks_internal(SEXP input, SEXP subset, SEXP transpose, SEXP as_spa
         zeroes.clear();
 
         // Sorting all subsetted values (zeroes are handled separately for greater efficiency).
-        auto sIt=SS.begin();
+        auto sIt=subset.begin();
         for (size_t s=0; s<slen; ++s, ++sIt) {
             const typename M::type curval=*(vals + *sIt);
             if (isNA(curval)) { 
@@ -99,7 +95,7 @@ SEXP average_ranks_internal(SEXP input, SEXP subset, SEXP transpose, SEXP as_spa
 
         // Mean-adjusting (unless we want to leave it sparse) and converting to cosine values.
         double sum_squares=0;
-        if (sparsify) {
+        if (as_sparse) {
             for (auto& o : outgoing) {
                 double tmp=o-mean_rank;
                 sum_squares+=tmp*tmp;
@@ -120,7 +116,7 @@ SEXP average_ranks_internal(SEXP input, SEXP subset, SEXP transpose, SEXP as_spa
             o/=sum_squares;
         }
 
-        if (do_transpose) { 
+        if (transpose) { 
             omat->set_row(c, outgoing.begin());
         } else {
             omat->set_col(c, outgoing.begin());
@@ -131,7 +127,7 @@ SEXP average_ranks_internal(SEXP input, SEXP subset, SEXP transpose, SEXP as_spa
 }
 
 // [[Rcpp::export(rng=false)]]
-Rcpp::RObject get_scaled_ranks(Rcpp::RObject exprs, Rcpp::RObject subset, Rcpp::RObject transpose, Rcpp::RObject as_sparse) {
+Rcpp::RObject get_scaled_ranks(Rcpp::RObject exprs, Rcpp::IntegerVector subset, bool transpose, bool as_sparse) {
     int rtype=beachmat::find_sexp_type(exprs);
     if (rtype==INTSXP) { 
         return average_ranks_internal<beachmat::integer_matrix>(exprs, subset, transpose, as_sparse);

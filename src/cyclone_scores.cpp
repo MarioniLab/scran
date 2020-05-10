@@ -56,9 +56,8 @@ double get_proportion (const V& expr, const int minpairs, const Rcpp::IntegerVec
 
 template <class M>
 Rcpp::NumericVector cyclone_scores_internal (Rcpp::RObject input, Rcpp::IntegerVector mycells,
-        Rcpp::IntegerVector marker1, Rcpp::IntegerVector marker2, Rcpp::IntegerVector used, 
-        Rcpp::IntegerVector iter, Rcpp::IntegerVector miniter, Rcpp::IntegerVector minpair,
-        Rcpp::List seeds, Rcpp::IntegerVector streams) 
+    Rcpp::IntegerVector marker1, Rcpp::IntegerVector marker2, Rcpp::IntegerVector used, 
+    int niters, int miniters, int minpairs, Rcpp::List seeds, Rcpp::IntegerVector streams) 
 {
     auto mat_ptr=beachmat::create_matrix<M>(input);
     const size_t ncells=mycells.size();
@@ -69,10 +68,6 @@ Rcpp::NumericVector cyclone_scores_internal (Rcpp::RObject input, Rcpp::IntegerV
     if (npairs!=static_cast<size_t>(marker2.size())) { 
         throw std::runtime_error("vectors of markers must be of the same length"); 
     }
-
-    const int nit=check_integer_scalar(iter, "number of iterations");
-    const int minit=check_integer_scalar(miniter, "minimum number of iterations");
-    const int minp=check_integer_scalar(minpair, "minimum number of pairs");
 
     // Checking PCG setup.
     check_pcg_vectors(seeds, streams, mat_ptr->get_ncol(), "cells");
@@ -115,7 +110,7 @@ Rcpp::NumericVector cyclone_scores_internal (Rcpp::RObject input, Rcpp::IntegerV
             (*curIt)=*(allIt + *uIt);
         }
 
-        const double curscore=get_proportion(current_exprs, minp, marker1, marker2);
+        const double curscore=get_proportion(current_exprs, minpairs, marker1, marker2);
         if (ISNA(curscore)) { 
             continue;
         }
@@ -123,16 +118,16 @@ Rcpp::NumericVector cyclone_scores_internal (Rcpp::RObject input, Rcpp::IntegerV
         // Iterations of shuffling to obtain a null distribution for the score.
         int below=0, total=0;
         auto generator=create_pcg32(seeds[curcell], streams[curcell]);
-        for (int it=0; it < nit; ++it) {
+        for (int it=0; it < niters; ++it) {
             boost::range::random_shuffle(current_exprs, generator);
-            const double newscore=get_proportion(current_exprs, minp, marker1, marker2, curscore);
+            const double newscore=get_proportion(current_exprs, minpairs, marker1, marker2, curscore);
             if (!ISNA(newscore)) { 
                 if (newscore < 0) { ++below; }
                 ++total;
             }
         }
        
-        if (total >= minit) { 
+        if (total >= miniters) { 
             (*oIt)=double(below)/total;
         }
     }
@@ -141,15 +136,17 @@ Rcpp::NumericVector cyclone_scores_internal (Rcpp::RObject input, Rcpp::IntegerV
 }
 
 // [[Rcpp::export(rng=false)]]
-Rcpp::NumericVector cyclone_scores(Rcpp::IntegerVector mycells, SEXP exprs, 
-    SEXP marker1, SEXP marker2, SEXP indices, SEXP iter, SEXP miniter, SEXP minpair, 
-    SEXP seeds, SEXP streams) 
+Rcpp::NumericVector cyclone_scores (Rcpp::RObject input, Rcpp::IntegerVector mycells,
+    Rcpp::IntegerVector marker1, Rcpp::IntegerVector marker2, Rcpp::IntegerVector used, 
+    int niters, int miniters, int minpairs, Rcpp::List seeds, Rcpp::IntegerVector streams) 
 {
     int rtype=beachmat::find_sexp_type(exprs);
     if (rtype==INTSXP) {
-        return cyclone_scores_internal<beachmat::integer_matrix>(exprs, mycells, marker1, marker2, indices, iter, miniter, minpair, seeds, streams);
+        return cyclone_scores_internal<beachmat::integer_matrix>(exprs, mycells, marker1, marker2, indices, 
+            niters, miniters, minpairs, seeds, streams);
     } else {
-        return cyclone_scores_internal<beachmat::numeric_matrix>(exprs, mycells, marker1, marker2, indices, iter, miniter, minpair, seeds, streams);
+        return cyclone_scores_internal<beachmat::numeric_matrix>(exprs, mycells, marker1, marker2, indices, 
+            niters, miniters, minpairs, seeds, streams);
     }
 }
 
