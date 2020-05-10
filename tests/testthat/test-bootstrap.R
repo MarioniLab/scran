@@ -58,6 +58,21 @@ test_that("bootstrapCluster works when some clusters are not in the bootstrap.",
     expect_true(all(output[upper.tri(output, diag=FALSE)]==0))
 })
 
+set.seed(500003)
+test_that("bootstrapCluster works with alternative comparison functions", {
+    dummy <- matrix(rnorm(ncells*20), nrow=ncells, ncol=20)
+
+    set.seed(10)
+    output <- bootstrapCluster(dummy, FUN=function(x) { kmeans(x, 3)$cluster }, compare=clusterRand)
+    expect_true(all(is.na(output[lower.tri(output)])))
+    expect_true(all(!is.na(output[!lower.tri(output)])))
+
+    # Unaffected by summarize.
+    set.seed(10)
+    ref <- bootstrapCluster(dummy, FUN=function(x) { kmeans(x, 3)$cluster }, compare=clusterRand, summarize=TRUE)
+    expect_identical(output, ref)
+})
+
 set.seed(500004)
 test_that("other miscellaneous tests for bootstrapCluster", {
     dummy <- matrix(rnorm(ncells*20), nrow=ncells, ncol=20)
