@@ -110,6 +110,7 @@ connectClusterMST <- function(centers, mst, combined=TRUE) {
     R <- vnames[pairs[,2]]
     L <- data.frame(edge=group, centers[L,,drop=FALSE])
     R <- data.frame(edge=group, centers[R,,drop=FALSE])
+    rownames(L) <- rownames(R) <- NULL
 
     if (combined) {
         rbind(L, R)
@@ -119,10 +120,14 @@ connectClusterMST <- function(centers, mst, combined=TRUE) {
 }
 
 #' @export
+#' @rdname createClusterMST
 #' @importFrom igraph V degree adjacent_vertices
 orderClusterMST <- function(x, ids, centers, mst, start=NULL) {
     if (is.null(start)) {
         start <- names(V(mst)[degree(mst)==1])[1]
+    }
+    if (!all(ids %in% rownames(centers))) {
+        stop("all 'ids' must be in 'rownames(centers)'")
     }
 
     collated <- list()
@@ -202,7 +207,7 @@ orderClusterMST <- function(x, ids, centers, mst, start=NULL) {
 
     all.distances <- do.call(cbind, all.distances)
     all.pseudo <- do.call(cbind, all.pseudo)
-    chosen <- colnames(all.distances)[max.col(-all.distances)]
+    chosen <- colnames(all.distances)[max.col(-all.distances, ties.method="first")]
 
     # Flipping the distance of points to the previous node,
     # in order to enforce a directional pseudotime.
