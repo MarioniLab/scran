@@ -57,6 +57,11 @@
 #' \code{orderClusterMST} returns a numeric matrix containing the pseudotimes of all cells (rows) across all paths (columns) through \code{mst}.
 #'
 #' @author Aaron Lun
+#' @references
+#' Ji Z and Ji H (2016).
+#' TSCAN: Pseudo-time reconstruction and evaluation in single-cell RNA-seq analysis.
+#' \emph{Nucleic Acids Res.} 44, e117
+#'
 #' @examples
 #' # Mocking up a Y-shaped trajectory.
 #' centers <- rbind(c(0,0), c(0, -1), c(1, 1), c(-1, 1))
@@ -84,6 +89,7 @@
 NULL
 
 #' @export
+#' @rdname createClusterMST
 #' @importFrom igraph graph.adjacency minimum.spanning.tree
 createClusterMST <- function(centers) {
     dmat <- dist(centers)
@@ -93,6 +99,7 @@ createClusterMST <- function(centers) {
 }
 
 #' @export
+#' @rdname createClusterMST
 #' @importFrom Matrix which
 #' @importFrom igraph V
 connectClusterMST <- function(centers, mst, combined=TRUE) {
