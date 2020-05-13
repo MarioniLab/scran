@@ -41,7 +41,7 @@ test_that("MST segment reporting works as expected", {
 
 set.seed(99000001)
 test_that("MST ordering works as expected for straight lines", {
-    centers <- rbind(A=c(1, 0), B=c(2, 0), C=c(3, 0), D=c(4, 0))
+    centers <- rbind(A=c(1, 0), B=c(3, 0), C=c(4.5, 0), D=c(6, 0))
     clusters <- sample(rownames(centers), 1000, replace=TRUE)
     y <- centers[clusters,,drop=FALSE]
     y <- y + rnorm(length(y))
@@ -49,7 +49,82 @@ test_that("MST ordering works as expected for straight lines", {
     mst <- createClusterMST(centers)
     ordering <- orderClusterMST(y, clusters, centers, mst)
 
-    left.lim <- pmax(centers[clusters,1] - 1, min(centers[,1]))
-    right.lim <- pmin(centers[clusters,1] + 1, max(centers[,1]))
+    m <- match(clusters, rownames(centers))
+    left.lim <- c(min(centers[,1]), centers[,1])[m]
+    right.lim <- c(centers[,1], max(centers[,1]))[m+1]
     expect_equivalent(as.numeric(ordering), pmin(right.lim, pmax(left.lim, y[,1])) - 1)
+})
+
+set.seed(99000002)
+test_that("MST ordering works as expected for branching", {
+    centers <- rbind(base=c(0, 0), A=c(1, 0), B=c(0, 2), C=c(0, -3), D=c(-4, 0))
+    clusters <- sample(rownames(centers), 1000, replace=TRUE)
+    y <- centers[clusters,,drop=FALSE]
+    y <- y + runif(length(y), -0.4, 0.4)
+
+    mst <- createClusterMST(centers)
+    ordering <- orderClusterMST(y, clusters, centers, mst, start="base")
+
+    # Everyone gets assigned to only one pseudotime.
+    expect_identical(ncol(ordering), nrow(centers) - 1L)
+    expect_true(all(rowSums(!is.na(ordering))==1))
+
+    # Computing the branched pseudo-times.
+    expect_equivalent(ordering[clusters=="A",1], pmin(y[clusters=="A",1], 1))
+    expect_equivalent(ordering[clusters=="B",2], pmin(y[clusters=="B",2], 2))
+    expect_equivalent(ordering[clusters=="C",3], -pmax(y[clusters=="C",2], -3))
+    expect_equivalent(ordering[clusters=="D",4], -pmax(y[clusters=="D",1], -4))
+})
+
+set.seed(99000002)
+test_that("MST ordering works as expected for a complex case", {
+    centers <- rbind(base=c(0, 0), A=c(1, 0), B=c(0, 2), C=c(0, -3), D=c(-4, 0))
+    clusters <- sample(rownames(centers), 1000, replace=TRUE)
+    y <- centers[clusters,,drop=FALSE]
+    y <- y + runif(length(y), -0.4, 0.4)
+
+    mst <- createClusterMST(centers)
+    ordering <- orderClusterMST(y, clusters, centers, mst, start="base")
+
+    # Everyone gets assigned to only one pseudotime.
+    expect_identical(ncol(ordering), nrow(centers) - 1L)
+    expect_true(all(rowSums(!is.na(ordering))==1))
+
+    # Computing the branched pseudo-times.
+    expect_equivalent(ordering[clusters=="A",1], pmin(y[clusters=="A",1], 1))
+    expect_equivalent(ordering[clusters=="B",2], pmin(y[clusters=="B",2], 2))
+    expect_equivalent(ordering[clusters=="C",3], -pmax(y[clusters=="C",2], -3))
+    expect_equivalent(ordering[clusters=="D",4], -pmax(y[clusters=="D",1], -4))
+
+    # Computing the expected partition for the base.
+    base <- clusters=="base"
+    expect_equivalent(
+        rowMeans(ordering[base,,drop=FALSE], na.rm=TRUE),
+        pmax(abs(y[base,1]), abs(y[base,2]))
+    )
+})
+
+set.seed(99000003)
+test_that("MST ordering is robust to transformations", {
+    centers <- matrix(rnorm(20, sd=3), ncol=2)
+    rownames(centers) <- letters[1:10]
+
+    clusters <- sample(rownames(centers), 1000, replace=TRUE)
+    y <- centers[clusters,,drop=FALSE]
+    y <- y + rnorm(length(y), 0.1)
+
+    mst <- createClusterMST(centers)
+    ref <- orderClusterMST(y, clusters, centers, mst)
+
+    # For your viewing pleasure:
+    # plot(y[,1], y[,2], col=topo.colors(21)[cut(rowMeans(ref, na.rm=TRUE), 21)])
+    # stuff <- connectClusterMST(centers, mst, combined=FALSE)
+    # segments(stuff$start$dim1, stuff$start$dim2, stuff$end$dim1, stuff$end$dim2, lwd=5)
+
+    # Applying various transformation.
+    expect_equivalent(ref*2, orderClusterMST(y*2, clusters, centers*2, mst))
+    expect_equivalent(ref, orderClusterMST(y+1, clusters, centers+1, mst))
+
+    rotation <- matrix(c(cos(pi/4), sin(pi/4), -sin(pi/4), cos(pi/4)), ncol=2)
+    expect_equivalent(ref, orderClusterMST(y %*% rotation, clusters, centers %*% rotation, mst))
 })
