@@ -2,6 +2,13 @@
 \title{scran News}
 \encoding{UTF-8}
 
+\section{Version 1.18.0}{\itemize{
+\item Added the \code{createClusterMST} function to create a TSCAN-like MST from cluster centroids.
+Also added the helper functions \code{connectClusterMST} and \code{orderClusterMST}.
+
+\item Added the \code{testLinearModel} function to obtain inferences from a linear model.
+}}
+
 \section{Version 1.16.0}{\itemize{
 \item Added the quickSubCluster() function for convenient subclustering.
 
