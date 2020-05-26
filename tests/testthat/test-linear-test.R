@@ -19,6 +19,9 @@ test_that("linear model testing works for contrast vectors in categorical design
     design2 <- model.matrix(~0 + A)
     alt <- testLinearModel(y, design2, contrast=c(-1, 1))
     expect_equal(out, alt)
+
+    alt <- testLinearModel(y, design)
+    expect_equal(out, alt)
 })
 
 test_that("linear model testing works for contrast vectors with continuous variables", {
@@ -35,6 +38,9 @@ test_that("linear model testing works for contrast vectors with continuous varia
         expect_equal(stats[2,"Pr(>|t|)"], out$p.value[i])
     }
 
+    alt <- testLinearModel(y, design)
+    expect_equal(out, alt)
+
     # Handles more complex designs like a champ.
     v <- gl(4, 25)
     design <- model.matrix(~u + v)
@@ -46,6 +52,9 @@ test_that("linear model testing works for contrast vectors with continuous varia
         stats <- summary(fit)$coefficients
         expect_equal(stats[2,"Pr(>|t|)"], out$p.value[i])
     }
+
+    alt <- testLinearModel(y, design, coef=2)
+    expect_equal(out, alt)
 })
 
 test_that("linear model testing works for contrast matrices", {
@@ -63,6 +72,9 @@ test_that("linear model testing works for contrast matrices", {
         stats <- anova(fit, fit0)
         expect_equal(stats[2,"Pr(>F)"], out$p.value[i])
     }
+
+    alt <- testLinearModel(y, design, coef=2:3)
+    expect_equal(out, alt)
 
     # Another design:
     B <- gl(4, 25)
