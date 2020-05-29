@@ -104,9 +104,18 @@ NULL
 }
 
 #' @importFrom stats model.matrix
-.forge_spline_basis_design <- function(p, df, prefix="") {
-    basis <- splines::ns(p, df=df)
-    colnames(basis) <- sprintf("%sspline%i", prefix, seq_len(df))
+.forge_spline_basis_design <- function(p, df) { 
+    # Uniquify'ing to avoid non-full rank problems when
+    # many of the quantiles are stacked at the same position. 
+    up <- unique(p)
+    if (length(up) <= length(df)) {
+        stop("'not enough unique pseudotime values for the specified 'df'")
+    }
+
+    basis <- splines::ns(up, df=df)
+    colnames(basis) <- sprintf("spline%i", seq_len(df))
+    basis <- basis[match(p, up),,drop=FALSE]
+
     cbind(Intercept=rep(1, length(p)), basis)
 }
 
@@ -124,6 +133,9 @@ NULL
     nonna <- !is.na(pseudotime)
     solo <- rowSums(nonna) == 1
 
+    common <- rowMeans(pseudotime, na.rm=TRUE)
+    design.raw <- .forge_spline_basis_design(common, df=df)
+
     all.x <- all.design <- all.lfc <- list()
     for (i in colnames(pseudotime)) {
         current.pseudo <- pseudotime[,i]
@@ -131,11 +143,13 @@ NULL
         current.pseudo <- current.pseudo[keep]
 
         all.x[[i]] <- x[,keep,drop=FALSE] 
-        all.design[[i]] <- .forge_spline_basis_design(current.pseudo, df=df, prefix=paste0(i, "."))
+        cur.design <- design.raw[keep,,drop=FALSE] 
+        colnames(cur.design) <- paste0(colnames(cur.design), ".", i)
+        all.design[[i]] <- cur.design
 
         if (get.lfc) {
             design.lfc <- model.matrix(~current.pseudo)
-            all.lfc[[i]] <- fitLinearModel(all.x[[i]], design=design.lfc)$coefficients[,2]
+            all.lfc[[paste0("logFC.", i)]] <- fitLinearModel(all.x[[i]], design=design.lfc)$coefficients[,2]
         }
     }
 
