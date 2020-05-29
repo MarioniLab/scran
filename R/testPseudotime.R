@@ -16,8 +16,10 @@
 #' @return
 #' A \linkS4class{DataFrame} is returned containing the statistics for each gene (row),
 #' including the p-value and its BH-adjusted equivalent.
-#' If \code{get.lfc=TRUE}, an overall log-fold change is returned for each path;
-#' if \code{get.spline.coef=TRUE}, the estimated spline coefficients are also returned.
+#' If \code{get.lfc=TRUE}, an overall log-fold change is returned for each path.
+#'
+#' If \code{get.spline.coef=TRUE}, the estimated spline coefficients are also returned (single path)
+#' or the differences in the spline fits to the first path are returned (multiple paths).
 #' 
 #' @details
 #' For a single path in \code{pseudotime},
@@ -108,7 +110,7 @@ NULL
     # Uniquify'ing to avoid non-full rank problems when
     # many of the quantiles are stacked at the same position. 
     up <- unique(p)
-    if (length(up) <= length(df)) {
+    if (length(up) <= df) {
         stop("'not enough unique pseudotime values for the specified 'df'")
     }
 
@@ -127,11 +129,15 @@ NULL
         colnames(pseudotime) <- NULL
     }
     if (is.null(colnames(pseudotime))) {
-        colnames(pseudotime) <- sprintf("path%i", seq_len(ncol(x)))
+        colnames(pseudotime) <- sprintf("path%i", seq_len(ncol(pseudotime)))
     }
 
     nonna <- !is.na(pseudotime)
     solo <- rowSums(nonna) == 1
+    if (!all(solo)) {
+        x <- x[,solo,drop=FALSE]
+        pseudotime <- pseudotime[solo,,drop=FALSE]
+    }
 
     common <- rowMeans(pseudotime, na.rm=TRUE)
     design.raw <- .forge_spline_basis_design(common, df=df)
@@ -139,7 +145,7 @@ NULL
     all.x <- all.design <- all.lfc <- list()
     for (i in colnames(pseudotime)) {
         current.pseudo <- pseudotime[,i]
-        keep <- !is.na(current.pseudo) & solo
+        keep <- !is.na(current.pseudo) 
         current.pseudo <- current.pseudo[keep]
 
         all.x[[i]] <- x[,keep,drop=FALSE] 
@@ -170,17 +176,17 @@ NULL
         N <- df + 1L
 
         con <- matrix(0, ncol(design), N)
-        diag(con) <- 1
-        con[cbind(i * N + seq_len(N), seq_len(N))] <- -1
+        diag(con) <- -1
+        con[cbind(i * N + seq_len(N), seq_len(N))] <- 1
         if (trend.only) {
             con <- con[,-1,drop=FALSE]
         }
 
+        colnames(con) <- sprintf("spline%i.%s", seq_len(ncol(con)), colnames(pseudotime)[i+1])
         contrastor[[i]] <- con
     }
-    contrast <- do.call(cbind, contrastor)
-    colnames(contrast) <- sprintf("spline%i", seq_len(ncol(contrast)))
 
+    contrast <- do.call(cbind, contrastor)
     output <- testLinearModel(x2, design=design, contrasts=contrast)
 
     # Organizing the output.
