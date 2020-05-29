@@ -74,7 +74,9 @@ test_that("linear model testing works for contrast matrices", {
     }
 
     alt <- testLinearModel(y, design, coef=2:3)
-    expect_equal(out, alt)
+    expect_equal(out[,1], alt[,1])
+    expect_equal(out[,2], alt[,2])
+    expect_equal(out$PValue, alt$PValue)
 
     # Another design:
     B <- gl(4, 25)

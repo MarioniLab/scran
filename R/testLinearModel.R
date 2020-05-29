@@ -74,8 +74,10 @@ NULL
 
     if (is.null(contrasts)) {
         contrasts <- matrix(0, ncol(design), length(coefs))
-        colnames(contrasts) <- colnames(design)[coefs]
         contrasts[cbind(coefs, seq_along(coefs))] <- 1
+        if (length(coefs) > 1) {
+            colnames(contrasts) <- colnames(design)[coefs]
+        }
     }
     lfit <- contrasts.fit(lfit, contrasts)
 
