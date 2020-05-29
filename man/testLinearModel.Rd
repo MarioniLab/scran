@@ -29,6 +29,8 @@ Only used if \code{contrasts} is not specified.}
 
 \item{contrasts}{A numeric vector or matrix specifying the contrast of interest.
 This should have length (if vector) or number of rows (if matrix) equal to \code{ncol(x)}.}
+
+\item{assay.type}{String or integer scalar specifying the assay containing the log-expression matrix.}
 }
 \value{
 A \linkS4class{DataFrame} containing test results with one row per row of \code{x}.
