@@ -214,30 +214,37 @@ orderClusterMST <- function(x, ids, centers, mst, start=NULL) {
 
     all.distances <- do.call(cbind, all.distances)
     all.pseudo <- do.call(cbind, all.pseudo)
-    chosen <- colnames(all.distances)[max.col(-all.distances, ties.method="first")]
+    best <- max.col(-all.distances, ties.method="first")
+    chosen <- colnames(all.distances)[best]
 
     # Flipping the distance of points to the previous node,
     # in order to enforce a directional pseudotime.
     dist.previous <- 0
     if (!is.na(previous)) {
-        on.previous <- chosen==previous
+        on.previous <- chosen==previous 
         dist.previous <- edge.len[[previous]]
         previous.proj <- -all.pseudo[on.previous,previous,drop=FALSE]
 
-        if (all(on.previous)) {
+        if (ncol(all.distances)==1) {
             return(list(dist=dist.previous, pseudo=list(previous.proj)))
         }
     }
+
+    # If any distances are zero, the corresponding cells are considered to be
+    # shared with all paths, as they are assigned right at the branch point.
+    dist <- all.pseudo[cbind(seq_along(best), best)]
+    in.everyone <- dist==0
 
     # Filling out the branches, where points are NA for a branch's
     # pseudotime if they were assigned to another branch.
     output <- list()
     for (leftover in setdiff(rownames(edge.ends), previous)) {
         empty <- rep(NA_real_, nrow(points))
+        empty[in.everyone] <- 0
         if (!is.na(previous)) {
             empty[on.previous] <- previous.proj
         }
-        current <- chosen==leftover
+        current <- chosen==leftover 
         empty[current] <- all.pseudo[current,leftover]
         output[[leftover]] <- empty
     }

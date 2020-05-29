@@ -104,6 +104,28 @@ test_that("MST ordering works as expected for a complex case", {
     )
 })
 
+set.seed(990000021)
+test_that("MST ordering shares values at zero", {
+    X <- as.matrix(expand.grid(-1:1, -1:1))
+    Y <- rbind(A=c(-1, -1), B=c(0, 0), C=c(1, -1))
+    mst <- createClusterMST(Y)
+    ordering <- orderClusterMST(X, rep("B", nrow(X)), Y, mst, start="B")
+
+    expect_identical(sum(ordering==0, na.rm=TRUE)/ncol(ordering), 4)
+    expect_identical(which(ordering[,1]==0), which(ordering[,2]==0))
+
+    # Still the case when it's not happening on the starting node.
+    Y2 <- rbind(Y, D=c(0, -1))
+    mst <- igraph::make_graph(c("D", "B", "B", "A", "B", "C"))
+    ordering2 <- orderClusterMST(X, rep("B", nrow(X)), Y2, mst, start="D")
+
+    expect_identical(sum(ordering2==0, na.rm=TRUE)/ncol(ordering2), 1)
+    expect_identical(sum(ordering2==1, na.rm=TRUE)/ncol(ordering2), 4)
+
+    expect_identical(which(ordering2[,1]==1), which(ordering2[,2]==1))
+    expect_identical(which(ordering2[,1]==0), which(ordering2[,2]==0))
+})
+
 set.seed(99000003)
 test_that("MST ordering is robust to transformations", {
     centers <- matrix(rnorm(20, sd=3), ncol=2)
