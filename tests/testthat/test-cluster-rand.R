@@ -1,7 +1,7 @@
 # Tests the clusterRand() function.
 # library(testthat); library(scran); source('setup.R'); source('test-cluster-rand.R')
 
-library(scater)
+library(scuttle)
 sce <- mockSCE(ncells=200)
 sce <- logNormCounts(sce)
 
