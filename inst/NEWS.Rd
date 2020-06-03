@@ -2,6 +2,12 @@
 \title{scran News}
 \encoding{UTF-8}
 
+\section{Version 1.18.0}{\itemize{
+\item Added the \code{clusterRand()} function to compute a Rand index with cluster-wise decomposition.
+
+\item Generalized \code{bootstrapCluster()} to work with any comparison function.
+}}
+
 \section{Version 1.16.0}{\itemize{
 \item Added the quickSubCluster() function for convenient subclustering.
 
