@@ -3,7 +3,7 @@
 #' Breaks down the Rand index calculation to report values for each cluster and pair of clusters.
 #'
 #' @inheritParams coassignProb
-#' @param as.ratio Logical scalar indicating whether to return the ratio instead of the raw counts.
+#' @param mode String indicating whether to return the ratio, the number of pairs or the Rand index.
 #'
 #' @details
 #' Recall that the Rand index calculation consists of four numbers:
@@ -29,19 +29,18 @@
 #' In the default output, such events can be diagnosed by looking for low entries in the ratio matrix;
 #' on the other hand, values close to 1 indicate that \code{ref} is almost perfectly recapitulated by \code{alt}.
 #' 
-#' Nonetheless, if it is necessary, the full Rand index can still be computed 
-#' by taking the ratio of the sum of counts in \code{correct} against \code{total} when \code{as.ratio=FALSE}.
-#'
 #' @return
 #' By default, a square numeric matrix with number of rows equal to the number of unique levels in \code{ref}.
 #' Each diagonal entry represents the ratio of the per-cluster \eqn{a} to the total number of pairs of cells in that cluster.
 #' Each off-diagonal entry represents the ratio of the per-cluster-pair \eqn{b} to the total number of pairs of cells for that pair of clusters.
 #' Lower-triangular entries are set to \code{NA}.
 #'
-#' If \code{as.ratio=FALSE}, a list is returned containing \code{correct} and \code{total},
+#' If \code{mode="pairs"}, a list is returned containing \code{correct} and \code{total},
 #' both of which are square numeric matrices of the same arrangement as described above.
 #' However, \code{correct} contains the actual numbers \eqn{a} (diagonal) and \eqn{b} (off-diagonal) rather than the ratios,
 #' while \code{total} contains the total number of cell pairs in each cluster or pair of clusters.
+#'
+#' If \code{mode="index"}, a numeric scalar is returned containing the Rand index.
 #' 
 #' @author Aaron Lun
 #' @examples
@@ -55,9 +54,11 @@
 #' ratio <- clusterRand(clust1, clust2)
 #' ratio
 #'
+#' # Getting the raw counts:
+#' clusterRand(clust1, clust2, mode="pairs")
+#' 
 #' # Computing the original Rand index.
-#' full <- clusterRand(clust1, clust2, as.ratio=FALSE)
-#' sum(full$correct, na.rm=TRUE)/sum(full$total, na.rm=TRUE)
+#' clusterRand(clust1, clust2, mode="index")
 #'
 #' @seealso
 #' \code{\link{coassignProb}}, for another way of comparing two clusterings.
@@ -65,7 +66,7 @@
 #' \code{\link{clusterModularity}}, which applies the same breakdown to the cluster modularity.
 #'
 #' @export
-clusterRand <- function(ref, alt, as.ratio=TRUE) {
+clusterRand <- function(ref, alt, mode=c("ratio", "pairs", "index")) {
     ref <- as.factor(ref)
     alt <- as.factor(alt)
     all.lev <- levels(ref)
@@ -94,8 +95,11 @@ clusterRand <- function(ref, alt, as.ratio=TRUE) {
         }
     }
 
-    if (as.ratio) {
+    mode <- match.arg(mode)
+    if (mode=="ratio") {
         correct/total
+    } else if (mode=="index") {
+        sum(correct, na.rm=TRUE)/sum(total, na.rm=TRUE)
     } else {
         list(correct=correct, total=total)
     }

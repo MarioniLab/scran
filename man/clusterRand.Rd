@@ -4,14 +4,14 @@
 \alias{clusterRand}
 \title{Compute the cluster-wise Rand indices}
 \usage{
-clusterRand(ref, alt, as.ratio = TRUE)
+clusterRand(ref, alt, mode = c("ratio", "pairs", "index"))
 }
 \arguments{
 \item{ref}{A character vector or factor containing one set of groupings, considered to be the reference.}
 
 \item{alt}{A character vector or factor containing another set of groupings, to be compared to \code{alt}.}
 
-\item{as.ratio}{Logical scalar indicating whether to return the ratio instead of the raw counts.}
+\item{mode}{String indicating whether to return the ratio, the number of pairs or the Rand index.}
 }
 \value{
 By default, a square numeric matrix with number of rows equal to the number of unique levels in \code{ref}.
@@ -19,10 +19,12 @@ Each diagonal entry represents the ratio of the per-cluster \eqn{a} to the total
 Each off-diagonal entry represents the ratio of the per-cluster-pair \eqn{b} to the total number of pairs of cells for that pair of clusters.
 Lower-triangular entries are set to \code{NA}.
 
-If \code{as.ratio=FALSE}, a list is returned containing \code{correct} and \code{total},
+If \code{mode="pairs"}, a list is returned containing \code{correct} and \code{total},
 both of which are square numeric matrices of the same arrangement as described above.
 However, \code{correct} contains the actual numbers \eqn{a} (diagonal) and \eqn{b} (off-diagonal) rather than the ratios,
 while \code{total} contains the total number of cell pairs in each cluster or pair of clusters.
+
+If \code{mode="index"}, a numeric scalar is returned containing the Rand index.
 }
 \description{
 Breaks down the Rand index calculation to report values for each cluster and pair of clusters.
@@ -50,9 +52,6 @@ For example, it is now possible to see which specific clusters from \code{ref} a
 or which specific partitions between pairs of clusters are not reproducible.
 In the default output, such events can be diagnosed by looking for low entries in the ratio matrix;
 on the other hand, values close to 1 indicate that \code{ref} is almost perfectly recapitulated by \code{alt}.
-
-Nonetheless, if it is necessary, the full Rand index can still be computed 
-by taking the ratio of the sum of counts in \code{correct} against \code{total} when \code{as.ratio=FALSE}.
 }
 \examples{
 library(scater)
@@ -65,9 +64,11 @@ clust2 <- kmeans(t(logcounts(sce)),5)$cluster
 ratio <- clusterRand(clust1, clust2)
 ratio
 
+# Getting the raw counts:
+clusterRand(clust1, clust2, mode="pairs")
+
 # Computing the original Rand index.
-full <- clusterRand(clust1, clust2, as.ratio=FALSE)
-sum(full$correct, na.rm=TRUE)/sum(full$total, na.rm=TRUE)
+clusterRand(clust1, clust2, mode="index")
 
 }
 \seealso{

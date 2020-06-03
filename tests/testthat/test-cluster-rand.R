@@ -29,7 +29,7 @@ test_that("clusterRand gives the expected output", {
 })
 
 test_that("clusterRand mimics the original rand index", {
-    full <- clusterRand(clust1, clust2, as.ratio=FALSE)
+    full <- clusterRand(clust1, clust2, mode="pairs")
 
     # Applying a reference calculation.
     status1 <- outer(clust1, clust1, "==")
@@ -47,6 +47,7 @@ test_that("clusterRand mimics the original rand index", {
 
     rand <- sum(full$correct, na.rm=TRUE)/sum(full$total, na.rm=TRUE)
     expect_identical(rand, (a+b)/choose(length(clust1), 2))
+    expect_identical(rand, clusterRand(clust1, clust2, mode="index"))
 })
 
 test_that("clusterRand handles silly inputs", {
