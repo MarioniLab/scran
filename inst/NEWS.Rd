@@ -6,6 +6,12 @@
 \item Added the \code{clusterRand()} function to compute a Rand index with cluster-wise decomposition.
 
 \item Generalized \code{bootstrapCluster()} to work with any comparison function.
+
+\item Added the \code{createClusterMST()} function to create a TSCAN-like MST from cluster centroids.
+Also added the helper functions \code{connectClusterMST()} and \code{orderClusterMST()}.
+
+\item Added the \code{testLinearModel()} function to obtain inferences from a linear model.
+Added \code{testPseudotime()} for quick-and-dirty identification of DE genes along psuedotime.
 }}
 
 \section{Version 1.16.0}{\itemize{
