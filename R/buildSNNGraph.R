@@ -120,7 +120,7 @@
 #' \emph{Bioinformatics} 31:1974-80
 #' 
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE(ncells=500)
 #' sce <- logNormCounts(sce)
 #'
@@ -138,7 +138,7 @@
 #' table(clusters)
 #'
 #' # Graph can be built off existing reducedDims results:
-#' sce <- runPCA(sce)
+#' sce <- scater::runPCA(sce)
 #' g <- buildSNNGraph(sce, use.dimred="PCA")
 #' clusters <- igraph::cluster_fast_greedy(g)$membership
 #' table(clusters)

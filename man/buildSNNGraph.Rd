@@ -174,7 +174,7 @@ Note that the user is responsible for ensuring that the indices are valid (i.e.,
 }
 
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE(ncells=500)
 sce <- logNormCounts(sce)
 
@@ -192,7 +192,7 @@ clusters <- igraph::cluster_walktrap(g)$membership
 table(clusters)
 
 # Graph can be built off existing reducedDims results:
-sce <- runPCA(sce)
+sce <- scater::runPCA(sce)
 g <- buildSNNGraph(sce, use.dimred="PCA")
 clusters <- igraph::cluster_fast_greedy(g)$membership
 table(clusters)

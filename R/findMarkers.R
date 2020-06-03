@@ -82,7 +82,7 @@
 #' 
 #' \code{\link{getMarkerEffects}}, to easily extract a matrix of effect sizes from each DataFrame.
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE()
 #' sce <- logNormCounts(sce)
 #'

@@ -66,7 +66,7 @@ to avoid errors about singular gradients in \code{\link{nls}}.
 If \code{simplified=FALSE}, this simplification is not allowed and the error is directly reported.
 }
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 normcounts <- normalizeCounts(sce, log=FALSE)
 

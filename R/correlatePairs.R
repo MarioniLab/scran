@@ -145,7 +145,7 @@
 #' \emph{Stat. Appl. Genet. Mol. Biol.} 9:Article 39.
 #' 
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE()
 #' sce <- logNormCounts(sce)
 #'

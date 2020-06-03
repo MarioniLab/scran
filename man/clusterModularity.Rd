@@ -50,7 +50,7 @@ Directed graphs are treated as undirected inputs with \code{mode="each"} in \cod
 In the rare case that self-loops are present, these will also be handled correctly.
 }
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 sce <- logNormCounts(sce)
 g <- buildSNNGraph(sce)

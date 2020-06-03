@@ -49,7 +49,7 @@
 #' \code{\link{cluster_walktrap}} and related functions, to detect communities within those graphs.
 #'
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE(ncells=500)
 #' sce <- logNormCounts(sce)
 #'
@@ -61,7 +61,7 @@
 #' table(clusters2)
 #'
 #' # Works with low-dimensional inputs:
-#' sce <- runPCA(sce, ncomponents=10)
+#' sce <- scater::runPCA(sce, ncomponents=10)
 #' clusters3 <- clusterSNNGraph(sce, use.dimred="PCA")
 #' table(clusters3)
 #'

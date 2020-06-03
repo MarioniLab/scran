@@ -45,7 +45,7 @@
 #' @author Aaron Lun
 #' 
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE(ncells=200)
 #' 
 #' # Lowering min.size for this small demo:
@@ -59,7 +59,7 @@
 #'     prepFUN=function(x) {
 #'         dec <- modelGeneVarWithSpikes(x, "Spikes")
 #'         top <- getTopHVGs(dec, prop=0.2)
-#'         runPCA(x, subset_row=top, ncomponents=25)
+#'         scater::runPCA(x, subset_row=top, ncomponents=25)
 #'     }
 #' )
 #' 

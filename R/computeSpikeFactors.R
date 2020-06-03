@@ -31,7 +31,7 @@
 #' Aaron Lun
 #' 
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE()
 #' sce <- computeSpikeFactors(sce, "Spikes")
 #' summary(sizeFactors(sce))

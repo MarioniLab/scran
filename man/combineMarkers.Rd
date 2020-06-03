@@ -189,7 +189,7 @@ Clusters unique to \code{pairs[,2]} will only be present within a DataFrame as \
 }
 
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 sce <- logNormCounts(sce)
 

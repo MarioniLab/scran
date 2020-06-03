@@ -54,7 +54,7 @@ In the default output, such events can be diagnosed by looking for low entries i
 on the other hand, values close to 1 indicate that \code{ref} is almost perfectly recapitulated by \code{alt}.
 }
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE(ncells=200)
 sce <- logNormCounts(sce)
 

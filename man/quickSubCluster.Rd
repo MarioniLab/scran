@@ -77,7 +77,7 @@ Either or both of these functions can be replaced with custom functions.
 The default behavior of this function is the same as running \code{\link{quickCluster}} on each subset with default parameters except for \code{min.size=0}.
 }
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE(ncells=200)
 
 # Lowering min.size for this small demo:
@@ -91,7 +91,7 @@ out2 <- quickSubCluster(sce, clusters,
     prepFUN=function(x) {
         dec <- modelGeneVarWithSpikes(x, "Spikes")
         top <- getTopHVGs(dec, prop=0.2)
-        runPCA(x, subset_row=top, ncomponents=25)
+        scater::runPCA(x, subset_row=top, ncomponents=25)
     }
 )
 

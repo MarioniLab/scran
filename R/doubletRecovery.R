@@ -78,7 +78,7 @@
 #' counts.2 <- matrix(rpois(ngenes*100, mu2), nrow=ngenes) # Pure type 2
 #' counts.m <- matrix(rpois(ngenes*20, mu1+mu2), nrow=ngenes) # Doublets (1 & 2)
 #' all.counts <- cbind(counts.1, counts.2, counts.m)
-#' lcounts <- scater::normalizeCounts(all.counts)
+#' lcounts <- scuttle::normalizeCounts(all.counts)
 #' 
 #' # Pretending that half of the doublets are known. Also pretending that 
 #' # the experiment involved two samples of equal size.

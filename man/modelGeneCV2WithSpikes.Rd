@@ -163,7 +163,7 @@ Whether or not this is responsive to \code{equiweight} depends on the chosen met
 }
 
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 
 # Using spike-ins.

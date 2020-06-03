@@ -166,7 +166,7 @@
 #' \code{\link{logNormCounts}}, which uses the computed size factors to compute normalized expression values.
 #'
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE(ncells=500)
 #' 
 #' # Computing the size factors.

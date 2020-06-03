@@ -80,7 +80,7 @@
 #' @author Aaron Lun
 #' 
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE()
 #'
 #' # Simple case:

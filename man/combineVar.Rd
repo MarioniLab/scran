@@ -71,7 +71,7 @@ The \code{\link{combinePValues}} function is used to combine p-values across bat
 Only \code{method="z"} will perform any weighting of batches, and only if \code{weights} is set.
 }
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 
 y1 <- sce[,1:100] 

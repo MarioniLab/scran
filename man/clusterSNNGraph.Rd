@@ -112,7 +112,7 @@ the former improves computational efficiency and mitigates density-dependent dil
 while the latter aggregates the centroids for easier interpretation.
 }
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE(ncells=500)
 sce <- logNormCounts(sce)
 
@@ -124,7 +124,7 @@ clusters2 <- clusterSNNGraph(sce, k=5)
 table(clusters2)
 
 # Works with low-dimensional inputs:
-sce <- runPCA(sce, ncomponents=10)
+sce <- scater::runPCA(sce, ncomponents=10)
 clusters3 <- clusterSNNGraph(sce, use.dimred="PCA")
 table(clusters3)
 

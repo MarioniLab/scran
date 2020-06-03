@@ -38,7 +38,7 @@ Users who want the spike-in size factors without returning a SingleCellExperimen
 \code{\link{librarySizeFactors}(\link{altExp}(x, spikes))}, which gives the same result.
 }
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 sce <- computeSpikeFactors(sce, "Spikes")
 summary(sizeFactors(sce))

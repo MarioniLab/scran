@@ -67,7 +67,7 @@ This avoids problems with differences in the distribution of means that would ot
 Note that these densities are computed after filtering on \code{min.mean}.
 }
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 sce <- logNormCounts(sce)
 

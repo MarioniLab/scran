@@ -53,7 +53,7 @@ Of course, it is not theoretically guaranteed to yield the correct size factor, 
 set.seed(100)    
 counts <- matrix(rpois(20000, lambda=1), ncol=100)
 
-library(scater)
+library(scuttle)
 sf <- librarySizeFactors(counts)
 ngenes <- colSums(counts > 0)
 

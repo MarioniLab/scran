@@ -41,7 +41,7 @@ Convert a \linkS4class{SingleCellExperiment} object into other classes for entry
 This function converts an SingleCellExperiment object into various other classes in preparation for entry into other analysis pipelines, as specified by \code{type}.
 }
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 
 # Adding some additional embellishments.

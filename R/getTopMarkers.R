@@ -47,7 +47,7 @@
 #' \code{\link{combineMarkers}}, for another function that consolidates pairwise DE comparisons.
 #'
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE()
 #' sce <- logNormCounts(sce)
 #'

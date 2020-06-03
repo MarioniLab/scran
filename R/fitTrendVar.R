@@ -51,7 +51,7 @@
 #' \code{\link{modelGeneVar}} and \code{\link{modelGeneVarWithSpikes}}, where this function is used.
 #'
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE()
 #' sce <- logNormCounts(sce)
 #'

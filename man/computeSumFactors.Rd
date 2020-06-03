@@ -213,7 +213,7 @@ Standard errors can then be calculated as the standard deviation of the size fac
 }
 
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE(ncells=500)
 
 # Computing the size factors.

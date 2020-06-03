@@ -48,7 +48,7 @@ This can be useful for highly sparse input data where zeroes have the same rank 
 Obviously, this means that the ranks are not centred, so this will have to be done manually prior to any downstream distance calculations.
 }
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 rout <- scaledColRanks(counts(sce), transposed=TRUE)
 

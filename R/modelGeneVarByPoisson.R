@@ -66,7 +66,7 @@
 #' @author Aaron Lun
 #' 
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE()
 #'
 #' # Using spike-ins.

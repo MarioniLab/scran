@@ -72,7 +72,7 @@ Otherwise, the top \code{n} genes with the smallest p-values are retained.
 In both cases, genes are further filtered by \code{fdr.threshold}.
 }
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 sce <- logNormCounts(sce)
 

@@ -104,7 +104,7 @@ If \code{weighted=FALSE}, no weighting is performed.
 }
 
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 sce <- logNormCounts(sce)
 

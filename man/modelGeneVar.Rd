@@ -131,7 +131,7 @@ This is estimated from the spread of per-gene variance estimates around the tren
 }
 
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 sce <- logNormCounts(sce)
 

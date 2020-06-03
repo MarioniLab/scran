@@ -32,7 +32,7 @@
 #' \code{\link{quickCluster}}, where this function is used.
 #' 
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE()
 #' rout <- scaledColRanks(counts(sce), transposed=TRUE)
 #' 

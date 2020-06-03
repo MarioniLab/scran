@@ -49,7 +49,7 @@
 #' Aaron Lun
 #' 
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE()
 #' 
 #' y1 <- sce[,1:100] 

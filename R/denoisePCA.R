@@ -111,7 +111,7 @@
 #' \code{\link{runSVD}}, for the underlying SVD algorithm(s).
 #' 
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE()
 #' sce <- logNormCounts(sce)
 #' 

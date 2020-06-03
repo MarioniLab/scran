@@ -82,7 +82,7 @@
 #' 
 #' @examples
 #' set.seed(1000)
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE(ncells=200, ngenes=1000)
 #' 
 #' # Constructing a classifier:

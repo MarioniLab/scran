@@ -149,7 +149,7 @@
 #' \code{\link{getTopMarkers}}, to obtain the top markers from each pairwise comparison.
 #' 
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE()
 #' sce <- logNormCounts(sce)
 #'

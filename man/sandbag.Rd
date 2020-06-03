@@ -53,7 +53,7 @@ For each cell, this involves comparing expression values between genes in each m
 The cell is then assigned to the phase that is consistent with the direction of the difference in expression in the majority of pairs.
 }
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE(ncells=50, ngenes=200)
 
 is.G1 <- 1:20

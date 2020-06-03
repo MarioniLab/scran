@@ -50,10 +50,11 @@
 #' @author Aaron Lun
 #'
 #' @examples
-#' sce <- scater::mockSCE()
-#' sce <- scater::logNormCounts(sce)
+#' library(scuttle)
+#' sce <- mockSCE()
+#' sce <- logNormCounts(sce)
+#'
 #' sce <- scater::runPCA(sce)
-#' 
 #' output <- getClusteredPCs(reducedDim(sce))
 #' output
 #' 

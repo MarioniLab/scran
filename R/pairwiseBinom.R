@@ -98,7 +98,7 @@
 #' \emph{J. Evol. Biol.} 18, 5:1368-73.
 #' 
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE()
 #' sce <- logNormCounts(sce)
 #'

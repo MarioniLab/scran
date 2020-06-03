@@ -34,7 +34,7 @@
 #' \code{\link{clusterRand}}, for another way to compare different clusterings.
 #'
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE(ncells=200)
 #' sce <- logNormCounts(sce)
 #' 

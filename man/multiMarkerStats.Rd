@@ -52,7 +52,7 @@ This will only be low if the gene has a low p-value in each of the test results.
 If \code{sorted=TRUE} and \code{Top} is not present, this will be used to order the genes in the output DataFrame.
 }
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 sce <- logNormCounts(sce)
 

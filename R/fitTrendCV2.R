@@ -44,7 +44,7 @@
 #' @author Aaron Lun
 #'
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE()
 #' normcounts <- normalizeCounts(sce, log=FALSE)
 #'

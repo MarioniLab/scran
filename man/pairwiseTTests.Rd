@@ -177,7 +177,7 @@ This may not be the case with \code{block} if a pair of groups never co-occur in
 }
 
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 sce <- logNormCounts(sce)
 

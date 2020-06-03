@@ -31,7 +31,7 @@
 #' \code{\link[monocle]{newCellDataSet}}, for specific class constructors.
 #' 
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE()
 #' 
 #' # Adding some additional embellishments.

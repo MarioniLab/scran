@@ -110,7 +110,7 @@
 #' \code{\link{quickSubCluster}}, for a related function that uses a similar approach for subclustering.
 #' 
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE()
 #' 
 #' # Basic application (lowering min.size for this small demo):

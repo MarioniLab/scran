@@ -26,7 +26,7 @@
 #' Aaron Lun
 #' 
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE()
 #' sce <- logNormCounts(sce)
 #' pairs <- correlatePairs(sce, iters=1e5, subset.row=1:100)

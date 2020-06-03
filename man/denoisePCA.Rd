@@ -147,7 +147,7 @@ Indeed, use of results from \code{\link{modelGeneVar}} often results in \eqn{d} 
 }
 
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 sce <- logNormCounts(sce)
 

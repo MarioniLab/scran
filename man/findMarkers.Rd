@@ -115,7 +115,7 @@ The choice of \code{pval.type} determines whether the highly ranked genes are th
 See \code{?\link{combineMarkers}} for more details.
 }
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 sce <- logNormCounts(sce)
 

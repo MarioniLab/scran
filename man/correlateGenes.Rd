@@ -28,7 +28,7 @@ This tests whether the gene is involved in significant correlations to \emph{any
 Per-gene statistics are useful for identifying correlated genes without regard to what they are correlated with (e.g., during feature selection).
 }
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 sce <- logNormCounts(sce)
 pairs <- correlatePairs(sce, iters=1e5, subset.row=1:100)

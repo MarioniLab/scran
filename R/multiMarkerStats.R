@@ -47,7 +47,7 @@
 #' \code{\link{findMarkers}} and \code{\link{combineMarkers}}, to generate elements in \code{...}.
 #'
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE()
 #' sce <- logNormCounts(sce)
 #'

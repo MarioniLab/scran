@@ -66,7 +66,7 @@
 #' 
 #' @author Aaron Lun
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE(ncells=200)
 #'
 #' # Using 'quickCluster' as one potential 'FUN':
@@ -74,7 +74,7 @@
 #'
 #' # Defining your own function:
 #' sce <- logNormCounts(sce)
-#' sce <- runPCA(sce)
+#' sce <- scater::runPCA(sce)
 #' kFUN <- function(x) kmeans(x, 2)$cluster  
 #' bootstrapCluster(reducedDim(sce), transposed=TRUE, FUN=kFUN)
 #'

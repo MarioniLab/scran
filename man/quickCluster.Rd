@@ -144,7 +144,7 @@ This process is repeated until all (merged) clusters are larger than \code{min.s
 }
 
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 
 # Basic application (lowering min.size for this small demo):

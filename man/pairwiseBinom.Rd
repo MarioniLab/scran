@@ -151,7 +151,7 @@ If all levels are ignored in this manner, the entire comparison will only contai
 }
 
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 sce <- logNormCounts(sce)
 

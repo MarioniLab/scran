@@ -145,7 +145,7 @@ Use of \code{block} and \code{design} together is currently not supported and wi
 }
 
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 
 # Using spike-ins.

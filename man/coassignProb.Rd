@@ -37,7 +37,7 @@ In general, \code{ref} is well-recapitulated by \code{alt} if the diagonal entri
 This manifests as higher values for the self probabilities compared to the other probabilities.
 }
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE(ncells=200)
 sce <- logNormCounts(sce)
 

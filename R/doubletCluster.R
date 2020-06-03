@@ -104,7 +104,7 @@
 #' dbl
 #' 
 #' # Narrow this down to clusters with very low 'N':
-#' library(scater)
+#' library(scuttle)
 #' isOutlier(dbl$N, log=TRUE, type="lower") 
 #' 
 #' # Get help from "lib.size" below 1.

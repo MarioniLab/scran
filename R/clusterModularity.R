@@ -48,7 +48,7 @@
 #' \code{\link{clusterRand}}, which applies a similar breakdown to the Rand index.
 #' 
 #' @examples
-#' library(scater)
+#' library(scuttle)
 #' sce <- mockSCE()
 #' sce <- logNormCounts(sce)
 #' g <- buildSNNGraph(sce)

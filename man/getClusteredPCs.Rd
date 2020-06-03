@@ -69,10 +69,11 @@ Users should not supply \code{FUN} where the number of clusters is fixed in adva
 The identities of the output clusters are returned at each step for comparison, e.g., using methods like \pkg{clustree}.
 }
 \examples{
-sce <- scater::mockSCE()
-sce <- scater::logNormCounts(sce)
-sce <- scater::runPCA(sce)
+library(scuttle)
+sce <- mockSCE()
+sce <- logNormCounts(sce)
 
+sce <- scater::runPCA(sce)
 output <- getClusteredPCs(reducedDim(sce))
 output
 

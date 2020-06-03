@@ -168,7 +168,7 @@ With \code{ties.method="average"}, they will be very anticonservative.
 }
 
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 sce <- logNormCounts(sce)
 

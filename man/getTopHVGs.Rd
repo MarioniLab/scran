@@ -57,7 +57,7 @@ Otherwise, the top set of genes with the largest values of the variance metric a
 where the size of the set is defined as the larger of \code{n} and \code{prop*nrow(stats)}.
 }
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 sce <- logNormCounts(sce)
 

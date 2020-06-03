@@ -28,7 +28,7 @@ where some pairwise comparisons are not possible if the relevant levels occur in
 In such cases, the resulting column is filled with \code{NA}s that may interfere with downstream steps like clustering.
 }
 \examples{
-library(scater)
+library(scuttle)
 sce <- mockSCE()
 sce <- logNormCounts(sce)
                                                                      
