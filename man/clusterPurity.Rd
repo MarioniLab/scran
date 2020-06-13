@@ -66,7 +66,12 @@ This should be an algorithm supported by \code{\link{findNeighbors}}.}
 \item{use.dimred}{A string specifying whether existing values in \code{reducedDims(x)} should be used.}
 }
 \value{
-A numeric vector of purity values for each cell in \code{x}.
+A \linkS4class{DataFrame} with one row per cell in \code{x} and the columns:
+\itemize{
+\item \code{purity}, a numeric field containing the purity value for the current cell.
+\item \code{maximum}, the cluster with the highest proportion of cells neighboring the current cell.
+}
+Row names are defined as the column names of \code{x}.
 }
 \description{
 Use a hypersphere-based approach to compute the \dQuote{purity} of each cluster based on the number of contaminating cells in its region of the coordinate space.
@@ -78,9 +83,11 @@ If all cells in a cluster have proportions close to 1, this indicates that the c
 i.e., there are few cells from other clusters in its region of the coordinate space.
 The distribution of purities for each cluster can be used as a measure of separation from other clusters.
 
-In most cases, the majority of cells of a cluster will have high purities, corresponding to cells close to the cluster center;
-and a fraction will have low values, corresponding to cells lying at the boundaries of two adjacent clusters,
+In most cases, the majority of cells of a cluster will have high purities, corresponding to cells close to the cluster center.
+A fraction of cells will have low values as these lie at the boundaries of two adjacent clusters.
 A high degree of over-clustering will manifest as a majority of cells with purities close to zero.
+The \code{maximum} field in the output can be used to determine the identity of the cluster 
+with the greatest presence in a cell's neighborhood, usually an adjacent cluster for cells lying on the boundary.
 
 The choice of \code{k} is used only to determine an appropriate value for the hypersphere radius.
 We use hyperspheres as this is robust to changes in density throughout the coordinate space,
@@ -90,8 +97,8 @@ For example, the latter will fail most obviously when the size of the cluster is
 \section{Weighting by frequency}{
 
 By default, purity values are computed after weighting each cell by the reciprocal of the number of cells in the same cluster.
-Otherwise, clusters with more cells will have higher purities as any contamination is offset by the bulk of cells.
-Without weighting, this effect would compromise comparisons between clusters.
+Otherwise, clusters with more cells will have higher purities as any contamination is offset by the bulk of cells,
+which would compromise comparisons of purities between clusters.
 One can interpret the weighted purities as the expected value after downsampling all clusters to the same size.
 
 Advanced users can achieve greater control by manually supplying a numeric vector of weights to \code{weighted}.
@@ -111,7 +118,7 @@ sce <- logNormCounts(sce)
 g <- buildSNNGraph(sce)
 clusters <- igraph::cluster_walktrap(g)$membership
 out <- clusterPurity(sce, clusters)
-boxplot(split(out, clusters))
+boxplot(split(out$purity, clusters))
 
 # Mocking up a stronger example:
 ngenes <- 1000
@@ -122,7 +129,7 @@ y <- centers[,clusters]
 y <- y + rnorm(length(y))
 
 out2 <- clusterPurity(y, clusters)
-boxplot(split(out2, clusters))
+boxplot(split(out2$purity, clusters))
 
 }
 \author{

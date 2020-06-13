@@ -8,8 +8,10 @@ test_that('clusterPurity yields correct output for pure clusters', {
     y <- jitter(y)
 
     out <- clusterPurity(y, clusters)
-    expect_true(all(out==1))
-    expect_identical(length(out), ncol(y))
+    expect_identical(nrow(out), ncol(y))
+
+    expect_true(all(out$purity==1))
+    expect_true(all(out$maximum==clusters))
 })
 
 set.seed(70001)
@@ -19,14 +21,17 @@ test_that('clusterPurity yields correct output for compromised clusters', {
 
     clusters <- rep(1:2, each=100)
     clusters[1] <- 2
+
     out <- clusterPurity(y, clusters)
 
-    expect_true(out[1] <= 0.05)
-    expect_true(all(out[-1] > 0.9))
+    expect_true(out$purity[1] <= 0.05)
+    expect_true(all(out$purity[-1] > 0.9))
+    expect_identical(out$maximum[1], 1)
+    expect_identical(out$maximum[-1], clusters[-1])
 })
 
 set.seed(700001)
-test_that('clusterPurity handles subsetting correctly', {
+test_that('clusterPurity handles subsetting/transposition correctly', {
     y <- matrix(rnorm(10000), nrow=50)
     clusters <- kmeans(t(y), 4)$cluster
 
@@ -52,7 +57,7 @@ test_that("clusterPurity handles the weighting correctly", {
 
     y <- cbind(y1, y2, y0)
     clusters <- rep(1:3, c(ncol(y1), ncol(y2), ncol(y0)))
-    out1 <- clusterPurity(y, clusters)
+    out1 <- clusterPurity(y, clusters)$purity
     expect_true(all(abs(out1[1:20]-0.5) < 1e-8))
     expect_true(all(out1[-(1:20)]==1))
 
@@ -61,11 +66,11 @@ test_that("clusterPurity handles the weighting correctly", {
     # and this results in numeric precision changes due to order of addition of
     # double-precision values, resulting in very slightly different output.
     sub <- c(1:5, ncol(y1) + seq_len(ncol(y2) + ncol(y0)))
-    out2 <- clusterPurity(y[,sub], clusters[sub])
+    out2 <- clusterPurity(y[,sub], clusters[sub])$purity
     expect_equal(out1[sub], out2)
 
     sub <- c(1, ncol(y1) + seq_len(ncol(y2) + ncol(y0)))
-    out2 <- clusterPurity(y[,sub], clusters[sub])
+    out2 <- clusterPurity(y[,sub], clusters[sub])$purity
     expect_equal(out1[sub], out2)
 })
 
@@ -80,20 +85,20 @@ test_that("clusterPurity handles other weighting options", {
     clusters <- rep(1:3, c(ncol(y1), ncol(y2), ncol(y0)))
 
     # Turning off weighting has no effect for balanced clusters.
-    out1 <- clusterPurity(y, clusters, weighted=FALSE)
+    out1 <- clusterPurity(y, clusters, weighted=FALSE)$purity
     expect_true(all(abs(out1[1:20]-0.5) < 1e-8))
     expect_true(all(out1[-(1:20)]==1))
 
     # Turning off weighting has some effect for non-balanced clusters.
     sub <- c(1:5, ncol(y1) + seq_len(ncol(y2) + ncol(y0)))
-    out2 <- clusterPurity(y[,sub], clusters[sub], weighted=FALSE)
+    out2 <- clusterPurity(y[,sub], clusters[sub], weighted=FALSE)$purity
     expect_true(all(abs(out2[1:5]-1/3) < 1e-8))
     expect_true(all(abs(out2[6:15]-2/3) < 1e-8))
     expect_true(all(out2[-(1:20)]==1))
 
     # We can replace it with our own weighting to restore the balance.
-    out3 <- clusterPurity(y[,sub], clusters[sub], weighted=rep(c(2, 1, 1), c(5, ncol(y2), ncol(y0))))
-    ref <- clusterPurity(y[,sub], clusters[sub])
+    out3 <- clusterPurity(y[,sub], clusters[sub], weighted=rep(c(2, 1, 1), c(5, ncol(y2), ncol(y0))))$purity
+    ref <- clusterPurity(y[,sub], clusters[sub])$purity
     expect_equal(out3, ref)
 })
 
@@ -117,7 +122,7 @@ test_that('clusterPurity handles SCEs correctly', {
         out <- clusterPurity(sce, clusters, use.dimred="stuff"),
         clusterPurity(reducedDim(sce, "stuff"), clusters, transposed=TRUE)
     )
-    expect_equal(length(out), ncol(sce))
+    expect_equal(nrow(out), ncol(sce))
 
     # Works with the supplied clusters.
     colLabels(sce) <- clusters
