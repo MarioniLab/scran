@@ -35,6 +35,11 @@ The \dQuote{other} coassignment probability is the maximum probability across al
 
 In general, \code{ref} is well-recapitulated by \code{alt} if the diagonal entries of the matrix is much higher than the sum of the off-diagonal entries.
 This manifests as higher values for the self probabilities compared to the other probabilities.
+
+Note that the coassignment probability is closely related to the Rand index-based ratios  
+broken down by cluster pair in \code{\link{clusterRand}} with \code{mode="ratio"}.
+The off-diagonal coassignment probabilities are simply 1 minus the off-diagonal ratio, 
+while the on-diagonal values differ only by the lack of consideration of pairs of the same cell in \code{\link{clusterRand}}.
 }
 \examples{
 library(scuttle)
