@@ -12,6 +12,8 @@ Also added the helper functions \code{connectClusterMST()} and \code{orderCluste
 
 \item Added the \code{testLinearModel()} function to obtain inferences from a linear model.
 Added \code{testPseudotime()} for quick-and-dirty identification of DE genes along psuedotime.
+
+\item Added the \code{clusterSilhouette()} function to approximate the silhouette width for large datasets.
 }}
 
 \section{Version 1.16.0}{\itemize{
