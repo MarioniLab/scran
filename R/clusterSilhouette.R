@@ -101,7 +101,7 @@ NULL
     other.dist <- pmax(other.dist, clust.rmsd[other.clust])
 
     DataFrame(
-        width=other.dist/self.dist - 1,
+        width=(other.dist - self.dist)/pmax(other.dist, self.dist),
         other=uclust[other.clust],
         row.names=rownames(x)
     )
