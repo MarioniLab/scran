@@ -9,6 +9,7 @@
 
 \item Added the \code{createClusterMST()} function to create a TSCAN-like MST from cluster centroids.
 Also added the helper functions \code{connectClusterMST()} and \code{orderClusterMST()}.
+Added a wrapper function \code{quickPseudotime()} to run all the relevant steps at once.
 
 \item Added the \code{testLinearModel()} function to obtain inferences from a linear model.
 Added \code{testPseudotime()} for quick-and-dirty identification of DE genes along psuedotime.
