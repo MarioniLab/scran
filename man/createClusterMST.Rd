@@ -106,6 +106,9 @@ Ji Z and Ji H (2016).
 TSCAN: Pseudo-time reconstruction and evaluation in single-cell RNA-seq analysis.
 \emph{Nucleic Acids Res.} 44, e117
 }
+\seealso{
+\code{\link{quickPseudotime}}, a wrapper to quickly perform these calculations.
+}
 \author{
 Aaron Lun
 }

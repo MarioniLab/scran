@@ -84,7 +84,9 @@
 #' ordering <- orderClusterMST(cells, clusters, centers, mst)
 #' unified <- rowMeans(ordering, na.rm=TRUE)
 #' plot(cells[,1], cells[,2], col=topo.colors(21)[cut(unified, 21)], pch=16)
-#' 
+#'
+#' @seealso
+#' \code{\link{quickPseudotime}}, a wrapper to quickly perform these calculations.
 #' @name createClusterMST
 NULL
 
