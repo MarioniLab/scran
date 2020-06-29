@@ -6,7 +6,7 @@
 \alias{orderClusterMST}
 \title{Minimum spanning trees on cluster centroids}
 \usage{
-createClusterMST(centers)
+createClusterMST(centers, outgroup = FALSE, outscale = 3)
 
 connectClusterMST(centers, mst, combined = TRUE)
 
@@ -16,6 +16,13 @@ orderClusterMST(x, ids, centers, mst, start = NULL)
 \item{centers}{A numeric matrix of cluster centroids where each \emph{row} represents a cluster 
 and each column represents a dimension (usually a PC or another low-dimensional embedding).
 Each row should be named with the cluster name.}
+
+\item{outgroup}{A logical scalar indicating whether an outgroup should be inserted to split unrelated trajectories.
+Alternatively, a numeric scalar specifying the distance threshold to use for this splitting.}
+
+\item{outscale}{A numeric scalar specifying the scaling to apply to the median distance between centroids
+to define the threshold for outgroup splitting.
+Only used if \code{outgroup=TRUE}.}
 
 \item{mst}{A \link{graph} object containing a MST, typically the output of \code{createClusterMST(centers)}.
 For \code{connectClusterMSTNodes}, the MST may be computed from a different \code{centers}.}
@@ -61,7 +68,22 @@ We suggest using \code{\link{aggregateAcrossCells}} to obtain \code{centers} for
 It will then calculate the distance of that cell along the MST from the starting node specified by \code{start}.
 This distance represents the pseudotime for that cell and can be used in further quantitative analyses.
 }
-\section{Breaking down the pseudotime matrix}{
+\section{Introducing an outgroup}{
+
+If \code{outgroup=TRUE}, we add an outgroup to avoid constructing a trajectory between \dQuote{unrelated} clusters.
+This is done by adding an extra row/column to the distance matrix corresponding to an artificial outgroup cluster,
+where the distance to all of the other real clusters is set to \eqn{\omega/2}.
+Large jumps in the MST between real clusters that are more distant than \eqn{\omega} will then be rerouted through the outgroup,
+allowing us to break up the MST into multiple subcomponents by removing the outgroup.
+
+The default \eqn{\omega} value is computed by constructing the MST from the original distance matrix,
+computing the median edge length in that MST, and then scaling it by \code{outscale}.
+This adapts to the magnitude of the distances and the internal structure of the dataset
+while also providing some margin for variation across cluster pairs.
+Alternatively, \code{outgroup} can be set to a numeric scalar in which case it is used directly as \eqn{\omega}.
+}
+
+\section{Interpreting the pseudotime matrix}{
 
 The pseudotimes are returned as a matrix where each row corresponds to cell in \code{x} 
 and each column corresponds to a path through the MST from \code{start} to all nodes of degree 1.

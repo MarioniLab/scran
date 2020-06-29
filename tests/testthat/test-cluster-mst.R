@@ -19,6 +19,30 @@ test_that("MST construction works as expected", {
     expect_identical(vertices[igraph::degree(mst)==3], "A")
 })
 
+test_that("MST construction works as expected with outgroup specification", {
+    # No effect with default outgroup settings.
+    y <- rbind(A=c(0, 1), B=c(0, 2), C=c(0, 3), D=c(0, 4)) 
+    ref <- createClusterMST(y)
+    mst <- createClusterMST(y, outgroup=TRUE)
+    expect_identical(ref[], mst[])
+
+    # Maximal effect with crazy outgroup settings.
+    mst <- createClusterMST(y, outgroup=1e-8)
+    expect_identical(dim(mst[]), c(4L, 4L))
+    expect_identical(sum(mst[]), 0)
+
+    # Default effects.
+    y <- rbind(A=c(0, 1), B=c(0, 2), C=c(10, 3), D=c(10, 4))
+    mst <- createClusterMST(y, outgroup=TRUE)
+    expect_identical(igraph::components(mst)$no, 2L)
+    expect_false(igraph::are_adjacent(mst, "B", "C"))
+
+    y <- rbind(A=c(0, 1), B=c(0, 2), C=c(0, 3), D=c(10, 4), E=c(0,4)) 
+    mst <- createClusterMST(y, outgroup=TRUE)
+    expect_identical(sum(mst[]["D",]), 0)
+    expect_identical(sum(mst[][,"D"]), 0)
+})
+
 test_that("MST segment reporting works as expected", {
     y <- rbind(A=c(0, 1), B=c(0, 2), C=c(0, 3), D=c(0, 4)) 
     mst <- createClusterMST(y)
