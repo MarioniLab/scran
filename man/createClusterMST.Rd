@@ -83,6 +83,22 @@ while also providing some margin for variation across cluster pairs.
 Alternatively, \code{outgroup} can be set to a numeric scalar in which case it is used directly as \eqn{\omega}.
 }
 
+\section{Confidence on the edges}{
+
+For the MST, we obtain a measure of the confidence in each edge by computing the distance gained if that edge were not present.
+Ambiguous parts of the tree will be less penalized from deletion of an edge, manifesting as a small distance gain.
+In contrast, parts of the tree with clear structure will receive a large distance gain upon deletion of an obvious edge.
+
+For each edge, we divide the distance gain by the length of the edge to normalize for cluster resolution.
+This avoids overly penalizing edges in parts of the tree involving broad clusters
+while still retaining sensitivity to detect distance gain in overclustered regions.
+As an example, a normalized gain of unity for a particular edge means that its removal
+requires an alternative path that increases the distance travelled by that edge's length.
+
+The normalized gain is reported as the \code{"gain"} attribute in the edges of the MST from \code{\link{createClusterMST}}.
+Note that the \code{"weight"} attribute represents the edge length.
+}
+
 \section{Interpreting the pseudotime matrix}{
 
 The pseudotimes are returned as a matrix where each row corresponds to cell in \code{x} 

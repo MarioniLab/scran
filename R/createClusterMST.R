@@ -52,6 +52,20 @@
 #' while also providing some margin for variation across cluster pairs.
 #' Alternatively, \code{outgroup} can be set to a numeric scalar in which case it is used directly as \eqn{\omega}.
 #'
+#' @section Confidence on the edges:
+#' For the MST, we obtain a measure of the confidence in each edge by computing the distance gained if that edge were not present.
+#' Ambiguous parts of the tree will be less penalized from deletion of an edge, manifesting as a small distance gain.
+#' In contrast, parts of the tree with clear structure will receive a large distance gain upon deletion of an obvious edge.
+#'
+#' For each edge, we divide the distance gain by the length of the edge to normalize for cluster resolution.
+#' This avoids overly penalizing edges in parts of the tree involving broad clusters
+#' while still retaining sensitivity to detect distance gain in overclustered regions.
+#' As an example, a normalized gain of unity for a particular edge means that its removal
+#' requires an alternative path that increases the distance travelled by that edge's length.
+#'
+#' The normalized gain is reported as the \code{"gain"} attribute in the edges of the MST from \code{\link{createClusterMST}}.
+#' Note that the \code{"weight"} attribute represents the edge length.
+#' 
 #' @section Interpreting the pseudotime matrix:
 #' The pseudotimes are returned as a matrix where each row corresponds to cell in \code{x} 
 #' and each column corresponds to a path through the MST from \code{start} to all nodes of degree 1.
@@ -136,6 +150,7 @@ createClusterMST <- function(centers, outgroup=FALSE, outscale=3) {
 
     g <- graph.adjacency(dmat, mode = "undirected", weighted = TRUE)
     mst <- minimum.spanning.tree(g)
+    mst <- .estimate_edge_confidence(mst, g)
 
     if (!isFALSE(outgroup)) {
         mst <- delete_vertices(mst, special.name)
@@ -143,6 +158,28 @@ createClusterMST <- function(centers, outgroup=FALSE, outscale=3) {
 
     mst 
 }
+
+#' @importFrom igraph minimum.spanning.tree E E<- ends get.edge.ids delete.edges
+.estimate_edge_confidence <- function(mst, g) {
+    edges <- E(mst)
+    ends <- ends(mst, edges)
+    reweight <- numeric(length(edges))
+
+    for (i in seq_along(edges)) {
+        id <- get.edge.ids(g, ends[i,])        
+        g.copy <- delete.edges(g, id)
+        mst.copy <- minimum.spanning.tree(g.copy)
+        reweight[i] <- sum(E(mst.copy)$weight)
+    }
+
+    W <- edges$weight
+    total <- sum(W)
+    offset <- min(W)
+    E(mst)$gain <- (reweight - total)/(W + offset/1e8)
+    mst
+}
+
+
 
 #' @export
 #' @rdname createClusterMST
