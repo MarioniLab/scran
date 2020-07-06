@@ -18,8 +18,8 @@
 #' and each column represents a dimension (again, usually a low-dimensional embedding).
 #' @param ids A character vector of length equal to the number of cells,
 #' specifying the cluster to which each cell is assigned.
-#' @param start A string specifying the starting node from which to compute pseudotimes.
-#' Defaults to an arbitrarily chosen node of degree 1.
+#' @param start A character vector specifying the starting node from which to compute pseudotimes in each component of \code{mst}.
+#' Defaults to an arbitrarily chosen node of degree 1 or lower in each component.
 #'
 #' @details
 #' These functions represent some basic utilities for a simple trajectory analysis 
@@ -211,20 +211,32 @@ connectClusterMST <- function(centers, mst, combined=TRUE) {
 
 #' @export
 #' @rdname createClusterMST
-#' @importFrom igraph V degree adjacent_vertices
+#' @importFrom igraph V degree adjacent_vertices components
 orderClusterMST <- function(x, ids, centers, mst, start=NULL) {
+    comp <- components(mst)$membership
+    by.comp <- split(names(comp), comp)
     if (is.null(start)) {
-        start <- names(V(mst)[degree(mst)==1])[1]
+        candidates <- names(V(mst)[degree(mst) <= 1])
+        start <- vapply(by.comp, function(b) intersect(b, candidates)[1], "")
+    } else {
+        start <- as.character(start)
+        for (b in by.comp) {
+            if (length(intersect(b, start))!=1) {
+                stop("'start' must have one cluster in each component of 'mst'")
+            }
+        }
     }
+
     if (!all(ids %in% rownames(centers))) {
         stop("all 'ids' must be in 'rownames(centers)'")
     }
 
     collated <- list()
-    latest <- as.character(start)
-    parents <- NA_character_ 
-    progress <- list(rep(NA_real_, length(ids)))
-    cumulative <- 0
+    latest <- start
+    nstarts <- length(latest)
+    parents <- rep(NA_character_, nstarts)
+    progress <- rep(list(rep(NA_real_, length(ids))), nstarts)
+    cumulative <- numeric(nstarts)
 
     while (length(latest)) {
         new.latest <- new.parents <- character(0)
@@ -276,6 +288,10 @@ orderClusterMST <- function(x, ids, centers, mst, start=NULL) {
     edge.len <- list()
 
     centered <- t(t(points) - center)
+    if (nrow(edge.ends)==0L) {
+        # Return _something_ with a 1-cluster input.
+        return(list(dist=0, pseudo=numeric(nrow(points))))
+    }
 
     # Computing distance of each point from each edge.
     # Edges defined from 'center' to 'edge.ends'.

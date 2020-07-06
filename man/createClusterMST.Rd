@@ -35,8 +35,8 @@ and each column represents a dimension (again, usually a low-dimensional embeddi
 \item{ids}{A character vector of length equal to the number of cells,
 specifying the cluster to which each cell is assigned.}
 
-\item{start}{A string specifying the starting node from which to compute pseudotimes.
-Defaults to an arbitrarily chosen node of degree 1.}
+\item{start}{A character vector specifying the starting node from which to compute pseudotimes in each component of \code{mst}.
+Defaults to an arbitrarily chosen node of degree 1 or lower in each component.}
 }
 \value{
 \code{createClusterMST} returns a \link{graph} object containing an MST computed on \code{centers}.

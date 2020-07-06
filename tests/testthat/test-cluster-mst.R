@@ -174,3 +174,61 @@ test_that("MST ordering is robust to transformations", {
     rotation <- matrix(c(cos(pi/4), sin(pi/4), -sin(pi/4), cos(pi/4)), ncol=2)
     expect_equivalent(ref, orderClusterMST(y %*% rotation, clusters, centers %*% rotation, mst))
 })
+
+set.seed(99000004)
+test_that("MST ordering behaves with multiple components", {
+    centers <- matrix(rnorm(20, sd=3), ncol=2)
+    rownames(centers) <- letters[1:10]
+
+    clusters <- sample(rownames(centers), 1000, replace=TRUE)
+    y <- centers[clusters,,drop=FALSE]
+    y <- y + rnorm(length(y), 0.1)
+
+    mst <- createClusterMST(centers)
+    ref <- orderClusterMST(y, clusters, centers, mst)
+
+    # Doubling everything and seeing if the system recovers the right pseudotimes for each component.
+    doublement <- rbind(centers, centers+100)
+    rownames(doublement) <- c(rownames(centers), paste0(rownames(centers), "0"))
+    y2 <- rbind(y, y+100)
+    clusters2 <- c(clusters, paste0(clusters, "0"))
+
+    # Bumping up 'outscale' to account for fluctuations in 'centers'.
+    mst <- createClusterMST(doublement, outgroup=TRUE, outscale=10)
+    comp <- igraph::components(mst)
+    expect_identical(comp$no, 2L)
+    out <- orderClusterMST(y2, clusters2, doublement, mst)
+
+    original <- !grepl("0", colnames(out))
+    first <- seq_along(clusters)
+    second <- first + length(clusters)
+
+    expect_equivalent(out[first,original], ref)
+    expect_equivalent(out[first,original], out[second,!original])
+    expect_true(all(is.na(out[second,original])))
+    expect_true(all(is.na(out[first,!original])))
+
+    # Test passing of 'start' values. 
+    expect_error(orderClusterMST(y2, clusters2, doublement, mst, start=c("A")), "must have one cluster")
+    by.comp <- split(names(comp$membership), comp$membership)
+    test.starts <- vapply(by.comp, head, n=1, "")
+    expect_error(orderClusterMST(y2, clusters2, doublement, mst, start=test.starts), NA)
+})
+
+set.seed(99000005)
+test_that("MST ordering behaves with multiple components where one has no edges", {
+    centers <- matrix(rep(1:4, 2), ncol=2)
+    centers[4,] <- centers[4,] * 10
+    rownames(centers) <- letters[1:4]
+
+    clusters <- sample(rownames(centers), 1000, replace=TRUE)
+    y <- centers[clusters,,drop=FALSE]
+    y <- y + rnorm(length(y), 0.1)
+
+    mst <- createClusterMST(centers, outgroup=TRUE)
+    expect_equivalent(igraph::degree(mst, "d"), 0L)
+
+    ref <- orderClusterMST(y, clusters, centers, mst)
+    expect_identical(ncol(ref), 2L)    
+    expect_identical(sum(ref[,"d"], na.rm=TRUE), 0)
+})
