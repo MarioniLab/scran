@@ -50,6 +50,26 @@ test_that("clusterRand mimics the original rand index", {
     expect_identical(rand, clusterRand(clust1, clust2, mode="index"))
 })
 
+test_that("clusterRand computes the adjusted Rand index", {
+    tab <- table(clust1, clust2)
+    same1 <- sum(choose(table(clust1), 2))
+    same2 <- sum(choose(table(clust2), 2))
+    total <- choose(length(clust1), 2)
+
+    expected <-  same1 * same2 / total
+    ref <- (sum(choose(tab, 2)) - expected) / (0.5 * (same1 + same2) - expected)
+
+    ari <- clusterRand(clust1, clust2, mode="index", adjusted=TRUE)
+    expect_equal(ari, ref)
+
+    # Not entirely sure why this is true... but whatever!
+    paired <- clusterRand(clust1, clust2, mode="pairs", adjusted=TRUE)
+    expect_equal(ari, sum(paired$correct, na.rm=TRUE)/sum(paired$total, na.rm=TRUE))
+
+    ari <- clusterRand(clust1, clust1, mode="index", adjusted=TRUE)
+    expect_equal(ari, 1)
+})
+
 test_that("clusterRand handles silly inputs", {
     ref <- clusterRand(clust1, clust2)
 

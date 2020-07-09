@@ -4,7 +4,7 @@
 \alias{clusterRand}
 \title{Compute the cluster-wise Rand indices}
 \usage{
-clusterRand(ref, alt, mode = c("ratio", "pairs", "index"))
+clusterRand(ref, alt, mode = c("ratio", "pairs", "index"), adjusted = FALSE)
 }
 \arguments{
 \item{ref}{A character vector or factor containing one set of groupings, considered to be the reference.}
@@ -12,19 +12,23 @@ clusterRand(ref, alt, mode = c("ratio", "pairs", "index"))
 \item{alt}{A character vector or factor containing another set of groupings, to be compared to \code{alt}.}
 
 \item{mode}{String indicating whether to return the ratio, the number of pairs or the Rand index.}
+
+\item{adjusted}{Logical scalar indicating whether the adjusted Rand index should be returned.}
 }
 \value{
-By default, a square numeric matrix with number of rows equal to the number of unique levels in \code{ref}.
-Each diagonal entry represents the ratio of the per-cluster \eqn{a} to the total number of pairs of cells in that cluster.
-Each off-diagonal entry represents the ratio of the per-cluster-pair \eqn{b} to the total number of pairs of cells for that pair of clusters.
+If \code{mode="ratio"}, a square numeric matrix is returned with number of rows equal to the number of unique levels in \code{ref}.
+Each diagonal entry is the ratio of the per-cluster \eqn{a} to the total number of pairs of cells in that cluster.
+Each off-diagonal entry is the ratio of the per-cluster-pair \eqn{b} to the total number of pairs of cells for that pair of clusters.
 Lower-triangular entries are set to \code{NA}.
+If \code{adjusted=TRUE}, counts and totals are both adjusted prior to computing the ratio.
 
 If \code{mode="pairs"}, a list is returned containing \code{correct} and \code{total},
 both of which are square numeric matrices of the same arrangement as described above.
 However, \code{correct} contains the actual numbers \eqn{a} (diagonal) and \eqn{b} (off-diagonal) rather than the ratios,
 while \code{total} contains the total number of cell pairs in each cluster or pair of clusters.
+If \code{adjusted=TRUE}, both matrices are adjusted by subtracting the random expectations from the counts.
 
-If \code{mode="index"}, a numeric scalar is returned containing the Rand index.
+If \code{mode="index"}, a numeric scalar is returned containing the Rand index (or ARI, if \code{adjusted=TRUE}).
 }
 \description{
 Breaks down the Rand index calculation to report values for each cluster and pair of clusters.
@@ -52,6 +56,12 @@ For example, it is now possible to see which specific clusters from \code{ref} a
 or which specific partitions between pairs of clusters are not reproducible.
 In the default output, such events can be diagnosed by looking for low entries in the ratio matrix;
 on the other hand, values close to 1 indicate that \code{ref} is almost perfectly recapitulated by \code{alt}.
+
+If \code{adjusted=TRUE}, we adjust all counts by subtracting their expected values under a model of random permutations.
+This accounts for differences in the number and sizes of clusters within and between \code{ref} and \code{alt},
+in a manner that mimics the calculation of adjusted Rand index (ARI).
+We subtract expectations on a per-cluster or per-cluster-pair basis for \eqn{a} and \eqn{b}, respectively;
+we also redefine the \dQuote{total} number of cell pairs for each cluster or cluster pair based on the denominator of the ARI.
 }
 \examples{
 library(scuttle)
