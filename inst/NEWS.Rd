@@ -4,8 +4,10 @@
 
 \section{Version 1.18.0}{\itemize{
 \item Added the \code{clusterRand()} function to compute a Rand index with cluster-wise decomposition.
+Deprecated \code{coassignProbs()} as this is achieved by \code{clusterRand()} with \code{adjusted=FALSE}.
 
-\item Generalized \code{bootstrapCluster()} to work with any comparison function.
+\item Modified \code{bootstrapCluster()} defaults to use the Rand index calculations.
+Generalized it to work with any comparison function.
 
 \item Added the \code{createClusterMST()} function to create a TSCAN-like MST from cluster centroids.
 Also added the helper functions \code{connectClusterMST()} and \code{orderClusterMST()}.
