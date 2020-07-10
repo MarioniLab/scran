@@ -10,7 +10,7 @@ clust1 <- kmeans(t(logcounts(sce)),3)$cluster
 clust2 <- kmeans(t(logcounts(sce)),5)$cluster
 
 test_that("clusterRand gives the expected output", {
-    ratio <- clusterRand(clust1, clust2)
+    ratio <- clusterRand(clust1, clust2, adjusted=FALSE)
 
     expect_identical(dim(ratio), c(3L, 3L))
     expect_identical(rownames(ratio), as.character(1:3))
@@ -24,12 +24,12 @@ test_that("clusterRand gives the expected output", {
     expect_true(all(vals <= 1))
 
     # Correct values emitted.
-    ratio <- clusterRand(clust1, clust1)
+    ratio <- clusterRand(clust1, clust1, adjusted=FALSE)
     expect_true(all(ratio[upper.tri(ratio, diag=TRUE)]==1))
 })
 
 test_that("clusterRand mimics the original rand index", {
-    full <- clusterRand(clust1, clust2, mode="pairs")
+    full <- clusterRand(clust1, clust2, mode="pairs", adjusted=FALSE)
 
     # Applying a reference calculation.
     status1 <- outer(clust1, clust1, "==")
@@ -47,7 +47,7 @@ test_that("clusterRand mimics the original rand index", {
 
     rand <- sum(full$correct, na.rm=TRUE)/sum(full$total, na.rm=TRUE)
     expect_identical(rand, (a+b)/choose(length(clust1), 2))
-    expect_identical(rand, clusterRand(clust1, clust2, mode="index"))
+    expect_identical(rand, clusterRand(clust1, clust2, mode="index", adjusted=FALSE))
 })
 
 test_that("clusterRand computes the adjusted Rand index", {

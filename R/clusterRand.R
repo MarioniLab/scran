@@ -75,7 +75,7 @@
 #' \code{\link{clusterModularity}}, which applies the same breakdown to the cluster modularity.
 #'
 #' @export
-clusterRand <- function(ref, alt, mode=c("ratio", "pairs", "index"), adjusted=FALSE) {
+clusterRand <- function(ref, alt, mode=c("ratio", "pairs", "index"), adjusted=TRUE) {
     ref <- as.factor(ref)
     alt <- as.factor(alt)
     all.lev <- levels(ref)

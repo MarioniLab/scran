@@ -4,7 +4,7 @@
 \alias{clusterRand}
 \title{Compute the cluster-wise Rand indices}
 \usage{
-clusterRand(ref, alt, mode = c("ratio", "pairs", "index"), adjusted = FALSE)
+clusterRand(ref, alt, mode = c("ratio", "pairs", "index"), adjusted = TRUE)
 }
 \arguments{
 \item{ref}{A character vector or factor containing one set of groupings, considered to be the reference.}
