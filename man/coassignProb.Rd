@@ -20,6 +20,7 @@ Otherwise, a \linkS4class{DataFrame} is returned with one row per label in \code
 }
 \description{
 Compute coassignment probabilities for each label in a reference grouping when compared to an alternative grouping of samples.
+This is now deprecated for \code{\link{clusterRand}}.
 }
 \details{
 The coassignment probability for each pair of labels in \code{ref} is the probability that a randomly chosen cell from each of the two reference labels will have the same label in \code{alt}.
@@ -37,7 +38,7 @@ In general, \code{ref} is well-recapitulated by \code{alt} if the diagonal entri
 This manifests as higher values for the self probabilities compared to the other probabilities.
 
 Note that the coassignment probability is closely related to the Rand index-based ratios  
-broken down by cluster pair in \code{\link{clusterRand}} with \code{mode="ratio"}.
+broken down by cluster pair in \code{\link{clusterRand}} with \code{mode="ratio"} and \code{adjusted=FALSE}.
 The off-diagonal coassignment probabilities are simply 1 minus the off-diagonal ratio, 
 while the on-diagonal values differ only by the lack of consideration of pairs of the same cell in \code{\link{clusterRand}}.
 }

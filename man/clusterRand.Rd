@@ -82,8 +82,6 @@ clusterRand(clust1, clust2, mode="index")
 
 }
 \seealso{
-\code{\link{coassignProb}}, for another way of comparing two clusterings.
-
 \code{\link{clusterModularity}}, which applies the same breakdown to the cluster modularity.
 }
 \author{

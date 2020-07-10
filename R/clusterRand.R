@@ -2,7 +2,8 @@
 #'
 #' Breaks down the Rand index calculation to report values for each cluster and pair of clusters.
 #'
-#' @inheritParams coassignProb
+#' @param ref A character vector or factor containing one set of groupings, considered to be the reference.
+#' @param alt A character vector or factor containing another set of groupings, to be compared to \code{alt}.
 #' @param mode String indicating whether to return the ratio, the number of pairs or the Rand index.
 #' @param adjusted Logical scalar indicating whether the adjusted Rand index should be returned.
 #'
@@ -70,8 +71,6 @@
 #' clusterRand(clust1, clust2, mode="index")
 #'
 #' @seealso
-#' \code{\link{coassignProb}}, for another way of comparing two clusterings.
-#'
 #' \code{\link{clusterModularity}}, which applies the same breakdown to the cluster modularity.
 #'
 #' @export
