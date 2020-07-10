@@ -14,16 +14,16 @@ test_that("bootstrapCluster works correctly with clear separation", {
     dummy[601:900,known.clusters==3L] <- 0
 
     output <- bootstrapCluster(dummy, FUN=function(x) { kmeans(t(log10(x+1)), 3)$cluster })
-    expect_true(all(output[upper.tri(output, diag=FALSE)] <= 0.1))
+    expect_true(all(output[upper.tri(output, diag=FALSE)] > 0.5))
     expect_true(all(diag(output) > 0.5))
 
     # Continues to work if vector is a character or factor.
     output <- bootstrapCluster(dummy, FUN=function(x) { c("X", "Y", "Z")[kmeans(t(log10(x+1)), 3)$cluster] })
-    expect_true(all(output[upper.tri(output, diag=FALSE)] <= 0.1))
+    expect_true(all(output[upper.tri(output, diag=FALSE)] > 0.5))
     expect_true(all(diag(output) > 0.5))
 
     output <- bootstrapCluster(dummy, FUN=function(x) { factor(kmeans(t(log10(x+1)), 3)$cluster) })
-    expect_true(all(output[upper.tri(output, diag=FALSE)] <= 0.1))
+    expect_true(all(output[upper.tri(output, diag=FALSE)] > 0.5))
     expect_true(all(diag(output) > 0.5))
 })
 
@@ -31,8 +31,11 @@ set.seed(500002)
 test_that("bootstrapCluster works correctly with poor separation", {
     dummy <- matrix(rnbinom(ncells*ngenes, mu=10, size=20), ncol=ncells, nrow=ngenes)
     output <- bootstrapCluster(dummy, FUN=function(x) { kmeans(t(log10(x+1)), 3)$cluster })
-    expect_true(all(output[upper.tri(output, diag=TRUE)] > 0.2))
-    expect_true(all(diag(output) < 0.8))
+
+    expect_true(all(output[upper.tri(output, diag=TRUE)] < 0.1))
+    expect_true(all(output[upper.tri(output, diag=TRUE)] > -0.1))
+    expect_true(all(diag(output) < 0.1))
+    expect_true(all(diag(output) > -0.1))
 })
 
 set.seed(500003)
@@ -66,11 +69,6 @@ test_that("bootstrapCluster works with alternative comparison functions", {
     output <- bootstrapCluster(dummy, FUN=function(x) { kmeans(x, 3)$cluster }, compare=clusterRand)
     expect_true(all(is.na(output[lower.tri(output)])))
     expect_true(all(!is.na(output[!lower.tri(output)])))
-
-    # Unaffected by summarize.
-    set.seed(10)
-    ref <- bootstrapCluster(dummy, FUN=function(x) { kmeans(x, 3)$cluster }, compare=clusterRand, summarize=TRUE)
-    expect_identical(output, ref)
 })
 
 set.seed(500004)
@@ -80,11 +78,8 @@ test_that("other miscellaneous tests for bootstrapCluster", {
     set.seed(20)
     ref <- bootstrapCluster(dummy, FUN=function(x) { kmeans(x, 3)$cluster }, transposed=TRUE)
     set.seed(20)
-    output <- bootstrapCluster(dummy, FUN=function(x) { kmeans(x, 3)$cluster }, transposed=TRUE, summarize=TRUE)
+    output <- bootstrapCluster(dummy, FUN=function(x) { kmeans(x, 3)$cluster }, transposed=TRUE)
     
-    expect_identical(rownames(ref), rownames(output))
-    expect_identical(unname(diag(ref)), output$self)
-    expect_true(!isTRUE(all.equal(output$self, output$other)))
-
+    expect_identical(ref, output)
     expect_error(bootstrapCluster(dummy, FUN=function(x) { seq_len(ncol(x)) }, iterations=0), "positive")
 })
