@@ -17,6 +17,11 @@ test_that("bootstrapCluster works correctly with clear separation", {
     expect_true(all(output[upper.tri(output, diag=FALSE)] > 0.5))
     expect_true(all(diag(output) > 0.5))
 
+    # Works with the mean.
+    output <- bootstrapCluster(dummy, FUN=function(x) { kmeans(t(log10(x+1)), 3)$cluster }, average="mean")
+    expect_true(all(output[upper.tri(output, diag=FALSE)] > 0.5))
+    expect_true(all(diag(output) > 0.5))
+
     # Continues to work if vector is a character or factor.
     output <- bootstrapCluster(dummy, FUN=function(x) { c("X", "Y", "Z")[kmeans(t(log10(x+1)), 3)$cluster] })
     expect_true(all(output[upper.tri(output, diag=FALSE)] > 0.5))
@@ -32,6 +37,13 @@ test_that("bootstrapCluster works correctly with poor separation", {
     dummy <- matrix(rnbinom(ncells*ngenes, mu=10, size=20), ncol=ncells, nrow=ngenes)
     output <- bootstrapCluster(dummy, FUN=function(x) { kmeans(t(log10(x+1)), 3)$cluster })
 
+    expect_true(all(output[upper.tri(output, diag=TRUE)] < 0.1))
+    expect_true(all(output[upper.tri(output, diag=TRUE)] > -0.1))
+    expect_true(all(diag(output) < 0.1))
+    expect_true(all(diag(output) > -0.1))
+
+    # Works with the mean.
+    output <- bootstrapCluster(dummy, FUN=function(x) { kmeans(t(log10(x+1)), 3)$cluster }, average="mean")
     expect_true(all(output[upper.tri(output, diag=TRUE)] < 0.1))
     expect_true(all(output[upper.tri(output, diag=TRUE)] > -0.1))
     expect_true(all(diag(output) < 0.1))

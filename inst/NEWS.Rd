@@ -7,6 +7,7 @@
 Deprecated \code{coassignProbs()} as this is achieved by \code{clusterRand()} with \code{adjusted=FALSE}.
 
 \item Modified \code{bootstrapCluster()} defaults to use the Rand index calculations.
+Added an \code{average=} argument to control the averaging method across iterations, with median as a default.
 Generalized it to work with any comparison function.
 
 \item Added the \code{createClusterMST()} function to create a TSCAN-like MST from cluster centroids.

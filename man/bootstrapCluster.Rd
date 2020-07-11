@@ -10,6 +10,7 @@ bootstrapCluster(
   clusters = NULL,
   transposed = FALSE,
   iterations = 20,
+  average = c("median", "mean"),
   ...,
   compare = NULL,
   mode = "ratio",
@@ -32,6 +33,8 @@ in which case we can save a single round of computation.}
 \item{transposed}{Logical scalar indicating whether \code{x} is transposed with cells in the rows.}
 
 \item{iterations}{A positive integer scalar specifying the number of bootstrap iterations.}
+
+\item{average}{String specifying the method to use to average across bootstrap iterations.}
 
 \item{...}{Further arguments to pass to \code{FUN} to control the clustering procedure.}
 

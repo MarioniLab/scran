@@ -13,6 +13,7 @@
 #' in which case we can save a single round of computation.
 #' @param transposed Logical scalar indicating whether \code{x} is transposed with cells in the rows.
 #' @param iterations A positive integer scalar specifying the number of bootstrap iterations.
+#' @param average String specifying the method to use to average across bootstrap iterations.
 #' @param ... Further arguments to pass to \code{FUN} to control the clustering procedure.
 #' @param compare A function that accepts the original clustering and the bootstrapped clustering,
 #' and returns a numeric vector or matrix containing some measure of similarity between them - see Details.
@@ -88,7 +89,10 @@
 #' \code{\link{clusterRand}}, for the calculation of the ARI.
 #' 
 #' @export
-bootstrapCluster <- function(x, FUN, clusters=NULL, transposed=FALSE, iterations=20, ..., compare=NULL, mode="ratio", adjusted=TRUE) {
+#' @importFrom DelayedMatrixStats rowMedians
+bootstrapCluster <- function(x, FUN, clusters=NULL, transposed=FALSE, iterations=20, 
+    average=c("median", "mean"), ..., compare=NULL, mode="ratio", adjusted=TRUE)
+{
     if (is.null(clusters)) {
         clusters <- FUN(x, ...)
     }
@@ -122,7 +126,14 @@ bootstrapCluster <- function(x, FUN, clusters=NULL, transposed=FALSE, iterations
     }
 
     as.mat <- do.call(cbind, lapply(collated, as.numeric))
-    averaged <- rowMeans(as.mat, na.rm=TRUE)
+
+    average <- match.arg(average)
+    if (average=="mean") {
+        averaged <- rowMeans(as.mat, na.rm=TRUE)
+    } else {
+        averaged <- rowMedians(as.mat, na.rm=TRUE)
+    }
+
     dim(averaged) <- dim(collated[[1]])
     dimnames(averaged) <- dimnames(collated[[1]])
     averaged 
