@@ -10,13 +10,15 @@ pseudoBulkDGE(x, ...)
 
 \S4method{pseudoBulkDGE}{ANY}(
   x,
-  sample,
+  data,
   label,
   design,
-  coef = ncol(design),
+  coef,
   contrast = NULL,
   condition = NULL,
-  lfc = 0
+  lfc = 0,
+  include.intermediates = FALSE,
+  sample = NULL
 )
 
 \S4method{pseudoBulkDGE}{SummarizedExperiment}(x, ..., assay.type = 1)
@@ -30,25 +32,29 @@ For the \linkS4class{SummarizedExperiment} method, a SummarizedExperiment object
 
 For the SummarizedExperiment method, additional arguments to pass to the ANY method.}
 
-\item{sample}{A vector or factor of length equal to \code{ncol(x)},
-specifying the sample of origin for each column of \code{x}.}
+\item{data}{A data.frame or \linkS4class{DataFrame} containing metadata for each column of \code{x}.}
 
 \item{label}{A vector of factor of length equal to \code{ncol(x)},
 specifying the cluster or cell type assignment for each column of \code{x}.}
 
-\item{design}{A numeric matrix containing the experimental design for the multi-sample comparison.
-The number of rows should be equal to the total number of samples and the row names should be unique levels of \code{samples}.}
+\item{design}{A formula to be used to construct a design matrix from variables in \code{data}.
+Alternatively, a function that accepts a data.frame with the same fields as \code{data} and returns a design matrix.}
 
-\item{coef}{Integer scalar or vector indicating the coefficients to drop from \code{design} to form the null hypothesis.}
+\item{coef}{String or character vector containing the coefficients to drop from the design matrix to form the null hypothesis.
+Can also be an integer scalar or vector specifying the indices of the relevant columns.}
 
 \item{contrast}{Numeric vector or matrix containing the contrast of interest.
 Takes precedence over \code{coef}.}
 
-\item{condition}{A vector or factor of length equal to \code{nrow(design)},
-specifying the experimental condition for each sample (i.e., row of \code{design}).
-Only used for filtering.}
+\item{condition}{A vector or factor of length equal to \code{ncol(x)},
+specifying the experimental condition for each column of \code{x}.
+Only used for abundance-based filtering of genes.}
 
 \item{lfc}{Numeric scalar specifying the log-fold change threshold to use in \code{\link{glmTreat}}.}
+
+\item{include.intermediates}{Logical scalar indicating whether the intermediate \pkg{edgeR} objects should be returned.}
+
+\item{sample}{Deprecated.}
 
 \item{assay.type}{String or integer scalar specifying the assay to use from \code{x}.}
 }
@@ -60,7 +66,11 @@ All DataFrames have row names equal to \code{rownames(x)}.
 
 The \code{\link{metadata}} of the List contains \code{failed},
 a character vector with the names of the labels for which the comparison could not be performed,
-e.g., due to lack of residual d.f.
+e.g., due to lack of residual d.f. 
+
+If \code{include.intermediates}, the \code{\link{metadata}} of the individual DataFrames will also contain
+\code{y}, the DGEList used for the analysis; and \code{fit}, the DGEGLM object after GLM fitting.
+\code{fit} may not be reported if the corresponding label is in \code{failed}.
 }
 \description{
 A wrapper function around \pkg{edgeR}'s quasi-likelihood methods
@@ -87,14 +97,14 @@ Pseudo-bulk analysis also allows direct modelling of variability between experim
 rather than that between cells in the same sample.
 The former is more relevant to any statistical analysis that aims to obtain reproducible results.
 
-In some cases, it will be impossible to perform an \pkg{edgeR} analysis as there are no residual degrees of freedom.
+In some cases, it will be impossible to perform a DE analysis for a label as there are no residual degrees of freedom.
 This will be represented by a DataFrame with log-fold changes but \code{NA} p-values and FDRs.
-In other cases, all statistics in the DataFrame will be \code{NA} if the contrast cannot be performed,
-e.g., if a cell type only exists in one condition.
+In other cases, all statistics in the DataFrame will be \code{NA} if the contrast cannot be performed
+(e.g., if a cell type only exists in one condition) or if the design matrix could not be constructed.
 
 Note that we assume that \code{x} has already been filtered to remove unstable pseudo-bulk profiles generated from few cells.
 }
-\section{Comment on abundance filtering}{
+\section{Comments on abundance filtering}{
 
 For each label, abundance filtering is performed using \code{\link{filterByExpr}} prior to further analysis.
 Genes that are filtered out will still show up in the DataFrame for that label, but with all statistics set to \code{NA}.
@@ -104,19 +114,8 @@ which is largely to be expected if there is any label-specific expression.
 By default, the minimum group size for \code{filterByExpr} is determined using the design matrix.
 However, this may not be optimal if the design matrix contains additional terms (e.g., blocking factors)
 in which case it is not easy to determine the minimum size of the groups relevant to the comparison of interest.
-To overcome this, users can specify \code{condition} to specify the group to which each sample belongs,
-which is passed to \code{filterByExpr} via its \code{group} argument to obtain a more appropriate minimum group size.
-}
-
-\section{Note about the design matrix}{
-
-We require the user to supply a design matrix and contrast for safety's sake.
-Technically, we could accept a formula and dynamically construct the design matrix for each label,
-which would be more convenient by avoiding the need for up-front construction.
-We do not do this as it can silently give incorrect results if the dimensions of the design matrix change between labels,
-especially if different labels have different numbers of pseudo-bulk profiles after QC filtering.
-The most obvious example is when the number of blocking levels change between labels,
-altering the identity of the column corresponding to the contrast of interest.
+To overcome this, users can specify \code{condition.field} to specify the group to which each sample belongs,
+which is used by \code{filterByExpr} to obtain a more appropriate minimum group size.
 }
 
 \examples{
@@ -133,17 +132,18 @@ clusters <- kmeans(t(logcounts(sce)), centers=3)$cluster
 info <- DataFrame(sample=sce$samples, cluster=clusters)
 pseudo <- sumCountsAcrossCells(sce, info)
 
-# Determining the experimental design for our 8 samples.
-DRUG <- gl(2,4)
-design <- model.matrix(~DRUG)
-rownames(design) <- seq_len(8)
+# Making up an experimental design for our 8 samples.
+pseudo$DRUG <- gl(2,4)
 
 # DGE analysis:
 out <- pseudoBulkDGE(pseudo, 
-   sample=pseudo$sample, 
    label=pseudo$cluster,
-   design=design
+   condition=pseudo$DRUG,
+   design=~DRUG,
+   coef="DRUG2"
 )
+out[[1]]
+metadata(out[[1]])
 }
 \references{
 Tung P-Y et al. (2017).

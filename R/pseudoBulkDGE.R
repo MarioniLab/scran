@@ -7,25 +7,25 @@
 #' @param x For the ANY method, a numeric matrix of counts where rows are genes and columns are pseudo-bulk profiles.
 #'
 #' For the \linkS4class{SummarizedExperiment} method, a SummarizedExperiment object containing such a matrix in its assays.
-#' @param sample A vector or factor of length equal to \code{ncol(x)},
-#' specifying the sample of origin for each column of \code{x}.
+#' @param data A data.frame or \linkS4class{DataFrame} containing metadata for each column of \code{x}.
 #' @param label A vector of factor of length equal to \code{ncol(x)},
 #' specifying the cluster or cell type assignment for each column of \code{x}.
-#' @param design 
-#' A numeric matrix containing the experimental design for the multi-sample comparison.
-#' The number of rows should be equal to the total number of samples and the row names should be unique levels of \code{samples}.
-#' @param condition 
-#' A vector or factor of length equal to \code{nrow(design)},
-#' specifying the experimental condition for each sample (i.e., row of \code{design}).
-#' Only used for filtering.
-#' @param coef Integer scalar or vector indicating the coefficients to drop from \code{design} to form the null hypothesis.
+#' @param design A formula to be used to construct a design matrix from variables in \code{data}.
+#' Alternatively, a function that accepts a data.frame with the same fields as \code{data} and returns a design matrix.
+#' @param condition A vector or factor of length equal to \code{ncol(x)},
+#' specifying the experimental condition for each column of \code{x}.
+#' Only used for abundance-based filtering of genes.
+#' @param coef String or character vector containing the coefficients to drop from the design matrix to form the null hypothesis.
+#' Can also be an integer scalar or vector specifying the indices of the relevant columns.
 #' @param contrast Numeric vector or matrix containing the contrast of interest.
 #' Takes precedence over \code{coef}.
 #' @param lfc Numeric scalar specifying the log-fold change threshold to use in \code{\link{glmTreat}}.
 #' @param assay.type String or integer scalar specifying the assay to use from \code{x}.
+#' @param include.intermediates Logical scalar indicating whether the intermediate \pkg{edgeR} objects should be returned.
 #' @param ... For the generic, additional arguments to pass to individual methods.
 #'
 #' For the SummarizedExperiment method, additional arguments to pass to the ANY method.
+#' @param sample Deprecated.
 #' 
 #' @return A \linkS4class{List} with one \linkS4class{DataFrame} of DE results per unique level of \code{cluster}.
 #' This will contain at least the fields \code{"LogCPM"}, \code{"PValue"} and \code{"FDR"},
@@ -36,6 +36,10 @@
 #' a character vector with the names of the labels for which the comparison could not be performed,
 #' e.g., due to lack of residual d.f. 
 #'
+#' If \code{include.intermediates}, the \code{\link{metadata}} of the individual DataFrames will also contain
+#' \code{y}, the DGEList used for the analysis; and \code{fit}, the DGEGLM object after GLM fitting.
+#' \code{fit} may not be reported if the corresponding label is in \code{failed}.
+#' 
 #' @details
 #' In replicated multi-condition scRNA-seq experiments,
 #' we often have clusters comprised of cells from different samples of different experimental conditions.
@@ -56,14 +60,14 @@
 #' rather than that between cells in the same sample.
 #' The former is more relevant to any statistical analysis that aims to obtain reproducible results.
 #'
-#' In some cases, it will be impossible to perform an \pkg{edgeR} analysis as there are no residual degrees of freedom.
+#' In some cases, it will be impossible to perform a DE analysis for a label as there are no residual degrees of freedom.
 #' This will be represented by a DataFrame with log-fold changes but \code{NA} p-values and FDRs.
-#' In other cases, all statistics in the DataFrame will be \code{NA} if the contrast cannot be performed,
-#' e.g., if a cell type only exists in one condition.
+#' In other cases, all statistics in the DataFrame will be \code{NA} if the contrast cannot be performed
+#' (e.g., if a cell type only exists in one condition) or if the design matrix could not be constructed.
 #'
 #' Note that we assume that \code{x} has already been filtered to remove unstable pseudo-bulk profiles generated from few cells.
 #'
-#' @section Comment on abundance filtering:
+#' @section Comments on abundance filtering:
 #' For each label, abundance filtering is performed using \code{\link{filterByExpr}} prior to further analysis.
 #' Genes that are filtered out will still show up in the DataFrame for that label, but with all statistics set to \code{NA}.
 #' As this is done separately for each label, a different set of genes may be filtered out for each label,
@@ -72,17 +76,8 @@
 #' By default, the minimum group size for \code{filterByExpr} is determined using the design matrix.
 #' However, this may not be optimal if the design matrix contains additional terms (e.g., blocking factors)
 #' in which case it is not easy to determine the minimum size of the groups relevant to the comparison of interest.
-#' To overcome this, users can specify \code{condition} to specify the group to which each sample belongs,
-#' which is passed to \code{filterByExpr} via its \code{group} argument to obtain a more appropriate minimum group size.
-#' 
-#' @section Note about the design matrix:
-#' We require the user to supply a design matrix and contrast for safety's sake.
-#' Technically, we could accept a formula and dynamically construct the design matrix for each label,
-#' which would be more convenient by avoiding the need for up-front construction.
-#' We do not do this as it can silently give incorrect results if the dimensions of the design matrix change between labels,
-#' especially if different labels have different numbers of pseudo-bulk profiles after QC filtering.
-#' The most obvious example is when the number of blocking levels change between labels,
-#' altering the identity of the column corresponding to the contrast of interest.
+#' To overcome this, users can specify \code{condition.field} to specify the group to which each sample belongs,
+#' which is used by \code{filterByExpr} to obtain a more appropriate minimum group size.
 #' 
 #' @author Aaron Lun
 #'
@@ -113,17 +108,18 @@
 #' info <- DataFrame(sample=sce$samples, cluster=clusters)
 #' pseudo <- sumCountsAcrossCells(sce, info)
 #'
-#' # Determining the experimental design for our 8 samples.
-#' DRUG <- gl(2,4)
-#' design <- model.matrix(~DRUG)
-#' rownames(design) <- seq_len(8)
+#' # Making up an experimental design for our 8 samples.
+#' pseudo$DRUG <- gl(2,4)
 #' 
 #' # DGE analysis:
 #' out <- pseudoBulkDGE(pseudo, 
-#'    sample=pseudo$sample, 
 #'    label=pseudo$cluster,
-#'    design=design
+#'    condition=pseudo$DRUG,
+#'    design=~DRUG,
+#'    coef="DRUG2"
 #' )
+#' out[[1]]
+#' metadata(out[[1]])
 #' @seealso
 #' \code{\link{sumCountsAcrossCells}}, to easily generate the pseudo-bulk count matrix.
 #'
@@ -133,9 +129,73 @@
 #' @name pseudoBulkDGE
 NULL
 
+.pseudo_bulk_master <- function(x, data, label, design, coef, contrast=NULL, 
+    condition=NULL, lfc=0, include.intermediates=FALSE, sample=NULL)
+{
+    if (is.function(design) || is(design, "formula")) {
+        .pseudo_bulk_dge(x=x, data=data, label=label, condition=condition,
+            design=design, coef=coef, contrast=contrast, lfc=lfc)
+    } else {
+        .Deprecated(msg="matrix arguments for 'design=' are deprecated. \nUse functions or formulas instead.")
+        .pseudo_bulk_old(x=x, label=label, sample=sample, design=design, condition=condition,
+            coef=coef, contrast=contrast, lfc=lfc) 
+    }
+}
+
+#' @importFrom edgeR DGEList 
 #' @importFrom S4Vectors DataFrame List metadata metadata<-
-#' @importFrom edgeR DGEList estimateDisp glmQLFit glmQLFTest calcNormFactors filterByExpr topTags glmLRT glmFit glmTreat
-.pseudo_bulk_dge <- function(x, sample, label, design, coef=ncol(design), contrast=NULL, condition=NULL, lfc=0) {
+.pseudo_bulk_dge <- function(x, data, label, design, coef, contrast=NULL, 
+    condition=NULL, lfc=0, include.intermediates=FALSE) 
+{
+    de.results <- list()
+    failed <- character(0)
+    label <- as.character(label)
+
+    for (i in sort(unique(label))) {
+        chosen <- i==label
+
+        curx <- x[,chosen,drop=FALSE]
+        curdata <- data[chosen,,drop=FALSE]
+        y <- DGEList(curx, samples=as.data.frame(curdata))
+        curcond <- condition[chosen]
+
+        curdesign <- try({
+            if (is.function(design)) {
+                design(curdata)
+            } else {
+                model.matrix(design, data=curdata)
+            }
+        }, silent=TRUE)
+
+        if (is(curdesign, "try-error")) {
+            de.out <- list(failed=TRUE, result=.create_empty_de(nrow(x), rownames(x), lfc))
+        } else {
+            de.out <- .pseudo_bulk_inner(y, row.names=rownames(x), curdesign=curdesign, curcond=curcond,
+                coef=coef, contrast=contrast, lfc=lfc, include.intermediates=include.intermediates)
+        }
+
+        if (de.out$failed) {
+            failed <- c(failed, i)
+        }
+        de.results[[i]] <- de.out$result
+    }
+
+    output <- List(de.results)
+    metadata(output)$failed <- failed
+    output
+}
+
+#' @importFrom S4Vectors DataFrame
+.create_empty_de <- function(ngenes, row.names, lfc) {
+    refnames <- c("logFC", if (lfc!=0) "unshrunk.logFC", "logCPM", "PValue", "LR", "FDR")
+    empty <- lapply(refnames, function(i) rep(NA_real_, ngenes))
+    names(empty) <- refnames
+    DataFrame(empty, row.names=row.names)
+}
+
+#' @importFrom edgeR DGEList 
+#' @importFrom S4Vectors DataFrame List metadata metadata<-
+.pseudo_bulk_old <- function(x, sample, label, design, coef, contrast=NULL, condition=NULL, lfc=0) {
     sample <- as.character(sample)
     label <- as.character(label)
 
@@ -156,54 +216,77 @@ NULL
         curdesign <- design[m,,drop=FALSE]
         curcond <- condition[m]
 
-        gkeep <- filterByExpr(y, design=curdesign, group=curcond)
-        y <- y[gkeep,]
-        y <- calcNormFactors(y)
+        de.out <- .pseudo_bulk_inner(y, curdesign=curdesign, curcond=curcond,
+            coef=coef, contrast=contrast, lfc=lfc)
 
-        rank <- qr(curdesign)$rank
-        if (rank == nrow(curdesign) || rank < ncol(curdesign)) { 
+        if (de.out$failed) {
             failed <- c(failed, i)
-
-            res <- try({ 
-                fit <- glmFit(y, curdesign, dispersion=0.05)
-                if (lfc==0) {
-                    glmLRT(fit, coef=coef, contrast=contrast)
-                } else {
-                    glmTreat(fit, lfc=lfc, coef=coef, contrast=contrast)
-                }
-            }, silent=TRUE)
-
-            if (is(res, "try-error")) {
-                refnames <- c("logFC", if (lfc!=0) "unshrunk.logFC", "logCPM", "PValue", "LR", "FDR")
-                empty <- lapply(refnames, function(i) rep(NA_real_, nrow(x)))
-                names(empty) <- refnames
-                empty <- DataFrame(empty, row.names=rownames(x))
-                de.results[[i]] <- empty
-                next
-            } else {
-                res$table$PValue <- rep(NA_real_, nrow(res$table))
-            }
-        } else {
-            y <- estimateDisp(y, curdesign)
-            fit <- glmQLFit(y, curdesign, robust=TRUE)
-
-            if (lfc==0) {
-                res <- glmQLFTest(fit, coef=coef, contrast=contrast)
-            } else {
-                res <- glmTreat(fit, lfc=lfc, coef=coef, contrast=contrast)
-            }
         }
-
-        tab <- topTags(res, n=Inf, sort.by="none")
-        expander <- match(seq_len(nrow(x)), which(gkeep))
-        tab <- DataFrame(tab$table[expander,,drop=FALSE])
-        rownames(tab) <- rownames(x)
-        de.results[[i]] <- tab
+        de.results[[i]] <- de.out$result
     }
 
     output <- List(de.results)
     metadata(output)$failed <- failed
     output
+}
+
+#' @importFrom S4Vectors DataFrame metadata metadata<-
+#' @importFrom edgeR estimateDisp glmQLFit glmQLFTest 
+#' calcNormFactors filterByExpr topTags glmLRT glmFit glmTreat
+.pseudo_bulk_inner <- function(y, row.names, curdesign, curcond, coef, contrast, lfc, include.intermediates) {
+    ngenes <- nrow(y)
+    gkeep <- filterByExpr(y, design=curdesign, group=curcond)
+    y <- y[gkeep,]
+    y <- calcNormFactors(y)
+
+    FORMATTER <- function(res) {
+        tab <- topTags(res, n=Inf, sort.by="none")
+        expander <- match(seq_len(ngenes), which(gkeep))
+        tab <- DataFrame(tab$table[expander,,drop=FALSE])
+        rownames(tab) <- row.names
+        tab
+    }
+
+    rank <- qr(curdesign)$rank
+    failed <- FALSE
+    if (rank == nrow(curdesign) || rank < ncol(curdesign)) { 
+        failed <- TRUE
+
+        res <- try({ 
+            fit <- glmFit(y, curdesign, dispersion=0.05)
+            if (lfc==0) {
+                glmLRT(fit, coef=coef, contrast=contrast)
+            } else {
+                glmTreat(fit, lfc=lfc, coef=coef, contrast=contrast)
+            }
+        }, silent=TRUE)
+
+        if (is(res, "try-error")) {
+            res <- .create_empty_de(ngenes, row.names, lfc)
+        } else {
+            res$table$PValue <- rep(NA_real_, nrow(res$table))
+            res <- FORMATTER(res)
+        }
+
+    } else {
+        y <- estimateDisp(y, curdesign)
+        fit <- glmQLFit(y, curdesign, robust=TRUE)
+
+        if (lfc==0) {
+            res <- glmQLFTest(fit, coef=coef, contrast=contrast)
+        } else {
+            res <- glmTreat(fit, lfc=lfc, coef=coef, contrast=contrast)
+        }
+        res <- FORMATTER(res)
+    }
+
+    metadata(res)$design <- curdesign
+    if (include.intermediates) {
+        metadata(res)$y <- y
+        try(metadata(res)$fit <- fit, silent=TRUE) # need to protect against potential absence.
+    }
+
+    list(failed=failed, result=res)
 }
 
 #' @export
@@ -212,11 +295,11 @@ setGeneric("pseudoBulkDGE", function(x, ...) standardGeneric("pseudoBulkDGE"))
 
 #' @export
 #' @rdname pseudoBulkDGE
-setMethod("pseudoBulkDGE", "ANY", .pseudo_bulk_dge)
+setMethod("pseudoBulkDGE", "ANY", .pseudo_bulk_master)
 
 #' @export
 #' @rdname pseudoBulkDGE
-#' @importFrom SummarizedExperiment assay
+#' @importFrom SummarizedExperiment assay colData
 setMethod("pseudoBulkDGE", "SummarizedExperiment", function(x, ..., assay.type=1) {
-    .pseudo_bulk_dge(assay(x, assay.type), ...)
+    .pseudo_bulk_master(assay(x, assay.type), data=colData(x), ...)
 })

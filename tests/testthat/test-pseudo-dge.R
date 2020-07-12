@@ -13,23 +13,19 @@ clusters <- kmeans(t(logcounts(sce)), centers=3)$cluster
 # Creating a set of pseudo-bulk profiles:
 info <- DataFrame(sample=sce$samples, cluster=clusters)
 pseudo <- sumCountsAcrossCells(sce, info)
-
-# Determining the experimental design for our 8 samples.
-DRUG <- gl(2,4)
-design <- model.matrix(~DRUG)
-rownames(design) <- seq_len(8)
+pseudo$DRUG <- gl(2,4)[pseudo$sample]
 
 test_that("pseudoBulkDGE works correctly in vanilla cases", {
     # Spiking in DE for all clusters.
     pseudo2 <- pseudo
-    xDRUG <- DRUG[as.integer(pseudo$sample)]
+    xDRUG <- pseudo$DRUG
     assay(pseudo2)[1,xDRUG==1] <- assay(pseudo2)[1,xDRUG==1] * 100
     assay(pseudo2)[2,xDRUG==2] <- assay(pseudo2)[2,xDRUG==2] * 100
 
     out <- pseudoBulkDGE(pseudo2, 
-       sample=pseudo2$sample, 
        label=pseudo2$cluster,
-       design=design
+       design=~DRUG,
+       coef="DRUG2"
     )
 
     expect_identical(names(out), as.character(sort(unique(clusters))))
@@ -44,28 +40,31 @@ test_that("pseudoBulkDGE works correctly in vanilla cases", {
 
     # Spiking in DE for just one cluster.
     pseudo2 <- pseudo
-    xDRUG <- DRUG[as.integer(pseudo$sample)]
+    xDRUG <- pseudo$DRUG
     affected <- xDRUG==1 & pseudo2$cluster==2
     assay(pseudo2)[1,] <- 20 + as.integer(affected) * 100
 
     out <- pseudoBulkDGE(pseudo2,
-       sample=pseudo2$sample,
        label=pseudo2$cluster,
-       design=design
+       design=~DRUG,
+       coef="DRUG2"
     )
 
     expect_true(out[[1]]$PValue[1] > 0.5)
     expect_true(out[[2]]$PValue[1] < 0.05)
     expect_true(out[[3]]$PValue[1] > 0.5)
 
+    # Handles design matrices as functions.
+    out2 <- pseudoBulkDGE(pseudo2, label=pseudo2$cluster, 
+        design=function(x) model.matrix(~DRUG, x), coef="DRUG2")
+
+    expect_identical(out, out2)
+
     # Spits the dummy correctly.
-    expect_error(
-        pseudoBulkDGE(pseudo2,
-            sample=pseudo2$sample,
-            label=pseudo2$cluster,
-            design=design[1:2,]
-        ), "should have the same"
-    )
+    out <- pseudoBulkDGE(pseudo2, label=pseudo2$cluster, design=~BLAH)
+    expect_true(all(is.na(out[[1]]$PValue)))
+    expect_true(all(is.na(out[[2]]$PValue)))
+    expect_true(all(is.na(out[[3]]$PValue)))
 })
 
 test_that("pseudoBulkDGE handles the gene filtering correctly", {
@@ -74,15 +73,15 @@ test_that("pseudoBulkDGE handles the gene filtering correctly", {
     assay(pseudo2)[discard,] <- 0
 
     out <- pseudoBulkDGE(pseudo2, 
-        sample=pseudo2$sample, 
         label=pseudo2$cluster,
-        design=design
+        design=~DRUG,
+        coef="DRUG2"
     )
 
     ref <- pseudoBulkDGE(pseudo2[-discard,], 
-        sample=pseudo2$sample, 
         label=pseudo2$cluster,
-        design=design
+        design=~DRUG,
+        coef="DRUG2"
     )
 
     for (i in names(out)) {
@@ -91,10 +90,10 @@ test_that("pseudoBulkDGE handles the gene filtering correctly", {
 
     # Setting the group works.
     out2 <- pseudoBulkDGE(pseudo2,
-        sample=pseudo$sample, 
-        label=pseudo$cluster,
-        design=design,
-        condition=DRUG
+        label=pseudo2$cluster,
+        design=~DRUG,
+        coef="DRUG2",
+        condition=pseudo$DRUG
     )
 
     expect_identical(out, out2)
@@ -103,9 +102,9 @@ test_that("pseudoBulkDGE handles the gene filtering correctly", {
     rownames(pseudo2) <- NULL
 
     out <- pseudoBulkDGE(pseudo2, 
-        sample=pseudo2$sample, 
         label=pseudo2$cluster,
-        design=design
+        design=~DRUG,
+        coef="DRUG2"
     )
 
     for (i in names(out)) {
@@ -120,19 +119,19 @@ test_that("pseudoBulkDGE gracefully handles impossible comparisons", {
     pseudo2 <- pseudo[,!discard]
 
     out <- pseudoBulkDGE(pseudo2, 
-        sample=pseudo2$sample, 
         label=pseudo2$cluster,
-        design=design
+        design=~DRUG,
+        coef="DRUG2"
     )
 
     expect_false(all(is.na(out[["3"]]$logFC)))
     expect_true(all(is.na(out[["3"]]$PValue)))
 
-    # Checking that each cluster is truly independent of the others.
+    # Checking that each cluster's failure is truly independent of the others.
     ref <- pseudoBulkDGE(pseudo, 
-        sample=pseudo$sample, 
         label=pseudo$cluster,
-        design=design
+        design=~DRUG,
+        coef="DRUG2"
     )
     
     expect_identical(ref[["1"]], out[["1"]])
@@ -143,9 +142,9 @@ test_that("pseudoBulkDGE gracefully handles impossible comparisons", {
     pseudo2 <- pseudo[,!discard]
 
     out <- pseudoBulkDGE(pseudo2, 
-        sample=pseudo2$sample, 
         label=pseudo2$cluster,
-        design=design
+        design=~DRUG,
+        coef="DRUG2"
     )
 
     expect_true(all(is.na(out[["3"]]$logFC)))
@@ -154,16 +153,16 @@ test_that("pseudoBulkDGE gracefully handles impossible comparisons", {
 
 test_that("pseudoBulkDGE works with a log-fold change threshold", {
     out <- pseudoBulkDGE(pseudo, 
-       sample=pseudo$sample, 
-       label=pseudo$cluster,
-       design=design,
-       lfc=1
+        label=pseudo$cluster,
+        design=~DRUG,
+        coef="DRUG2",
+        lfc=1
     )
 
     ref <- pseudoBulkDGE(pseudo, 
-       sample=pseudo$sample, 
-       label=pseudo$cluster,
-       design=design
+        label=pseudo$cluster,
+        design=~DRUG,
+        coef="DRUG2"
     )
 
     expect_false(identical(out, ref))
@@ -173,9 +172,10 @@ test_that("pseudoBulkDGE works with a log-fold change threshold", {
     pseudo2 <- pseudo[,!discard]
 
     out <- pseudoBulkDGE(pseudo2,
-        sample=pseudo2$sample,
         label=pseudo2$cluster,
-        design=design, lfc=1,
+        design=~DRUG,
+        coef="DRUG2",
+        lfc=1
     )
 
     expect_false(all(is.na(out[["3"]]$logFC)))
@@ -186,9 +186,10 @@ test_that("pseudoBulkDGE works with a log-fold change threshold", {
     pseudo2 <- pseudo[,!discard]
 
     out <- pseudoBulkDGE(pseudo2,
-        sample=pseudo2$sample,
         label=pseudo2$cluster,
-        design=design, lfc=1
+        design=~DRUG,
+        coef="DRUG2",
+        lfc=1
     )
 
     expect_true(all(is.na(out[["3"]]$logFC)))
@@ -197,9 +198,9 @@ test_that("pseudoBulkDGE works with a log-fold change threshold", {
 
 test_that("decideTestsPerLabel works correctly", {
     out <- pseudoBulkDGE(pseudo,
-       sample=pseudo$sample, 
-       label=pseudo$cluster,
-       design=design
+        label=pseudo$cluster,
+        design=~DRUG,
+        coef="DRUG2",
     )
 
     # Adding some DE genes to spice things up.
