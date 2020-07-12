@@ -18,6 +18,8 @@ Added a wrapper function \code{quickPseudotime()} to run all the relevant steps 
 Added \code{testPseudotime()} for quick-and-dirty identification of DE genes along psuedotime.
 
 \item Added the \code{clusterSilhouette()} function to approximate the silhouette width for large datasets.
+
+\item Modified \code{pseudoBulkDGE()} to use formulas/functions in the \code{design=} argument.
 }}
 
 \section{Version 1.16.0}{\itemize{

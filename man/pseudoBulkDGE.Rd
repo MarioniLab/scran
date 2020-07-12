@@ -17,7 +17,7 @@ pseudoBulkDGE(x, ...)
   contrast = NULL,
   condition = NULL,
   lfc = 0,
-  include.intermediates = FALSE,
+  include.intermediates = TRUE,
   sample = NULL
 )
 

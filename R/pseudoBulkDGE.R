@@ -130,11 +130,11 @@
 NULL
 
 .pseudo_bulk_master <- function(x, data, label, design, coef, contrast=NULL, 
-    condition=NULL, lfc=0, include.intermediates=FALSE, sample=NULL)
+    condition=NULL, lfc=0, include.intermediates=TRUE, sample=NULL)
 {
     if (is.function(design) || is(design, "formula")) {
-        .pseudo_bulk_dge(x=x, data=data, label=label, condition=condition,
-            design=design, coef=coef, contrast=contrast, lfc=lfc)
+        .pseudo_bulk_dge(x=x, data=data, label=label, condition=condition, design=design, 
+            coef=coef, contrast=contrast, lfc=lfc, include.intermediates=include.intermediates)
     } else {
         .Deprecated(msg="matrix arguments for 'design=' are deprecated. \nUse functions or formulas instead.")
         .pseudo_bulk_old(x=x, label=label, sample=sample, design=design, condition=condition,

@@ -104,12 +104,15 @@ test_that("pseudoBulkDGE handles the gene filtering correctly", {
     out <- pseudoBulkDGE(pseudo2, 
         label=pseudo2$cluster,
         design=~DRUG,
-        coef="DRUG2"
+        coef="DRUG2",
+        include.intermediates=FALSE # because edgeR sticks row names onto everything.
     )
 
     for (i in names(out)) {
         curref <- ref[[i]]
         rownames(curref) <- NULL
+        metadata(curref)$y <- NULL
+        metadata(curref)$fit <- NULL
         expect_identical(out[[i]][-discard,], curref)
     }
 })
