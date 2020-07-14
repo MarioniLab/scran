@@ -62,9 +62,7 @@ test_that("pseudoBulkDGE works correctly in vanilla cases", {
 
     # Spits the dummy correctly.
     out <- pseudoBulkDGE(pseudo2, label=pseudo2$cluster, design=~BLAH)
-    expect_true(all(is.na(out[[1]]$PValue)))
-    expect_true(all(is.na(out[[2]]$PValue)))
-    expect_true(all(is.na(out[[3]]$PValue)))
+    expect_identical(metadata(out)$failed, c("1", "2", "3"))
 })
 
 test_that("pseudoBulkDGE handles the gene filtering correctly", {
@@ -127,8 +125,7 @@ test_that("pseudoBulkDGE gracefully handles impossible comparisons", {
         coef="DRUG2"
     )
 
-    expect_false(all(is.na(out[["3"]]$logFC)))
-    expect_true(all(is.na(out[["3"]]$PValue)))
+    expect_identical(metadata(out)$failed, "3")
 
     # Checking that each cluster's failure is truly independent of the others.
     ref <- pseudoBulkDGE(pseudo, 
@@ -150,8 +147,7 @@ test_that("pseudoBulkDGE gracefully handles impossible comparisons", {
         coef="DRUG2"
     )
 
-    expect_true(all(is.na(out[["3"]]$logFC)))
-    expect_true(all(is.na(out[["3"]]$PValue)))
+    expect_identical(metadata(out)$failed, "3")
 })
 
 test_that("pseudoBulkDGE works with a log-fold change threshold", {
@@ -169,34 +165,51 @@ test_that("pseudoBulkDGE works with a log-fold change threshold", {
     )
 
     expect_false(identical(out, ref))
+})
 
-    # The lfc setting takes effect upon graceful failure.
-    discard <- pseudo$cluster == 3 & pseudo$sample %in% c(2:4, 6:8)
-    pseudo2 <- pseudo[,!discard]
-
-    out <- pseudoBulkDGE(pseudo2,
-        label=pseudo2$cluster,
+test_that("pseudoBulkDGE works with all the limma settings", {
+    ref <- pseudoBulkDGE(pseudo, 
+        label=pseudo$cluster,
         design=~DRUG,
         coef="DRUG2",
-        lfc=1
+        method="voom"
     )
+    expect_identical(length(ref), 3L)
 
-    expect_false(all(is.na(out[["3"]]$logFC)))
-    expect_false(is.null(out[["3"]]$unshrunk.logFC))
-    expect_false(all(is.na(out[["3"]]$unshrunk.logFC)))
-
-    discard <- pseudo$cluster == 3 & pseudo$sample %in% c(5:8)
-    pseudo2 <- pseudo[,!discard]
-
-    out <- pseudoBulkDGE(pseudo2,
-        label=pseudo2$cluster,
+    out <- pseudoBulkDGE(pseudo, 
+        label=pseudo$cluster,
         design=~DRUG,
         coef="DRUG2",
-        lfc=1
+        lfc=1,
+        method="voom"
     )
+    expect_identical(length(out), 3L)
+    expect_false(identical(ref, out))
 
-    expect_true(all(is.na(out[["3"]]$logFC)))
-    expect_true(all(is.na(out[["3"]]$unshrunk.logFC)))
+    out <- pseudoBulkDGE(pseudo, 
+        label=pseudo$cluster,
+        design=~DRUG,
+        coef="DRUG2",
+        qualities=FALSE,
+        method="voom"
+    )
+    expect_identical(length(out), 3L)
+    expect_false(identical(ref, out))
+})
+
+test_that("pseudoBulkDGE works with various odds and sods", {
+    ref <- pseudoBulkDGE(pseudo, 
+        label=pseudo$cluster,
+        design=~DRUG,
+        coef="DRUG2",
+        sorted=TRUE,
+        row.data=DataFrame(X=rownames(pseudo))
+    )
+   
+    for (i in seq_len(3)) {
+        expect_false(is.unsorted(ref[[i]]$PValue))
+        expect_true("X" %in% colnames(ref[[i]]))
+    }
 })
 
 test_that("decideTestsPerLabel works correctly", {
