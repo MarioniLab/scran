@@ -4,7 +4,7 @@
 #' to conveniently perform differential expression analyses on pseudo-bulk profiles,
 #' allowing detection of cell type-specific changes between conditions in replicated studies.
 #'
-#' @param A numeric matrix of counts where rows are genes and columns are pseudo-bulk profiles.
+#' @param x A numeric matrix of counts where rows are genes and columns are pseudo-bulk profiles.
 #' Alternatively, a SummarizedExperiment object containing such a matrix in its assays.
 #' @param col.data A data.frame or \linkS4class{DataFrame} containing metadata for each column of \code{x}.
 #' @param label A vector of factor of length equal to \code{ncol(x)},
@@ -30,6 +30,7 @@
 #' @param robust Logical scalar indicating whether robust empirical Bayes shrinkage should be performed.
 #' @param qualities Logical scalar indicating whether quality weighting should be used when \code{method="voom"},
 #' see \code{\link{voomWithQualityWeights}} for more details.
+#' @param sorted Logical scalar indicating whether the output tables should be sorted by p-value.
 #' @param sample Deprecated.
 #' 
 #' @return 

@@ -29,6 +29,9 @@ pseudoBulkDGE(x, ...)
 \S4method{pseudoBulkDGE}{SummarizedExperiment}(x, ..., assay.type = 1)
 }
 \arguments{
+\item{x}{A numeric matrix of counts where rows are genes and columns are pseudo-bulk profiles.
+Alternatively, a SummarizedExperiment object containing such a matrix in its assays.}
+
 \item{...}{For the generic, additional arguments to pass to individual methods.
 
 For the SummarizedExperiment method, additional arguments to pass to the ANY method.}
@@ -58,6 +61,8 @@ Only used for abundance-based filtering of genes.}
 \item{row.data}{A \linkS4class{DataFrame} containing additional row metadata for each gene in \code{x},
 to be included in each of the output DataFrames.}
 
+\item{sorted}{Logical scalar indicating whether the output tables should be sorted by p-value.}
+
 \item{method}{String specifying the DE analysis framework to use.}
 
 \item{qualities}{Logical scalar indicating whether quality weighting should be used when \code{method="voom"},
@@ -68,9 +73,6 @@ see \code{\link{voomWithQualityWeights}} for more details.}
 \item{sample}{Deprecated.}
 
 \item{assay.type}{String or integer scalar specifying the assay to use from \code{x}.}
-
-\item{A}{numeric matrix of counts where rows are genes and columns are pseudo-bulk profiles.
-Alternatively, a SummarizedExperiment object containing such a matrix in its assays.}
 }
 \value{
 A \linkS4class{List} with one \linkS4class{DataFrame} of DE results per unique (non-failed) level of \code{cluster}.
