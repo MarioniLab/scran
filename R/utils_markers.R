@@ -147,15 +147,32 @@
     }
 }
 
-.logBH <- function(log.p.val) 
-# Same as log(p.adjust(exp(log.p.val), method="BH")), without
-# the need to undo and redo the log-transformations.
-{
+#' BH correction on log-p-values
+#' 
+#' Perform a Benjamini-Hochberg correction on log-transformed p-values to get log-adjusted p-values,
+#' without the loss of precision from undoing and redoing the log-transformations.
+#'
+#' @param log.p.val Numeric vector of log-transformed p-values.
+#'
+#' @return A numeric vector of the same length as \code{log.p.val} containing log-transformed BH-corrected p-values.
+#' @author Aaron Lun
+#'
+#' @examples
+#' log.p.values <- log(runif(1000))
+#' obs <- .logBH(log.p.values)
+#' head(obs)
+#'
+#' ref <- log(p.adjust(exp(log.p.values), method="BH"))
+#' head(ref)
+#' 
+#' @export
+#' @rdname logBH
+.logBH <- function(log.p.val) {
     o <- order(log.p.val)
     repval <- log.p.val[o] + log(length(o)/seq_along(o))
     repval <- rev(cummin(rev(repval)))
     repval[o] <- repval
-    return(repval)
+    repval
 }
 
 .weighted_average_vals <- function(vals, weights) {
