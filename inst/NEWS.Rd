@@ -20,6 +20,8 @@ Added \code{testPseudotime()} for quick-and-dirty identification of DE genes alo
 \item Added the \code{clusterSilhouette()} function to approximate the silhouette width for large datasets.
 
 \item Modified \code{pseudoBulkDGE()} to use formulas/functions in the \code{design=} argument.
+
+\item Added \code{pseudoBulkSpecific()} function to test for semi-label-specific DEGs in pseudo-bulk analyses.
 }}
 
 \section{Version 1.16.0}{\itemize{

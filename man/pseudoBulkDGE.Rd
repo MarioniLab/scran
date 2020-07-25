@@ -180,6 +180,8 @@ On the discovery of population-specific state transitions from multi-sample mult
 
 \code{\link{decideTestsPerLabel}}, to generate a summary of the DE results across all labels.
 
+\code{\link{pseudoBulkSpecific}}, to look for label-specific DE genes.
+
 \code{pbDS} from the \pkg{muscat} package, which uses a similar approach.
 }
 \author{
