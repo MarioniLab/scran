@@ -17,9 +17,28 @@
 #' This function implements a quick and dirty method for detecting label-specific DE genes.
 #' For a given label and gene, the null hypothesis is that the log-fold change lies between zero
 #' and the average log-fold change for that gene across all other labels.
-#' This is tested by testing each gene against the two extremes and taking the larger of the two p-values, 
-#' as well as setting the p-value to 1 if the log-fold change lies between the extremes.
+#' Genes that reject this null either have log-fold changes in the opposite sign 
+#' or are significantly more extreme than the average.
 #'
+#' To implement this, we test each gene against the two extremes and taking the larger of the two p-values.
+#' The p-value is set to 1 if the log-fold change lies between the extremes.
+#' This is somewhat similar to how \code{\link{treat}} might behave if the null interval was not centered at zero;
+#' however, our approach is more conservative than the \code{\link{treat}} as the p-value calculations are not quite correct.
+#'
+#' The average log-fold change for each gene is computed by taking the median or mean (depending on \code{average}) 
+#' of the corresponding log-fold changes in each of the DE analyses for the other labels.
+#' Low-abundance genes that were filtered out in a comparison do not contribute to the average,
+#' as any log-fold changes that could be computed from them are considered to be too unstable.
+#' If the gene is filtered out in all other labels, the average is set to zero for testing but is reported as \code{NA}. 
+#' 
+#' It is worth stressing that there are no guarantees that the DE genes detected in this manner are truly label-specific.
+#' For any label, there may be one or more labels with stronger log-fold changes for a particular DEG.
+#' We can only be sure that the log-fold change differs significantly from the average across labels.
+#' (Though with \code{average="median"}, at least half of all labels should have weaker or opposite log-fold changes.)
+#'
+#' Note that, if \code{lfc} is specified in the arguments to \code{\link{pseudoBulkDGE}},
+#' the null interval is expanded in both directions by the specified value.
+#' 
 #' @return
 #' A \linkS4class{List} of \linkS4class{DataFrame}s where each DataFrame contains DE statistics for one label.
 #' This is equivalent to the output of \code{\link{pseudoBulkDGE}};
@@ -77,7 +96,7 @@ NULL
     }
 
     all.lfc <- lapply(reference, "[[", i="logFC")
-    null.lfc.list <- list()
+    null.lfc.list <- lost <- list()
     average <- match.arg(average)
 
     for (l in names(reference)) {
@@ -85,10 +104,15 @@ NULL
         other.lfc <- do.call(cbind, other.lfc)
 
         if (average=="median") {
-            null.lfc.list[[l]] <- rowMedians(other.lfc, na.rm=TRUE)
+            ave.other <- rowMedians(other.lfc, na.rm=TRUE)
         } else {
-            null.lfc.list[[l]] <- rowMeans(other.lfc, na.rm=TRUE)
+            ave.other <- rowMeans(other.lfc, na.rm=TRUE)
         }
+
+        zeroed <- is.na(ave.other)
+        ave.other[zeroed] <- 0
+        lost[[l]] <- zeroed
+        null.lfc.list[[l]] <- ave.other
     }
 
     alt <- .pseudo_bulk_dge(x=x, label=label, condition=condition,
@@ -111,7 +135,7 @@ NULL
             R$adj.P.Val <- fdr
         }
 
-        R$OtherAverage <- nulls
+        R$OtherAverage <- ifelse(lost[[l]], NA_real_, nulls)
 
         if (sorted) {
             R <- R[order(p),,drop=FALSE]
