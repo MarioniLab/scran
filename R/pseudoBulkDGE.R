@@ -18,7 +18,7 @@
 #' Can also be an integer scalar or vector specifying the indices of the relevant columns.
 #' @param contrast Numeric vector or matrix containing the contrast of interest.
 #' Takes precedence over \code{coef}.
-#' @param lfc Numeric scalar specifying the log-fold change threshold to use in \code{\link{glmTreat}}.
+#' @param lfc Numeric scalar specifying the log-fold change threshold to use in \code{\link{glmTreat}} or \code{\link{treat}}.
 #' @param assay.type String or integer scalar specifying the assay to use from \code{x}.
 #' @param include.intermediates Logical scalar indicating whether the intermediate \pkg{edgeR} objects should be returned.
 #' @param row.data A \linkS4class{DataFrame} containing additional row metadata for each gene in \code{x},
@@ -86,7 +86,7 @@
 #' in which case it is not easy to determine the minimum size of the groups relevant to the comparison of interest.
 #' To overcome this, users can specify \code{condition.field} to specify the group to which each sample belongs,
 #' which is used by \code{filterByExpr} to obtain a more appropriate minimum group size.
-#' 
+#'
 #' @author Aaron Lun
 #'
 #' @references
@@ -117,7 +117,7 @@
 #' pseudo <- sumCountsAcrossCells(sce, info)
 #'
 #' # Making up an experimental design for our 8 samples.
-#' pseudo$DRUG <- gl(2,4)
+#' pseudo$DRUG <- gl(2,4)[pseudo$sample]
 #' 
 #' # DGE analysis:
 #' out <- pseudoBulkDGE(pseudo, 
@@ -132,6 +132,8 @@
 #' \code{\link{sumCountsAcrossCells}}, to easily generate the pseudo-bulk count matrix.
 #'
 #' \code{\link{decideTestsPerLabel}}, to generate a summary of the DE results across all labels.
+#'
+#' \code{\link{pseudoBulkSpecific}}, to look for label-specific DE genes.
 #'
 #' \code{pbDS} from the \pkg{muscat} package, which uses a similar approach.
 #' @name pseudoBulkDGE
@@ -156,7 +158,7 @@ NULL
 #' @importFrom edgeR DGEList 
 #' @importFrom S4Vectors DataFrame SimpleList metadata metadata<-
 .pseudo_bulk_dge <- function(x, col.data, label, design, coef, contrast=NULL, 
-    condition=NULL, lfc=0, row.data=NULL, sorted=FALSE, include.intermediates=FALSE,
+    condition=NULL, lfc=0, null.lfc.list=NULL, row.data=NULL, sorted=FALSE, include.intermediates=FALSE,
     method=c("edgeR", "voom"), qualities=TRUE, robust=TRUE)
 {
     de.results <- list()
@@ -186,8 +188,8 @@ NULL
 
         } else {
             args <- list(y, row.names=rownames(x), curdesign=curdesign, curcond=curcond,
-                coef=coef, contrast=contrast, lfc=lfc, robust=robust,
-                include.intermediates=include.intermediates)
+                coef=coef, contrast=contrast, lfc=lfc, null.lfc=null.lfc.list[[i]],
+                robust=robust, include.intermediates=include.intermediates)
 
             if (method=="edgeR") {
                 stuff <- do.call(.pseudo_bulk_edgeR, args)
@@ -256,9 +258,11 @@ NULL
 }
 
 #' @importFrom S4Vectors DataFrame metadata metadata<-
-#' @importFrom edgeR estimateDisp glmQLFit glmQLFTest 
+#' @importFrom edgeR estimateDisp glmQLFit glmQLFTest getOffset scaleOffset
 #' calcNormFactors filterByExpr topTags glmLRT glmFit glmTreat
-.pseudo_bulk_edgeR <- function(y, row.names, curdesign, curcond, coef, contrast, lfc, include.intermediates, robust=TRUE) {
+.pseudo_bulk_edgeR <- function(y, row.names, curdesign, curcond, coef, contrast, 
+    lfc, null.lfc, include.intermediates, robust=TRUE) 
+{
     ngenes <- nrow(y)
     gkeep <- filterByExpr(y, design=curdesign, group=curcond)
     y <- y[gkeep,]
@@ -267,7 +271,14 @@ NULL
     rank <- qr(curdesign)$rank
     if (rank == nrow(curdesign) || rank < ncol(curdesign)) { 
         return(NULL)
-    } 
+    }
+
+    lfc.out <- .compute_offsets_by_lfc(design=curdesign, coef=coef, 
+        contrast=contrast, filtered=gkeep, null.lfc=null.lfc)
+    if (!is.null(lfc.out)) {
+        offsets <- t(t(lfc.out)/log2(exp(1)) + getOffset(y))
+        y <- scaleOffset(y, offsets)
+    }
 
     y <- estimateDisp(y, curdesign)
     fit <- glmQLFit(y, curdesign, robust=TRUE)
@@ -292,12 +303,30 @@ NULL
     tab 
 }
 
+#' @importFrom limma contrastAsCoef
+.compute_offsets_by_lfc <- function(design, coef, contrast, filtered, null.lfc) {
+    if (is.null(null.lfc) || all(null.lfc==0)) {
+        return(NULL) 
+    }
+
+    if (!is.null(contrast)) {
+        out <- contrastAsCoef(design, contrast)
+        design <- out$design
+        coef <- out$coef
+    }
+    stopifnot(length(coef)==1)
+
+    null.lfc <- rep(null.lfc, length.out=length(filtered))
+    null.lfc <- null.lfc[filtered]
+    outer(null.lfc, design[,coef])
+}
+
 #' @importFrom S4Vectors DataFrame metadata metadata<-
 #' @importFrom edgeR calcNormFactors filterByExpr 
 #' @importFrom limma voom voomWithQualityWeights lmFit 
 #' contrasts.fit eBayes treat topTable
 .pseudo_bulk_voom <- function(y, row.names, curdesign, curcond, coef, contrast, 
-    lfc, include.intermediates, qualities=TRUE, robust=TRUE) 
+    lfc, null.lfc, include.intermediates, qualities=TRUE, robust=TRUE) 
 {
     ngenes <- nrow(y)
     gkeep <- filterByExpr(y, design=curdesign, group=curcond)
@@ -313,6 +342,12 @@ NULL
         v <- voomWithQualityWeights(y, curdesign)
     } else {
         v <- voom(y, curdesign)
+    }
+
+    lfc.out <- .compute_offsets_by_lfc(design=curdesign, coef=coef, 
+        contrast=contrast, filtered=gkeep, null.lfc=null.lfc)
+    if (!is.null(lfc.out)) {
+        v$E <- v$E - lfc.out
     }
 
     fit <- lmFit(v)
