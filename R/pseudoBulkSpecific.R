@@ -10,6 +10,7 @@
 #'
 #' For the SummarizedExperiment method, further arguments to pass to the ANY method.
 #' @param average String specifying the method to compute the average log-fold change of all other labels.
+#' @param missing.as.zero Logical scalar indicating whether missing log-fold changes should be set to zero.
 #' @param reference A List containing the (unsorted) output of \code{\link{pseudoBulkDGE}}.
 #' This can be supplied to avoid redundant calculations but is automatically computed if \code{NULL}.
 #'
@@ -87,7 +88,7 @@ NULL
 
 #' @importFrom DelayedMatrixStats rowMedians
 #' @importFrom Matrix rowMeans
-.pseudo_bulk_specific <- function(x, label, condition, ..., method=c("edgeR", "voom"),
+.pseudo_bulk_specific <- function(x, label, condition=NULL, ..., method=c("edgeR", "voom"),
     sorted=FALSE, average=c("median", "mean"), reference=NULL) 
 {
     method <- match.arg(method)
@@ -96,6 +97,10 @@ NULL
     }
 
     all.lfc <- lapply(reference, "[[", i="logFC")
+    if (any(vapply(all.lfc, is.null, FALSE))) {
+        stop("ANOVA-like contrasts cannot be specified with non-zero 'null.lfc'")
+    }
+
     null.lfc.list <- lost <- list()
     average <- match.arg(average)
 
@@ -115,8 +120,16 @@ NULL
         null.lfc.list[[l]] <- ave.other
     }
 
-    alt <- .pseudo_bulk_dge(x=x, label=label, condition=condition,
+    alt <- .pseudo_bulk_dge(x=x, label=label, condition=condition, method=method,
         null.lfc.list=null.lfc.list, ..., sorted=FALSE, include.intermediates=FALSE)
+
+    if (method=="edgeR"){
+        pname <- "PValue"
+        fname <- "FDR"
+    } else {
+        pname <- "P.Value"
+        fname <- "adj.P.Val"
+    }
 
     for (l in names(reference)) {
         R <- reference[[l]]
@@ -124,16 +137,9 @@ NULL
         nulls <- null.lfc.list[[l]]
 
         in.between <- sign(R$logFC) == sign(nulls) & abs(R$logFC) <= abs(nulls)
-        p <- ifelse(in.between, 1, pmax(A$PValue, R$PValue))
-        fdr <- p.adjust(p, method="BH")
-
-        if (method=="edgeR"){ 
-            R$PValue <- p
-            R$FDR <- fdr
-        } else {
-            R$P.Value <- p
-            R$adj.P.Val <- fdr
-        }
+        p <- ifelse(in.between, 1, pmax(A[[pname]], R[[pname]]))
+        R[[pname]] <- p
+        R[[fname]] <- p.adjust(p, method="BH")
 
         R$OtherAverage <- ifelse(lost[[l]], NA_real_, nulls)
 

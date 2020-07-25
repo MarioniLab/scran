@@ -133,6 +133,8 @@
 #'
 #' \code{\link{decideTestsPerLabel}}, to generate a summary of the DE results across all labels.
 #'
+#' \code{\link{pseudoBulkSpecific}}, to look for label-specific DE genes.
+#'
 #' \code{pbDS} from the \pkg{muscat} package, which uses a similar approach.
 #' @name pseudoBulkDGE
 NULL
@@ -312,10 +314,7 @@ NULL
         design <- out$design
         coef <- out$coef
     }
-
-    if (length(coef)!=1) {
-        stop("ANOVA-like contrasts cannot be specified with non-zero 'null.lfc'")
-    }
+    stopifnot(length(coef)==1)
 
     null.lfc <- rep(null.lfc, length.out=length(filtered))
     null.lfc <- null.lfc[filtered]
