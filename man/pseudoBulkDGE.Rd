@@ -54,7 +54,7 @@ Takes precedence over \code{coef}.}
 specifying the experimental condition for each column of \code{x}.
 Only used for abundance-based filtering of genes.}
 
-\item{lfc}{Numeric scalar specifying the log-fold change threshold to use in \code{\link{glmTreat}}.}
+\item{lfc}{Numeric scalar specifying the log-fold change threshold to use in \code{\link{glmTreat}} or \code{\link{treat}}.}
 
 \item{include.intermediates}{Logical scalar indicating whether the intermediate \pkg{edgeR} objects should be returned.}
 
@@ -150,7 +150,7 @@ info <- DataFrame(sample=sce$samples, cluster=clusters)
 pseudo <- sumCountsAcrossCells(sce, info)
 
 # Making up an experimental design for our 8 samples.
-pseudo$DRUG <- gl(2,4)
+pseudo$DRUG <- gl(2,4)[pseudo$sample]
 
 # DGE analysis:
 out <- pseudoBulkDGE(pseudo, 
