@@ -129,6 +129,35 @@ test_that("pseudoBulkSpecific works correctly with sorting", {
     }
 })
 
+test_that("pseudoBulkSpecific works correctly with zero replacement", {
+    pseudo2 <- pseudo
+    assay(pseudo2)[1,pseudo2$cluster!=1] <- 0
+
+    ref <- pseudoBulkDGE(pseudo2,
+       label=pseudo2$cluster,
+       design=~DRUG,
+       coef="DRUG2"
+    )
+
+    out <- pseudoBulkSpecific(pseudo2, 
+       label=pseudo2$cluster,
+       design=~DRUG,
+       coef="DRUG2",
+       reference=ref,
+    )
+
+    out2 <- pseudoBulkSpecific(pseudo2, 
+       label=pseudo2$cluster,
+       design=~DRUG,
+       coef="DRUG2",
+       reference=ref,
+       missing.as.zero=TRUE
+    )
+
+    expect_identical(out[[1]]$OtherAverage[1], NA_real_)
+    expect_identical(out2[[1]]$OtherAverage[1], 0)
+})
+
 test_that("pseudoBulkSpecific errors out correctly", {
     expect_error(pseudoBulkSpecific(pseudo, 
        label=pseudo$cluster,

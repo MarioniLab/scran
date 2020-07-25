@@ -26,20 +26,28 @@
 #' This is somewhat similar to how \code{\link{treat}} might behave if the null interval was not centered at zero;
 #' however, our approach is more conservative than the \code{\link{treat}} as the p-value calculations are not quite correct.
 #'
-#' The average log-fold change for each gene is computed by taking the median or mean (depending on \code{average}) 
-#' of the corresponding log-fold changes in each of the DE analyses for the other labels.
-#' Low-abundance genes that were filtered out in a comparison do not contribute to the average,
-#' as any log-fold changes that could be computed from them are considered to be too unstable.
-#' If the gene is filtered out in all other labels, the average is set to zero for testing but is reported as \code{NA}. 
-#' 
 #' It is worth stressing that there are no guarantees that the DE genes detected in this manner are truly label-specific.
-#' For any label, there may be one or more labels with stronger log-fold changes for a particular DEG.
-#' We can only be sure that the log-fold change differs significantly from the average across labels.
-#' (Though with \code{average="median"}, at least half of all labels should have weaker or opposite log-fold changes.)
+#' For any label and DEG, there may be one or more labels with stronger log-fold changes,
+#' but the average may be pulled towards zero by other labels with weaker or opposing effects.
+#' The use of the average is analogous to recommendations in the \pkg{edgeR} user's guide for testing against multiple groups.
+#' However, a more stringent selection can be achieved by applying gates on \code{\link{decideTestsPerLabel}}.
 #'
 #' Note that, if \code{lfc} is specified in the arguments to \code{\link{pseudoBulkDGE}},
 #' the null interval is expanded in both directions by the specified value.
 #' 
+#' @section Computing the average:
+#' The average log-fold change for each gene is computed by taking the median or mean (depending on \code{average}) 
+#' of the corresponding log-fold changes in each of the DE analyses for the other labels.
+#' We use the median by default as this means that at least half of all other labels should have weaker or opposing effects.
+#'
+#' By default, low-abundance genes that were filtered out in a comparison do not contribute to the average.
+#' Any log-fold changes that could be computed from them are considered to be too unstable.
+#' If the gene is filtered out in all other labels, the average is set to zero for testing but is reported as \code{NA}. 
+#'
+#' If \code{missing.as.zero=TRUE}, the log-fold changes for all filtered genes are set to zero.
+#' This is useful when a gene is only expressed in the subset of labels and is consistently DEG in each comparison of the subset.
+#' Testing against the average computed from only those labels in the subset would fail to detect this DEG as subset-specific.
+#'
 #' @return
 #' A \linkS4class{List} of \linkS4class{DataFrame}s where each DataFrame contains DE statistics for one label.
 #' This is equivalent to the output of \code{\link{pseudoBulkDGE}};
@@ -89,7 +97,7 @@ NULL
 #' @importFrom DelayedMatrixStats rowMedians
 #' @importFrom Matrix rowMeans
 .pseudo_bulk_specific <- function(x, label, condition=NULL, ..., method=c("edgeR", "voom"),
-    sorted=FALSE, average=c("median", "mean"), reference=NULL) 
+    sorted=FALSE, average=c("median", "mean"), missing.as.zero=FALSE, reference=NULL) 
 {
     method <- match.arg(method)
     if (is.null(reference)) {
@@ -107,6 +115,10 @@ NULL
     for (l in names(reference)) {
         other.lfc <- all.lfc[names(all.lfc)!=l]
         other.lfc <- do.call(cbind, other.lfc)
+
+        if (missing.as.zero) {
+            other.lfc[is.na(other.lfc)] <- 0
+        }
 
         if (average=="median") {
             ave.other <- rowMedians(other.lfc, na.rm=TRUE)
