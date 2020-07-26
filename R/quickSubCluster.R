@@ -11,6 +11,8 @@
 #' @param prepFUN A function that accepts a single \linkS4class{SingleCellExperiment} object and returns another \linkS4class{SingleCellExperiment} containing any additional elements required for clustering (e.g., PCA results).
 #' @param min.ncells An integer scalar specifying the minimum number of cells in a group to be considered for subclustering.
 #' @param clusterFUN A function that accepts a single \linkS4class{SingleCellExperiment} object and returns a vector of cluster assignments for each cell in that object.
+#' @param BLUSPARAM A \linkS4class{BlusterParam} object that is used to specify the clustering via \code{\link{clusterRows}}.
+#' Only used when \code{clusterFUN=NULL}.
 #' @param format A string to be passed to \code{\link{sprintf}}, specifying how the subclusters should be named with respect to the parent level in \code{groups} and the level returned by \code{clusterFUN}.
 #' @param assay.type String or integer scalar specifying the relevant assay.
 #' @param ... For the generic, further arguments to pass to specific methods.
@@ -33,7 +35,7 @@
 #' In contrast, \code{clusterFUN} is only used to obtain the subcluster assignments so any intermediate objects are lost.
 #' 
 #' By default, \code{prepFUN} will run \code{\link{modelGeneVar}}, take the top 10% of genes with large biological components with \code{\link{getTopHVGs}}, and then run \code{\link{denoisePCA}} to perform the PCA.
-#' \code{clusterFUN} will then perform graph-based clustering with \code{\link{buildSNNGraph}} and \code{\link{cluster_walktrap}}.
+#' \code{clusterFUN} will then perform clustering on the PC matrix with \code{\link{clusterRows}} and \code{BLUSPARAM}.
 #' Either or both of these functions can be replaced with custom functions.
 #'
 #' % We use denoisePCA+modelGeneVar by default here, because we hope that each parent cluster is reasonably homogeneous.
@@ -78,11 +80,11 @@ NULL
 
 #' @importFrom scuttle logNormCounts
 #' @importFrom S4Vectors metadata<-
-#' @importFrom igraph cluster_walktrap
 #' @importFrom BiocSingular bsparam
 #' @importClassesFrom S4Vectors List
+#' @importFrom bluster clusterRows NNGraphParam
 .quick_sub_cluster <- function(x, groups, normalize=TRUE, 
-    prepFUN=NULL, min.ncells=50, clusterFUN=NULL, 
+    prepFUN=NULL, min.ncells=50, clusterFUN=NULL, BLUSPARAM=NNGraphParam(), 
     format="%s.%s", assay.type="counts") 
 {
     if (normalize) {
@@ -107,8 +109,7 @@ NULL
     }
     if (is.null(clusterFUN)) {
         clusterFUN <- function(x) {
-            g.trans <- buildSNNGraph(x, use.dimred="PCA")
-            cluster_walktrap(g.trans)$membership
+            clusterRows(reducedDim(x, "PCA"), BLUSPARAM)
         }
     }
 

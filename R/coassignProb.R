@@ -1,7 +1,7 @@
 #' Compute coassignment probabilities
 #'
 #' Compute coassignment probabilities for each label in a reference grouping when compared to an alternative grouping of samples.
-#' This is now deprecated for \code{\link{clusterRand}}.
+#' This is now deprecated for \code{\link{pairwiseRand}}.
 #'
 #' @param ref A character vector or factor containing one set of groupings, considered to be the reference.
 #' @param alt A character vector or factor containing another set of groupings, to be compared to \code{alt}.
@@ -28,16 +28,16 @@
 #' This manifests as higher values for the self probabilities compared to the other probabilities.
 #' 
 #' Note that the coassignment probability is closely related to the Rand index-based ratios  
-#' broken down by cluster pair in \code{\link{clusterRand}} with \code{mode="ratio"} and \code{adjusted=FALSE}.
+#' broken down by cluster pair in \code{\link{pairwiseRand}} with \code{mode="ratio"} and \code{adjusted=FALSE}.
 #' The off-diagonal coassignment probabilities are simply 1 minus the off-diagonal ratio, 
-#' while the on-diagonal values differ only by the lack of consideration of pairs of the same cell in \code{\link{clusterRand}}.
+#' while the on-diagonal values differ only by the lack of consideration of pairs of the same cell in \code{\link{pairwiseRand}}.
 #'
 #' @author Aaron Lun
 #'
 #' @seealso
 #' \code{\link{bootstrapCluster}}, to compute coassignment probabilities across bootstrap replicates.
 #'
-#' \code{\link{clusterRand}}, for another way to compare different clusterings.
+#' \code{\link{pairwiseRand}}, for another way to compare different clusterings.
 #'
 #' @examples
 #' library(scuttle)
@@ -52,7 +52,7 @@
 #' 
 #' @export
 coassignProb <- function(ref, alt, summarize=FALSE) {
-    .Deprecated(new="clusterRand")
+    .Deprecated(new="bluster::pairwiseRand")
     tab <- table(ref, alt)
     nref <- nrow(tab)
     output <- matrix(NA_real_, nref, nref,
@@ -77,7 +77,7 @@ coassignProb <- function(ref, alt, summarize=FALSE) {
     }
 }
 
-#' @importFrom Matrix forceSymmetric rowSums
+#' @importFrom Matrix forceSymmetric rowSums diag diag<-
 #' @importFrom S4Vectors DataFrame
 #' @importFrom DelayedArray rowMaxs
 .summarize_coassign <- function(mat) {

@@ -2,6 +2,8 @@
 #'
 #' Perform graph-based clustering using community detection methods on a nearest-neighbor graph,
 #' where nodes represent cells or k-means centroids.
+#' This has been deprecated in favor of directly using \code{\link{clusterRows}} from the \pkg{bluster} package,
+#' with \code{BLUSPARAM} set to \code{\link{NNGraphParam}()} or \code{\link{TwoStepParam}()}.
 #'
 #' @inheritParams buildSNNGraph
 #' @param use.kmeans Logical scalar indicating whether k-means clustering should be performed.
@@ -28,26 +30,24 @@
 #' In addition, the \code{\link{metadata}} contains \code{graph}, a \link{graph} object where each node is a k-means cluster;
 #' and \code{membership}, the graph-based cluster to which each node is assigned.
 #'
-#' @details
-#' By default, these functions simply call \code{\link{buildSNNGraph}} or \code{\link{buildKNNGraph}}
-#' followed by the specified \code{clusterFUN} to generate a clustering.
-#' We use the Walktrap algorithm by default as it has a cool-sounding name,
-#' but users can feel free to swap it for some other algorithm (e.g., \code{\link{cluster_louvain}}).
-#'
-#' For large datasets, we can perform vector quantization with k-means
-#' to create centroids that are then subjected to graph-based clustering.
-#' The label for each cell is then defined as the label of the centroid to which it was assigned.
-#' In this approach, k-means and graph-based clustering complement each other;
-#' the former improves computational efficiency and mitigates density-dependent dilation,
-#' while the latter aggregates the centroids for easier interpretation.
-#'
 #' @author Aaron Lun
 #'
-#' @seealso
-#' \code{\link{buildSNNGraph}} and \code{\link{buildKNNGraph}}, to build the nearest-neighbor graphs.
+#' @details
+#' We suggest using the \code{\link{clusterRows}} functionality instead as it provides a more general interface to clustering.
+#' \itemize{
+#' \item \code{clusterSNNGraph(x)} for a matrix-like object \code{x} is equivalent to 
+#' \code{clusterRows(t(x), NNGraphParam())}.
+#' \item \code{clusterKNNGraph(x)} for a matrix-like object \code{x} is equivalent to 
+#' \code{clusterRows(t(x), NNGraphParam(shared=FALSE))}.
+#' \item \code{clusterSNNGraph(x)} for a SummarizedExperiment object \code{x} is equivalent to 
+#' \code{clusterRows(t(logcounts(x)), NNGraphParam())}.
+#' \item \code{clusterSNNGraph(x, use.dimred="PCA")} for a SingleCellExperiment object \code{x} is equivalent to 
+#' \code{clusterRows(reducedDim(x, "PCA"), NNGraphParam())}.
+#' \item \code{clusterSNNGraph(x, use.kmeans=TRUE, use.dimred="PCA")} for a SingleCellExperiment object \code{x} is equivalent to 
+#' \code{clusterRows(reducedDim(x, "PCA"), TwoStepParam())}.
+#' }
 #'
-#' \code{\link{cluster_walktrap}} and related functions, to detect communities within those graphs.
-#'
+#' @name clusterSNNGraph
 #' @examples
 #' library(scuttle)
 #' sce <- mockSCE(ncells=500)
@@ -78,7 +78,8 @@
 #' head(clusters5)
 #' metadata(clusters5)$graph
 #'
-#' @name clusterSNNGraph
+#' @seealso
+#' \code{\link{clusterRows}} with \code{BLUSPARAM} set to an instance of \linkS4class{NNGraphParam} or \linkS4class{TwoStepParam}.
 NULL
 
 #' @importFrom Matrix t
@@ -127,6 +128,7 @@ NULL
 .clusterKNNGraph <- function(x, ..., clusterFUN=cluster_walktrap, subset.row=NULL, transposed=FALSE, 
     use.kmeans=FALSE, kmeans.centers=NULL, kmeans.args=list(), full.stats=FALSE) 
 {
+    .Deprecated(msg="'clusterKNNGraph' is deprecated.\nUse 'bluster::clusterRows' with 'NNGraphParam' or 'TwoStepParam' instead.")
     .clusterXNNGraph(x=x, ..., clusterFUN=clusterFUN, subset.row=subset.row, transposed=transposed,
         use.kmeans=use.kmeans, kmeans.centers=kmeans.centers, kmeans.args=kmeans.args,
         full.stats=full.stats, graphFUN=buildKNNGraph)
@@ -136,6 +138,7 @@ NULL
 .clusterSNNGraph <- function(x, ..., clusterFUN=cluster_walktrap, subset.row=NULL, transposed=FALSE, 
     use.kmeans=FALSE, kmeans.centers=NULL, kmeans.args=list(), full.stats=FALSE) 
 {
+    .Deprecated(msg="'clusterKNNGraph' is deprecated.\nUse 'bluster::clusterRows' with 'NNGraphParam' or 'TwoStepParam' instead.")
     .clusterXNNGraph(x=x, ..., clusterFUN=clusterFUN, subset.row=subset.row, transposed=transposed,
         use.kmeans=use.kmeans, kmeans.centers=kmeans.centers, kmeans.args=kmeans.args,
         full.stats=full.stats, graphFUN=buildSNNGraph)
