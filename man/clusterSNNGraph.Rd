@@ -52,9 +52,7 @@ clusterKNNGraph(x, ...)
 These dimensions can be transposed if \code{transposed=TRUE}.
 
 Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} containing such an expression matrix.
-
-If \code{x} is a SingleCellExperiment and \code{use.dimred} is set,
-graph building will be performed from its \code{\link{reducedDims}}.}
+If \code{x} is a SingleCellExperiment and \code{use.dimred} is set, its \code{\link{reducedDims}} will be used instead.}
 
 \item{...}{For the generics, additional arguments to pass to the specific methods.
 
@@ -97,19 +95,23 @@ and \code{membership}, the graph-based cluster to which each node is assigned.
 \description{
 Perform graph-based clustering using community detection methods on a nearest-neighbor graph,
 where nodes represent cells or k-means centroids.
+This has been deprecated in favor of directly using \code{\link{clusterRows}} from the \pkg{bluster} package,
+with \code{BLUSPARAM} set to \code{\link{NNGraphParam}()} or \code{\link{TwoStepParam}()}.
 }
 \details{
-By default, these functions simply call \code{\link{buildSNNGraph}} or \code{\link{buildKNNGraph}}
-followed by the specified \code{clusterFUN} to generate a clustering.
-We use the Walktrap algorithm by default as it has a cool-sounding name,
-but users can feel free to swap it for some other algorithm (e.g., \code{\link{cluster_louvain}}).
-
-For large datasets, we can perform vector quantization with k-means
-to create centroids that are then subjected to graph-based clustering.
-The label for each cell is then defined as the label of the centroid to which it was assigned.
-In this approach, k-means and graph-based clustering complement each other;
-the former improves computational efficiency and mitigates density-dependent dilation,
-while the latter aggregates the centroids for easier interpretation.
+We suggest using the \code{\link{clusterRows}} functionality instead as it provides a more general interface to clustering.
+\itemize{
+\item \code{clusterSNNGraph(x)} for a matrix-like object \code{x} is equivalent to 
+\code{clusterRows(t(x), NNGraphParam())}.
+\item \code{clusterKNNGraph(x)} for a matrix-like object \code{x} is equivalent to 
+\code{clusterRows(t(x), NNGraphParam(shared=FALSE))}.
+\item \code{clusterSNNGraph(x)} for a SummarizedExperiment object \code{x} is equivalent to 
+\code{clusterRows(t(logcounts(x)), NNGraphParam())}.
+\item \code{clusterSNNGraph(x, use.dimred="PCA")} for a SingleCellExperiment object \code{x} is equivalent to 
+\code{clusterRows(reducedDim(x, "PCA"), NNGraphParam())}.
+\item \code{clusterSNNGraph(x, use.kmeans=TRUE, use.dimred="PCA")} for a SingleCellExperiment object \code{x} is equivalent to 
+\code{clusterRows(reducedDim(x, "PCA"), TwoStepParam())}.
+}
 }
 \examples{
 library(scuttle)
@@ -143,9 +145,7 @@ metadata(clusters5)$graph
 
 }
 \seealso{
-\code{\link{buildSNNGraph}} and \code{\link{buildKNNGraph}}, to build the nearest-neighbor graphs.
-
-\code{\link{cluster_walktrap}} and related functions, to detect communities within those graphs.
+\code{\link{clusterRows}} with \code{BLUSPARAM} set to an instance of \linkS4class{NNGraphParam} or \linkS4class{TwoStepParam}.
 }
 \author{
 Aaron Lun

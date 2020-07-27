@@ -27,8 +27,8 @@
 #' if \code{block} is non-\code{NULL} and has more than one level.
 #' @param ... For the generic, further arguments to pass to specific methods.
 #'
-#' For the ANY method, additional arguments to be passed to \code{\link{buildSNNGraph}} for \code{method="igraph"}.
-#' or to \code{\link[dynamicTreeCut]{cutreeDynamic}} for \code{method="hclust"}.
+#' For the ANY method, additional arguments to be passed to \code{\link{NNGraphParam}} for \code{method="igraph"}
+#' or to \code{\link{HclustParam}} for \code{method="hclust"}.
 #' 
 #' For the \linkS4class{SummarizedExperiment} method, additional arguments to pass to the ANY method.
 #' @param assay.type A string specifying which assay values to use. 
@@ -138,13 +138,13 @@ NULL
 
 #' @importFrom stats hclust dist
 #' @importFrom scuttle librarySizeFactors normalizeCounts
-#' @importFrom igraph cluster_walktrap
 #' @importFrom BiocParallel SerialParam bpmapply
 #' @importFrom Matrix t
 #' @importFrom BiocSingular bsparam bsdeferred
 #' @importClassesFrom Matrix dgCMatrix
+#' @importFrom bluster clusterRows NNGraphParam HclustParam
 .quick_cluster <- function(x, min.size=100, method=c("igraph", "hclust"), use.ranks=FALSE,
-    d=NULL, subset.row=NULL, min.mean=NULL, graph.fun=cluster_walktrap,
+    d=NULL, subset.row=NULL, min.mean=NULL, graph.fun="walktrap",
     BSPARAM=bsparam(), BPPARAM=SerialParam(), block=NULL, block.BPPARAM=SerialParam(), 
     ...)
 {
@@ -210,24 +210,19 @@ NULL
 
     method <- match.arg(method)
     if (method=="igraph") { 
-        g <- buildSNNGraph(y, d=NA, transposed=TRUE, ...)
-        out <- graph.fun(g)
-        clusters <- out$membership
-        clusters <- .merge_closest_graph(g, clusters, min.size=min.size)
+        out <- clusterRows(y, NNGraphParam(..., cluster.fun=graph.fun), full=TRUE)
+        clusters <- .merge_closest_graph(out$objects$graph, as.integer(out$clusters), min.size=min.size)
+        clusters <- factor(clusters)
 
     } else {
-        distM <- dist(as.matrix(y)) # Coercing to matrix, if it isn't already.
-        htree <- hclust(distM, method='ward.D2')
-        clusters <- unname(dynamicTreeCut::cutreeDynamic(htree, minClusterSize=min.size, 
-            distM=as.matrix(distM), verbose=0, ...))
-
-        unassigned <- clusters==0L
+        clusters <- clusterRows(y, HclustParam(method="ward.D2", cut.dynamic=TRUE, minClusterSize=min.size, ...))
+        unassigned <- clusters=="0"
         if (any(unassigned)) { 
             warning(paste(sum(unassigned), "cells were not assigned to any cluster"))
         }
     }
 
-    factor(clusters)
+    clusters
 }
 
 ############################
