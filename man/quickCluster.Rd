@@ -16,7 +16,7 @@ quickCluster(x, ...)
   d = NULL,
   subset.row = NULL,
   min.mean = NULL,
-  graph.fun = cluster_walktrap,
+  graph.fun = "walktrap",
   BSPARAM = bsparam(),
   BPPARAM = SerialParam(),
   block = NULL,
@@ -33,8 +33,8 @@ Alternatively, a \linkS4class{SummarizedExperiment} object containing such a mat
 
 \item{...}{For the generic, further arguments to pass to specific methods.
 
-For the ANY method, additional arguments to be passed to \code{\link{buildSNNGraph}} for \code{method="igraph"}.
-or to \code{\link[dynamicTreeCut]{cutreeDynamic}} for \code{method="hclust"}.
+For the ANY method, additional arguments to be passed to \code{\link{NNGraphParam}} for \code{method="igraph"}
+or to \code{\link{HclustParam}} for \code{method="hclust"}.
 
 For the \linkS4class{SummarizedExperiment} method, additional arguments to pass to the ANY method.}
 

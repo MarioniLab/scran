@@ -9,14 +9,7 @@
 \usage{
 clusterSilhouette(x, ...)
 
-\S4method{clusterSilhouette}{ANY}(
-  x,
-  clusters,
-  k = 50,
-  transposed = FALSE,
-  subset.row = NULL,
-  BPPARAM = SerialParam()
-)
+\S4method{clusterSilhouette}{ANY}(x, ..., transposed = FALSE, subset.row = NULL)
 
 \S4method{clusterSilhouette}{SummarizedExperiment}(x, ..., assay.type = "logcounts")
 
@@ -29,57 +22,38 @@ clusterSilhouette(x, ...)
 )
 }
 \arguments{
-\item{x}{A numeric matrix-like object containing expression values for genes (rows) and cells (columns).
-If \code{transposed=TRUE}, cells should be in rows and reduced dimensions should be in the columns.
+\item{x}{A matrix-like object containing expression values for each gene (row) in each cell (column).
+These dimensions can be transposed if \code{transposed=TRUE}.
 
-Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} object containing such a matrix.
-
-For the SingleCellExperiment method, if \code{use.dimred} is supplied, 
-\code{x} contain an appropriate reduced dimension result in its \code{\link{reducedDims}}.}
+Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} containing such an expression matrix.
+If \code{x} is a SingleCellExperiment and \code{use.dimred} is set, its \code{\link{reducedDims}} will be used instead.}
 
 \item{...}{For the generic, arguments to pass to specific methods.
+
+For the ANY method, arguments to pass to \code{\link{neighborPurity}}.
 
 For the SummarizedExperiment method, arguments to pass to the ANY method.
 
 For the SingleCellExperiment method, arguments to pass to the SummarizedExperiment method.}
 
-\item{clusters}{Vector of length equal to \code{ncol(x)}, specifying the cluster identity for each cell.}
+\item{transposed}{A logical scalar indicating whether \code{x} is transposed (i.e., rows are cells).}
 
-\item{k}{Integer scalar specifying the number of nearest neighbors to use to determine the radius of the hyperspheres.}
-
-\item{transposed}{Logical scalar specifying whether \code{x} contains cells in the rows.}
-
-\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
-
-\item{BPPARAM}{A \linkS4class{BiocParallelParam} object indicating whether and how parallelization should be performed across genes.}
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.
+Only used when \code{transposed=FALSE}.}
 
 \item{assay.type}{A string specifying which assay values to use.}
+
+\item{clusters}{A vector or factor of cluster IDs to pass to \code{\link{neighborPurity}}.}
 
 \item{use.dimred}{A string specifying whether existing values in \code{reducedDims(x)} should be used.}
 }
 \value{
-A \linkS4class{DataFrame} with one row per cell in \code{x} and the columns:
-\itemize{
-\item \code{width}, a numeric field containing the approximate silhouette width of the current cell.
-\item \code{other}, the closest cluster other than the one to which the current cell is assigned.
-}
-Row names are defined as the column names of \code{x}.
+A \linkS4class{DataFrame} of purity statistics where each row corresponds to a cell in \code{x}, 
+see \code{?\link{approxSilhouette}} for details.
 }
 \description{
-Given a clustering, compute a fast approximate silhouette width for each cell.
-}
-\details{
-The silhouette width is a general purpose method for evaluating the separation between clusters 
-but requires calculating the average distance between pairs of cells within or between clusters.
-This function approximates the average distance with \eqn{d}, defined as the larger of:
-\itemize{
-\item The distance from the current cell to the centroid of cluster \eqn{X}.
-This is a reasonable approximation when the cell is distant to \eqn{X} relative to the latter's variation.
-\item The root mean squared distance between cells in cluster \eqn{X}.
-This is a reasonable approximation when the cell lies inside the bulk of points for \eqn{X}.
-}
-The approximate silhouette width for each cell can then be calculated with two values of \eqn{d},
-computed by setting \eqn{X} to the cluster of the current cell or the closest other cluster.
+\linkS4class{SingleCellExperiment}-compatible wrapper around \code{\link{approxSilhouette}},
+for quickly computing an approximate silhouette width for each cell.
 }
 \examples{
 library(scuttle)
@@ -104,7 +78,7 @@ boxplot(split(out2$width, clusters))
 
 }
 \seealso{
-\code{silhouette} from the \pkg{cluster} package, for the exact calculation.
+\code{\link{approxSilhouette}}, for the details of the approximate calculations.
 
 \code{\link{clusterPurity}}, for another method of evaluating cluster separation.
 }

@@ -20,6 +20,7 @@ quickSubCluster(x, ...)
   prepFUN = NULL,
   min.ncells = 50,
   clusterFUN = NULL,
+  BLUSPARAM = NNGraphParam(),
   format = "\%s.\%s",
   assay.type = "counts"
 )
@@ -44,6 +45,9 @@ For the ANY and SummarizedExperiment methods, further arguments to pass to the S
 
 \item{clusterFUN}{A function that accepts a single \linkS4class{SingleCellExperiment} object and returns a vector of cluster assignments for each cell in that object.}
 
+\item{BLUSPARAM}{A \linkS4class{BlusterParam} object that is used to specify the clustering via \code{\link{clusterRows}}.
+Only used when \code{clusterFUN=NULL}.}
+
 \item{format}{A string to be passed to \code{\link{sprintf}}, specifying how the subclusters should be named with respect to the parent level in \code{groups} and the level returned by \code{clusterFUN}.}
 
 \item{assay.type}{String or integer scalar specifying the relevant assay.}
@@ -67,7 +71,7 @@ For example, we would put the PCA in \code{prepFUN} so that the PCs are returned
 In contrast, \code{clusterFUN} is only used to obtain the subcluster assignments so any intermediate objects are lost.
 
 By default, \code{prepFUN} will run \code{\link{modelGeneVar}}, take the top 10% of genes with large biological components with \code{\link{getTopHVGs}}, and then run \code{\link{denoisePCA}} to perform the PCA.
-\code{clusterFUN} will then perform graph-based clustering with \code{\link{buildSNNGraph}} and \code{\link{cluster_walktrap}}.
+\code{clusterFUN} will then perform clustering on the PC matrix with \code{\link{clusterRows}} and \code{BLUSPARAM}.
 Either or both of these functions can be replaced with custom functions.
 
 % We use denoisePCA+modelGeneVar by default here, because we hope that each parent cluster is reasonably homogeneous.
