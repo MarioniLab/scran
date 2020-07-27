@@ -90,7 +90,7 @@
 NULL
 
 #' @importFrom Matrix t
-#' @importFrom BiocNeighbors findKNN
+#' @importFrom BiocNeighbors findKNN KmknnParam
 #' @importFrom utils head
 #' @importFrom S4Vectors DataFrame
 #' @importFrom scuttle .subset2index
