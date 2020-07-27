@@ -3,12 +3,9 @@
 \encoding{UTF-8}
 
 \section{Version 1.18.0}{\itemize{
-\item Added the \code{clusterRand()} function to compute a Rand index with cluster-wise decomposition.
-Deprecated \code{coassignProbs()} as this is achieved by \code{clusterRand()} with \code{adjusted=FALSE}.
+\item Deprecated \code{coassignProbs()} as this is replaced by \code{bluster::pairwiseRand()} 
 
-\item Modified \code{bootstrapCluster()} defaults to use the Rand index calculations.
-Added an \code{average=} argument to control the averaging method across iterations, with median as a default.
-Generalized it to work with any comparison function.
+\item Deprecated \code{boostrapCluster()} as this is replaced by \code{bluster::bootstrapStability()}.
 
 \item Added the \code{createClusterMST()} function to create a TSCAN-like MST from cluster centroids.
 Also added the helper functions \code{connectClusterMST()} and \code{orderClusterMST()}.
@@ -16,8 +13,6 @@ Added a wrapper function \code{quickPseudotime()} to run all the relevant steps 
 
 \item Added the \code{testLinearModel()} function to obtain inferences from a linear model.
 Added \code{testPseudotime()} for quick-and-dirty identification of DE genes along psuedotime.
-
-\item Added the \code{clusterSilhouette()} function to approximate the silhouette width for large datasets.
 
 \item Modified \code{pseudoBulkDGE()} to use formulas/functions in the \code{design=} argument.
 

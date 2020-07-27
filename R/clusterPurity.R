@@ -1,7 +1,7 @@
 #' Evaluate cluster purity
 #'
-#' \linkS4class{SingleCellExperiment}-compatible wrapper around \code{\link{neighborPurity}},
-#' for determining whether cells are surrounded by neighbors that are assigned to the same cluster.
+#' Determine whether cells are surrounded by neighbors that are assigned to the same cluster.
+#' This function has now been deprecated in favor of \code{\link{neighborPurity}} from the \pkg{bluster} package.
 #'
 #' @inheritParams buildSNNGraph
 #' @param clusters A vector or factor of cluster IDs to pass to \code{\link{neighborPurity}}.
@@ -40,7 +40,7 @@
 #' boxplot(split(out2$purity, clusters))
 #'
 #' @seealso
-#' \code{\link{clusterSilhouette}}, for another method of evaluating cluster separation.
+#' \code{\link{approxSilhouette}}, for another method of evaluating cluster separation.
 #'
 #' @name clusterPurity
 NULL
@@ -54,6 +54,7 @@ NULL
         }
         x <- t(x)
     }
+    .Deprecated("'clusterPurity' is deprecated.\nUse 'bluster::neighborPurity' instead.")
     neighborPurity(x, ...)
 }
 
