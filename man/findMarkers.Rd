@@ -71,8 +71,10 @@ Defaults to 0.5 when \code{pval.type="some"}, otherwise defaults to zero.}
 
 \item{row.data}{A \linkS4class{DataFrame} containing additional row metadata for each gene in \code{x},
 to be included in each of the output DataFrames.
-If \code{sorted=TRUE}, this should have the same row names as the output of \code{\link{combineMarkers}}
-(usually \code{rownames(x)}, see the \code{gene.names} argument in functions like \code{\link{pairwiseTTests}}.}
+This should generally have row names identical to those of \code{x}.
+
+Alternatively, a list containing one such DataFrame per level of \code{groups}, 
+where each DataFrame contains group-specific metadata for each gene to be included in the appropriate output DataFrame.}
 
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object indicating whether and how parallelization should be performed across genes.}
 
