@@ -7,6 +7,8 @@
 
 \item Deprecated \code{boostrapCluster()} as this is replaced by \code{bluster::bootstrapStability()}.
 
+\item Deprecated \code{gene.names=} in the various \code{pairwise*} functions as being out of scope.
+
 \item Added the \code{createClusterMST()} function to create a TSCAN-like MST from cluster centroids.
 Also added the helper functions \code{connectClusterMST()} and \code{orderClusterMST()}.
 Added a wrapper function \code{quickPseudotime()} to run all the relevant steps at once.
@@ -16,7 +18,11 @@ Added \code{testPseudotime()} for quick-and-dirty identification of DE genes alo
 
 \item Modified \code{pseudoBulkDGE()} to use formulas/functions in the \code{design=} argument.
 
-\item Added \code{pseudoBulkSpecific()} function to test for semi-label-specific DEGs in pseudo-bulk analyses.
+\item Added the \code{pseudoBulkSpecific()} function to test for semi-label-specific DEGs in pseudo-bulk analyses.
+
+\item Added the \code{summaryMarkerStats()} function to compute some basic summary statistics for marker filtering.
+
+\item Modified \code{row.data=} in \code{findMarkers()} to support list inputs.
 }}
 
 \section{Version 1.16.0}{\itemize{
