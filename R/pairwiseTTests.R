@@ -17,7 +17,7 @@
 #' @param lfc A positive numeric scalar specifying the log-fold change threshold to be tested against.
 #' @param std.lfc A logical scalar indicating whether log-fold changes should be standardized.
 #' @param log.p A logical scalar indicating if log-transformed p-values/FDRs should be returned.
-#' @param gene.names A character vector of gene names with one value for each row of \code{x}.
+#' @param gene.names Deprecated, use \code{row.data} in \code{\link{findMarkers}} instead to add custom annotation.
 #' @param subset.row See \code{?"\link{scran-gene-selection}"}.
 #' @param assay.type A string specifying which assay values to use, usually \code{"logcounts"}.
 #' @param BPPARAM A \linkS4class{BiocParallelParam} object indicating whether and how parallelization should be performed across genes.

@@ -61,7 +61,7 @@ Note that these factors should not be confounded with \code{groups}.}
 
 \item{log.p}{A logical scalar indicating if log-transformed p-values/FDRs should be returned.}
 
-\item{gene.names}{A character vector of gene names with one value for each row of \code{x}.}
+\item{gene.names}{Deprecated, use \code{row.data} in \code{\link{findMarkers}} instead to add custom annotation.}
 
 \item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 

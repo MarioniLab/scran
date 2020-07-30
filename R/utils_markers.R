@@ -23,6 +23,9 @@
 }
 
 .setup_gene_names <- function(gene.names, x, subset.row) {
+    if (!identical(gene.names, rownames(x))) {
+        .Deprecated(msg="use of custom values in 'gene.names=' is deprecated.")
+    }
     if (is.null(gene.names)) {
         subset.row
     } else if (length(gene.names)!=nrow(x)) {
