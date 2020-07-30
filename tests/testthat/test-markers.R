@@ -68,13 +68,40 @@ test_that("findMarkers works correctly with row metadata", {
         expect_identical(x$Y, meta[rownames(x),"Y"])
     }
 
-    # Handles it without names.
-    out <- findMarkers(dummy, groups=clust$cluster, sorted=FALSE, gene.names=NULL, row.data=meta)
+    # Handles it without sorting.
+    out <- findMarkers(dummy, groups=clust$cluster, sorted=FALSE, row.data=meta)
     for (i in seq_along(out)) {
         x <- out[[i]]
-        expect_identical(rownames(x), as.character(seq_len(nrow(dummy))))
+        expect_identical(rownames(x), paste0("X", seq_len(nrow(dummy))))
         expect_identical(x$Y, meta$Y)
     } 
+
+    # Errors out properly.
+    nonames <- meta
+    rownames(nonames) <- NULL
+    expect_error(findMarkers(dummy, groups=clust$cluster, row.data=nonames), "inconsistent or NULL")
+    expect_error(findMarkers(dummy, groups=clust$cluster, sorted=FALSE, row.data=nonames), "inconsistent")
+})
+
+test_that("findMarkers works correctly with row metadata as a list", {
+    clust <- kmeans(t(logcounts(X)), centers=3)
+    meta <- summaryMarkerStats(dummy, groups=clust$cluster)
+    out <- findMarkers(dummy, groups=clust$cluster, sorted=FALSE, row.data=meta)
+
+    for (i in seq_along(out)) {
+        x <- out[[i]]
+        curclust <- names(out)[i]
+        expect_equal(x$self.average, rowMeans(dummy[,curclust==clust$cluster]))
+        expect_equal(x$self.detected, rowMeans(dummy[,curclust==clust$cluster] != 0))
+    }
+
+    # Handles sorting properly.
+    out2 <- findMarkers(dummy, groups=clust$cluster, sorted=TRUE, row.data=meta)
+    for (i in seq_along(out)) {
+        cur1 <- out[[i]]
+        cur2 <- out2[[i]]
+        expect_identical(cur1[rownames(cur2),], cur2)
+    }
 })
 
 test_that("findMarkers and getTopMarkers work correctly", {
