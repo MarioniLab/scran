@@ -18,8 +18,10 @@
 #' @param log.p A logical scalar indicating if log-transformed p-values/FDRs should be returned.
 #' @param row.data A \linkS4class{DataFrame} containing additional row metadata for each gene in \code{x},
 #' to be included in each of the output DataFrames.
-#' If \code{sorted=TRUE}, this should have the same row names as the output of \code{\link{combineMarkers}}
-#' (usually \code{rownames(x)}, see the \code{gene.names} argument in functions like \code{\link{pairwiseTTests}}.
+#' This should generally have row names identical to those of \code{x}.
+#' 
+#' Alternatively, a list containing one such DataFrame per level of \code{groups}, 
+#' where each DataFrame contains group-specific metadata for each gene to be included in the appropriate output DataFrame.
 #' @param ... For the generic, further arguments to pass to specific methods.
 #'
 #' For the ANY method:
@@ -135,20 +137,40 @@ NULL
         log.p.in=TRUE, log.p.out=log.p, full.stats=full.stats, pval.field="log.p.value", 
         effect.field=effect.field, sorted=sorted, BPPARAM=BPPARAM)
 
-    if (!is.null(row.data)) {
-        for (i in seq_along(output)) {
-            if (sorted) {
-                if (!identical(sort(rownames(output[[i]])), sort(rownames(row.data)))) {
-                    stop("non-identical row names for 'row.data' and result tables")
-                }
-                cur.row.data <- row.data[rownames(output[[i]]),,drop=FALSE]
-            } else {
-                cur.row.data <- row.data
-                rownames(cur.row.data) <- rownames(output[[i]])
-            }
-            output[[i]] <- cbind(cur.row.data, output[[i]])
-        }
+    .add_row_data(output, row.data, match.names=sorted)
+}
+
+#' @importClassesFrom S4Vectors DataFrame
+.add_row_data <- function(output, row.data, match.names) {
+    if (is.null(row.data)) {
+        return(output)
     }
+
+    for (i in names(output)) {
+        current <- output[[i]]
+
+        if (is.data.frame(row.data) || is(row.data, "DataFrame")) {
+            rd <- row.data
+        } else {
+            if (!i %in% names(row.data)) {
+                stop("list-like 'row.data' should be named with the levels of 'groups'")
+            }
+            rd <- row.data[[i]]
+        }
+
+        rn <- rownames(current)
+        if (match.names) {
+            if (is.null(rn) || !identical(sort(rn), sort(rownames(rd)))) {
+                stop("inconsistent or NULL row names for 'row.data' and result tables")
+            }
+            rd <- rd[rn,,drop=FALSE]
+        } else if (!identical(rn, rownames(rd))) {
+            stop("inconsistent row names for 'row.data' and result tables")
+        }
+
+        output[[i]] <- cbind(rd, current)
+    }
+
     output
 }
 
