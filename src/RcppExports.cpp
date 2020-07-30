@@ -5,26 +5,6 @@
 
 using namespace Rcpp;
 
-// build_snn_rank
-Rcpp::List build_snn_rank(Rcpp::IntegerMatrix neighbors);
-RcppExport SEXP _scran_build_snn_rank(SEXP neighborsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type neighbors(neighborsSEXP);
-    rcpp_result_gen = Rcpp::wrap(build_snn_rank(neighbors));
-    return rcpp_result_gen;
-END_RCPP
-}
-// build_snn_number
-Rcpp::List build_snn_number(Rcpp::IntegerMatrix neighbors);
-RcppExport SEXP _scran_build_snn_number(SEXP neighborsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::IntegerMatrix >::type neighbors(neighborsSEXP);
-    rcpp_result_gen = Rcpp::wrap(build_snn_number(neighbors));
-    return rcpp_result_gen;
-END_RCPP
-}
 // combine_rho
 Rcpp::List combine_rho(int Ngenes, Rcpp::IntegerVector first, Rcpp::IntegerVector second, Rcpp::NumericVector Rho, Rcpp::NumericVector Pval, Rcpp::LogicalVector Limited, Rcpp::IntegerVector Order);
 RcppExport SEXP _scran_combine_rho(SEXP NgenesSEXP, SEXP firstSEXP, SEXP secondSEXP, SEXP RhoSEXP, SEXP PvalSEXP, SEXP LimitedSEXP, SEXP OrderSEXP) {
@@ -263,8 +243,6 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_scran_build_snn_rank", (DL_FUNC) &_scran_build_snn_rank, 1},
-    {"_scran_build_snn_number", (DL_FUNC) &_scran_build_snn_number, 1},
     {"_scran_combine_rho", (DL_FUNC) &_scran_combine_rho, 7},
     {"_scran_combine_simes", (DL_FUNC) &_scran_combine_simes, 2},
     {"_scran_combine_holm_middle", (DL_FUNC) &_scran_combine_holm_middle, 3},
