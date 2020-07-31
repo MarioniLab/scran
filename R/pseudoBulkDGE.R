@@ -362,7 +362,7 @@ NULL
         res <- treat(fit, lfc=lfc, robust=robust)
     }
 
-    tab <- topTable(res, coef=coef, n=Inf, sort.by="none")
+    tab <- topTable(res, coef=coef, number=Inf, sort.by="none")
     expander <- match(seq_len(ngenes), which(gkeep))
     tab <- DataFrame(tab[expander,,drop=FALSE])
     rownames(tab) <- row.names

@@ -23,6 +23,7 @@ Added \code{testPseudotime()} for quick-and-dirty identification of DE genes alo
 \item Added the \code{summaryMarkerStats()} function to compute some basic summary statistics for marker filtering.
 
 \item Modified \code{row.data=} in \code{findMarkers()} to support list inputs.
+Added a \code{add.summary=} option to easily include summary information.
 }}
 
 \section{Version 1.16.0}{\itemize{
