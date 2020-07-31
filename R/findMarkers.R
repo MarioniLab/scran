@@ -22,6 +22,7 @@
 #' 
 #' Alternatively, a list containing one such DataFrame per level of \code{groups}, 
 #' where each DataFrame contains group-specific metadata for each gene to be included in the appropriate output DataFrame.
+#' @param add.summary Logical scalar indicating whether statistics from \code{\link{summaryMarkerStats}} should be added.
 #' @param ... For the generic, further arguments to pass to specific methods.
 #'
 #' For the ANY method:
@@ -66,11 +67,14 @@
 #' @return 
 #' A named list of \linkS4class{DataFrame}s, each of which contains a sorted marker gene list for the corresponding group.
 #' In each DataFrame, the top genes are chosen to enable separation of that group from all other groups.
-#' Log-fold changes are reported as differences in average \code{x} between groups
-#' (usually in base 2, depending on the transformation applied to \code{x}).
-#' 
 #' See \code{?\link{combineMarkers}} for more details on the output format.
+#'
+#' If \code{row.data} is provided, the additional fields are added to the front of the DataFrame for each cluster.
+#' If \code{add.summary=TRUE}, extra statistics for each cluster are also computed and added.
 #' 
+#' Any log-fold changes are reported as differences in average \code{x} between groups
+#' (usually in base 2, depending on the transformation applied to \code{x}).
+#'
 #' @author
 #' Aaron Lun
 #' 
@@ -81,8 +85,11 @@
 #' for the underlying functions that compute the pairwise DE statistics.
 #'
 #' \code{\link{combineMarkers}}, to combine pairwise statistics into a single marker list per cluster.
+#'
+#' \code{\link{summaryMarkerStats}}, to incorporate additional summary statistics per cluster.
 #' 
 #' \code{\link{getMarkerEffects}}, to easily extract a matrix of effect sizes from each DataFrame.
+#'
 #' @examples
 #' library(scuttle)
 #' sce <- mockSCE()
@@ -112,8 +119,8 @@ NULL
 #' @importFrom BiocGenerics cbind
 #' @importFrom scuttle .bpNotSharedOrUp
 .findMarkers <- function(x, groups, test.type=c("t", "wilcox", "binom"), ..., 
-    pval.type=c("any", "some", "all"), min.prop=NULL, log.p=FALSE, 
-    full.stats=FALSE, sorted=TRUE, row.data=NULL, BPPARAM=SerialParam())
+    pval.type=c("any", "some", "all"), min.prop=NULL, log.p=FALSE, full.stats=FALSE, 
+    sorted=TRUE, row.data=NULL, add.summary=FALSE, BPPARAM=SerialParam())
 {
     test.type <- match.arg(test.type)
     if (test.type=="t") {
@@ -133,9 +140,14 @@ NULL
     }
 
     fit <- FUN(x, groups, ..., log.p=TRUE, BPPARAM=BPPARAM)
+
     output <- combineMarkers(fit$statistics, fit$pairs, pval.type=pval.type, min.prop=min.prop, 
         log.p.in=TRUE, log.p.out=log.p, full.stats=full.stats, pval.field="log.p.value", 
         effect.field=effect.field, sorted=sorted, BPPARAM=BPPARAM)
+
+    if (add.summary) {
+        row.data <- summaryMarkerStats(x, groups, row.data=row.data, BPPARAM=BPPARAM)
+    }
 
     .add_row_data(output, row.data, match.names=sorted)
 }

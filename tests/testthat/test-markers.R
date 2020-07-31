@@ -102,6 +102,10 @@ test_that("findMarkers works correctly with row metadata as a list", {
         cur2 <- out2[[i]]
         expect_identical(cur1[rownames(cur2),], cur2)
     }
+
+    # Auto-computes summaries.
+    auto <- findMarkers(dummy, groups=clust$cluster, sorted=FALSE, add.summary=TRUE)
+    expect_identical(auto, out)
 })
 
 test_that("findMarkers and getTopMarkers work correctly", {

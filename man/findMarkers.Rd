@@ -20,6 +20,7 @@ findMarkers(x, ...)
   full.stats = FALSE,
   sorted = TRUE,
   row.data = NULL,
+  add.summary = FALSE,
   BPPARAM = SerialParam()
 )
 
@@ -76,6 +77,8 @@ This should generally have row names identical to those of \code{x}.
 Alternatively, a list containing one such DataFrame per level of \code{groups}, 
 where each DataFrame contains group-specific metadata for each gene to be included in the appropriate output DataFrame.}
 
+\item{add.summary}{Logical scalar indicating whether statistics from \code{\link{summaryMarkerStats}} should be added.}
+
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object indicating whether and how parallelization should be performed across genes.}
 
 \item{assay.type}{A string specifying which assay values to use, usually \code{"logcounts"}.}
@@ -83,10 +86,13 @@ where each DataFrame contains group-specific metadata for each gene to be includ
 \value{
 A named list of \linkS4class{DataFrame}s, each of which contains a sorted marker gene list for the corresponding group.
 In each DataFrame, the top genes are chosen to enable separation of that group from all other groups.
-Log-fold changes are reported as differences in average \code{x} between groups
-(usually in base 2, depending on the transformation applied to \code{x}).
-
 See \code{?\link{combineMarkers}} for more details on the output format.
+
+If \code{row.data} is provided, the additional fields are added to the front of the DataFrame for each cluster.
+If \code{add.summary=TRUE}, extra statistics for each cluster are also computed and added.
+
+Any log-fold changes are reported as differences in average \code{x} between groups
+(usually in base 2, depending on the transformation applied to \code{x}).
 }
 \description{
 Find candidate marker genes for groups of cells (e.g., clusters) 
@@ -146,6 +152,8 @@ out[[1]]
 for the underlying functions that compute the pairwise DE statistics.
 
 \code{\link{combineMarkers}}, to combine pairwise statistics into a single marker list per cluster.
+
+\code{\link{summaryMarkerStats}}, to incorporate additional summary statistics per cluster.
 
 \code{\link{getMarkerEffects}}, to easily extract a matrix of effect sizes from each DataFrame.
 }
