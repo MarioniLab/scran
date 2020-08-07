@@ -17,7 +17,8 @@
 #' @param coef String or character vector containing the coefficients to drop from the design matrix to form the null hypothesis.
 #' Can also be an integer scalar or vector specifying the indices of the relevant columns.
 #' @param contrast Numeric vector or matrix containing the contrast of interest.
-#' Takes precedence over \code{coef}.
+#' Alternatively, a character vector to be passed to \code{\link{makeContrasts}} to create this numeric vector/matrix.
+#' If specified, this takes precedence over \code{coef}.
 #' @param lfc Numeric scalar specifying the log-fold change threshold to use in \code{\link{glmTreat}} or \code{\link{treat}}.
 #' @param assay.type String or integer scalar specifying the assay to use from \code{x}.
 #' @param include.intermediates Logical scalar indicating whether the intermediate \pkg{edgeR} objects should be returned.
@@ -166,6 +167,11 @@ NULL
     label <- as.character(label)
     method <- match.arg(method)
 
+    # Avoid requiring 'coef' if 'contrast' is specified.
+    if (!is.null(contrast)) {
+        coef <- NULL
+    }
+
     for (i in sort(unique(label))) {
         chosen <- i==label
 
@@ -260,6 +266,7 @@ NULL
 #' @importFrom S4Vectors DataFrame metadata metadata<-
 #' @importFrom edgeR estimateDisp glmQLFit glmQLFTest getOffset scaleOffset
 #' calcNormFactors filterByExpr topTags glmLRT glmFit glmTreat
+#' @importFrom limma makeContrasts
 .pseudo_bulk_edgeR <- function(y, row.names, curdesign, curcond, coef, contrast, 
     lfc, null.lfc, include.intermediates, robust=TRUE) 
 {
@@ -272,6 +279,9 @@ NULL
     if (rank == nrow(curdesign) || rank < ncol(curdesign)) { 
         return(NULL)
     }
+    if (is.character(contrast)) {
+        contrast <- makeContrasts(contrasts=contrast, levels=curdesign)
+    } 
 
     lfc.out <- .compute_offsets_by_lfc(design=curdesign, coef=coef, 
         contrast=contrast, filtered=gkeep, null.lfc=null.lfc)
@@ -324,7 +334,7 @@ NULL
 #' @importFrom S4Vectors DataFrame metadata metadata<-
 #' @importFrom edgeR calcNormFactors filterByExpr 
 #' @importFrom limma voom voomWithQualityWeights lmFit 
-#' contrasts.fit eBayes treat topTable
+#' contrasts.fit eBayes treat topTable makeContrasts
 .pseudo_bulk_voom <- function(y, row.names, curdesign, curcond, coef, contrast, 
     lfc, null.lfc, include.intermediates, qualities=TRUE, robust=TRUE) 
 {
@@ -343,6 +353,9 @@ NULL
     } else {
         v <- voom(y, curdesign)
     }
+    if (is.character(contrast)) {
+        contrast <- makeContrasts(contrasts=contrast, levels=curdesign)
+    } 
 
     lfc.out <- .compute_offsets_by_lfc(design=curdesign, coef=coef, 
         contrast=contrast, filtered=gkeep, null.lfc=null.lfc)
@@ -388,6 +401,6 @@ setMethod("pseudoBulkDGE", "ANY", .pseudo_bulk_master)
 #' @export
 #' @rdname pseudoBulkDGE
 #' @importFrom SummarizedExperiment assay colData
-setMethod("pseudoBulkDGE", "SummarizedExperiment", function(x, ..., assay.type=1) {
-    .pseudo_bulk_master(assay(x, assay.type), col.data=colData(x), ...)
+setMethod("pseudoBulkDGE", "SummarizedExperiment", function(x, col.data=colData(x), ..., assay.type=1) {
+    .pseudo_bulk_master(assay(x, assay.type), col.data=col.data, ...)
 })

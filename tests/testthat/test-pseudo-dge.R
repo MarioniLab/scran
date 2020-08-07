@@ -197,7 +197,62 @@ test_that("pseudoBulkDGE works with all the limma settings", {
     expect_false(identical(ref, out))
 })
 
-test_that("pseudoBulkDGE works with various odds and sods", {
+test_that("contrast specification in the pseudoBulkDGE works", {
+    ref <- pseudoBulkDGE(pseudo[1:10,], 
+        label=pseudo$cluster,
+        design=~DRUG,
+        coef=2
+    )
+
+    out1 <- pseudoBulkDGE(pseudo[1:10,], 
+        label=pseudo$cluster,
+        design=~DRUG,
+        contrast=c(0, 1)
+    )
+
+    out2 <- pseudoBulkDGE(pseudo[1:10,], 
+        label=pseudo$cluster,
+        design=~0 + DRUG,
+        contrast=c(-1, 1)
+    )
+
+    out3 <- pseudoBulkDGE(pseudo[1:10,],
+        label=pseudo$cluster,
+        design=~0 + DRUG,
+        contrast="DRUG2 - DRUG1"
+    )
+
+    for (i in seq_along(ref)) {
+        expect_equal(ref[[i]]$logFC, out1[[i]]$logFC)
+        expect_equal(ref[[i]]$logFC, out2[[i]]$logFC)
+        expect_equal(ref[[i]]$logFC, out3[[i]]$logFC)
+        expect_equal(ref[[i]]$PValue, out1[[i]]$PValue)
+        expect_equal(ref[[i]]$PValue, out2[[i]]$PValue)
+        expect_equal(ref[[i]]$PValue, out3[[i]]$PValue)
+    }
+
+    # Voom is a bit different due to the approximation of the weights.
+    ref <- pseudoBulkDGE(pseudo[1:10,], 
+        label=pseudo$cluster,
+        design=~0 + DRUG,
+        method="voom",
+        contrast=c(-1, 1)
+    )
+
+    out <- pseudoBulkDGE(pseudo[1:10,],
+        label=pseudo$cluster,
+        design=~0 + DRUG,
+        method="voom",
+        contrast="DRUG2 - DRUG1"
+    )
+
+    for (i in seq_along(ref)) {
+        expect_equal(ref[[i]]$logFC, out[[i]]$logFC)
+        expect_equal(ref[[i]]$PValue, out[[i]]$PValue)
+    }
+})
+
+test_that("sorting in the pseudoBulkDGE works", {
     ref <- pseudoBulkDGE(pseudo, 
         label=pseudo$cluster,
         design=~DRUG,

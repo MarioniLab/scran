@@ -26,7 +26,7 @@ pseudoBulkDGE(x, ...)
   sample = NULL
 )
 
-\S4method{pseudoBulkDGE}{SummarizedExperiment}(x, ..., assay.type = 1)
+\S4method{pseudoBulkDGE}{SummarizedExperiment}(x, col.data = colData(x), ..., assay.type = 1)
 }
 \arguments{
 \item{x}{A numeric matrix of counts where rows are genes and columns are pseudo-bulk profiles.
@@ -48,7 +48,8 @@ Alternatively, a function that accepts a data.frame with the same fields as \cod
 Can also be an integer scalar or vector specifying the indices of the relevant columns.}
 
 \item{contrast}{Numeric vector or matrix containing the contrast of interest.
-Takes precedence over \code{coef}.}
+Alternatively, a character vector to be passed to \code{\link{makeContrasts}} to create this numeric vector/matrix.
+If specified, this takes precedence over \code{coef}.}
 
 \item{condition}{A vector or factor of length equal to \code{ncol(x)},
 specifying the experimental condition for each column of \code{x}.
