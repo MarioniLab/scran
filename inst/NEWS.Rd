@@ -17,6 +17,7 @@ Added a wrapper function \code{quickPseudotime()} to run all the relevant steps 
 Added \code{testPseudotime()} for quick-and-dirty identification of DE genes along psuedotime.
 
 \item Modified \code{pseudoBulkDGE()} to use formulas/functions in the \code{design=} argument.
+Allow \code{contrast=} to be a character vector to be run through \code{makeContrasts()}.
 
 \item Added the \code{pseudoBulkSpecific()} function to test for semi-label-specific DEGs in pseudo-bulk analyses.
 
@@ -24,6 +25,8 @@ Added \code{testPseudotime()} for quick-and-dirty identification of DE genes alo
 
 \item Modified \code{row.data=} in \code{findMarkers()} to support list inputs.
 Added a \code{add.summary=} option to easily include summary information.
+
+\item Modified \code{combineVar()} and \code{combineCV2()} to support list inputs.
 }}
 
 \section{Version 1.16.0}{\itemize{
