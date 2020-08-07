@@ -5,6 +5,9 @@
 #' @param ... Two or more \linkS4class{DataFrame}s of variance modelling results.
 #' For \code{combineVar}, these should be produced by \code{\link{modelGeneVar}} or \code{\link{modelGeneVarWithSpikes}}.
 #' For \code{combineCV2}, these should be produced by \code{\link{modelGeneCV2}} or \code{\link{modelGeneCV2WithSpikes}}.
+#'
+#' Alternatively, one or more lists of DataFrames containing variance modelling results.
+#' Mixed inputs are also acceptable, e.g., lists of DataFrames alongside the DataFrames themselves.
 #' @param method String specifying how p-values are to be combined, see \code{\link{combinePValues}} for options.
 #' @param pval.field A string specifying the column name of each element of \code{...} that contains the p-value.
 #' @param other.fields A character vector specifying the fields containing other statistics to combine.
@@ -65,8 +68,9 @@
 #' head(combineVar(results1, results2, method="berger"))
 #' 
 #' @export
+#' @importFrom scuttle .unpackLists
 combineVar <- function(..., method="fisher", pval.field="p.value", other.fields=NULL, equiweight=TRUE, ncells=NULL) {
-    collected <- list(...)
+    collected <- .unpackLists(...)
     if (is.null(ncells)) {
         # Any arbitrary value will do here, 
         # as long as it's >=2 so that the block isn't ignored.
@@ -84,8 +88,9 @@ combineVar <- function(..., method="fisher", pval.field="p.value", other.fields=
 
 #' @export
 #' @rdname combineVar
+#' @importFrom scuttle .unpackLists
 combineCV2 <- function(..., method="fisher", pval.field="p.value", other.fields=NULL, equiweight=TRUE, ncells=NULL) {
-    collected <- list(...)
+    collected <- .unpackLists(...)
     if (is.null(ncells)) {
         ncells <- rep(10L, length(collected))
     }

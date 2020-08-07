@@ -44,6 +44,11 @@ test_that("combineVar works correctly", {
     res4 <- combineVar(dec, dec2, dec3, method="fisher")
     expect_equal(res[,c("mean", "total", "tech", "bio")], res4[,c("mean", "total", "tech", "bio")])
     expect_equivalent(res4$p.value, pchisq(-2*rowSums(log(pvalmat)), df=6, lower.tail=FALSE))
+
+    # Same results with a list of DF's.
+    expect_identical(res, combineVar(list(dec, dec2, dec3), method="z"))
+    expect_identical(res, combineVar(list(dec, dec2), dec3, method="z"))
+    expect_identical(res, combineVar(dec, list(dec2), dec3, method="z"))
 })
 
 test_that("combineVar works when weighting is turned on", {
@@ -101,6 +106,11 @@ test_that("combineCV2 works correctly", {
     expect_equal(res$trend, geoRowMeans(cbind(dec$trend, dec2$trend, dec3$trend)))
     expect_equal(res$ratio, geoRowMeans(cbind(dec$ratio, dec2$ratio, dec3$ratio)))
     expect_equivalent(res$p.value, combinePValues(dec$p.value, dec2$p.value, dec3$p.value, method="fisher"))
+
+    # Same results with a list of DF's.
+    expect_identical(res, combineCV2(list(dec, dec2, dec3)))
+    expect_identical(res, combineCV2(list(dec, dec2), dec3))
+    expect_identical(res, combineCV2(dec, list(dec2), dec3))
 })
 
 geoRowMeansW <- function(mat, w) {

@@ -26,7 +26,10 @@ combineCV2(
 \arguments{
 \item{...}{Two or more \linkS4class{DataFrame}s of variance modelling results.
 For \code{combineVar}, these should be produced by \code{\link{modelGeneVar}} or \code{\link{modelGeneVarWithSpikes}}.
-For \code{combineCV2}, these should be produced by \code{\link{modelGeneCV2}} or \code{\link{modelGeneCV2WithSpikes}}.}
+For \code{combineCV2}, these should be produced by \code{\link{modelGeneCV2}} or \code{\link{modelGeneCV2WithSpikes}}.
+
+Alternatively, one or more lists of DataFrames containing variance modelling results.
+Mixed inputs are also acceptable, e.g., lists of DataFrames alongside the DataFrames themselves.}
 
 \item{method}{String specifying how p-values are to be combined, see \code{\link{combinePValues}} for options.}
 
