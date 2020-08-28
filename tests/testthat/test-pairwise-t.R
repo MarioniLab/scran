@@ -177,6 +177,12 @@ test_that("pairwiseTTests handles unused levels correctly", {
     clust2 <- clusters
     clust2[clust2 %in% exclude] <- NA
     expect_identical(attempt, pairwiseTTests(X, as.character(clust2)))
+
+    # Handles empty spaces correctly.
+    clust2 <- as.character(clusters)
+    clust2[clust2 %in% exclude] <- ""
+    expect_warning(attempt2 <- pairwiseTTests(X, clust2), "replacing")
+    expect_identical(attempt, attempt2)
 })
 
 ###################################################################

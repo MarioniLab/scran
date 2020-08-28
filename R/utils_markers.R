@@ -15,6 +15,12 @@
         if (is.factor(groups)) groups <- droplevels(groups)
     }
 
+    is.empty <- groups==""
+    if (any(is.empty, na.rm=TRUE)) {
+        warning("replacing empty 'groups' with NA")
+        groups[is.empty] <- NA
+    }
+
     groups <- as.factor(groups)
     if (nlevels(groups) < 2L) {
         stop("need at least two unique levels in 'groups'")
