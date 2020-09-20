@@ -54,7 +54,7 @@ NULL
         }
         x <- t(x)
     }
-    .Deprecated("'clusterPurity' is deprecated.\nUse 'bluster::neighborPurity' instead.")
+    .Deprecated(old="clusterPurity", new="bluster::neighborPurity")
     neighborPurity(x, ...)
 }
 
