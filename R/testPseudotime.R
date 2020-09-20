@@ -2,6 +2,7 @@
 #'
 #' Implements a simple method of testing for significant differences with respect to pseudotime,
 #' based on fitting linear models with a spline basis matrix.
+#' This function is now deprecated as it has been moved to the \pkg{TSCAN} package itself.
 #'
 #' @param x A numeric matrix-like object containing log-expression values for cells (columns) and genes (rows).
 #' Alternatively, a \linkS4class{SummarizedExperiment} containing such a matrix.
@@ -77,6 +78,7 @@
 NULL
 
 .test_pseudotime <- function(x, pseudotime, df=5, get.lfc=TRUE, get.spline.coef=FALSE, trend.only=TRUE) {
+    .Deprecated(old="scran::testPseudotime", new="TSCAN::testPseudotime")
     if (is.null(dim(pseudotime)) || ncol(pseudotime)==1) {
         .test_solo_pseudotime(x, pseudotime, df=df, get.lfc=get.lfc, 
             get.spline.coef=get.spline.coef)

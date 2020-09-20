@@ -2,6 +2,7 @@
 #'
 #' A convenience wrapper to quickly compute a minimum spanning tree (MST) on the cluster centroids
 #' to obtain a pseudotime ordering of the cells.
+#' This function is now deprecated as it has been moved to the \pkg{TSCAN} package itself.
 #'
 #' @param x A named list of numeric matrices containing dimensionality reduction results.
 #' All matrices should have the same number of cells, i.e., rows.
@@ -61,6 +62,7 @@ NULL
 #' @importFrom SingleCellExperiment reducedDims reducedDims<-
 #' @importFrom SingleCellExperiment SingleCellExperiment
 .quick_pseudotime <- function(x, clusters, use=1, outgroup=FALSE, outscale=3, start=NULL) {
+    .Deprecated(old="scran::quickPseudotime", new="TSCAN::quickPseudotime")
     tab <- table(clusters)
     centered <- x
     for (i in seq_along(x)) {

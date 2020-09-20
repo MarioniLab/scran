@@ -51,6 +51,7 @@ Each data.frame corresponds to a dimensionality reduction result in \code{x}.
 \description{
 A convenience wrapper to quickly compute a minimum spanning tree (MST) on the cluster centroids
 to obtain a pseudotime ordering of the cells.
+This function is now deprecated as it has been moved to the \pkg{TSCAN} package itself.
 }
 \details{
 This function simply calls, in order:

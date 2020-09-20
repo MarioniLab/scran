@@ -2,6 +2,7 @@
 #'
 #' Perform basic trajectory analyses with minimum spanning trees (MST) computed on cluster centroids,
 #' based on the methodology in the \pkg{TSCAN} package.
+#' These functions are now deprecated as they have been moved to the \pkg{TSCAN} package itself.
 #'
 #' @param centers A numeric matrix of cluster centroids where each \emph{row} represents a cluster 
 #' and each column represents a dimension (usually a PC or another low-dimensional embedding).
@@ -127,6 +128,7 @@ NULL
 #' @importFrom igraph graph.adjacency minimum.spanning.tree delete_vertices E
 #' @importFrom stats median dist
 createClusterMST <- function(centers, outgroup=FALSE, outscale=3) {
+    .Deprecated(old="scran::createClusterMST", new="TSCAN::createClusterMST")
     dmat <- dist(centers)
     dmat <- as.matrix(dmat)
 
@@ -186,6 +188,7 @@ createClusterMST <- function(centers, outgroup=FALSE, outscale=3) {
 #' @importFrom Matrix which
 #' @importFrom igraph V
 connectClusterMST <- function(centers, mst, combined=TRUE) {
+    .Deprecated(new="TSCAN::reportEdges")
     pairs <- which(mst[] > 0, arr.ind=TRUE)
     pairs <- pairs[pairs[,1] > pairs[,2],,drop=FALSE]
 
@@ -213,6 +216,7 @@ connectClusterMST <- function(centers, mst, combined=TRUE) {
 #' @rdname createClusterMST
 #' @importFrom igraph V degree adjacent_vertices components
 orderClusterMST <- function(x, ids, centers, mst, start=NULL) {
+    .Deprecated(new="TSCAN::mapCellsToEdges")
     comp <- components(mst)$membership
     by.comp <- split(names(comp), comp)
     if (is.null(start)) {

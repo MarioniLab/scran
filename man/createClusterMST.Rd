@@ -49,6 +49,7 @@ If \code{combined=FALSE}, a list of two data.frames is returned where correspond
 \description{
 Perform basic trajectory analyses with minimum spanning trees (MST) computed on cluster centroids,
 based on the methodology in the \pkg{TSCAN} package.
+These functions are now deprecated as they have been moved to the \pkg{TSCAN} package itself.
 }
 \details{
 These functions represent some basic utilities for a simple trajectory analysis 

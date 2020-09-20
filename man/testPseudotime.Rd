@@ -54,6 +54,7 @@ or the differences in the spline fits to the first path are returned (multiple p
 \description{
 Implements a simple method of testing for significant differences with respect to pseudotime,
 based on fitting linear models with a spline basis matrix.
+This function is now deprecated as it has been moved to the \pkg{TSCAN} package itself.
 }
 \details{
 For a single path in \code{pseudotime},
