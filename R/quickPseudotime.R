@@ -12,9 +12,6 @@
 #' @param use Integer scalar or string specifying the entry of \code{x} to use for MST construction and pseudotime calculations.
 #' @param start Arguments passed to \code{\link{orderClusterMST}}.
 #' @param outgroup,outscale Arguments passed to \code{\link{createClusterMST}}.
-#' @param ... For the generic, further arguments to pass to specific methods.
-#'
-#' For the SingleCellExperiment method, further arguments to pass to the ANY method.
 #'
 #' @details
 #' This function simply calls, in order:
@@ -53,16 +50,16 @@
 #' out$mst
 #' head(out$ordering)
 #'
-#' @name quickPseudotime
-#' @aliases
-#' quickPseudotime,ANY-method
-#' quickPseudotime,SingleCellExperiment-method 
-NULL
-
+#' @export
 #' @importFrom SingleCellExperiment reducedDims reducedDims<-
 #' @importFrom SingleCellExperiment SingleCellExperiment
-.quick_pseudotime <- function(x, clusters, use=1, outgroup=FALSE, outscale=3, start=NULL) {
+quickPseudotime <- function(x, clusters, use=1, outgroup=FALSE, outscale=3, start=NULL) {
     .Deprecated(old="scran::quickPseudotime", new="TSCAN::quickPseudotime")
+
+    if (is(x, "SingleCellExperiment")) {
+        x <- reducedDims(x)
+    }
+
     tab <- table(clusters)
     centered <- x
     for (i in seq_along(x)) {
@@ -81,18 +78,3 @@ NULL
         connected=connected
     )
 }
-
-#' @export
-#' @rdname quickPseudotime
-setGeneric("quickPseudotime", function(x, ...) standardGeneric("quickPseudotime"))
-
-#' @export
-#' @rdname quickPseudotime
-setMethod("quickPseudotime", "ANY", .quick_pseudotime)
-
-#' @export
-#' @rdname quickPseudotime
-#' @importFrom SingleCellExperiment colLabels reducedDims
-setMethod("quickPseudotime", "SingleCellExperiment", function(x, clusters=colLabels(x, onAbsence="error"), ...) {
-    .quick_pseudotime(reducedDims(x), clusters=clusters, ...)
-})

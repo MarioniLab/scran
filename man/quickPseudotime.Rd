@@ -2,13 +2,9 @@
 % Please edit documentation in R/quickPseudotime.R
 \name{quickPseudotime}
 \alias{quickPseudotime}
-\alias{quickPseudotime,ANY-method}
-\alias{quickPseudotime,SingleCellExperiment-method}
 \title{Quick MST-based pseudotime}
 \usage{
-quickPseudotime(x, ...)
-
-\S4method{quickPseudotime}{ANY}(
+quickPseudotime(
   x,
   clusters,
   use = 1,
@@ -16,17 +12,11 @@ quickPseudotime(x, ...)
   outscale = 3,
   start = NULL
 )
-
-\S4method{quickPseudotime}{SingleCellExperiment}(x, clusters = colLabels(x, onAbsence = "error"), ...)
 }
 \arguments{
 \item{x}{A named list of numeric matrices containing dimensionality reduction results.
 All matrices should have the same number of cells, i.e., rows.
 Alternatively, a \linkS4class{SingleCellExperiment} containing such results in its \code{\link{reducedDims}}.}
-
-\item{...}{For the generic, further arguments to pass to specific methods.
-
-For the SingleCellExperiment method, further arguments to pass to the ANY method.}
 
 \item{clusters}{A factor of length equal to the number of cells in \code{x},
 specifying the cluster assignment for each cell.}
