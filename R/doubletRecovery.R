@@ -1,6 +1,7 @@
 #' Recover intra-sample doublets
 #'
 #' Recover intra-sample doublets that are neighbors to known inter-sample doublets in a multiplexed experiment.
+#' This function is now deprecated, use \code{recoverDoublets} from \pkg{scDblFinder} instead.
 #'
 #' @param x A log-expression matrix for all cells (including doublets) in columns and genes in rows.
 #' Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} containing such a matrix.
@@ -103,6 +104,7 @@ NULL
         }
         x <- t(x)
     }
+    .Deprecated(old="doubletRecovery",new="scDblFinder::recoverDoublets")
 
     is.doublet <- logical(nrow(x))
     is.doublet[.subset2index(doublets, x, byrow=TRUE)] <- TRUE

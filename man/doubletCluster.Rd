@@ -56,6 +56,7 @@ Each row is named according to its query cluster.
 \description{
 Identify potential clusters of doublet cells based on whether they have intermediate expression profiles,
 i.e., their profiles lie between two other \dQuote{source} clusters.
+This function is now deprecated, use \code{findDoubletClusters} from \pkg{scDblFinder} instead.
 }
 \details{
 This function detects clusters of doublet cells in a manner similar to the method used by Bach et al. (2017).

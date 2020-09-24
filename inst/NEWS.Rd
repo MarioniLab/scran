@@ -27,6 +27,12 @@ Allow \code{contrast=} to be a character vector to be run through \code{makeCont
 Added a \code{add.summary=} option to easily include summary information.
 
 \item Modified \code{combineVar()} and \code{combineCV2()} to support list inputs.
+
+\item Deprecated \code{doubletCells()} as this is replaced by \code{scDblFinder::computeDoubletDensity()}.
+
+\item Deprecated \code{doubletCluster()} as this is replaced by \code{scDblFinder::findDoubletClusters()}.
+
+\item Deprecated \code{doubletRecovery()} as this is replaced by \code{scDblFinder::recoverDoublets()}.
 }}
 
 \section{Version 1.16.0}{\itemize{

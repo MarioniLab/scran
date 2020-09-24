@@ -2,6 +2,7 @@
 #'
 #' Identify potential clusters of doublet cells based on whether they have intermediate expression profiles,
 #' i.e., their profiles lie between two other \dQuote{source} clusters.
+#' This function is now deprecated, use \code{findDoubletClusters} from \pkg{scDblFinder} instead.
 #' 
 #' @param x A numeric matrix-like object of count values, 
 #' where each column corresponds to a cell and each row corresponds to an endogenous gene.
@@ -122,6 +123,7 @@ NULL
     if (length(unique(clusters)) < 3L) {
         stop("need at least three clusters to detect doublet clusters")
     }
+    .Deprecated(old="doubletCluster", new="scDblFinder::findDoubletClusters")
 
     # Computing normalized counts using the library size (looking for compositional differences!)
     sce <- SingleCellExperiment(list(counts=x))

@@ -68,6 +68,7 @@ The \code{\link{metadata}} contains \code{intra}, a numeric scalar containing th
 }
 \description{
 Recover intra-sample doublets that are neighbors to known inter-sample doublets in a multiplexed experiment.
+This function is now deprecated, use \code{recoverDoublets} from \pkg{scDblFinder} instead.
 }
 \details{
 In multiplexed single-cell experiments, we can detect doublets as libraries with labels for multiple samples.

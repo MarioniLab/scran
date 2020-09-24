@@ -78,6 +78,7 @@ A numeric vector of doublet scores for each cell in \code{x}.
 }
 \description{
 Identify potential doublet cells based on simulations of putative doublet expression profiles.
+This function is now deprecated, use \code{computeDoubletDensity} from \pkg{scDblFinder} instead.
 }
 \details{
 This function simulates doublets by adding the count vectors for two randomly chosen cells in \code{x}.

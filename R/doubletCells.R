@@ -1,6 +1,7 @@
 #' Detect doublet cells
 #' 
 #' Identify potential doublet cells based on simulations of putative doublet expression profiles.
+#' This function is now deprecated, use \code{computeDoubletDensity} from \pkg{scDblFinder} instead.
 #' 
 #' @param x A numeric matrix-like object of count values, 
 #' where each column corresponds to a cell and each row corresponds to an endogenous gene.
@@ -108,6 +109,8 @@ NULL
     d=50, force.match=FALSE, force.k=20, force.ndist=3,
     BNPARAM=KmknnParam(), BSPARAM=bsparam(), BPPARAM=SerialParam())
 {
+    .Deprecated(old="doubletCells", new="scDblFinder::computeDoubletDensity")
+
     # Setting up the parallelization.
     old <- getAutoBPPARAM()
     setAutoBPPARAM(BPPARAM)
