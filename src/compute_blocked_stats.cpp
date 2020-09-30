@@ -1,7 +1,5 @@
 #include "Rcpp.h"
-#include "beachmat/numeric_matrix.h"
-#include "beachmat/integer_matrix.h"
-
+#include "beachmat3/beachmat.h"
 #include "utils.h"
 
 #include <vector>
@@ -13,23 +11,23 @@
  * a given transformation of the counts.
  *********************************************/
 
-template<class MAT, class TRANSFORMER>
+template<class TRANSFORMER>
 Rcpp::List compute_blocked_stats(Rcpp::RObject mat, Rcpp::IntegerVector block, int nblocks, TRANSFORMER trans) {
-    auto emat=beachmat::create_matrix<MAT>(mat);
+    auto emat = beachmat::read_lin_block(mat);
     const size_t ncells=emat->get_ncol();
     const size_t ngenes=emat->get_nrow();
 
     // Setting up the output objects.
     Rcpp::NumericMatrix outvar(ngenes, nblocks);
     Rcpp::NumericMatrix outmean(ngenes, nblocks);
-    Rcpp::NumericVector incoming(ngenes);
+    std::vector<double> incoming(ngenes);
     std::vector<int> count(nblocks);
 
     // Using Welford's algorithm to compute the variance in column-major style,
     // which should be much more cache-friendly for large matrices.
     for (size_t counter=0; counter<ncells; ++counter) {
-        emat->get_col(counter, incoming.begin());
-        trans(counter, incoming.begin(), incoming.end());
+        auto ptr = emat->get_col(counter, incoming.data());
+        trans(counter, ptr, ptr + ngenes, incoming.begin());
 
         auto curblock=block[counter];
         if (isNA(curblock)) {
@@ -80,11 +78,14 @@ Rcpp::List compute_blocked_stats(Rcpp::RObject mat, Rcpp::IntegerVector block, i
 
 struct lognorm {
     lognorm(Rcpp::NumericVector sizefactors, double p) : sf(sizefactors), pseudo(p) {}
-    void operator()(int i, Rcpp::NumericVector::iterator start, Rcpp::NumericVector::iterator end) {
+
+    template<class IN, class OUT>
+    void operator()(int i, IN start, IN end, OUT out) {
         double target=sf[i];
         while (start!=end) {
-            *start=std::log(*start/target + pseudo)/M_LN2;
+            *out=std::log(*start/target + pseudo)/M_LN2;
             ++start;
+            ++out;
         }
     }
 private:
@@ -97,13 +98,8 @@ private:
 Rcpp::List compute_blocked_stats_lognorm(Rcpp::RObject mat, Rcpp::IntegerVector block, 
     int nblocks, Rcpp::NumericVector sf, double pseudo) 
 {
-    int rtype=beachmat::find_sexp_type(mat);
     lognorm LN(sf, pseudo);
-    if (rtype==INTSXP) {
-        return compute_blocked_stats<beachmat::integer_matrix>(mat, block, nblocks, LN);
-    } else {
-        return compute_blocked_stats<beachmat::numeric_matrix>(mat, block, nblocks, LN);
-    }
+    return compute_blocked_stats(mat, block, nblocks, LN);
 }
 
 /*******************************************
@@ -112,11 +108,14 @@ Rcpp::List compute_blocked_stats_lognorm(Rcpp::RObject mat, Rcpp::IntegerVector 
 
 struct norm {
     norm(Rcpp::NumericVector sizefactors) : sf(sizefactors) {}
-    void operator()(int i, Rcpp::NumericVector::iterator start, Rcpp::NumericVector::iterator end) {
+
+    template<class IN, class OUT>
+    void operator()(int i, IN start, IN end, OUT out) {
         double target=sf[i];
         while (start!=end) {
-            *start/=target;
+            (*out) = (*start)/target;
             ++start;
+            ++out;
         }
     }
 private:
@@ -127,13 +126,8 @@ private:
 Rcpp::List compute_blocked_stats_norm(Rcpp::RObject mat, Rcpp::IntegerVector block, 
     int nblocks, Rcpp::NumericVector sf)
 {
-    int rtype=beachmat::find_sexp_type(mat);
     norm N(sf);
-    if (rtype==INTSXP) {
-        return compute_blocked_stats<beachmat::integer_matrix>(mat, block, nblocks, N);
-    } else {
-        return compute_blocked_stats<beachmat::numeric_matrix>(mat, block, nblocks, N);
-    }
+    return compute_blocked_stats(mat, block, nblocks, N);
 }
 
 /***********************************************
@@ -142,16 +136,12 @@ Rcpp::List compute_blocked_stats_norm(Rcpp::RObject mat, Rcpp::IntegerVector blo
 
 struct none {
     none() {}
-    void operator()(int i, Rcpp::NumericVector::iterator start, Rcpp::NumericVector::iterator end) {}
+    template<class IN, class OUT>
+    void operator()(int i, IN start, IN end, OUT out) {}
 };
 
 // [[Rcpp::export(rng=false)]]
 Rcpp::List compute_blocked_stats_none(Rcpp::RObject mat, Rcpp::IntegerVector block, int nblocks) {
-    int rtype=beachmat::find_sexp_type(mat);
     none N;
-    if (rtype==INTSXP) {
-        return compute_blocked_stats<beachmat::integer_matrix>(mat, block, nblocks, N);
-    } else {
-        return compute_blocked_stats<beachmat::numeric_matrix>(mat, block, nblocks, N);
-    }
+    return compute_blocked_stats(mat, block, nblocks, N);
 }

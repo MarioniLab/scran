@@ -48,11 +48,6 @@
 #' @importFrom BiocParallel SerialParam
 scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, as.sparse=FALSE, 
     withDimnames=TRUE, BPPARAM=SerialParam())
-# Obtaining scaled/centred ranks to compute cosine distances.
-# Using this instead of colRanks to support dgCMatrix, HDF5Array objects.
-# 
-# written by Aaron Lun
-# created 31 August 2018
 {
     subset.row <- .subset2index(subset.row, x, byrow=TRUE)
     if (!is.null(min.mean) && all(dim(x)>0L)) {
@@ -60,7 +55,12 @@ scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
         subset.row <- subset.row[further.subset]
     }
 
-    rkout <- get_scaled_ranks(x, subset.row-1L, transposed, as.sparse)
+    out <- colBlockApply(x[subset.row,,drop=FALSE], FUN=.get_scaled_ranks, transposed=transposed, as.sparse=as.sparse)
+    if (transposed) {
+        rkout <- do.call(rbind, out)
+    } else {
+        rkout <- do.call(cbind, out)
+    }
 
     if (withDimnames && !is.null(dimnames(x))) {
         dn <- list(rownames(x)[subset.row], colnames(x))
@@ -70,4 +70,29 @@ scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
         dimnames(rkout) <- dn
     }
     rkout
+}
+
+#' @importClassesFrom Matrix sparseMatrix dgCMatrix
+#' @importFrom DelayedMatrixStats colRanks rowMins rowSds
+#' @importFrom Matrix rowMeans
+.get_scaled_ranks <- function(block, transposed, as.sparse) {
+    if (is(block, "SparseArraySeed")) {
+        block <- as(block, "sparseMatrix")
+    }
+
+    out <- colRanks(block, ties.method="average", preserveShape=FALSE)
+    sig <- rowSds(out)
+
+    if (as.sparse) {
+        out <- out - rowMins(out)
+        out <- as(out, "dgCMatrix")
+    } else {
+        out <- out - rowMeans(out)
+    }
+
+    out <- out/sig
+    if (!transposed) {
+        out <- t(out)
+    }
+    out
 }

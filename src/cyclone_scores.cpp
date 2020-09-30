@@ -1,8 +1,6 @@
 #include "Rcpp.h"
 
-#include "beachmat/integer_matrix.h"
-#include "beachmat/numeric_matrix.h"
-#include "beachmat/utils/const_column.h"
+#include "beachmat3/beachmat.h"
 #include "boost/range/algorithm.hpp"
 #include "utils.h"
 #include "rand_custom.h"
@@ -54,12 +52,12 @@ double get_proportion (const V& expr, const int minpairs, const Rcpp::IntegerVec
     return output;
 }
 
-template <class M>
-Rcpp::NumericVector cyclone_scores_internal (Rcpp::RObject input, Rcpp::IntegerVector mycells,
-    Rcpp::IntegerVector marker1, Rcpp::IntegerVector marker2, Rcpp::IntegerVector used, 
-    int niters, int miniters, int minpairs, Rcpp::List seeds, Rcpp::IntegerVector streams) 
+// [[Rcpp::export(rng=false)]]
+Rcpp::NumericVector cyclone_scores (Rcpp::RObject exprs, Rcpp::IntegerVector mycells,
+    Rcpp::IntegerVector marker1, Rcpp::IntegerVector marker2, Rcpp::IntegerVector indices,
+    int niters, int miniters, int minpairs, Rcpp::List seeds, Rcpp::IntegerVector streams)
 {
-    auto mat_ptr=beachmat::create_matrix<M>(input);
+    auto mat_ptr = beachmat::read_lin_block(input);
     const size_t ncells=mycells.size();
     const size_t ngenes=mat_ptr->get_nrow();
     const size_t nused=used.size();
@@ -95,16 +93,14 @@ Rcpp::NumericVector cyclone_scores_internal (Rcpp::RObject input, Rcpp::IntegerV
     }
 
     Rcpp::NumericVector output(ncells, NA_REAL);
-    typename M::vector current_exprs(nused);
-    beachmat::const_column<M> col_holder(mat_ptr.get(), false); // need indexed access.
+    std::vector<double> tmp(ngenes), current_exprs(nused);
 
     auto oIt=output.begin();
     for (auto cIt=mycells.begin(); cIt!=mycells.end(); ++cIt, ++oIt) { 
         const size_t curcell=*cIt - 1;
 
         // Extracting only the expression values that are used in at least one pair.
-        col_holder.fill(curcell);
-        auto allIt=col_holder.get_values();
+        auto allIt = mat_ptr->get(curcell, tmp.data());
         auto curIt=current_exprs.begin();
         for (auto uIt=used.begin(); uIt!=used.end(); ++uIt, ++curIt) {
             (*curIt)=*(allIt + *uIt);
@@ -133,21 +129,6 @@ Rcpp::NumericVector cyclone_scores_internal (Rcpp::RObject input, Rcpp::IntegerV
     }
 
     return output;
-}
-
-// [[Rcpp::export(rng=false)]]
-Rcpp::NumericVector cyclone_scores (Rcpp::RObject exprs, Rcpp::IntegerVector mycells,
-    Rcpp::IntegerVector marker1, Rcpp::IntegerVector marker2, Rcpp::IntegerVector indices, 
-    int niters, int miniters, int minpairs, Rcpp::List seeds, Rcpp::IntegerVector streams) 
-{
-    int rtype=beachmat::find_sexp_type(exprs);
-    if (rtype==INTSXP) {
-        return cyclone_scores_internal<beachmat::integer_matrix>(exprs, mycells, marker1, marker2, indices, 
-            niters, miniters, minpairs, seeds, streams);
-    } else {
-        return cyclone_scores_internal<beachmat::numeric_matrix>(exprs, mycells, marker1, marker2, indices, 
-            niters, miniters, minpairs, seeds, streams);
-    }
 }
 
 /* We could just assign ties random directions; then we'd only have to shuffle
