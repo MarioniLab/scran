@@ -53,23 +53,15 @@ compute_rho_pairs <- function(gene1, gene2, ranks) {
     .Call('_scran_compute_rho_pairs', PACKAGE = 'scran', gene1, gene2, ranks)
 }
 
-cyclone_scores <- function(exprs, mycells, marker1, marker2, indices, niters, miniters, minpairs, seeds, streams) {
-    .Call('_scran_cyclone_scores', PACKAGE = 'scran', exprs, mycells, marker1, marker2, indices, niters, miniters, minpairs, seeds, streams)
+cyclone_scores <- function(exprs, marker1, marker2, indices, niters, miniters, minpairs, seeds, streams) {
+    .Call('_scran_cyclone_scores', PACKAGE = 'scran', exprs, marker1, marker2, indices, niters, miniters, minpairs, seeds, streams)
 }
 
-get_scaled_ranks <- function(exprs, subset, transpose, as_sparse) {
-    .Call('_scran_get_scaled_ranks', PACKAGE = 'scran', exprs, subset, transpose, as_sparse)
-}
-
-overlap_exprs <- function(exprs, bygroup, lfc) {
-    .Call('_scran_overlap_exprs', PACKAGE = 'scran', exprs, bygroup, lfc)
+overlap_exprs <- function(exprs, groups, lfc) {
+    .Call('_scran_overlap_exprs', PACKAGE = 'scran', exprs, groups, lfc)
 }
 
 pool_size_factors <- function(exprs, pseudo_cell, order, pool_sizes) {
     .Call('_scran_pool_size_factors', PACKAGE = 'scran', exprs, pseudo_cell, order, pool_sizes)
-}
-
-subset_and_divide <- function(matrix, row_subset, col_subset, scaling) {
-    .Call('_scran_subset_and_divide', PACKAGE = 'scran', matrix, row_subset, col_subset, scaling)
 }
 

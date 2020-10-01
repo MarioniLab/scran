@@ -2,7 +2,7 @@
 #include "beachmat3/beachmat.h"
 #include "scuttle/linear_model_fit.h"
 
-template<class M, class TRANSFORMER>
+template<class TRANSFORMER>
 Rcpp::List compute_residual_stats(Rcpp::NumericMatrix qr, Rcpp::NumericVector qraux, Rcpp::RObject inmat, TRANSFORMER trans) {
     auto emat = beachmat::read_lin_block(inmat);
     const size_t ncells=emat->get_ncol();
@@ -80,7 +80,11 @@ struct none {
     none() {}
 
     template<class IN, class OUT>
-    void operator()(IN start, IN end, OUT out) {}
+    void operator()(IN start, IN end, OUT out) {
+        if (out!=start) {
+            std::copy(start, end, out);
+        }
+    }
 };
 
 // [[Rcpp::export(rng=false)]]

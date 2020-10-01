@@ -167,9 +167,9 @@ setMethod("pairwiseBinom", "SingleCellExperiment", function(x, groups=colLabels(
 ###########################################################
 
 #' @importFrom S4Vectors DataFrame
-#' @importFrom BiocParallel bplapply SerialParam bpstart bpstop
+#' @importFrom BiocParallel SerialParam bpstart bpstop
 #' @importFrom stats pbinom
-#' @importFrom scuttle .splitRowsByWorkers .bpNotSharedOrUp numDetectedAcrossCells
+#' @importFrom scuttle .bpNotSharedOrUp numDetectedAcrossCells
 #' @importFrom SummarizedExperiment assay
 .blocked_binom <- function(x, subset.row, groups, block=NULL, direction="any", gene.names=NULL, log.p=TRUE, 
 	threshold=1e-8, lfc=0, BPPARAM=SerialParam())
@@ -197,18 +197,15 @@ setMethod("pairwiseBinom", "SingleCellExperiment", function(x, groups=colLabels(
 
     for (b in seq_along(block)) {
         chosen <- block[[b]]
-        by.core <- .splitRowsByWorkers(x, BPPARAM=BPPARAM, subset.row=subset.row, subset.col=chosen)
-
         cur.groups <- groups[chosen]
         all.n[[b]] <- as.vector(table(cur.groups))
         names(all.n[[b]]) <- group.vals
 
-        raw.nzero <- bplapply(by.core, FUN=numDetectedAcrossCells, ids=cur.groups,
-            detection_limit=threshold, BPPARAM=BPPARAM)
-        raw.nzero <- lapply(raw.nzero, assay)
-        raw.nzero <- do.call(rbind, raw.nzero)
+        raw.nzero <- numDetectedAcrossCells(x[subset.row,chosen,drop=FALSE], 
+            ids=cur.groups, detection_limit=threshold, BPPARAM=BPPARAM)
+        raw.nzero <- assay(raw.nzero)
 
-        if (any(!group.vals %in% colnames(all.nzero))) {
+        if (any(!group.vals %in% colnames(raw.nzero))) {
             # Handle missing levels gracefully.
             tmp <- matrix(0L, nrow=nrow(raw.nzero), ncol=length(group.vals),
                 dimnames=list(rownames(raw.nzero), group.vals))

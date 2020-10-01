@@ -33,12 +33,12 @@ Imports:
     DelayedMatrixStats, 
     BiocSingular,
     bluster,
-    dqrng
+    dqrng,
+    beachmat
 Suggests: 
     testthat, 
     BiocStyle, 
     knitr, 
-    beachmat, 
     HDF5Array, 
     scRNAseq,
     dynamicTreeCut, 

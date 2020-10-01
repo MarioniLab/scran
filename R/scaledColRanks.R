@@ -73,24 +73,26 @@ scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
 }
 
 #' @importClassesFrom Matrix sparseMatrix dgCMatrix
-#' @importFrom DelayedMatrixStats colRanks rowMins rowSds
+#' @importFrom DelayedMatrixStats colRanks rowSds
+#' @importFrom DelayedArray rowMins
 #' @importFrom Matrix rowMeans
 .get_scaled_ranks <- function(block, transposed, as.sparse) {
     if (is(block, "SparseArraySeed")) {
         block <- as(block, "sparseMatrix")
     }
 
-    out <- colRanks(block, ties.method="average", preserveShape=FALSE)
-    sig <- rowSds(out)
+    out <- colRanks(DelayedArray(block), ties.method="average", preserveShape=FALSE)
+    sig <- sqrt(rowVars(out) * (ncol(out)-1)) * 2
 
     if (as.sparse) {
-        out <- out - rowMins(out)
+        out <- out - rowMins(DelayedArray(out)) # TODO: switch to MatGen once this is available.
         out <- as(out, "dgCMatrix")
     } else {
         out <- out - rowMeans(out)
     }
 
     out <- out/sig
+
     if (!transposed) {
         out <- t(out)
     }

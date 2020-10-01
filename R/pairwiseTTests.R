@@ -217,8 +217,8 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
 ###########################################################
 
 #' @importFrom S4Vectors DataFrame
-#' @importFrom BiocParallel bplapply SerialParam bpstart bpstop
-#' @importFrom scuttle .splitRowsByWorkers .bpNotSharedOrUp 
+#' @importFrom BiocParallel SerialParam bpstart bpstop
+#' @importFrom scuttle .bpNotSharedOrUp 
 .test_block_internal <- function(x, subset.row, groups, block=NULL, direction="any", lfc=0, std.lfc=FALSE,
     gene.names=NULL, log.p=TRUE, BPPARAM=SerialParam())
 # This looks at every level of the blocking factor and performs
@@ -330,7 +330,7 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
 #' @importFrom stats model.matrix
 #' @importFrom limma lmFit contrasts.fit
 #' @importFrom scuttle fitLinearModel
-#' @importFrom BiocParallel bplapply SerialParam
+#' @importFrom BiocParallel SerialParam
 #' @importFrom S4Vectors DataFrame
 .fit_lm_internal <- function(x, subset.row, groups, design, direction="any", lfc=0, std.lfc=FALSE,
     gene.names=NULL, log.p=TRUE, BPPARAM=SerialParam())

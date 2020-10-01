@@ -23,7 +23,7 @@ public:
                 }
             }
 
-            by_group.push_back(std::vector<T>(curgroup.size()));
+            by_group.push_back(std::vector<double>(curgroup.size()));
         }
         return;
     }
@@ -43,7 +43,7 @@ public:
         return;
     }
 
-    std::pair<double, int> contrast_groups(int left, int right, T shift) const {
+    std::pair<double, int> contrast_groups(int left, int right, double shift) const {
         int c1=0, c2=0;
         const auto& group1=by_group[left];
         const int ncells1=group1.size();
@@ -59,7 +59,7 @@ public:
             // (after adjusting 'group1' for the shift).
             const bool ok1=c1 < ncells1;
             const bool ok2=c2 < ncells2;
-            T curval;
+            double curval;
 
             if (!ok1 && !ok2) {
                 break;
@@ -72,7 +72,7 @@ public:
             }
 
             // Make each index point to first element outside of the range.
-            const T right=curval;
+            const double right=curval;
             int ties1=0;
             if (ok1) { 
                 const int c1_old=c1;
@@ -110,7 +110,8 @@ private:
 };
 
 // [[Rcpp::export(rng=false)]]
-Rcpp::List overlap_exprs(Rcpp::RObject exprs, Rcpp::List bygroup, double lfc) {
+Rcpp::List overlap_exprs(Rcpp::RObject exprs, Rcpp::List groups, double lfc) {
+    auto mat = beachmat::read_lin_block(exprs);
     const size_t ngenes=mat->get_nrow();
     const size_t ncells=mat->get_ncol();
    

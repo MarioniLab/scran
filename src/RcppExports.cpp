@@ -172,12 +172,11 @@ BEGIN_RCPP
 END_RCPP
 }
 // cyclone_scores
-Rcpp::NumericVector cyclone_scores(Rcpp::RObject exprs, Rcpp::IntegerVector mycells, Rcpp::IntegerVector marker1, Rcpp::IntegerVector marker2, Rcpp::IntegerVector indices, int niters, int miniters, int minpairs, Rcpp::List seeds, Rcpp::IntegerVector streams);
-RcppExport SEXP _scran_cyclone_scores(SEXP exprsSEXP, SEXP mycellsSEXP, SEXP marker1SEXP, SEXP marker2SEXP, SEXP indicesSEXP, SEXP nitersSEXP, SEXP minitersSEXP, SEXP minpairsSEXP, SEXP seedsSEXP, SEXP streamsSEXP) {
+Rcpp::NumericVector cyclone_scores(Rcpp::RObject exprs, Rcpp::IntegerVector marker1, Rcpp::IntegerVector marker2, Rcpp::IntegerVector indices, int niters, int miniters, int minpairs, Rcpp::List seeds, Rcpp::IntegerVector streams);
+RcppExport SEXP _scran_cyclone_scores(SEXP exprsSEXP, SEXP marker1SEXP, SEXP marker2SEXP, SEXP indicesSEXP, SEXP nitersSEXP, SEXP minitersSEXP, SEXP minpairsSEXP, SEXP seedsSEXP, SEXP streamsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::RObject >::type exprs(exprsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type mycells(mycellsSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type marker1(marker1SEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type marker2(marker2SEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type indices(indicesSEXP);
@@ -186,32 +185,19 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type minpairs(minpairsSEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type seeds(seedsSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type streams(streamsSEXP);
-    rcpp_result_gen = Rcpp::wrap(cyclone_scores(exprs, mycells, marker1, marker2, indices, niters, miniters, minpairs, seeds, streams));
-    return rcpp_result_gen;
-END_RCPP
-}
-// get_scaled_ranks
-Rcpp::RObject get_scaled_ranks(Rcpp::RObject exprs, Rcpp::IntegerVector subset, bool transpose, bool as_sparse);
-RcppExport SEXP _scran_get_scaled_ranks(SEXP exprsSEXP, SEXP subsetSEXP, SEXP transposeSEXP, SEXP as_sparseSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type exprs(exprsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type subset(subsetSEXP);
-    Rcpp::traits::input_parameter< bool >::type transpose(transposeSEXP);
-    Rcpp::traits::input_parameter< bool >::type as_sparse(as_sparseSEXP);
-    rcpp_result_gen = Rcpp::wrap(get_scaled_ranks(exprs, subset, transpose, as_sparse));
+    rcpp_result_gen = Rcpp::wrap(cyclone_scores(exprs, marker1, marker2, indices, niters, miniters, minpairs, seeds, streams));
     return rcpp_result_gen;
 END_RCPP
 }
 // overlap_exprs
-Rcpp::List overlap_exprs(Rcpp::RObject exprs, Rcpp::List bygroup, Rcpp::RObject lfc);
-RcppExport SEXP _scran_overlap_exprs(SEXP exprsSEXP, SEXP bygroupSEXP, SEXP lfcSEXP) {
+Rcpp::List overlap_exprs(Rcpp::RObject exprs, Rcpp::List groups, double lfc);
+RcppExport SEXP _scran_overlap_exprs(SEXP exprsSEXP, SEXP groupsSEXP, SEXP lfcSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::RObject >::type exprs(exprsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List >::type bygroup(bygroupSEXP);
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type lfc(lfcSEXP);
-    rcpp_result_gen = Rcpp::wrap(overlap_exprs(exprs, bygroup, lfc));
+    Rcpp::traits::input_parameter< Rcpp::List >::type groups(groupsSEXP);
+    Rcpp::traits::input_parameter< double >::type lfc(lfcSEXP);
+    rcpp_result_gen = Rcpp::wrap(overlap_exprs(exprs, groups, lfc));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -225,19 +211,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type order(orderSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type pool_sizes(pool_sizesSEXP);
     rcpp_result_gen = Rcpp::wrap(pool_size_factors(exprs, pseudo_cell, order, pool_sizes));
-    return rcpp_result_gen;
-END_RCPP
-}
-// subset_and_divide
-Rcpp::RObject subset_and_divide(Rcpp::RObject matrix, Rcpp::IntegerVector row_subset, Rcpp::IntegerVector col_subset, Rcpp::RObject scaling);
-RcppExport SEXP _scran_subset_and_divide(SEXP matrixSEXP, SEXP row_subsetSEXP, SEXP col_subsetSEXP, SEXP scalingSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type matrix(matrixSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type row_subset(row_subsetSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type col_subset(col_subsetSEXP);
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type scaling(scalingSEXP);
-    rcpp_result_gen = Rcpp::wrap(subset_and_divide(matrix, row_subset, col_subset, scaling));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -256,11 +229,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_scran_get_null_rho", (DL_FUNC) &_scran_get_null_rho, 4},
     {"_scran_get_null_rho_design", (DL_FUNC) &_scran_get_null_rho_design, 5},
     {"_scran_compute_rho_pairs", (DL_FUNC) &_scran_compute_rho_pairs, 3},
-    {"_scran_cyclone_scores", (DL_FUNC) &_scran_cyclone_scores, 10},
-    {"_scran_get_scaled_ranks", (DL_FUNC) &_scran_get_scaled_ranks, 4},
+    {"_scran_cyclone_scores", (DL_FUNC) &_scran_cyclone_scores, 9},
     {"_scran_overlap_exprs", (DL_FUNC) &_scran_overlap_exprs, 3},
     {"_scran_pool_size_factors", (DL_FUNC) &_scran_pool_size_factors, 4},
-    {"_scran_subset_and_divide", (DL_FUNC) &_scran_subset_and_divide, 4},
     {NULL, NULL, 0}
 };
 

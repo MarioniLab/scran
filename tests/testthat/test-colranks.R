@@ -117,7 +117,7 @@ test_that("scaledColRanks handles sparsity requests", {
 set.seed(430004)
 test_that("scaledColRanks handles silly inputs", {
 	mat <- matrix(rnbinom(ncells*ngenes, mu=10, size=20), ncol=ncells, nrow=ngenes)
-    expect_error(out <- scaledColRanks(mat[0,,drop=FALSE]), "rank variances of zero")
+    expect_identical(dim(scaledColRanks(mat[0,,drop=FALSE])), dim(mat[0,]))
 
     out <- scaledColRanks(mat[,0,drop=FALSE])
     expect_identical(dim(out), c(as.integer(ngenes), 0L))

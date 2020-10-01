@@ -27,7 +27,7 @@ Rcpp::List compute_blocked_stats(Rcpp::RObject mat, Rcpp::IntegerVector block, i
     // which should be much more cache-friendly for large matrices.
     for (size_t counter=0; counter<ncells; ++counter) {
         auto ptr = emat->get_col(counter, incoming.data());
-        trans(counter, ptr, ptr + ngenes, incoming.begin());
+        trans(counter, ptr, ptr + ngenes, incoming.data());
 
         auto curblock=block[counter];
         if (isNA(curblock)) {
@@ -137,7 +137,11 @@ Rcpp::List compute_blocked_stats_norm(Rcpp::RObject mat, Rcpp::IntegerVector blo
 struct none {
     none() {}
     template<class IN, class OUT>
-    void operator()(int i, IN start, IN end, OUT out) {}
+    void operator()(int i, IN start, IN end, OUT out) {
+        if (out!=start) {
+            std::copy(start, end, out);
+        }
+    }
 };
 
 // [[Rcpp::export(rng=false)]]

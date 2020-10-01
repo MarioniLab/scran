@@ -286,20 +286,27 @@ NULL
 # Internal functions.
 #############################################################
 
+#' @importFrom DelayedArray is_sparse
 #' @importFrom Matrix qr qr.coef colSums
+#' @importFrom scuttle normalizeCounts
 .per_cluster_normalize <- function(x, curdex, sizes, subset.row, min.mean=NULL, positive=FALSE, scaling=NULL) 
 # Computes the normalization factors _within_ each cluster,
 # along with the reference pseudo-cell used for normalization. 
 # Written as a separate function so that bplapply operates in the scran namespace.
 {
-    cur.cells <- length(curdex)
-    sizes <- sizes[sizes <= cur.cells]
+    exprs <- x[subset.row,curdex,drop=FALSE]
+    if (is_sparse(exprs)) {
+        exprs <- as(exprs, "dgCMatrix")
+    } else {
+        exprs <- as.matrix(exprs)
+    }
 
-    vals <- subset_and_divide(x, subset.row-1L, curdex-1L, scaling)
-    scaling <- vals[[1]]
-    exprs <- vals[[2]]
-    ave.cell <- vals[[3]] # equivalent to calculateAverage().
+    if (is.null(scaling)) {
+        scaling <- colSums(exprs)
+    }
+    exprs <- normalizeCounts(exprs, size.factors=scaling, center.size.factors=FALSE, log=FALSE)
 
+    ave.cell <- rowMeans(exprs) * mean(scaling) # equivalent to calculateAverage().
     high.ave <- min.mean <= ave.cell 
     use.ave.cell <- ave.cell
     if (!all(high.ave)) { 
@@ -309,6 +316,7 @@ NULL
 
     # Using our summation approach.
     sphere <- .generateSphere(scaling)
+    sizes <- sizes[sizes <= ncol(exprs)]
     new.sys <- .create_linear_system(exprs, use.ave.cell, sphere, sizes) 
     design <- new.sys$design
     output <- new.sys$output

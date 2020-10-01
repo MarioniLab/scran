@@ -168,9 +168,10 @@ setMethod("pairwiseWilcox", "SingleCellExperiment", function(x, groups=colLabels
 # Internal functions (blocking)
 ###########################################################
 
-#' @importFrom BiocParallel bplapply SerialParam bpstart bpstop
+#' @importFrom BiocParallel SerialParam bpstart bpstop
 #' @importFrom stats pnorm 
-#' @importFrom scuttle .splitRowsByWorkers .bpNotSharedOrUp
+#' @importFrom scuttle .bpNotSharedOrUp
+#' @importFrom beachmat rowBlockApply
 .blocked_wilcox <- function(x, subset.row, groups, block=NULL, direction="any", gene.names=NULL, 
     lfc=0, log.p=TRUE, BPPARAM=SerialParam())
 {
@@ -183,8 +184,7 @@ setMethod("pairwiseWilcox", "SingleCellExperiment", function(x, groups=colLabels
         block <- split(seq_along(block), block)
     }
 
-    # Choosing the parallelization strategy.
-    by.core <- .splitRowsByWorkers(x, BPPARAM=BPPARAM, subset.row=subset.row)
+    # Setting up the parallelization strategy.
     if (.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))
@@ -202,7 +202,7 @@ setMethod("pairwiseWilcox", "SingleCellExperiment", function(x, groups=colLabels
         names(all.n[[b]]) <- group.vals
         
         by.group <- split(chosen - 1L, cur.groups)
-        bpl.out <- bplapply(by.core, FUN=overlap_exprs, bygroup=by.group, lfc=lfc, BPPARAM=BPPARAM)
+        bpl.out <- rowBlockApply(x, FUN=overlap_exprs, groups=by.group, lfc=lfc, BPPARAM=BPPARAM)
         raw.stats <- lapply(bpl.out, "[[", i=1)
         raw.ties <- lapply(bpl.out, "[[", i=2)
 
