@@ -212,23 +212,38 @@ NULL
         stop("zero cells in one of the clusters")
     }
 
+    # Addigional sanity checks on various parameters.
+    if (!is.null(scaling) && length(scaling)!=ncol(x)) {
+        stop("'length(scaling)' should be equal to 'ncol(x)'")
+    }
+
     min.mean <- .guess_min_mean(x, min.mean=min.mean, BPPARAM=BPPARAM)
 
-    # Checking sizes and subsetting.
     sizes <- sort(as.integer(sizes))
     if (anyDuplicated(sizes)) { 
         stop("'sizes' are not unique") 
     }
-    subset.row <- .subset2index(subset.row, x, byrow=TRUE)
 
-    # Setting some other values.
-    nclusters <- length(indices)
-    clust.nf <- clust.profile <- clust.libsizes <- vector("list", nclusters)
-    clust.meanlib <- numeric(nclusters)
+    # Fragmenting the matrices (and also scaling).
+    frag.x <- frag.scale <- vector("list", length(indices))
+    for (i in seq_along(indices)) {
+        idx <- indices[[i]]
+        if (length(indices) > 1L || !identical(idx, seq_along(idx))) {
+            current <- x[,idx,drop=FALSE]
+        } else {
+            current <- x
+        }
+        if (!is.null(subset.row)) {
+            current <- current[subset.row,,drop=FALSE]
+        }
+        frag.x[[i]] <- current
+        frag.scale[i] <- list(scaling[idx]) # handle NULLs properly.
+    }
 
     # Computing normalization factors within each cluster.
-    all.norm <- bplapply(indices, FUN=.per_cluster_normalize, x=x, sizes=sizes, subset.row=subset.row, 
-        min.mean=min.mean, positive=positive, scaling=scaling, BPPARAM=BPPARAM)
+    all.norm <- bpmapply(FUN=.per_cluster_normalize, x=frag.x, scaling=frag.scale, 
+        MoreArgs=list(sizes=sizes, min.mean=min.mean, positive=positive),
+        BPPARAM=BPPARAM, SIMPLIFY=FALSE, USE.NAMES=FALSE)
 
     clust.nf <- lapply(all.norm, "[[", i="final.nf")
     clust.profile <- lapply(all.norm, "[[", i="ave.cell")
@@ -240,14 +255,11 @@ NULL
     }
     rescaling.factors <- .rescale_clusters(clust.profile, ref.col=ref.clust, min.mean=min.mean) 
 
-    clust.nf.scaled <- vector("list", nclusters)
-    for (clust in seq_len(nclusters)) { 
-        clust.nf.scaled[[clust]] <- clust.nf[[clust]] * rescaling.factors[[clust]]
-    }
+    clust.nf.scaled <- Map(`*`, clust.nf, rescaling.factors)
     clust.nf.scaled <- unlist(clust.nf.scaled)
 
     # Returning centered size factors, rather than normalization factors.
-    final.sf <- rep(NA_integer_, ncells)
+    final.sf <- rep(NA_real_, ncells)
     indices <- unlist(indices)
     final.sf[indices] <- clust.nf.scaled
     
@@ -289,25 +301,24 @@ NULL
 #' @importFrom DelayedArray is_sparse
 #' @importFrom Matrix qr qr.coef colSums
 #' @importFrom scuttle normalizeCounts
-.per_cluster_normalize <- function(x, curdex, sizes, subset.row, min.mean=NULL, positive=FALSE, scaling=NULL) 
+.per_cluster_normalize <- function(x, sizes, min.mean=NULL, positive=FALSE, scaling=NULL) 
 # Computes the normalization factors _within_ each cluster,
 # along with the reference pseudo-cell used for normalization. 
 # Written as a separate function so that bplapply operates in the scran namespace.
 {
-    exprs <- x[subset.row,curdex,drop=FALSE]
-    if (is_sparse(exprs)) {
-        exprs <- as(exprs, "dgCMatrix")
+    if (is_sparse(x)) {
+        x <- as(x, "dgCMatrix")
     } else {
-        exprs <- as.matrix(exprs)
+        x <- as.matrix(x)
     }
 
     if (is.null(scaling)) {
-        scaling <- colSums(exprs)
+        scaling <- colSums(x)
     }
     if (any(scaling==0)) {
         stop("cells should have non-zero library sizes or 'scaling' values")
     }
-    exprs <- normalizeCounts(exprs, size.factors=scaling, center.size.factors=FALSE, log=FALSE)
+    exprs <- normalizeCounts(x, size.factors=scaling, center.size.factors=FALSE, log=FALSE)
 
     ave.cell <- rowMeans(exprs) * mean(scaling) # equivalent to calculateAverage().
     high.ave <- min.mean <= ave.cell 

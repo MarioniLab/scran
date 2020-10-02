@@ -194,6 +194,12 @@ test_that("calculateSumFactors responds to scaling requests", {
     outD <- outD * truth
     expect_equal(outD/mean(outD), outC/mean(outC))
 
+    # Subsetted properly with clusters.
+    clusters <- gl(2, ncells/2)
+    outA <- calculateSumFactors(dummy, clusters=clusters, min.mean=0, scaling=NULL)
+    outB <- calculateSumFactors(dummy, clusters=clusters, min.mean=0, scaling=scuttle::librarySizeFactors(dummy))
+    expect_equal(outA, outB)
+
     # Throws upon silly inputs.
     expect_error(calculateSumFactors(dummy, min.mean=0, scaling=1), "should be equal")
 })
