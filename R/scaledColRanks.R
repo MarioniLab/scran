@@ -44,18 +44,25 @@
 #' table(igraph::cluster_walktrap(g)$membership)
 #' 
 #' @export
-#' @importFrom scuttle calculateAverage .subset2index
-#' @importFrom BiocParallel SerialParam
+#' @importFrom scuttle calculateAverage .subset2index .bpNotSharedOrUp
+#' @importFrom BiocParallel SerialParam bpstart bpstop
 scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, as.sparse=FALSE, 
     withDimnames=TRUE, BPPARAM=SerialParam())
 {
+    if (!.bpNotSharedOrUp(BPPARAM)) {
+        bpstart(BPPARAM)
+        on.exit(bpstop(BPPARAM))
+    }
+
     subset.row <- .subset2index(subset.row, x, byrow=TRUE)
     if (!is.null(min.mean) && all(dim(x)>0L)) {
         further.subset <- calculateAverage(x, subset_row=subset.row, BPPARAM=BPPARAM) >= min.mean
         subset.row <- subset.row[further.subset]
     }
 
-    out <- colBlockApply(x[subset.row,,drop=FALSE], FUN=.get_scaled_ranks, transposed=transposed, as.sparse=as.sparse)
+    out <- colBlockApply(x[subset.row,,drop=FALSE], FUN=.get_scaled_ranks, 
+        transposed=transposed, as.sparse=as.sparse, BPPARAM=BPPARAM)
+
     if (transposed) {
         rkout <- do.call(rbind, out)
     } else {
@@ -76,10 +83,15 @@ scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
 #' @importFrom DelayedMatrixStats colRanks rowSds
 #' @importFrom DelayedArray rowMins
 #' @importFrom Matrix rowMeans
+#' @importFrom DelayedArray getAutoBPPARAM setAutoBPPARAM
 .get_scaled_ranks <- function(block, transposed, as.sparse) {
     if (is(block, "SparseArraySeed")) {
         block <- as(block, "sparseMatrix")
     }
+
+    old <- getAutoBPPARAM()
+    setAutoBPPARAM(NULL) # turning off any additional parallelization, just in case.
+    on.exit(setAutoBPPARAM(old))
 
     out <- colRanks(DelayedArray(block), ties.method="average", preserveShape=FALSE)
 
