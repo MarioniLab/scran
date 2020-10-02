@@ -304,6 +304,9 @@ NULL
     if (is.null(scaling)) {
         scaling <- colSums(exprs)
     }
+    if (any(scaling==0)) {
+        stop("cells should have non-zero library sizes or 'scaling' values")
+    }
     exprs <- normalizeCounts(exprs, size.factors=scaling, center.size.factors=FALSE, log=FALSE)
 
     ave.cell <- rowMeans(exprs) * mean(scaling) # equivalent to calculateAverage().
