@@ -20,7 +20,7 @@ pairwiseTTests(x, ...)
   lfc = 0,
   std.lfc = FALSE,
   log.p = FALSE,
-  gene.names = rownames(x),
+  gene.names = NULL,
   subset.row = NULL,
   BPPARAM = SerialParam()
 )

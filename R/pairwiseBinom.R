@@ -128,14 +128,13 @@ NULL
 #' @importFrom BiocParallel SerialParam
 #' @importFrom scuttle .subset2index
 .pairwiseBinom <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, direction=c("any", "up", "down"),
-    threshold=1e-8, lfc=0, log.p=FALSE, gene.names=rownames(x), 
+    threshold=1e-8, lfc=0, log.p=FALSE, gene.names=NULL, 
     subset.row=NULL, BPPARAM=SerialParam())
 {
     groups <- .setup_groups(groups, x, restrict=restrict, exclude=exclude)
-    subset.row <- .subset2index(subset.row, x, byrow=TRUE)
-    gene.names <- .setup_gene_names(gene.names, x, subset.row)
     direction <- match.arg(direction)
 
+    # Actual calculations occur inside another function, for symmetry with pairwiseTTests.
     .blocked_binom(x, subset.row, groups, block=block, direction=direction, 
         gene.names=gene.names, log.p=log.p, threshold=threshold, lfc=lfc, BPPARAM=BPPARAM)
 }
@@ -201,7 +200,7 @@ setMethod("pairwiseBinom", "SingleCellExperiment", function(x, groups=colLabels(
         all.n[[b]] <- as.vector(table(cur.groups))
         names(all.n[[b]]) <- group.vals
 
-        raw.nzero <- numDetectedAcrossCells(x[subset.row,chosen,drop=FALSE], 
+        raw.nzero <- numDetectedAcrossCells(x[,chosen,drop=FALSE], subset.row=subset.row, 
             ids=cur.groups, detection_limit=threshold, BPPARAM=BPPARAM)
         raw.nzero <- assay(raw.nzero)
 
@@ -222,7 +221,9 @@ setMethod("pairwiseBinom", "SingleCellExperiment", function(x, groups=colLabels(
         STATFUN <- .generate_lfc_binom(all.n, all.nzero, direction, lfc)
     }
 
-    .pairwise_blocked_template(x, group.vals, nblocks=length(block), direction=direction, 
+    gene.names <- .setup_gene_names(gene.names, x, subset.row)
+
+    .pairwise_blocked_template(group.vals, nblocks=length(block), direction=direction, 
         gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, effect.name="logFC",
         BPPARAM=BPPARAM)
 }

@@ -29,22 +29,27 @@
 }
 
 .setup_gene_names <- function(gene.names, x, subset.row) {
-    if (!identical(gene.names, rownames(x))) {
-        .Deprecated(msg="use of custom values in 'gene.names=' is deprecated.")
-    }
-    if (is.null(gene.names)) {
-        subset.row
-    } else if (length(gene.names)!=nrow(x)) {
-        stop("length of 'gene.names' is not equal to the number of rows")
-    } else if (!is.null(subset.row)) {
-        gene.names[subset.row]
+    if (!is.null(gene.names)) {
+        .Deprecated(msg="use of custom values in 'gene.names=' is deprecated")
+        if (length(gene.names)!=nrow(x)) {
+            stop("length of 'gene.names' is not equal to the number of rows")
+        } 
     } else {
-        gene.names
+        gene.names <- rownames(x)
+        if (is.null(gene.names)) {
+            gene.names <- as.character(seq_len(nrow(x)))
+        }
     }
+
+    if (!is.null(subset.row) && !is.null(gene.names)) {
+        gene.names <- gene.names[.subset2index(subset.row, x, byrow=TRUE)]
+    } 
+
+    gene.names
 }
 
 #' @importFrom BiocParallel SerialParam bplapply
-.pairwise_blocked_template <- function(x, group.vals, nblocks, direction, 
+.pairwise_blocked_template <- function(group.vals, nblocks, direction, 
     gene.names, log.p, STATFUN, effect.name, BPPARAM=SerialParam()) 
 {
     bp.out <- bplapply(seq_along(group.vals), FUN=.pairwise_blocked_internal,

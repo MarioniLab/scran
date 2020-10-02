@@ -325,6 +325,7 @@ test_that("pairwiseWilcox with blocking responds to restriction", {
 set.seed(8000004)
 test_that("pairwiseWilcox behaves as expected with subsetting", {
     y <- matrix(rnorm(1200), ncol=12)
+    rownames(y) <- seq_len(nrow(y))
     g <- gl(4,3)
     X <- cbind(runif(ncol(y)))
 
@@ -338,7 +339,7 @@ test_that("pairwiseWilcox behaves as expected with subsetting", {
     keep <- rbinom(nrow(y), 1, 0.5)==1
     expect_identical(
         pairwiseWilcox(y, g, subset.row=keep),
-        pairwiseWilcox(y[keep,], g, gene.names=which(keep))
+        pairwiseWilcox(y[keep,], g) 
     )
 
     # Character subsetting.
@@ -347,6 +348,14 @@ test_that("pairwiseWilcox behaves as expected with subsetting", {
     expect_identical(
         pairwiseWilcox(y, g, subset.row=chosen),
         pairwiseWilcox(y[chosen,], g)
+    )
+
+    # Auto-generates names for the subset.
+    y <- y0 <- matrix(rnorm(1200), ncol=12)
+    rownames(y) <- seq_len(nrow(y))
+    expect_identical(
+        pairwiseWilcox(y0, g, subset.row=10:1),
+        pairwiseWilcox(y[10:1,], g)
     )
 })
 
@@ -391,7 +400,6 @@ test_that("pairwiseWilcox fails gracefully with silly inputs", {
     # Errors on incorrect inputs.
     expect_error(pairwiseWilcox(y[,0], g), "does not equal")
     expect_error(pairwiseWilcox(y, rep(1, ncol(y))), "need at least two")
-    expect_error(pairwiseWilcox(y, g, gene.names="A"), "not equal to the number of rows")
 
     # No genes.
     empty <- pairwiseWilcox(y[0,], g)

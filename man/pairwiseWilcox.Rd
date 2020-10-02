@@ -18,7 +18,7 @@ pairwiseWilcox(x, ...)
   direction = c("any", "up", "down"),
   lfc = 0,
   log.p = FALSE,
-  gene.names = rownames(x),
+  gene.names = NULL,
   subset.row = NULL,
   BPPARAM = SerialParam()
 )

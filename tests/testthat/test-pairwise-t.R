@@ -466,6 +466,7 @@ test_that("pairwiseTTests with design matrices responds to restriction", {
 set.seed(7000004)
 test_that("pairwiseTTests behaves as expected with subsetting", {
     y <- matrix(rnorm(12000), ncol=12)
+    rownames(y) <- seq_len(nrow(y))
     g <- gl(4,3)
     X <- cbind(runif(ncol(y)))
 
@@ -483,16 +484,29 @@ test_that("pairwiseTTests behaves as expected with subsetting", {
     keep <- rbinom(nrow(y), 1, 0.5)==1
     expect_identical(
         pairwiseTTests(y, g, subset.row=keep),
-        pairwiseTTests(y[keep,], g, gene.names=which(keep))
+        pairwiseTTests(y[keep,], g) 
     )
     expect_identical(
         pairwiseTTests(y, g, design=X, subset.row=keep),
-        pairwiseTTests(y[keep,], g, design=X, gene.names=which(keep))
+        pairwiseTTests(y[keep,], g, design=X)
     )
 
     # Character subsetting.
     rownames(y) <- paste0("GENE_", seq_len(nrow(y)))
     chosen <- sample(rownames(y), 100)
+    expect_identical(
+        pairwiseTTests(y, g, subset.row=chosen),
+        pairwiseTTests(y[chosen,], g)
+    )
+    expect_identical(
+        pairwiseTTests(y, g, design=X, subset.row=chosen),
+        pairwiseTTests(y[chosen,], g, design=X)
+    )
+
+    # Auto-generates names for the subset.
+    y <- y0 <- matrix(rnorm(1200), ncol=12)
+    rownames(y) <- seq_len(nrow(y))
+    chosen <- 10:1
     expect_identical(
         pairwiseTTests(y, g, subset.row=chosen),
         pairwiseTTests(y[chosen,], g)
@@ -585,7 +599,6 @@ test_that("pairwiseTTests fails gracefully with silly inputs", {
     expect_error(pairwiseTTests(y, rep(1, ncol(y))), "need at least two")
     expect_error(pairwiseTTests(y, g, design=X[0,,drop=FALSE]), "is not equal")
     expect_error(pairwiseTTests(y, g, design=cbind(rep(1, ncol(y)))), "not of full rank")
-    expect_error(pairwiseTTests(y, g, gene.names="A"), "not equal to the number of rows")
 
     # No genes.
     empty <- pairwiseTTests(y[0,], g)

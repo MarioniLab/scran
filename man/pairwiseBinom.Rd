@@ -19,7 +19,7 @@ pairwiseBinom(x, ...)
   threshold = 1e-08,
   lfc = 0,
   log.p = FALSE,
-  gene.names = rownames(x),
+  gene.names = NULL,
   subset.row = NULL,
   BPPARAM = SerialParam()
 )

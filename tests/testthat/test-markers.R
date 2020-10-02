@@ -43,13 +43,6 @@ test_that("findMarkers works correctly with subsetting and spikes", {
     expect_identical(out, out2)
     expect_identical(rownames(out[[1]]$stats.2), rownames(out[[1]])) # names propagate to internal DFs.
 
-    # Switches to using 'subset.row' as the row names. 
-    out <- findMarkers(X, groups=clust$cluster, subset.row=2:11, full.stats=TRUE, gene.names=NULL) 
-    out2 <- findMarkers(unname(X)[2:11,], groups=clust$cluster, full.stats=TRUE, gene.names=2:11)
-    expect_identical(out, out2)
-    expect_identical(rownames(out[[1]]$stats.2), rownames(out[[1]])) 
-    expect_identical(sort(as.integer(rownames(out[[1]]))), 2:11)
-
     # Repeating with a design matrix, to check that subsetting works in both branches for coefficient calculation.
     block <- factor(sample(2, ncol(X), replace=TRUE))
     design <- model.matrix(~block)[,-1,drop=FALSE]

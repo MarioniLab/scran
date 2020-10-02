@@ -172,11 +172,9 @@ NULL
 #' @importFrom BiocParallel SerialParam
 #' @importFrom scuttle .subset2index
 .pairwiseTTests <- function(x, groups, block=NULL, design=NULL, restrict=NULL, exclude=NULL, direction=c("any", "up", "down"),
-    lfc=0, std.lfc=FALSE, log.p=FALSE, gene.names=rownames(x), subset.row=NULL, BPPARAM=SerialParam())
+    lfc=0, std.lfc=FALSE, log.p=FALSE, gene.names=NULL, subset.row=NULL, BPPARAM=SerialParam())
 {
     groups <- .setup_groups(groups, x, restrict=restrict, exclude=exclude)
-    subset.row <- .subset2index(subset.row, x, byrow=TRUE)
-    gene.names <- .setup_gene_names(gene.names, x, subset.row)
     direction <- match.arg(direction)
 
     if (!is.null(block) && !is.null(design)) {
@@ -295,7 +293,9 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
         )
     }
 
-    .pairwise_blocked_template(x, clust.vals, nblocks=nblocks, direction=direction,
+    gene.names <- .setup_gene_names(gene.names, x, subset.row)
+
+    .pairwise_blocked_template(clust.vals, nblocks=nblocks, direction=direction,
         gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, effect.name="logFC",
         BPPARAM=BPPARAM)
 }
@@ -348,6 +348,8 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
         design <- design[,!is.intercept,drop=FALSE]
         warning("automatically removed intercept column")
     }
+
+    gene.names <- .setup_gene_names(gene.names, x, subset.row)
 
     # Pruning out NA 'groups'. Note that 'model.matrix'
     # automatically drops NA entries for 'full.design'.

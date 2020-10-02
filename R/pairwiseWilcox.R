@@ -131,13 +131,12 @@ NULL
 #' @importFrom BiocParallel SerialParam
 #' @importFrom scuttle .subset2index
 .pairwiseWilcox <- function(x, groups, block=NULL, restrict=NULL, exclude=NULL, direction=c("any", "up", "down"),
-    lfc=0, log.p=FALSE, gene.names=rownames(x), subset.row=NULL, BPPARAM=SerialParam())
+    lfc=0, log.p=FALSE, gene.names=NULL, subset.row=NULL, BPPARAM=SerialParam())
 {
     groups <- .setup_groups(groups, x, restrict=restrict, exclude=exclude) 
-    subset.row <- .subset2index(subset.row, x, byrow=TRUE)
-    gene.names <- .setup_gene_names(gene.names, x, subset.row)
     direction <- match.arg(direction)
 
+    # Actual calculations occur inside another function, for symmetry with pairwiseTTests.
     .blocked_wilcox(x, subset.row, groups, block=block, direction=direction, 
         lfc=lfc, gene.names=gene.names, log.p=log.p, BPPARAM=BPPARAM)
 }
@@ -183,6 +182,8 @@ setMethod("pairwiseWilcox", "SingleCellExperiment", function(x, groups=colLabels
         }
         block <- split(seq_along(block), block)
     }
+
+    gene.names <- .setup_gene_names(gene.names, x, subset.row)
 
     if (!is.null(subset.row)) {
         x <- x[subset.row,,drop=FALSE]
@@ -231,7 +232,7 @@ setMethod("pairwiseWilcox", "SingleCellExperiment", function(x, groups=colLabels
 
     # This looks at every level of the blocking factor and performs
     # Wilcoxon tests between pairs of groups within each blocking level.
-    .pairwise_blocked_template(x, group.vals, nblocks=length(block), direction=direction, 
+    .pairwise_blocked_template(group.vals, nblocks=length(block), direction=direction, 
         gene.names=gene.names, log.p=log.p, STATFUN=STATFUN, effect.name="AUC",
         BPPARAM=BPPARAM)
 }
