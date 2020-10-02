@@ -41,7 +41,7 @@ For the SummarizedExperiment method, additional arguments to pass to the ANY met
 
 \item{min.pairs}{An integer scalar specifying the minimum number of pairs for cycle estimation.}
 
-\item{BPPARAM}{A BiocParallelParam object to use in \code{bplapply} for parallel processing.}
+\item{BPPARAM}{A \linkS4class{BiocParallelParam} object to use for parallel processing across cells.}
 
 \item{verbose}{A logical scalar specifying whether diagnostics should be printed to screen.}
 

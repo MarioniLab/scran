@@ -1,8 +1,6 @@
 #include "Rcpp.h"
 
-#include "beachmat/integer_matrix.h"
-#include "beachmat/numeric_matrix.h"
-#include "beachmat/utils/const_column.h"
+#include "beachmat3/beachmat.h"
 #include "boost/range/algorithm.hpp"
 #include "utils.h"
 #include "rand_custom.h"
@@ -54,15 +52,15 @@ double get_proportion (const V& expr, const int minpairs, const Rcpp::IntegerVec
     return output;
 }
 
-template <class M>
-Rcpp::NumericVector cyclone_scores_internal (Rcpp::RObject input, Rcpp::IntegerVector mycells,
-    Rcpp::IntegerVector marker1, Rcpp::IntegerVector marker2, Rcpp::IntegerVector used, 
-    int niters, int miniters, int minpairs, Rcpp::List seeds, Rcpp::IntegerVector streams) 
+// [[Rcpp::export(rng=false)]]
+Rcpp::NumericVector cyclone_scores (Rcpp::RObject exprs, 
+    Rcpp::IntegerVector marker1, Rcpp::IntegerVector marker2, Rcpp::IntegerVector indices,
+    int niters, int miniters, int minpairs, Rcpp::List seeds, Rcpp::IntegerVector streams)
 {
-    auto mat_ptr=beachmat::create_matrix<M>(input);
-    const size_t ncells=mycells.size();
-    const size_t ngenes=mat_ptr->get_nrow();
-    const size_t nused=used.size();
+    auto mat_ptr = beachmat::read_lin_block(exprs);
+    const size_t ncells = mat_ptr->get_ncol();
+    const size_t ngenes = mat_ptr->get_nrow();
+    const size_t nused = indices.size();
 
     const size_t npairs=marker1.size();
     if (npairs!=static_cast<size_t>(marker2.size())) { 
@@ -87,7 +85,7 @@ Rcpp::NumericVector cyclone_scores_internal (Rcpp::RObject input, Rcpp::IntegerV
     }
 
     // Checking gene index sanity.
-    for (auto uIt=used.begin(); uIt!=used.end(); ++uIt) { 
+    for (auto uIt=indices.begin(); uIt!=indices.end(); ++uIt) { 
         const int& usedex=(*uIt);
         if (usedex < 0 || static_cast<size_t>(usedex) >= ngenes) { 
             throw std::runtime_error("used gene indices are out of range"); 
@@ -95,18 +93,13 @@ Rcpp::NumericVector cyclone_scores_internal (Rcpp::RObject input, Rcpp::IntegerV
     }
 
     Rcpp::NumericVector output(ncells, NA_REAL);
-    typename M::vector current_exprs(nused);
-    beachmat::const_column<M> col_holder(mat_ptr.get(), false); // need indexed access.
+    std::vector<double> tmp(ngenes), current_exprs(nused);
 
-    auto oIt=output.begin();
-    for (auto cIt=mycells.begin(); cIt!=mycells.end(); ++cIt, ++oIt) { 
-        const size_t curcell=*cIt - 1;
-
+    for (size_t c = 0; c < ncells; ++c) {
         // Extracting only the expression values that are used in at least one pair.
-        col_holder.fill(curcell);
-        auto allIt=col_holder.get_values();
+        auto allIt = mat_ptr->get_col(c, tmp.data());
         auto curIt=current_exprs.begin();
-        for (auto uIt=used.begin(); uIt!=used.end(); ++uIt, ++curIt) {
+        for (auto uIt=indices.begin(); uIt!=indices.end(); ++uIt, ++curIt) {
             (*curIt)=*(allIt + *uIt);
         }
 
@@ -117,7 +110,7 @@ Rcpp::NumericVector cyclone_scores_internal (Rcpp::RObject input, Rcpp::IntegerV
 
         // Iterations of shuffling to obtain a null distribution for the score.
         int below=0, total=0;
-        auto generator=create_pcg32(seeds[curcell], streams[curcell]);
+        auto generator=create_pcg32(seeds[c], streams[c]);
         for (int it=0; it < niters; ++it) {
             boost::range::random_shuffle(current_exprs, generator);
             const double newscore=get_proportion(current_exprs, minpairs, marker1, marker2, curscore);
@@ -128,26 +121,11 @@ Rcpp::NumericVector cyclone_scores_internal (Rcpp::RObject input, Rcpp::IntegerV
         }
        
         if (total >= miniters) { 
-            (*oIt)=double(below)/total;
+            output[c] = static_cast<double>(below)/total;
         }
     }
 
     return output;
-}
-
-// [[Rcpp::export(rng=false)]]
-Rcpp::NumericVector cyclone_scores (Rcpp::RObject exprs, Rcpp::IntegerVector mycells,
-    Rcpp::IntegerVector marker1, Rcpp::IntegerVector marker2, Rcpp::IntegerVector indices, 
-    int niters, int miniters, int minpairs, Rcpp::List seeds, Rcpp::IntegerVector streams) 
-{
-    int rtype=beachmat::find_sexp_type(exprs);
-    if (rtype==INTSXP) {
-        return cyclone_scores_internal<beachmat::integer_matrix>(exprs, mycells, marker1, marker2, indices, 
-            niters, miniters, minpairs, seeds, streams);
-    } else {
-        return cyclone_scores_internal<beachmat::numeric_matrix>(exprs, mycells, marker1, marker2, indices, 
-            niters, miniters, minpairs, seeds, streams);
-    }
 }
 
 /* We could just assign ties random directions; then we'd only have to shuffle

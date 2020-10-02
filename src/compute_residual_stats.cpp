@@ -1,11 +1,10 @@
 #include "Rcpp.h"
-#include "beachmat/numeric_matrix.h"
-#include "beachmat/integer_matrix.h"
+#include "beachmat3/beachmat.h"
 #include "scuttle/linear_model_fit.h"
 
-template<class M, class TRANSFORMER>
+template<class TRANSFORMER>
 Rcpp::List compute_residual_stats(Rcpp::NumericMatrix qr, Rcpp::NumericVector qraux, Rcpp::RObject inmat, TRANSFORMER trans) {
-    auto emat=beachmat::create_matrix<M>(inmat);
+    auto emat = beachmat::read_lin_block(inmat);
     const size_t ncells=emat->get_ncol();
     const size_t ngenes=emat->get_nrow();
 
@@ -18,21 +17,22 @@ Rcpp::List compute_residual_stats(Rcpp::NumericMatrix qr, Rcpp::NumericVector qr
     Rcpp::NumericVector incoming(ncells);
 
     for (size_t counter=0; counter<ngenes; ++counter) {
-        auto iIt=incoming.begin(), iEnd=incoming.end();
-        emat->get_row(counter, iIt);
-        trans(iIt, iEnd);
+        auto iIt = incoming.begin();
+        auto ptr = emat->get_row(counter, iIt);
+        trans(ptr, ptr + ncells, iIt);
 
         auto curvarrow=outvar.column(counter);
         auto curvar=curvarrow.begin();
         auto curmeanrow=outmean.column(counter);
         auto curmean=curmeanrow.begin();
 
+        auto iEnd = incoming.end();
         (*curmean)=std::accumulate(iIt, iEnd, 0.0)/ncells;
         fitter.multiply(iIt);
 
         double& v=(*curvar);
         iIt+=ncoefs;
-        while (iIt!=iEnd) { // only using the residual effects.
+        while (iIt != iEnd) { // only using the residual effects.
             v += (*iIt) * (*iIt);
             ++iIt;
         }
@@ -48,12 +48,15 @@ Rcpp::List compute_residual_stats(Rcpp::NumericMatrix qr, Rcpp::NumericVector qr
 
 struct lognorm {
     lognorm(Rcpp::NumericVector sizefactors, double pseudo) : sf(sizefactors), ps(pseudo) {}
-    void operator()(Rcpp::NumericVector::iterator start, Rcpp::NumericVector::iterator end) {
-        auto sfIt=sf.begin();
-        while (start!=end) {
-            *start=std::log(*start/(*sfIt) + ps)/M_LN2;
+
+    template<class IN, class OUT>
+    void operator()(IN start, IN end, OUT out) {
+        auto sfIt = sf.begin();
+        while (start != end) {
+            *out = std::log(*start/(*sfIt) + ps)/M_LN2;
             ++start;
             ++sfIt;
+            ++out;
         }
     }
 private:
@@ -65,13 +68,8 @@ private:
 Rcpp::List compute_residual_stats_lognorm(Rcpp::NumericMatrix qr, Rcpp::NumericVector qraux, Rcpp::RObject inmat,
     Rcpp::NumericVector sf, double pseudo)
 {
-    int rtype=beachmat::find_sexp_type(inmat);
     lognorm LN(sf, pseudo);
-    if (rtype==INTSXP) {
-        return compute_residual_stats<beachmat::integer_matrix>(qr, qraux, inmat, LN);
-    } else {
-        return compute_residual_stats<beachmat::numeric_matrix>(qr, qraux, inmat, LN);
-    }
+    return compute_residual_stats(qr, qraux, inmat, LN);
 }
 
 /***********************************************
@@ -80,16 +78,17 @@ Rcpp::List compute_residual_stats_lognorm(Rcpp::NumericMatrix qr, Rcpp::NumericV
 
 struct none {
     none() {}
-    void operator()(Rcpp::NumericVector::iterator start, Rcpp::NumericVector::iterator end) {}
+
+    template<class IN, class OUT>
+    void operator()(IN start, IN end, OUT out) {
+        if (out!=start) {
+            std::copy(start, end, out);
+        }
+    }
 };
 
 // [[Rcpp::export(rng=false)]]
 Rcpp::List compute_residual_stats_none(Rcpp::NumericMatrix qr, Rcpp::NumericVector qraux, Rcpp::RObject inmat) {
-    int rtype=beachmat::find_sexp_type(inmat);
     none N;
-    if (rtype==INTSXP) {
-        return compute_residual_stats<beachmat::integer_matrix>(qr, qraux, inmat, N);
-    } else {
-        return compute_residual_stats<beachmat::numeric_matrix>(qr, qraux, inmat, N);
-    }
+    return compute_residual_stats(qr, qraux, inmat, N);
 }

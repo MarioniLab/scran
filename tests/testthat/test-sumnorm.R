@@ -44,46 +44,6 @@ test_that("ring construction is correct", {
     expect_identical(r[out][1:101], r[out][102:202]) # Repeated for easy windowing
 })
 
-set.seed(20002)
-test_that("subset and division is correct", {
-    x <- matrix(rpois(ngenes*ncells, lambda=10), nrow=ngenes, ncol=ncells)
-    subset.row <- sample(ngenes, 500)
-    subset.col <- sample(ncells, 100)
-    cur.out <- scran:::subset_and_divide(x, subset.row-1L, subset.col-1L, NULL)
-
-    chosen <- x[subset.row,subset.col]
-    expect_equal(cur.out[[1]], colSums(chosen))
-    divved <- t(t(chosen)/colSums(chosen))
-    expect_equal(cur.out[[2]], divved)
-    expect_equal(cur.out[[3]], scuttle::calculateAverage(chosen))
-
-    # Works with sparse matrices (and returns sparse matrices).
-    y <- matrix(rpois(ngenes*ncells, lambda=1), nrow=ngenes, ncol=ncells)
-    y <- as(y, "dgCMatrix")
-    subset.row <- sample(ngenes, 500)
-    subset.col <- sample(ncells, 100)
-    cur.out <- scran:::subset_and_divide(y, subset.row-1L, subset.col-1L, NULL)
-
-    chosen <- y[subset.row,subset.col]
-    expect_equal(cur.out[[1]], Matrix::colSums(chosen))
-    divved <- t(t(chosen)/Matrix::colSums(chosen))
-    expect_equal(cur.out[[2]], divved)
-    expect_s4_class(cur.out[[2]], "dgCMatrix")
-    expect_equal(cur.out[[3]], scuttle::calculateAverage(chosen))
-
-    # Check scaling behaviour.
-    truth <- runif(ncells)
-    truth <- truth/mean(truth)
-    cur.out <- scran:::subset_and_divide(x, subset.row-1L, subset.col-1L, truth)
-
-    chosen <- x[subset.row,subset.col]
-    subtruth <- truth[subset.col]
-    expect_equal(cur.out[[1]], subtruth)
-    divved <- t(t(chosen)/subtruth)
-    expect_equal(cur.out[[2]], divved)
-    expect_equal(cur.out[[3]], rowMeans(divved) * mean(subtruth))
-})
-
 coreCheck <- function(x, sphere, pool.sizes)
 # Mocking up the core function for creating the linear system.
 {
@@ -418,11 +378,11 @@ test_that("calculateSumFactors works properly on alternative representations", {
 
     sf1 <- calculateSumFactors(X_, min.mean=0)
     sf2 <- calculateSumFactors(X, min.mean=0)
-    expect_identical(sf1, sf2)
+    expect_equal(sf1, sf2)
     
     sf1 <- calculateSumFactors(Y_, min.mean=0)
     sf2 <- calculateSumFactors(Y, min.mean=0)
-    expect_identical(sf1, sf2)
+    expect_equal(sf1, sf2)
 })
 
 set.seed(20012)

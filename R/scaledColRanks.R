@@ -44,23 +44,30 @@
 #' table(igraph::cluster_walktrap(g)$membership)
 #' 
 #' @export
-#' @importFrom scuttle calculateAverage .subset2index
-#' @importFrom BiocParallel SerialParam
+#' @importFrom scuttle calculateAverage .subset2index .bpNotSharedOrUp
+#' @importFrom BiocParallel SerialParam bpstart bpstop
 scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, as.sparse=FALSE, 
     withDimnames=TRUE, BPPARAM=SerialParam())
-# Obtaining scaled/centred ranks to compute cosine distances.
-# Using this instead of colRanks to support dgCMatrix, HDF5Array objects.
-# 
-# written by Aaron Lun
-# created 31 August 2018
 {
+    if (!.bpNotSharedOrUp(BPPARAM)) {
+        bpstart(BPPARAM)
+        on.exit(bpstop(BPPARAM))
+    }
+
     subset.row <- .subset2index(subset.row, x, byrow=TRUE)
     if (!is.null(min.mean) && all(dim(x)>0L)) {
         further.subset <- calculateAverage(x, subset_row=subset.row, BPPARAM=BPPARAM) >= min.mean
         subset.row <- subset.row[further.subset]
     }
 
-    rkout <- get_scaled_ranks(x, subset.row-1L, transposed, as.sparse)
+    out <- colBlockApply(x[subset.row,,drop=FALSE], FUN=.get_scaled_ranks, 
+        transposed=transposed, as.sparse=as.sparse, BPPARAM=BPPARAM)
+
+    if (transposed) {
+        rkout <- do.call(rbind, out)
+    } else {
+        rkout <- do.call(cbind, out)
+    }
 
     if (withDimnames && !is.null(dimnames(x))) {
         dn <- list(rownames(x)[subset.row], colnames(x))
@@ -70,4 +77,40 @@ scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
         dimnames(rkout) <- dn
     }
     rkout
+}
+
+#' @importClassesFrom Matrix sparseMatrix dgCMatrix
+#' @importFrom DelayedMatrixStats colRanks rowSds
+#' @importFrom DelayedArray rowMins
+#' @importFrom Matrix rowMeans
+#' @importFrom DelayedArray getAutoBPPARAM setAutoBPPARAM
+.get_scaled_ranks <- function(block, transposed, as.sparse) {
+    if (is(block, "SparseArraySeed")) {
+        block <- as(block, "sparseMatrix")
+    }
+
+    old <- getAutoBPPARAM()
+    setAutoBPPARAM(NULL) # turning off any additional parallelization, just in case.
+    on.exit(setAutoBPPARAM(old))
+
+    out <- colRanks(DelayedArray(block), ties.method="average", preserveShape=FALSE)
+
+    sig <- sqrt(rowVars(out) * (ncol(out)-1)) * 2
+    if (any(is.na(sig) | sig==0)) {
+        stop("rank variances of zero detected for a cell")
+    }
+
+    if (as.sparse) {
+        out <- out - rowMins(DelayedArray(out)) # TODO: switch to MatGen once this is available.
+        out <- as(out, "dgCMatrix")
+    } else {
+        out <- out - rowMeans(out)
+    }
+
+    out <- out/sig
+
+    if (!transposed) {
+        out <- t(out)
+    }
+    out
 }

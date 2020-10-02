@@ -1,9 +1,10 @@
-#' @importFrom BiocParallel bplapply bpstart bpstop
-#' @importFrom scuttle .subset2index .bpNotSharedOrUp .splitRowsByWorkers .ranksafeQR
+#' @importFrom BiocParallel bpstart bpstop
+#' @importFrom scuttle .bpNotSharedOrUp .ranksafeQR
+#' @importFrom beachmat rowBlockApply
 .compute_mean_var <- function(x, block, design, subset.row, block.FUN, residual.FUN, BPPARAM, ...) {
-    subset.row <- .subset2index(subset.row, x, byrow=TRUE)
-    by.core <- .splitRowsByWorkers(x, BPPARAM, subset.row=subset.row)
-
+    if (!is.null(subset.row)) {
+        x <- x[subset.row,,drop=FALSE]
+    }
     if (.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))
@@ -27,7 +28,7 @@
             stop("no residual d.f. in any level of 'block' for variance estimation")
         }
 
-        raw.stats <- bplapply(by.core, 
+        raw.stats <- rowBlockApply(x,
             FUN=block.FUN, 
             block=as.integer(block) - 1L, 
             nblocks=nlevels(block), 
@@ -51,12 +52,18 @@
         QR <- .ranksafeQR(design)
 
         # Calculating the residual variance of the fitted linear model.
-        raw.stats <- bplapply(by.core, FUN=residual.FUN, qr=QR$qr, qraux=QR$qraux, ..., BPPARAM=BPPARAM)
+        raw.stats <- rowBlockApply(x, 
+            FUN=residual.FUN, 
+            qr=QR$qr, 
+            qraux=QR$qraux, 
+            ..., 
+            BPPARAM=BPPARAM)
+
         means <- matrix(unlist(lapply(raw.stats, FUN="[[", i=1)))
         vars <- matrix(unlist(lapply(raw.stats, FUN="[[", i=2)))
     }
 
-	rownames(means) <- rownames(vars) <- rownames(x)[subset.row]
+	rownames(means) <- rownames(vars) <- rownames(x)
     list(means=means, vars=vars, ncells=ncells)
 }
 

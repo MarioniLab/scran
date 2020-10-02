@@ -10,7 +10,7 @@
 #' @param iter An integer scalar specifying the number of iterations for random sampling to obtain a cycle score.
 #' @param min.iter An integer scalar specifying the minimum number of iterations for score estimation.
 #' @param min.pairs An integer scalar specifying the minimum number of pairs for cycle estimation.
-#' @param BPPARAM A BiocParallelParam object to use in \code{bplapply} for parallel processing.
+#' @param BPPARAM A \linkS4class{BiocParallelParam} object to use for parallel processing across cells.
 #' @param verbose A logical scalar specifying whether diagnostics should be printed to screen.
 #' @param subset.row See \code{?"\link{scran-gene-selection}"}.
 #' @param ... For the generic, additional arguments to pass to specific methods.
@@ -109,8 +109,9 @@ NULL
 #' @rdname cyclone
 setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
 
-#' @importFrom BiocParallel SerialParam bplapply bpstart bpstop
-#' @importFrom scuttle .bpNotSharedOrUp .subset2index .assignIndicesToWorkers
+#' @importFrom BiocParallel SerialParam bpstart bpstop
+#' @importFrom scuttle .bpNotSharedOrUp .subset2index 
+#' @importFrom beachmat colBlockApply
 .cyclone <- function(x, pairs, gene.names=rownames(x), iter=1000, min.iter=100, min.pairs=50, 
     BPPARAM=SerialParam(), verbose=FALSE, subset.row=NULL)
 { 
@@ -153,7 +154,6 @@ setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))
     }
-    wout <- .assignIndicesToWorkers(ncol(x), BPPARAM)
 
     # Run the allocation algorithm.
     all.scores <- vector('list', length(pairs))
@@ -161,7 +161,7 @@ setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
     for (cl in names(pairs)) { 
         pcg.state <- .setup_pcg_state(ncol(x))
         pairings <- pairs[[cl]]
-        cur.scores <- bplapply(wout, FUN=cyclone_scores, exprs=x, niters=iter, miniters=min.iter, 
+        cur.scores <- colBlockApply(x, FUN=.cyclone_scores, niters=iter, miniters=min.iter, 
             minpairs=min.pairs, marker1=pairings$first, marker2=pairings$second, indices=pairings$index,
             seeds=pcg.state$seeds[[1]], streams=pcg.state$streams[[1]], BPPARAM=BPPARAM)
         all.scores[[cl]] <- unlist(cur.scores)
@@ -176,6 +176,17 @@ setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
     phases[scores$G1 < 0.5 & scores$G2M < 0.5] <- "S"
 
     list(phases=phases, scores=scores, normalized.scores=scores.normalised)
+}
+
+#' @importFrom DelayedArray currentViewport makeNindexFromArrayViewport
+.cyclone_scores <- function(block, ..., seeds, streams) {
+    vp <- currentViewport()
+    cols <- makeNindexFromArrayViewport(vp, expand.RangeNSBS=TRUE)[[2]]
+    if (!is.null(cols)) {
+        seeds <- seeds[cols]
+        streams <- streams[cols]
+    }
+    cyclone_scores(block, ..., seeds=seeds, streams=streams)
 }
 
 #' @export

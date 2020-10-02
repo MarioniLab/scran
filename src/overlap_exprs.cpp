@@ -1,7 +1,6 @@
 #include "Rcpp.h"
 
-#include "beachmat/integer_matrix.h"
-#include "beachmat/numeric_matrix.h"
+#include "beachmat3/beachmat.h"
 #include "utils.h"
 
 #include <stdexcept>
@@ -9,7 +8,6 @@
 #include <vector>
 #include <algorithm>
 
-template<typename T, class V>
 class wilcoxer {
 public:    
     wilcoxer(Rcpp::List groups, int ncells) {
@@ -25,12 +23,12 @@ public:
                 }
             }
 
-            by_group.push_back(std::vector<T>(curgroup.size()));
+            by_group.push_back(std::vector<double>(curgroup.size()));
         }
         return;
     }
 
-    void initialize(const V& vec) {
+    void initialize(const double* vec) {
         // Sorting expression values within each group.
         for (size_t i=0; i<by_group.size(); ++i) {
             const auto& cur_source=sources[i];
@@ -45,7 +43,7 @@ public:
         return;
     }
 
-    std::pair<double, int> contrast_groups(int left, int right, T shift) const {
+    std::pair<double, int> contrast_groups(int left, int right, double shift) const {
         int c1=0, c2=0;
         const auto& group1=by_group[left];
         const int ncells1=group1.size();
@@ -61,7 +59,7 @@ public:
             // (after adjusting 'group1' for the shift).
             const bool ok1=c1 < ncells1;
             const bool ok2=c2 < ncells2;
-            T curval;
+            double curval;
 
             if (!ok1 && !ok2) {
                 break;
@@ -74,7 +72,7 @@ public:
             }
 
             // Make each index point to first element outside of the range.
-            const T right=curval;
+            const double right=curval;
             int ties1=0;
             if (ok1) { 
                 const int c1_old=c1;
@@ -108,18 +106,18 @@ public:
     }
 private:
     std::deque<std::vector<int> > sources;
-    std::deque<std::vector<T> > by_group;
+    std::deque<std::vector<double> > by_group;
 };
 
-template <typename T, class V, class M>
-Rcpp::List overlap_exprs_internal(M mat, Rcpp::List groups, Rcpp::RObject LFC) {
+// [[Rcpp::export(rng=false)]]
+Rcpp::List overlap_exprs(Rcpp::RObject exprs, Rcpp::List groups, double lfc) {
+    auto mat = beachmat::read_lin_block(exprs);
     const size_t ngenes=mat->get_nrow();
     const size_t ncells=mat->get_ncol();
    
     // Constructing groups. 
     const size_t ngroups=groups.size();
-    wilcoxer<T, V> wilcox_calc(groups, ncells);
-    const T lfc=Rcpp::as<T>(LFC);
+    wilcoxer wilcox_calc(groups, ncells);
 
     // Setting up the output matrices to hold the overlap proportions, number of ties.
     Rcpp::List pout(ngroups), tout(ngroups);
@@ -141,10 +139,10 @@ Rcpp::List overlap_exprs_internal(M mat, Rcpp::List groups, Rcpp::RObject LFC) {
     }
 
     // Running through all genes and computing pairwise overlaps. 
-    V tmp(ncells);
+    std::vector<double> tmp(ncells);
     for (size_t g=0; g<ngenes; ++g) {
-        mat->get_row(g, tmp.begin());
-        wilcox_calc.initialize(tmp);
+        auto ptr = mat->get_row(g, tmp.data());
+        wilcox_calc.initialize(ptr);
 
         for (size_t i1=0; i1<ngroups; ++i1) {
             if (wilcox_calc.empty_group(i1)) { continue; }
@@ -165,16 +163,4 @@ Rcpp::List overlap_exprs_internal(M mat, Rcpp::List groups, Rcpp::RObject LFC) {
     }
 
     return Rcpp::List::create(pout, tout);
-}
-
-// [[Rcpp::export(rng=false)]]
-Rcpp::List overlap_exprs(Rcpp::RObject exprs, Rcpp::List bygroup, Rcpp::RObject lfc) {
-    int rtype=beachmat::find_sexp_type(exprs);
-    if (rtype==INTSXP) {
-        auto mat=beachmat::create_integer_matrix(exprs);
-        return overlap_exprs_internal<int, Rcpp::IntegerVector>(mat.get(), bygroup, lfc);
-    } else {
-        auto mat=beachmat::create_numeric_matrix(exprs);
-        return overlap_exprs_internal<double, Rcpp::NumericVector>(mat.get(), bygroup, lfc);
-    }
 }
