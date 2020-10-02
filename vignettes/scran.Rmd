@@ -293,8 +293,9 @@ Testing is performed against the null hypothesis of independent genes, using a p
 
 ```{r}
 # Using the first 200 HVs, which are the most interesting anyway.
+# Also turning down the number of iterations for speed.
 of.interest <- top.hvgs[1:200]
-cor.pairs <- correlatePairs(sce, subset.row=of.interest)
+cor.pairs <- correlatePairs(sce, subset.row=of.interest, iters=1e5)
 cor.pairs
 ```
 
@@ -302,7 +303,8 @@ As with variance estimation, if uninteresting substructure is present, this shou
 This avoids strong correlations due to the blocking factor.
 
 ```{r}
-cor.pairs2 <- correlatePairs(sce, subset.row=of.interest, block=sce$donor)
+cor.pairs2 <- correlatePairs(sce, subset.row=of.interest, 
+    block=sce$donor, iters=1e5)
 ```
 
 The pairs can be used for choosing marker genes in experimental validation, and to construct gene-gene association networks.
