@@ -2,8 +2,9 @@
 #' @importFrom scuttle .bpNotSharedOrUp .ranksafeQR
 #' @importFrom beachmat rowBlockApply
 .compute_mean_var <- function(x, block, design, subset.row, block.FUN, residual.FUN, BPPARAM, ...) {
-    subset.row <- .subset2index(subset.row, x, byrow=TRUE)
-    x <- x[subset.row,,drop=FALSE]
+    if (!is.null(subset.row)) {
+        x <- x[subset.row,,drop=FALSE]
+    }
     if (.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))
@@ -62,7 +63,7 @@
         vars <- matrix(unlist(lapply(raw.stats, FUN="[[", i=2)))
     }
 
-	rownames(means) <- rownames(vars) <- rownames(x)[subset.row]
+	rownames(means) <- rownames(vars) <- rownames(x)
     list(means=means, vars=vars, ncells=ncells)
 }
 

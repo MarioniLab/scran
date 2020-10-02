@@ -184,6 +184,10 @@ setMethod("pairwiseWilcox", "SingleCellExperiment", function(x, groups=colLabels
         block <- split(seq_along(block), block)
     }
 
+    if (!is.null(subset.row)) {
+        x <- x[subset.row,,drop=FALSE]
+    }
+
     # Setting up the parallelization strategy.
     if (.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
