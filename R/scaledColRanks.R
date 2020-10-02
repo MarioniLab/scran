@@ -82,7 +82,11 @@ scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
     }
 
     out <- colRanks(DelayedArray(block), ties.method="average", preserveShape=FALSE)
+
     sig <- sqrt(rowVars(out) * (ncol(out)-1)) * 2
+    if (any(is.na(sig) | sig==0)) {
+        stop("rank variances of zero detected for a cell")
+    }
 
     if (as.sparse) {
         out <- out - rowMins(DelayedArray(out)) # TODO: switch to MatGen once this is available.
