@@ -1,4 +1,4 @@
-\name{scrannews}
+\name{scranNews}
 \title{scran News}
 \encoding{UTF-8}
 
@@ -9,12 +9,7 @@
 
 \item Deprecated \code{gene.names=} in the various \code{pairwise*} functions as being out of scope.
 
-\item Added the \code{createClusterMST()} function to create a TSCAN-like MST from cluster centroids.
-Also added the helper functions \code{connectClusterMST()} and \code{orderClusterMST()}.
-Added a wrapper function \code{quickPseudotime()} to run all the relevant steps at once.
-
 \item Added the \code{testLinearModel()} function to obtain inferences from a linear model.
-Added \code{testPseudotime()} for quick-and-dirty identification of DE genes along psuedotime.
 
 \item Modified \code{pseudoBulkDGE()} to use formulas/functions in the \code{design=} argument.
 Allow \code{contrast=} to be a character vector to be run through \code{makeContrasts()}.
@@ -33,6 +28,9 @@ Added a \code{add.summary=} option to easily include summary information.
 \item Deprecated \code{doubletCluster()} as this is replaced by \code{scDblFinder::findDoubletClusters()}.
 
 \item Deprecated \code{doubletRecovery()} as this is replaced by \code{scDblFinder::recoverDoublets()}.
+
+\item Added sparse-optimized variance calculations to \code{modelGeneVar()}, \code{modelGeneCV2()} and related functions, 
+which may result in slight changes to the results due to numeric precision.
 }}
 
 \section{Version 1.16.0}{\itemize{
