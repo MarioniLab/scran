@@ -12,6 +12,9 @@ class wilcoxer {
 public:    
     wilcoxer(Rcpp::List groups, int ncells) {
         const size_t ngroups=groups.size();
+        nelements.resize(ngroups);
+        nzeroes.resize(ngroups);
+
         for (size_t g=0; g<ngroups; ++g) {
             Rcpp::IntegerVector curgroup(groups[g]);
             sources.push_back(std::vector<int>(curgroup.begin(), curgroup.end()));
@@ -29,36 +32,49 @@ public:
     }
 
     void initialize(const double* vec) {
-        // Sorting expression values within each group.
+        // Sorting expression values within each group,
+        // special-casing the behavior at zero.
         for (size_t i=0; i<by_group.size(); ++i) {
+            auto& cur_group = by_group[i];
+            auto cgIt = cur_group.begin();
             const auto& cur_source=sources[i];
-            auto& cur_group=by_group[i];
 
-            auto cgIt=cur_group.begin();
-            for (auto csIt=cur_source.begin(); csIt!=cur_source.end(); ++csIt, ++cgIt) { 
-                (*cgIt)=vec[*csIt];
+            for (auto csIt=cur_source.begin(); csIt!=cur_source.end(); ++csIt) { 
+                auto val = vec[*csIt];
+                if (val) {
+                    *(cgIt++) = val;
+                }
             }
-            std::sort(cur_group.begin(), cur_group.end());
+
+            size_t filled = cgIt - cur_group.begin();
+            nzeroes[i] = cur_group.size() - filled;
+            if (nzeroes[i]) {
+                ++filled;
+                *cgIt = 0; // adding a placeholder zero, see below.
+            }
+
+            nelements[i] = filled;
+            std::sort(cur_group.begin(), cur_group.begin() + filled);
         }
         return;
     }
 
     std::pair<double, int> contrast_groups(int left, int right, double shift) const {
-        int c1=0, c2=0;
-        const auto& group1=by_group[left];
-        const int ncells1=group1.size();
-        const auto& group2=by_group[right];
-        const int ncells2=group2.size();
+        const auto& group1 = by_group[left];
+        const int nelements1 = nelements[left];
+        const auto& group2 = by_group[right];
+        const int nelements2 = nelements[right];
 
         std::pair<double, double> output;
         double& score=output.first;
         double& tieval=output.second;
 
+        int c1=0, c2=0, below = 0;
         while (1) {
             // Each iteration of this loop should represent one set of tied ranks
             // (after adjusting 'group1' for the shift).
-            const bool ok1=c1 < ncells1;
-            const bool ok2=c2 < ncells2;
+            const bool ok1=c1 < nelements1;
+            const bool ok2=c2 < nelements2;
             double curval;
 
             if (!ok1 && !ok2) {
@@ -72,26 +88,36 @@ public:
             }
 
             // Make each index point to first element outside of the range.
-            const double right=curval;
             int ties1=0;
             if (ok1) { 
-                const int c1_old=c1;
-                while (c1 < ncells1 && group1[c1] - shift <= right) { 
+                if (group1[c1]) {
+                    const int c1_old=c1;
+                    while (c1 < nelements1 && group1[c1] - shift == curval) {
+                        ++c1;
+                    } 
+                    ties1 = c1-c1_old;
+                } else if (-shift == curval) { // handling the placeholder zero.
+                    ties1 = nzeroes[left];
                     ++c1;
                 }
-                ties1=c1-c1_old;
             }
 
-            int ties2=0;
-            const int c2_old=c2;
+            int ties2 = 0;
             if (ok2) {
-                while (c2 < ncells2 && group2[c2] <= right) { 
+                if (group2[c2]) {
+                    const int c2_old=c2;
+                    while (c2 < nelements2 && group2[c2] == curval) { 
+                        ++c2;
+                    }
+                    ties2=c2 - c2_old;
+                } else if (0 == curval) { // handling the placeholder zero.
+                    ties2 = nzeroes[right];
                     ++c2;
                 }
-                ties2=c2 - c2_old;
             }
 
-            score += (static_cast<double>(c2_old) + static_cast<double>(ties2)*0.5) * ties1;
+            score += (static_cast<double>(below) + static_cast<double>(ties2)*0.5) * ties1;
+            below += ties2;
                 
             // To recapitulate the normal approximation in stats::wilcox.test(). 
             const double nties=ties1 + ties2;
@@ -107,6 +133,7 @@ public:
 private:
     std::deque<std::vector<int> > sources;
     std::deque<std::vector<double> > by_group;
+    std::deque<int> nelements, nzeroes;
 };
 
 // [[Rcpp::export(rng=false)]]

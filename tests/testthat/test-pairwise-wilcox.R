@@ -36,7 +36,7 @@ REFFUN <- function(y, grouping, direction="any", lfc=0)
                             right.p <- (right.result1$p.value + right.result2$p.value) / 2
 
                             auc[i] <- (left.result1$statistic + left.result2$statistic) / 2
-                            pval[i] <- pmin(left.p, right.p, 1) * 2
+                            pval[i] <- pmin(left.p, right.p, 0.5) * 2
                         } else if (direction=="up") {
                             result <- wilcox.test(host.vals, target.vals, alternative=alt.hyp, mu=lfc, exact=FALSE)
                             auc[i] <- result$statistic
@@ -160,6 +160,23 @@ test_that("pairwiseWilcox responds to restriction", {
     keep <- !clusters %in% exclude
     expect_identical(pairwiseWilcox(X, clusters, exclude=exclude),
        pairwiseWilcox(X[,keep], clusters[keep]))
+})
+
+set.seed(80000013)
+test_that("pairwiseWilcox works correctly with lots of ties and zeros", {
+    dummy <- matrix(rpois(ngenes*ncells, lambda=1), ncol=ncells, nrow=ngenes)
+    rownames(dummy) <- seq_len(nrow(dummy))
+    clusters <- factor(sample(4, ncells, replace=TRUE))
+
+    REFFUN(dummy, clusters)
+    REFFUN(dummy, clusters, direction="up")
+    REFFUN(dummy, clusters, direction="down")
+    REFFUN(dummy, clusters, lfc=0.5)
+
+    # Same behavior with the sparse matrix.
+    sparse <- as(dummy, "dgCMatrix")
+    expect_identical(pairwiseWilcox(dummy, clusters), pairwiseWilcox(sparse, clusters))
+    expect_identical(pairwiseWilcox(dummy, clusters, lfc=1.7), pairwiseWilcox(sparse, clusters, lfc=1.7))
 })
 
 ###################################################################
