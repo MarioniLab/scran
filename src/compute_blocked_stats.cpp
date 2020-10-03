@@ -20,34 +20,96 @@ Rcpp::List compute_blocked_stats(Rcpp::RObject mat, Rcpp::IntegerVector block, i
     // Setting up the output objects.
     Rcpp::NumericMatrix outvar(ngenes, nblocks);
     Rcpp::NumericMatrix outmean(ngenes, nblocks);
-    std::vector<double> incoming(ngenes);
     std::vector<int> count(nblocks);
 
-    // Using Welford's algorithm to compute the variance in column-major style,
-    // which should be much more cache-friendly for large matrices.
-    for (size_t counter=0; counter<ncells; ++counter) {
-        auto ptr = emat->get_col(counter, incoming.data());
-        trans(counter, ptr, ptr + ngenes, incoming.data());
+    if (!emat->is_sparse()) { 
+        std::vector<double> incoming(ngenes);
 
-        auto curblock=block[counter];
-        if (isNA(curblock)) {
-            continue;
+        // Using Welford's algorithm to compute the variance in column-major style,
+        // which should be much more cache-friendly for large matrices.
+        for (size_t counter=0; counter<ncells; ++counter) {
+            auto ptr = emat->get_col(counter, incoming.data());
+            trans(counter, ptr, ptr + ngenes, incoming.data());
+
+            auto curblock=block[counter];
+            if (isNA(curblock)) {
+                continue;
+            }
+
+            auto M=outmean.column(curblock);
+            auto S=outvar.column(curblock);
+            auto& sofar=count[curblock];
+            
+            auto mIt=M.begin();
+            auto sIt=S.begin();
+            auto iIt=incoming.begin();
+            ++sofar;
+
+            for (size_t i=0; i<ngenes; ++i, ++iIt, ++mIt, ++sIt) {
+                const double delta=*iIt - *mIt;
+                *mIt += delta/sofar;
+                *sIt += delta*(*iIt - *mIt);
+            }
+        }
+    } else {
+        Rcpp::NumericMatrix nnzero(ngenes, nblocks);
+        std::vector<double> work_x(ngenes);
+        std::vector<int> work_i(ngenes);
+        auto smat = beachmat::promote_to_sparse(emat);
+
+        // Running through Welford's algorithm for only nonzero counts.
+        for (size_t counter=0; counter<ncells; ++counter) {
+            auto idx = smat->get_col(counter, work_x.data(), work_i.data());
+            trans(counter, idx.x, idx.x + idx.n, work_x.data());
+
+            auto curblock=block[counter];
+            if (isNA(curblock)) {
+                continue;
+            }
+            ++count[curblock];
+
+            auto M=outmean.column(curblock);
+            auto S=outvar.column(curblock);
+            auto NZ=nnzero.column(curblock);
+            
+            auto mIt=M.begin();
+            auto sIt=S.begin();
+            auto nzIt=NZ.begin();
+
+            for (size_t i=0; i<idx.n; ++i) {
+                auto& curM = *(mIt + idx.i[i]);
+                auto& curS = *(sIt + idx.i[i]);
+                const auto& curval = work_x[i];
+                auto& curNZ = *(nzIt + idx.i[i]);
+                ++curNZ;
+                
+                const double delta = curval - curM;
+                curM += delta / curNZ;
+                curS += delta * (curval - curM);
+            }
         }
 
-        auto M=outmean.column(curblock);
-        auto S=outvar.column(curblock);
-        auto& sofar=count[curblock];
-        
-        // Running mean.
-        auto mIt=M.begin();
-        auto sIt=S.begin();
-        auto iIt=incoming.begin();
-        ++sofar;
+        // Filling in the zeros afterwards. This is done by realizing that s^2
+        // = sum(y^2) - n * mean(y)^2 and that the sum of the squares does not
+        // change with more zeroes; this allows us to solve for a new s^2 by
+        // simply adding the difference of the scaled squared means.
+        for (int b=0; b<nblocks; ++b) {
+            auto M=outmean.column(b);
+            auto S=outvar.column(b);
+            auto NZ=nnzero.column(b);
+            
+            auto mIt=M.begin();
+            auto sIt=S.begin();
+            auto nzIt=NZ.begin();
+            const double blocktotal = count[b];
 
-        for (size_t i=0; i<ngenes; ++i, ++iIt, ++mIt, ++sIt) {
-            const double delta=*iIt - *mIt;
-            *mIt += delta/sofar;
-            *sIt += delta*(*iIt - *mIt);
+            for (size_t g = 0; g<ngenes; ++g, ++mIt, ++sIt, ++nzIt) {
+                const double curNZ = *nzIt;
+                const double ratio = curNZ / blocktotal;
+                auto& curM = *mIt;
+                *sIt += curM * curM * ratio * (blocktotal - curNZ);
+                curM *= ratio;
+            }
         }
     }
 

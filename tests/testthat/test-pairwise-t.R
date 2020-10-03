@@ -588,6 +588,23 @@ test_that("pairwiseTTests works with SEs and SCEs", {
     expect_identical(out, out3)
 })
 
+set.seed(70000052)
+test_that("pairwiseTTests works with sparse matrices", {
+    X_ <- matrix(rpois(100000, lambda=1), ncol=100)
+    X <- as(X_, "dgCMatrix")
+
+    groups <- sample(2, ncol(X), replace=TRUE)
+    expect_equal(
+        pairwiseTTests(X_, groups),
+        pairwiseTTests(X, groups),
+    )
+
+    block <- sample(2, ncol(X), replace=TRUE)
+    expect_equal(
+        pairwiseTTests(X_, groups, block=block),
+        pairwiseTTests(X, groups, block=block),
+    )
+})
 set.seed(7000006)
 test_that("pairwiseTTests fails gracefully with silly inputs", {
     y <- matrix(rnorm(12000), ncol=20)

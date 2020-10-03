@@ -191,6 +191,25 @@ test_that("modelGeneVar works with SingleCellExperiment objects", {
     expect_equal(modelGeneVar(X, assay.type="whee"), modelGeneVar(dummy))
 })
 
+test_that("modelGeneVar works with sparse inputs", {
+    X <- dummy
+    X_ <- as(X, "dgCMatrix")
+    expect_equal(modelGeneVar(X), modelGeneVar(X_))
+
+    # Safe with ultra-sparse rows.
+    X[1:20,] <- 0
+    X[1,2] <- 1
+    X[2,c(10, 20, 30)] <- 1
+    X[3,c(10, 20, 30)] <- 3:1
+    X_ <- as(X, "dgCMatrix")
+    expect_equal(modelGeneVar(X), modelGeneVar(X_))
+
+    # Works with ultra dense rows.
+    X <- dummy + 20
+    X_ <- as(X, "dgCMatrix")
+    expect_equal(modelGeneVar(X), modelGeneVar(X_))
+})
+
 #######################################
 #######################################
 #######################################
@@ -332,7 +351,7 @@ test_that("modelGeneVarWithSpikes works with design matrices", {
     expect_equal(metadata(out)$var, setNames(spiked$total, rownames(spikes)))
 })
 
-test_that("modelGeneVar works with SingleCellExperiment objects", {
+test_that("modelGeneVarWith Spikesworks with SingleCellExperiment objects", {
     X <- SingleCellExperiment(list(counts=dummy))
     altExp(X, "spikes") <- SingleCellExperiment(list(counts=spikes))
     expect_equal(modelGeneVarWithSpikes(X, spikes="spikes"), modelGeneVarWithSpikes(dummy, spikes))
@@ -345,5 +364,15 @@ test_that("modelGeneVar works with SingleCellExperiment objects", {
     sizeFactors(X) <- sf1 <- 2^rnorm(ncells, 0.1)
     altExp(X, "spikes") <- SingleCellExperiment(list(whee=spikes))
     sizeFactors(altExp(X)) <- sf2 <- 2^rnorm(ncells, 0.1)
-    expect_equal(modelGeneVarWithSpikes(X, "spikes", assay.type="whee"), modelGeneVarWithSpikes(dummy, size.factors=sf1, spikes, spike.size.factors=sf2))
+    expect_equal(modelGeneVarWithSpikes(X, "spikes", assay.type="whee"), 
+        modelGeneVarWithSpikes(dummy, size.factors=sf1, spikes, spike.size.factors=sf2))
+})
+
+test_that("modelGeneVarWithSpikes works with sparse inputs", {
+    ref <- modelGeneVarWithSpikes(dummy, spikes)
+    d2 <- as(dummy, "dgCMatrix")
+    s2 <- as(spikes, "dgCMatrix")
+    expect_equal(ref, modelGeneVarWithSpikes(dummy, s2))
+    expect_equal(ref, modelGeneVarWithSpikes(d2, spikes))
+    expect_equal(ref, modelGeneVarWithSpikes(d2, s2))
 })

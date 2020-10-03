@@ -146,6 +146,25 @@ test_that("modelGeneCV2 works with SingleCellExperiment objects", {
     expect_equal(modelGeneCV2(X, assay.type="whee"), modelGeneCV2(dummy))
 })
 
+test_that("modelGeneCV2 works with sparse inputs", {
+    X <- dummy2
+    X_ <- as(X, "dgCMatrix")
+    expect_equal(modelGeneCV2(X), modelGeneCV2(X_), tol=1e-6) # MAD-based stdev is very sensitive.
+
+    # Safe with ultra-sparse rows.
+    X[1:20,] <- 0
+    X[1,2] <- 1
+    X[2,c(10, 20, 30)] <- 1
+    X[3,c(10, 20, 30)] <- 3:1
+    X_ <- as(X, "dgCMatrix")
+    expect_equal(modelGeneCV2(X), modelGeneCV2(X_), tol=1e-6)
+
+    # Works with ultra dense rows.
+    X <- dummy2 + 1
+    X_ <- as(X, "dgCMatrix")
+    expect_equal(modelGeneCV2(X), modelGeneCV2(X_), tol=1e-6)
+})
+
 #######################################
 #######################################
 #######################################
@@ -284,5 +303,15 @@ test_that("modelGeneCV2 works with SingleCellExperiment objects", {
     sizeFactors(X) <- sf1 <- 2^rnorm(ncells, 0.1)
     altExp(X, "spikes") <- SingleCellExperiment(list(whee=spikes))
     sizeFactors(altExp(X)) <- sf2 <- 2^rnorm(ncells, 0.1)
-    expect_equal(modelGeneCV2WithSpikes(X, "spikes", assay.type="whee"), modelGeneCV2WithSpikes(dummy, size.factors=sf1, spikes, spike.size.factors=sf2))
+    expect_equal(modelGeneCV2WithSpikes(X, "spikes", assay.type="whee"), 
+        modelGeneCV2WithSpikes(dummy, size.factors=sf1, spikes, spike.size.factors=sf2))
+})
+
+test_that("modelGeneCV2WithSpikes works with sparse inputs", {
+    ref <- modelGeneVarWithSpikes(normdummy, normspikes)
+    d2 <- as(normdummy, "dgCMatrix")
+    s2 <- as(normspikes, "dgCMatrix")
+    expect_equal(ref, modelGeneVarWithSpikes(normdummy, s2), tol=1e-6) # weighted MAD is sensitive to precision.
+    expect_equal(ref, modelGeneVarWithSpikes(d2, normspikes), tol=1e-6)
+    expect_equal(ref, modelGeneVarWithSpikes(d2, s2), tol=1e-6)
 })

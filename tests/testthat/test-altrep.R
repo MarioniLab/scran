@@ -29,16 +29,8 @@ test_that("cyclone runs properly", {
 })
 
 test_that("Variance estimation runs properly", {
-    dec1 <- modelGeneVar(X) 
-    dec2 <- modelGeneVar(X_)
-    expect_equal(dec1, dec2)
-
     dec1 <- modelGeneVar(Y)
     dec2 <- modelGeneVar(Y_)
-    expect_equal(dec1, dec2)
-
-    dec1 <- modelGeneCV2(X) 
-    dec2 <- modelGeneCV2(X_)
     expect_equal(dec1, dec2)
 
     dec1 <- modelGeneCV2(Y)
@@ -79,6 +71,5 @@ test_that("buildSNNGraph with irlba runs properly on sparse matrices", {
 
 test_that("findMarkers and overlapExprs work properly", {
     groups <- sample(2, ncol(X), replace=TRUE)
-    expect_equal(findMarkers(X, groups), findMarkers(X_, groups))
     expect_equal(findMarkers(Y, groups), findMarkers(Y_, groups))
 })
