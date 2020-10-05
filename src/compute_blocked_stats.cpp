@@ -17,64 +17,42 @@ Rcpp::List compute_blocked_stats(Rcpp::RObject mat, Rcpp::IntegerVector block, i
     const size_t ncells=emat->get_ncol();
     const size_t ngenes=emat->get_nrow();
 
-    // Setting up the output objects.
     Rcpp::NumericMatrix outvar(ngenes, nblocks);
     Rcpp::NumericMatrix outmean(ngenes, nblocks);
+    Rcpp::NumericMatrix nnzero(ngenes, nblocks);
     std::vector<int> count(nblocks);
 
-    if (!emat->is_sparse()) { 
-        std::vector<double> incoming(ngenes);
+    std::vector<double> work_x(ngenes);
+    std::vector<int> work_i;
+    std::unique_ptr<beachmat::lin_sparse_matrix> smat;
 
-        // Using Welford's algorithm to compute the variance in column-major style,
-        // which should be much more cache-friendly for large matrices.
-        for (size_t counter=0; counter<ncells; ++counter) {
-            auto ptr = emat->get_col(counter, incoming.data());
-            trans(counter, ptr, ptr + ngenes, incoming.data());
+    const bool is_sparse = emat->is_sparse(), preserve_zero = trans.preserve_zero();
+    if (is_sparse && preserve_zero) {
+        work_i.resize(ngenes);
+        smat = beachmat::promote_to_sparse(emat);
+    }
 
-            auto curblock=block[counter];
-            if (isNA(curblock)) {
-                continue;
-            }
-
-            auto M=outmean.column(curblock);
-            auto S=outvar.column(curblock);
-            auto& sofar=count[curblock];
-            
-            auto mIt=M.begin();
-            auto sIt=S.begin();
-            auto iIt=incoming.begin();
-            ++sofar;
-
-            for (size_t i=0; i<ngenes; ++i, ++iIt, ++mIt, ++sIt) {
-                const double delta=*iIt - *mIt;
-                *mIt += delta/sofar;
-                *sIt += delta*(*iIt - *mIt);
-            }
+    // Using Welford's algorithm to compute the variance in column-major style,
+    // which should be much more cache-friendly for large matrices. We run through
+    // only non-zero counts when circumstances allow for it.
+    for (size_t counter=0; counter<ncells; ++counter) {
+        auto curblock=block[counter];
+        if (isNA(curblock)) {
+            continue;
         }
-    } else {
-        Rcpp::NumericMatrix nnzero(ngenes, nblocks);
-        std::vector<double> work_x(ngenes);
-        std::vector<int> work_i(ngenes);
-        auto smat = beachmat::promote_to_sparse(emat);
+        ++count[curblock];
 
-        // Running through Welford's algorithm for only nonzero counts.
-        for (size_t counter=0; counter<ncells; ++counter) {
+        auto M=outmean.column(curblock);
+        auto S=outvar.column(curblock);
+        auto NZ=nnzero.column(curblock);
+        
+        auto mIt=M.begin();
+        auto sIt=S.begin();
+        auto nzIt=NZ.begin();
+
+        if (is_sparse && preserve_zero) {
             auto idx = smat->get_col(counter, work_x.data(), work_i.data());
             trans(counter, idx.x, idx.x + idx.n, work_x.data());
-
-            auto curblock=block[counter];
-            if (isNA(curblock)) {
-                continue;
-            }
-            ++count[curblock];
-
-            auto M=outmean.column(curblock);
-            auto S=outvar.column(curblock);
-            auto NZ=nnzero.column(curblock);
-            
-            auto mIt=M.begin();
-            auto sIt=S.begin();
-            auto nzIt=NZ.begin();
 
             for (size_t i=0; i<idx.n; ++i) {
                 auto& curM = *(mIt + idx.i[i]);
@@ -87,17 +65,40 @@ Rcpp::List compute_blocked_stats(Rcpp::RObject mat, Rcpp::IntegerVector block, i
                 curM += delta / curNZ;
                 curS += delta * (curval - curM);
             }
+        } else {
+            auto ptr = emat->get_col(counter, work_x.data());
+            trans(counter, ptr, ptr + ngenes, work_x.data());
+
+            auto wIt = work_x.begin();
+            for (size_t i=0; i<ngenes; ++i, ++wIt, ++mIt, ++sIt, ++nzIt) {
+                if (!preserve_zero || *wIt) {
+                    ++(*nzIt);
+                    const double delta=*wIt - *mIt;
+                    *mIt += delta/(*nzIt);
+                    *sIt += delta*(*wIt - *mIt);
+                }
+            }
+        } 
+    }
+
+    for (int b=0; b<nblocks; ++b) {
+        auto M=outmean.column(b);
+        if (count[b] <= 0) {
+            std::fill(M.begin(), M.end(), R_NaReal);
         }
 
-        // Filling in the zeros afterwards. This is done by realizing that s^2
-        // = sum(y^2) - n * mean(y)^2 and that the sum of the squares does not
-        // change with more zeroes; this allows us to solve for a new s^2 by
-        // simply adding the difference of the scaled squared means.
-        for (int b=0; b<nblocks; ++b) {
-            auto M=outmean.column(b);
-            auto S=outvar.column(b);
+        auto S=outvar.column(b);
+        if (count[b] <= 1) {
+            std::fill(S.begin(), S.end(), R_NaReal);
+            continue; 
+        }
+
+        if (preserve_zero) {
+            // Filling in the zeros afterwards. This is done by realizing that s^2
+            // = sum(y^2) - n * mean(y)^2 and that the sum of the squares does not
+            // change with more zeroes; this allows us to solve for a new s^2 by
+            // simply adding the difference of the scaled squared means.
             auto NZ=nnzero.column(b);
-            
             auto mIt=M.begin();
             auto sIt=S.begin();
             auto nzIt=NZ.begin();
@@ -111,24 +112,11 @@ Rcpp::List compute_blocked_stats(Rcpp::RObject mat, Rcpp::IntegerVector block, i
                 curM *= ratio;
             }
         }
-    }
 
-    for (int b=0; b<nblocks; ++b) {
-        auto M=outmean.column(b);
-        if (count[b] <= 0) {
-            std::fill(M.begin(), M.end(), R_NaReal);
+        const double rdf = count[b] - 1;
+        for (auto& s : S) {
+            s/=rdf;
         }
-
-        auto S=outvar.column(b);
-        if (count[b] > 1) {
-            const double rdf=count[b]-1;
-            for (auto& s : S) {
-                s/=rdf;
-            }
-        } else {
-            std::fill(S.begin(), S.end(), R_NaReal);
-        }
-
     }
 
     return(Rcpp::List::create(outmean, outvar));
@@ -150,6 +138,8 @@ struct lognorm {
             ++out;
         }
     }
+
+    bool preserve_zero()  const { return pseudo == 1; }
 private:
     Rcpp::NumericVector sf;
     double pseudo;
@@ -180,6 +170,8 @@ struct norm {
             ++out;
         }
     }
+
+    bool preserve_zero () const { return true; }
 private:
     Rcpp::NumericVector sf;
 };
@@ -198,12 +190,15 @@ Rcpp::List compute_blocked_stats_norm(Rcpp::RObject mat, Rcpp::IntegerVector blo
 
 struct none {
     none() {}
+
     template<class IN, class OUT>
     void operator()(int i, IN start, IN end, OUT out) {
         if (out!=start) {
             std::copy(start, end, out);
         }
     }
+
+    bool preserve_zero () const { return true; }
 };
 
 // [[Rcpp::export(rng=false)]]
