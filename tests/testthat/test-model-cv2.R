@@ -148,8 +148,9 @@ test_that("modelGeneCV2 works with SingleCellExperiment objects", {
 
 test_that("modelGeneCV2 works with sparse inputs", {
     X <- dummy2
+    sf <- librarySizeFactors(X) # need to specify this for testing, as minor differences in colSums propagate.
     X_ <- as(X, "dgCMatrix")
-    expect_equal(modelGeneCV2(X), modelGeneCV2(X_), tol=1e-6) # MAD-based stdev is very sensitive.
+    expect_equal(modelGeneCV2(X, size.factors=sf), modelGeneCV2(X_, size.factors=sf))
 
     # Safe with ultra-sparse rows.
     X[1:20,] <- 0
@@ -157,12 +158,12 @@ test_that("modelGeneCV2 works with sparse inputs", {
     X[2,c(10, 20, 30)] <- 1
     X[3,c(10, 20, 30)] <- 3:1
     X_ <- as(X, "dgCMatrix")
-    expect_equal(modelGeneCV2(X), modelGeneCV2(X_), tol=1e-6)
+    expect_equal(modelGeneCV2(X, size.factors=sf), modelGeneCV2(X_, size.factors=sf))
 
     # Works with ultra dense rows.
     X <- dummy2 + 1
     X_ <- as(X, "dgCMatrix")
-    expect_equal(modelGeneCV2(X), modelGeneCV2(X_), tol=1e-6)
+    expect_equal(modelGeneCV2(X, size.factors=sf), modelGeneCV2(X_, size.factors=sf))
 })
 
 #######################################
@@ -308,10 +309,14 @@ test_that("modelGeneCV2 works with SingleCellExperiment objects", {
 })
 
 test_that("modelGeneCV2WithSpikes works with sparse inputs", {
-    ref <- modelGeneVarWithSpikes(normdummy, normspikes)
+    # Need to specify the size factors to avoid propagating small errors due to colSums differences.
+    sf1 <- librarySizeFactors(normdummy)
+    sf2 <- librarySizeFactors(normspikes)
+    ref <- modelGeneVarWithSpikes(normdummy, normspikes, size.factors=sf1, spike.size.factors=sf2)
+
     d2 <- as(normdummy, "dgCMatrix")
     s2 <- as(normspikes, "dgCMatrix")
-    expect_equal(ref, modelGeneVarWithSpikes(normdummy, s2), tol=1e-6) # weighted MAD is sensitive to precision.
-    expect_equal(ref, modelGeneVarWithSpikes(d2, normspikes), tol=1e-6)
-    expect_equal(ref, modelGeneVarWithSpikes(d2, s2), tol=1e-6)
+    expect_equal(ref, modelGeneVarWithSpikes(normdummy, s2, size.factors=sf1, spike.size.factors=sf2))
+    expect_equal(ref, modelGeneVarWithSpikes(d2, normspikes, size.factors=sf1, spike.size.factors=sf2))
+    expect_equal(ref, modelGeneVarWithSpikes(d2, s2, size.factors=sf1, spike.size.factors=sf2))
 })

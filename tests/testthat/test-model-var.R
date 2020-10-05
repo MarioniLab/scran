@@ -368,6 +368,18 @@ test_that("modelGeneVarWith Spikesworks with SingleCellExperiment objects", {
         modelGeneVarWithSpikes(dummy, size.factors=sf1, spikes, spike.size.factors=sf2))
 })
 
+test_that("modelGeneVarWithSpikes works with a different pseudo-count", {
+    out <- modelGeneVarWithSpikes(dummy, spikes, pseudo.count=3)
+    ref <- modelGeneVar(scuttle::normalizeCounts(dummy, pseudo.count=3))
+
+    expect_equal(out$mean, ref$mean)
+    expect_equal(out$total, ref$total)
+
+    lspikes <- scuttle::normalizeCounts(spikes, pseudo.count=3)
+    expect_equal(metadata(out)$mean, rowMeans(lspikes))
+    expect_equal(unname(metadata(out)$var), DelayedMatrixStats::rowVars(lspikes))
+})
+
 test_that("modelGeneVarWithSpikes works with sparse inputs", {
     ref <- modelGeneVarWithSpikes(dummy, spikes)
     d2 <- as(dummy, "dgCMatrix")
@@ -375,4 +387,7 @@ test_that("modelGeneVarWithSpikes works with sparse inputs", {
     expect_equal(ref, modelGeneVarWithSpikes(dummy, s2))
     expect_equal(ref, modelGeneVarWithSpikes(d2, spikes))
     expect_equal(ref, modelGeneVarWithSpikes(d2, s2))
+
+    ref2 <- modelGeneVarWithSpikes(dummy, spikes, pseudo.count=0.5)
+    expect_equal(ref2, modelGeneVarWithSpikes(d2, s2, pseudo.count=0.5))
 })
