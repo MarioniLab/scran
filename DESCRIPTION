@@ -3,9 +3,9 @@ Version: 1.17.22
 Date: 2020-10-14
 Title: Methods for Single-Cell RNA-Seq Data Analysis
 Description: 
-    Implements functions for low-level analyses of single-cell RNA-seq data. 
-    Methods are provided for normalization of cell-specific biases, assignment of cell cycle phase, 
-    detection of highly variable and significantly correlated genes, identification of marker genes, 
+    Implements miscellaneous functions for interpretation of single-cell RNA-seq data.
+    Methods are provided for assignment of cell cycle phase, detection of highly
+    variable and significantly correlated genes, identification of marker genes,
     and other common tasks in routine single-cell analysis workflows.
 Authors@R: 
     c(person("Aaron", "Lun", role = c("aut", "cre"), email = "infinite.monkeys.with.keyboards@gmail.com"), 
