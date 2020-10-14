@@ -113,3 +113,37 @@ test_that("linear model testing works with miscellaneous options", {
     expect_identical(rownames(out), rownames(y)[1:10])
 })
 
+test_that("linear model testing works with blocking", {
+    y <- matrix(rnorm(10000), ncol=100)
+                                                 
+    A <- gl(2, 50)
+    design <- model.matrix(~A)
+    b <- rep(1:2, 50)
+    out <- testLinearModel(y, design, contrast=c(0, 1), block=b)
+
+    alt1 <- testLinearModel(y[,b==1], design[b==1,], contrast=c(0, 1))
+    alt2 <- testLinearModel(y[,b==2], design[b==2,], contrast=c(0, 1))
+    
+    expect_equivalent(alt1, out$per.block[,1])
+    expect_equivalent(alt2, out$per.block[,2])
+    expect_equal(out$p.value, combinePValues(alt1$p.value, alt2$p.value, method="z"))
+
+    # Responds to weighting.
+    b <- rep(1:4, 25)==1
+    out <- testLinearModel(y, design, contrast=c(0, 1), block=b)
+    alt1 <- testLinearModel(y[,b], design[b,], contrast=c(0, 1))
+    alt2 <- testLinearModel(y[,!b], design[!b,], contrast=c(0, 1))
+    expect_equal(out$p.value, combinePValues(alt1$p.value, alt2$p.value, method="z", weights=c(1,3)))
+
+    # Fails gracefully without rank.
+    b <- rep(c(1,2), c(75, 25))
+    out <- testLinearModel(y, design, contrast=c(0, 1), block=b)
+    alt1 <- testLinearModel(y[,b==1], design[b==1,], contrast=c(0, 1))
+
+    expect_identical(sum(is.na(out$per.block[,2]$p.value)), nrow(out))
+    out$per.block <- NULL
+    metadata(alt1) <- list()
+    expect_equal(out, alt1)
+
+    expect_error(testLinearModel(y, design, contrast=c(0, 1), block=A), "no level")
+})

@@ -8,7 +8,16 @@
 \usage{
 testLinearModel(x, ...)
 
-\S4method{testLinearModel}{ANY}(x, design, coefs = ncol(design), contrasts = NULL, ...)
+\S4method{testLinearModel}{ANY}(
+  x,
+  design,
+  coefs = ncol(design),
+  contrasts = NULL,
+  block = NULL,
+  equiweight = FALSE,
+  method = "z",
+  ...
+)
 
 \S4method{testLinearModel}{SummarizedExperiment}(x, ..., assay.type = "logcounts")
 }
@@ -16,7 +25,7 @@ testLinearModel(x, ...)
 \item{x}{A numeric matrix-like object containing log-expression values for cells (columns) and genes (rows).
 Alternatively, a \linkS4class{SummarizedExperiment} containing such a matrix.}
 
-\item{...}{For the generic, further arguments to pass to specific method.
+\item{...}{For the generic, further arguments to pass to specific methods.
 
 For the ANY method, further arguments to pass to \code{\link{fitLinearModel}}.
 
@@ -30,7 +39,16 @@ Only used if \code{contrasts} is not specified.}
 \item{contrasts}{A numeric vector or matrix specifying the contrast of interest.
 This should have length (if vector) or number of rows (if matrix) equal to \code{ncol(x)}.}
 
-\item{assay.type}{String or integer scalar specifying the assay containing the log-expression matrix.}
+\item{block}{A factor specifying the blocking levels for each cell in \code{x}.
+If specified, variance modelling is performed separately within each block and statistics are combined across blocks.}
+
+\item{equiweight}{A logical scalar indicating whether statistics from each block should be given equal weight.
+Otherwise, each block is weighted according to its number of cells.
+Only used if \code{block} is specified.}
+
+\item{method}{String specifying how p-values should be combined when \code{block} is specified, see \code{\link{combinePValues}}.}
+
+\item{assay.type}{String or integer scalar specifying the assay containing the log-expression values.}
 }
 \value{
 A \linkS4class{DataFrame} containing test results with one row per row of \code{x}.
@@ -53,6 +71,11 @@ For contrast matrices, the joint null consists of the intersection of the nulls 
 
 Otherwise, if only \code{coefs} is specified, 
 the null model is formed by simply dropping all of the specified coefficients from \code{design}.
+
+If \code{block} is specified, a linear model is fitted separately to the cells in each level.
+The results are combined across levels by averaging coefficients and combining p-values with \code{\link{combinePValues}}.
+By default, the contribution from each level is weighted by its number of cells;
+if \code{equiweight=TRUE}, each level is given equal weight instead.
 }
 \examples{
 y <- matrix(rnorm(10000), ncol=100)

@@ -9,12 +9,12 @@
 #' Only used if \code{contrasts} is not specified.
 #' @param contrasts A numeric vector or matrix specifying the contrast of interest.
 #' This should have length (if vector) or number of rows (if matrix) equal to \code{ncol(x)}.
-#' @param ... For the generic, further arguments to pass to specific method.
+#' @param ... For the generic, further arguments to pass to specific methods.
 #'
 #' For the ANY method, further arguments to pass to \code{\link{fitLinearModel}}.
 #' 
 #' For the SummarizedExperiment method, further arguments to pass to the ANY method.
-#' @param assay.type String or integer scalar specifying the assay containing the log-expression matrix.
+#' @inheritParams modelGeneVar
 #'
 #' @return A \linkS4class{DataFrame} containing test results with one row per row of \code{x}.
 #' It contains the estimated values of the contrasted coefficients
@@ -33,6 +33,11 @@
 #'
 #' Otherwise, if only \code{coefs} is specified, 
 #' the null model is formed by simply dropping all of the specified coefficients from \code{design}.
+#'
+#' If \code{block} is specified, a linear model is fitted separately to the cells in each level.
+#' The results are combined across levels by averaging coefficients and combining p-values with \code{\link{combinePValues}}.
+#' By default, the contribution from each level is weighted by its number of cells;
+#' if \code{equiweight=TRUE}, each level is given equal weight instead.
 #' 
 #' @author Aaron Lun
 #'
@@ -60,17 +65,48 @@
 #' @name testLinearModel
 NULL
 
+###########################################################
+
+#' @importFrom S4Vectors metadata
+.test_linear_model <- function(x, design, coefs=ncol(design), contrasts=NULL, 
+    block=NULL, equiweight=FALSE, method="z", ...) 
+{
+    if (is.null(block)) {
+        .test_linear_model_per_block(x, design, coefs=coefs, contrasts=contrasts, ...)
+    } else {
+        collated <- split(seq_len(ncol(x)), block)
+        ncells <- lengths(collated)
+
+        for (i in seq_along(collated)) {
+            sub <- collated[[i]] 
+            res <- .test_linear_model_per_block(x[,sub,drop=FALSE], 
+                design[sub,,drop=FALSE], coefs=coefs, contrasts=contrasts, ...)
+
+            collated[[i]] <- res
+            if (is.na(metadata(res)$residual.df)) {
+                ncells[i] <- -1L
+            }
+        }
+
+        if (all(ncells < 0L)) {
+            stop("no level of 'block' has a full column rank 'design'")
+        }
+
+        # Figuring out how to stitch all of the p-values together.
+        targets <- setdiff(colnames(collated[[1]]), c("p.value", "FDR"))
+        output <- .combine_blocked_statistics(collated, method=method, 
+            equiweight=equiweight, ncells=ncells, fields=targets)
+        rownames(output) <- rownames(collated[[1]])
+        output
+    }
+}
+
 #' @importFrom scuttle fitLinearModel
 #' @importFrom limma lmFit classifyTestsF contrasts.fit
-#' @importFrom S4Vectors DataFrame
+#' @importFrom S4Vectors DataFrame metadata<- metadata
 #' @importFrom stats p.adjust pt pf
-.test_linear_model <- function(x, design, coefs=ncol(design), contrasts=NULL, ...) {
-    full <- fitLinearModel(x, design, ...)
-
-    # Hacking limma to compute our desired statistics.
-    lfit <- lmFit(rbind(seq_len(nrow(design))), design)
-    lfit$coefficients <- full$coefficients
-    lfit$sigma2 <- full$variance
+.test_linear_model_per_block <- function(x, design, coefs=ncol(design), contrasts=NULL, ...) {
+    full <- fitLinearModel(x, design, get.coefs=TRUE, rank.error=FALSE, ...)
 
     if (is.null(contrasts)) {
         contrasts <- matrix(0, ncol(design), length(coefs))
@@ -78,29 +114,51 @@ NULL
         if (length(coefs) > 1) {
             colnames(contrasts) <- colnames(design)[coefs]
         }
-    }
-    lfit <- contrasts.fit(lfit, contrasts)
-
-    tstat <- lfit$coefficients / outer(sqrt(lfit$sigma2), lfit$stdev.unscaled[1,])
-
-    if (ncol(tstat)==1L) {
-        tstat <- drop(tstat)
-        pvalue <- pt(abs(tstat), df=full$residual.df, lower.tail=FALSE) * 2
-        if (is.null(colnames(lfit$coefficients))) {
-            colnames(lfit$coefficients) <- "logFC"
+    } else {  
+        if (is.null(dim(contrasts))) {
+            contrasts <- matrix(contrasts)
         }
-    } else {
-        lfit$tstat <- tstat
-        fstat <- classifyTestsF(lfit, fstat.only=TRUE)
-        pvalue <- pf(fstat, ncol(tstat), full$residual.df, lower.tail = FALSE)
-        attributes(pvalue) <- NULL
     }
-   
-    DataFrame(row.names=rownames(full$coefficients), # account for subsetting.
-        lfit$coefficients, 
+    if (ncol(contrasts)==1L && is.null(colnames(contrasts))) {
+        colnames(contrasts) <- "logFC"
+    }
+
+    if (is.na(full$residual.df)) {
+        pvalue <- rep(NA_real_, nrow(full$coefficients))
+        coefs <- matrix(NA_real_, length(pvalue), ncol(contrasts))
+        colnames(coefs) <- colnames(contrasts)
+
+    } else {
+        # Hacking limma to compute our desired statistics.
+        lfit <- lmFit(rbind(seq_len(nrow(design))), design)
+        lfit$coefficients <- full$coefficients
+        lfit$sigma2 <- full$variance
+        lfit <- contrasts.fit(lfit, contrasts)
+
+        coefs <- lfit$coefficients
+        tstat <- coefs / outer(sqrt(lfit$sigma2), lfit$stdev.unscaled[1,])
+
+        if (ncol(tstat)==1L) {
+            tstat <- drop(tstat)
+            pvalue <- pt(abs(tstat), df=full$residual.df, lower.tail=FALSE) * 2
+        } else {
+            lfit$tstat <- tstat
+            fstat <- classifyTestsF(lfit, fstat.only=TRUE)
+            pvalue <- pf(fstat, ncol(tstat), full$residual.df, lower.tail = FALSE)
+            attributes(pvalue) <- NULL
+        }
+    }
+
+    output <- DataFrame(row.names=rownames(full$coefficients), # account for subsetting.
+        coefs, 
         p.value=pvalue,
         FDR=p.adjust(pvalue, method="BH"))
+
+    metadata(output)$residual.df <- full$residual.df
+    output
 }
+
+###########################################################
 
 #' @export
 #' @rdname testLinearModel
