@@ -31,6 +31,8 @@ Added a \code{add.summary=} option to easily include summary information.
 
 \item Added sparse-optimized variance calculations to \code{modelGeneVar()}, \code{modelGeneCV2()} and related functions, 
 which may result in slight changes to the results due to numeric precision.
+
+\item Exported \code{combineBlocks()} to assist combining of block-wise statistics in other packages.
 }}
 
 \section{Version 1.16.0}{\itemize{
