@@ -126,50 +126,17 @@ dummy.trend.fit <- list(trend=function(x) { rep(NA_real_, length(x)) }, std.dev=
     collected
 }
 
-#' @importFrom stats p.adjust
-#' @importFrom S4Vectors DataFrame
 .combine_blocked_statistics <- function(collected, method, equiweight, ncells, geometric=FALSE,
     fields=c("mean", "total", "tech", "bio"), pval="p.value")
 {
-    if (length(collected)==1L) {
-        return(collected[[1]])
-    }
-
-    # Combining statistics with optional weighting.
-    if (equiweight) {
-        weights <- rep(1, length(collected))
-    } else {
-        weights <- ncells
-    }
-
-    original <- collected
-    keep <- ncells >= 2L
-    collected <- collected[keep]
-    weights <- weights[keep]
-
-    combined <- list()
-    for (i in fields) {
-        extracted <- lapply(collected, "[[", i=i)
-
-        if (geometric) {
-            extracted <- lapply(extracted, log)
-        }
-        extracted <- mapply("*", extracted, weights, SIMPLIFY=FALSE, USE.NAMES=FALSE)
-        averaged <- Reduce("+", extracted)/sum(weights)
-        if (geometric) {
-            averaged <- exp(averaged)            
-        }
-        combined[[i]] <- averaged 
-    }
-
-    extracted <- lapply(collected, "[[", i=pval)
-    combined$p.value <- do.call(combinePValues, c(extracted, list(method=method, weights=weights)))
-    combined$FDR <- p.adjust(combined$p.value, method="BH")
-
-    output <- DataFrame(combined)
-    output$per.block <- do.call(DataFrame, c(lapply(original, I), list(check.names=FALSE)))
-
-    output
+    combineBlocks(collected, 
+        method=method, 
+        equiweight=equiweight,
+        weights=ncells,
+        valid=ncells >= 2L,
+        geometric=geometric, 
+        ave.fields=fields,
+        pval.field=pval)
 }
 
 #' @importFrom BiocParallel SerialParam

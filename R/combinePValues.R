@@ -94,7 +94,7 @@ combinePValues <- function(...,
     method=c("fisher", "z", "simes", "berger", "holm-middle"), 
     weights=NULL, log.p=FALSE, min.prop=0.5)
 {
-    input <- list(...)
+    input <- .unpackLists(...)
     if (length(input)==1L) {
         return(unname(input[[1]])) # returning directly.
     }
