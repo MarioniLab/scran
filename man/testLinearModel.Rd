@@ -16,7 +16,8 @@ testLinearModel(x, ...)
   block = NULL,
   equiweight = FALSE,
   method = "z",
-  ...
+  subset.row = NULL,
+  BPPARAM = SerialParam()
 )
 
 \S4method{testLinearModel}{SummarizedExperiment}(x, ..., assay.type = "logcounts")
@@ -26,8 +27,6 @@ testLinearModel(x, ...)
 Alternatively, a \linkS4class{SummarizedExperiment} containing such a matrix.}
 
 \item{...}{For the generic, further arguments to pass to specific methods.
-
-For the ANY method, further arguments to pass to \code{\link{fitLinearModel}}.
 
 For the SummarizedExperiment method, further arguments to pass to the ANY method.}
 
@@ -47,6 +46,11 @@ Otherwise, each block is weighted according to its number of cells.
 Only used if \code{block} is specified.}
 
 \item{method}{String specifying how p-values should be combined when \code{block} is specified, see \code{\link{combinePValues}}.}
+
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}, specifying the rows for which to model the variance.
+Defaults to all genes in \code{x}.}
+
+\item{BPPARAM}{A \linkS4class{BiocParallelParam} object indicating whether parallelization should be performed across genes.}
 
 \item{assay.type}{String or integer scalar specifying the assay containing the log-expression values.}
 }
@@ -90,7 +94,7 @@ u <- runif(100)
 design <- model.matrix(~u)
 testLinearModel(y, design, contrasts=c(0, 1))
 
-# Example with multiple varibales:
+# Example with multiple variables:
 B <- gl(4, 25)
 design <- model.matrix(~B)
 testLinearModel(y, design, contrasts=cbind(c(0,1,0,0), c(0,0,1,-1)))

@@ -11,8 +11,6 @@
 #' This should have length (if vector) or number of rows (if matrix) equal to \code{ncol(x)}.
 #' @param ... For the generic, further arguments to pass to specific methods.
 #'
-#' For the ANY method, further arguments to pass to \code{\link{fitLinearModel}}.
-#' 
 #' For the SummarizedExperiment method, further arguments to pass to the ANY method.
 #' @inheritParams modelGeneVar
 #'
@@ -57,7 +55,7 @@
 #' design <- model.matrix(~u)
 #' testLinearModel(y, design, contrasts=c(0, 1))
 #'
-#' # Example with multiple varibales:
+#' # Example with multiple variables:
 #' B <- gl(4, 25)
 #' design <- model.matrix(~B)
 #' testLinearModel(y, design, contrasts=cbind(c(0,1,0,0), c(0,0,1,-1)))
@@ -67,45 +65,81 @@ NULL
 
 ###########################################################
 
-#' @importFrom S4Vectors metadata
+#' @importFrom BiocParallel SerialParam
+#' @importFrom beachmat rowBlockApply
+#' @importFrom stats p.adjust
 .test_linear_model <- function(x, design, coefs=ncol(design), contrasts=NULL, 
-    block=NULL, equiweight=FALSE, method="z", ...) 
+    block=NULL, equiweight=FALSE, method="z", subset.row=NULL, BPPARAM=SerialParam()) 
 {
+    if (!is.null(subset.row)) {
+        x <- x[subset.row,,drop=FALSE]
+    }
+
     if (is.null(block)) {
-        .test_linear_model_per_block(x, design, coefs=coefs, contrasts=contrasts, ...)
+        .test_linear_model_simple(x, design, coefs=coefs, contrasts=contrasts, BPPARAM=BPPARAM)
     } else {
         collated <- split(seq_len(ncol(x)), block)
-        ncells <- lengths(collated)
 
-        for (i in seq_along(collated)) {
-            sub <- collated[[i]] 
-            res <- .test_linear_model_per_block(x[,sub,drop=FALSE], 
-                design[sub,,drop=FALSE], coefs=coefs, contrasts=contrasts, ...)
+        # We want the parallelization to be as fine-grained as possible so we
+        # do it here; we don't punt it to the fitLinearModel() function, as 
+        # then we would have to restart the parallel workers for each block.
+        output <- rowBlockApply(x, FUN=.test_linear_model_multiblock, 
+            collated=collated, equiweight=equiweight, method=method, 
+            design=design, coefs=coefs, contrasts=contrasts, 
+            BPPARAM=BPPARAM)
 
-            collated[[i]] <- res
-            if (is.na(metadata(res)$residual.df)) {
-                ncells[i] <- -1L
-            }
-        }
-
-        if (all(ncells < 0L)) {
+        if (any(vapply(output, is.null, TRUE))) {
             stop("no level of 'block' has a full column rank 'design'")
         }
 
-        # Figuring out how to stitch all of the p-values together.
-        targets <- setdiff(colnames(collated[[1]]), c("p.value", "FDR"))
-        output <- .combine_blocked_statistics(collated, method=method, 
-            equiweight=equiweight, ncells=ncells, fields=targets)
-        rownames(output) <- rownames(collated[[1]])
+        output <- do.call(rbind, output)
+
+        # Resetting all the FDRs.
+        output$FDR <- p.adjust(output$p.value, method="BH")
+        for (i in seq_along(output$per.block)) {
+            output$per.block[[i]]$FDR <- p.adjust(output$per.block[[i]]$p.value, method="BH")
+        }
+
         output
     }
+}
+
+#' @importFrom S4Vectors metadata
+.test_linear_model_multiblock <- function(collated, x, design, equiweight, method, ...) {
+    ncells <- lengths(collated)
+    for (i in seq_along(collated)) {
+        sub <- collated[[i]] 
+        res <- .test_linear_model_simple(x[,sub,drop=FALSE], design=design[sub,,drop=FALSE], ...)
+
+        collated[[i]] <- res
+        if (is.na(metadata(res)$residual.df) || metadata(res)$residual.df==0L) {
+            ncells[i] <- -Inf
+        }
+    }
+
+    if (all(ncells < 0L)) {
+        return(NULL)
+    }
+
+    targets <- setdiff(colnames(collated[[1]]), c("p.value", "FDR"))
+    output <- combineBlocks(collated, 
+        method=method, 
+        geometric=FALSE,
+        equiweight=equiweight, 
+        weights=ncells, 
+        ave.fields=targets,
+        pval.field="p.value", 
+        valid=ncells > 0L)
+
+    rownames(output) <- rownames(collated[[1]])
+    output
 }
 
 #' @importFrom scuttle fitLinearModel
 #' @importFrom limma lmFit classifyTestsF contrasts.fit
 #' @importFrom S4Vectors DataFrame metadata<- metadata
 #' @importFrom stats p.adjust pt pf
-.test_linear_model_per_block <- function(x, design, coefs=ncol(design), contrasts=NULL, ...) {
+.test_linear_model_simple <- function(x, design, coefs=ncol(design), contrasts=NULL, ...) {
     full <- fitLinearModel(x, design, get.coefs=TRUE, rank.error=FALSE, ...)
 
     if (is.null(contrasts)) {

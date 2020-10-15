@@ -1,5 +1,5 @@
 # This tests the testLinearModel function.
-# library(testthat); library(scran); source("test-linear-test.R")
+# library(testthat); library(scran); source("setup.R"); source("test-linear-test.R")
 
 test_that("linear model testing works for contrast vectors in categorical designs", {
     y <- matrix(rnorm(10000), ncol=100)
@@ -127,6 +127,10 @@ test_that("linear model testing works with blocking", {
     expect_equivalent(alt1, out$per.block[,1])
     expect_equivalent(alt2, out$per.block[,2])
     expect_equal(out$p.value, combinePValues(alt1$p.value, alt2$p.value, method="z"))
+
+    # Robust to parallelization.
+    parl <- testLinearModel(y, design, contrast=c(0, 1), block=b, BPPARAM=safeBPParam(2))
+    expect_identical(out, parl)
 
     # Responds to weighting.
     b <- rep(1:4, 25)==1
