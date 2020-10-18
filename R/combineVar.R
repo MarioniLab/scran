@@ -76,9 +76,6 @@ combineVar <- function(..., method="fisher", pval.field="p.value", other.fields=
         # as long as it's >=2 so that the block isn't ignored.
         ncells <- rep(10L, length(collected))
     }
-    if (length(unique(lapply(collected, rownames)))!=1L) {
-        stop("gene identities should be the same")
-    }
     if (is.null(other.fields)) {
         other.fields <- .find_other_fields(collected, c(pval.field, "FDR"))
     }
@@ -93,9 +90,6 @@ combineCV2 <- function(..., method="fisher", pval.field="p.value", other.fields=
     collected <- .unpackLists(...)
     if (is.null(ncells)) {
         ncells <- rep(10L, length(collected))
-    }
-    if (length(unique(lapply(collected, rownames)))!=1L) {
-        stop("gene identities should be the same")
     }
     if (is.null(other.fields)) {
         other.fields <- .find_other_fields(collected, c(pval.field, "FDR"))

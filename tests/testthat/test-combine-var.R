@@ -28,6 +28,7 @@ test_that("combineVar works correctly", {
     expect_equal(res$total, rowMeans(cbind(dec$total, dec2$total, dec3$total)))
     expect_equal(res$tech, rowMeans(cbind(dec$tech, dec2$tech, dec3$tech)))
     expect_equal(res$bio, rowMeans(cbind(dec$bio, dec2$bio, dec3$bio)))
+    expect_identical(rownames(res), rownames(dec))
 
     # Checking proper calculation of combined p-values.
     pvalmat <- cbind(dec$p.value, dec2$p.value, dec3$p.value)

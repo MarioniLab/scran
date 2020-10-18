@@ -56,6 +56,11 @@ combineBlocks <- function(blocks, ave.fields, pval.field, method, geometric, equ
         return(blocks[[1]])
     }
 
+    rn <- unique(lapply(blocks, rownames))
+    if (length(rn)!=1L) {
+        stop("gene identities should be the same")
+    }
+
     if (equiweight) {
         weights <- rep(1, length(blocks))
     } else if (is.null(weights)) {
@@ -92,7 +97,7 @@ combineBlocks <- function(blocks, ave.fields, pval.field, method, geometric, equ
     combined$p.value <- do.call(combinePValues, c(extracted, list(method=method, weights=weights)))
     combined$FDR <- p.adjust(combined$p.value, method="BH")
 
-    output <- DataFrame(combined)
+    output <- DataFrame(combined, row.names=rn[[1]])
     output$per.block <- do.call(DataFrame, c(lapply(original, I), list(check.names=FALSE)))
 
     output

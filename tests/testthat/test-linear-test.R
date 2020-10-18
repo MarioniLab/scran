@@ -150,4 +150,9 @@ test_that("linear model testing works with blocking", {
     expect_equal(out, alt1)
 
     expect_error(testLinearModel(y, design, contrast=c(0, 1), block=A), "no level")
+
+    # Respects row names.
+    rownames(y) <- paste0("GENE_", seq_len(nrow(y)))
+    out <- testLinearModel(y, design, contrast=c(0, 1), block=b)
+    expect_identical(rownames(y), rownames(out))
 })
