@@ -34,7 +34,6 @@ test_that("fitTrendVar works on a basic scenario", {
 })
 
 test_that("fitTrendVar works when parametric mode is turned off", {
-    mx <- max(means)
     out <- fitTrendVar(means, vars, parametric=FALSE)
     expect_equal(out$trend(0), 0)
     expect_equal(out$trend(1:10), sapply(1:10, out$trend)) 
@@ -46,7 +45,21 @@ test_that("fitTrendVar works when parametric mode is turned off", {
     expect_equal(out$trend(0.01)*10, out$trend(0.1))
 
     # Right edge goes to rule=2.
+    mx <- max(means)
     expect_equal(out$trend(mx), out$trend(mx+1))
+})
+
+test_that("fitTrendVar works when lowess mode is turned off", {
+    out <- fitTrendVar(means, vars, lowess=FALSE)
+    expect_equal(out$trend(0), 0)
+    expect_equal(out$trend(1:10), sapply(1:10, out$trend)) 
+    expect_equal(out$trend(100:1/20), sapply(100:1/20, out$trend)) 
+
+    # Right limits do not use rule=2.
+    mx <- max(means)
+    expect_false(isTRUE(all.equal(out$trend(mx), out$trend(mx+1))))
+
+    expect_error(fitTrendVar(means, vars, lowess=FALSE, parametric=FALSE), "at least one")
 })
 
 set.seed(91919)

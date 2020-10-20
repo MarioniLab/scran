@@ -5,6 +5,7 @@
 #' @param means A numeric vector containing the mean log-expression value for each gene.
 #' @param vars A numeric vector containing the variance of log-expression values for each gene.
 #' @param parametric A logical scalar indicating whether a parametric fit should be attempted.
+#' @param lowess A logical scalar indicating whether a LOWESS fit should be attempted.
 #' @param nls.args A list of parameters to pass to \code{\link{nls}} if \code{parametric=TRUE}.
 #' @param min.mean A numeric scalar specifying the minimum mean to use for trend fitting.
 #' @param ... Further arguments to pass to \code{\link{weightedLowess}} for LOWESS fitting.
@@ -21,15 +22,25 @@
 #' The fitted trend can then be used to decompose the variance of each gene into biological and technical components,
 #' as done in \code{\link{modelGeneVar}} and \code{\link{modelGeneVarWithSpikes}}.
 #'
-#' If \code{parametric=TRUE}, a non-linear curve of the form
+#' The default fitting process follows a two-step procedure when \code{parametric=TRUE} and \code{lowess=TRUE}:
+#' \enumerate{
+#' \item A non-linear curve of the form
 #' \deqn{y = \frac{ax}{x^n + b}}{y = ax/(x^n + b)}
 #' is fitted to the variances against the means using \code{\link{nls}}.
 #' Starting values and the number of iterations are automatically set if not explicitly specified in \code{nls.args}.
-#' \code{\link{weightedLowess}} is then applied to the log-ratios of the variance to the fitted value for each gene.
-#' The aim is to use the parametric curve to reduce the sharpness of the expected mean-variance relationship[for easier smoothing.
+#' \item \code{\link{weightedLowess}} is applied to the log-ratios of the variance of each gene to the corresponding fitted value from the non-linear curve.
+#' The final trend is defined as the product of the fitted values from the non-linear curve and the exponential of the LOWESS fitted value. 
+#' }
+#' The aim is to use the parametric curve to reduce the sharpness of the expected mean-variance relationship for easier smoothing.
 #' Conversely, the parametric form is not exact, so the smoothers will model any remaining trends in the residuals.
 #'
-#' If \code{parametric=FALSE}, smoothing is performed directly on the log-variances using \code{\link{weightedLowess}}.
+#' If \code{parametric=FALSE}, LOWESS smoothing is performed directly on the log-variances using \code{\link{weightedLowess}}.
+#' This may be helpful in situations where the data does not follow the expected parametric curve,
+#' e.g., for transformed data that spans negative values where the expression is not defined.
+#' (Indeed, the expression above is purely empirical, chosen simply as it matched the shape of the observed trend in many datasets.)
+#'
+#' If \code{lowess=FALSE}, the LOWESS smoothing step is omitted and the parametric fit is used directly.
+#' This may be necessary in situations where the LOWESS overfits, e.g., because of very few points at high abundances.
 #'
 #' Genes with mean log-expression below \code{min.mean} are not used in trend fitting.
 #' This aims to remove the majority of low-abundance genes and preserve the sensitivity of span-based smoothers at moderate-to-high abundances.
@@ -68,7 +79,7 @@
 #' @export
 #' @importFrom limma weightedLowess
 #' @importFrom stats nls predict fitted approxfun
-fitTrendVar <- function(means, vars, min.mean=0.1, parametric=TRUE, nls.args=list(), ...) {
+fitTrendVar <- function(means, vars, min.mean=0.1, parametric=TRUE, lowess=TRUE, nls.args=list(), ...) {
     # Filtering out zero-variance and low-abundance genes.
     is.okay <- !is.na(vars) & vars > 1e-8 & means >= min.mean 
     v <- vars[is.okay]
@@ -107,15 +118,21 @@ fitTrendVar <- function(means, vars, min.mean=0.1, parametric=TRUE, nls.args=lis
             to.fit <- to.fit - log(fitted(init.fit))
             PARAMFUN <- function(x) { predict(init.fit, data.frame(m=x)) }
         }
-    } 
+    } else if (!lowess) {
+        stop("at least one of 'lowess' or 'parametric' must be 'TRUE'")
+    }
 
-    lfit <- weightedLowess(m, to.fit, weights=w, ...)
-    LOESSFUN <- approxfun(m, lfit$fitted, rule=2)
+    if (lowess) {
+        lfit <- weightedLowess(m, to.fit, weights=w, ...)
+        LOESSFUN <- approxfun(m, lfit$fitted, rule=2)
 
-    # Only trusting the parametric function for extrapolation; 
-    # restricting non-parametric forms within the supported range.
-    UNSCALEDFUN <- function(x) { 
-        exp(LOESSFUN(x)) * PARAMFUN(x)
+        # Only trusting the parametric function for extrapolation; 
+        # restricting non-parametric forms within the supported range.
+        UNSCALEDFUN <- function(x) { 
+            exp(LOESSFUN(x)) * PARAMFUN(x)
+        }
+    } else {
+        UNSCALEDFUN <- PARAMFUN
     }
 
     # Adjusting for any scale shift due to fitting to the log-values.
