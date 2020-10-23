@@ -207,7 +207,9 @@ test_that("getDenoisedPCs works with min/max rank settings", {
 ##########################################
 
 test_that("denoisePCA throws errors correctly", {
-    expect_error(getDenoisedPCs(lcounts[0,], dec), "a dimension is zero")
+    expect_error(getDenoisedPCs(lcounts[0,], dec), "same rows")
+    expect_error(getDenoisedPCs(lcounts[0,], dec$tech), "same as")
+    expect_error(getDenoisedPCs(lcounts[0,,drop=FALSE], dec[0,]), "a dimension is zero")
     expect_error(getDenoisedPCs(lcounts[,0], dec), "no residual d.f. in any level")
 })
 

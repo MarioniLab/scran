@@ -156,6 +156,13 @@ NULL
 
     # Processing different mechanisms through which we specify the technical component.
     if (is(technical, "DataFrame")) { 
+        if (nrow(technical)!=nrow(x) 
+            || (nrow(x) # as 0-subset matrix removes rownames!
+                && !identical(rownames(technical), rownames(x)))) 
+        { 
+            stop("'technical' should have the same rows as 'x'")
+        }
+
         # Making sure everyone has the reported total variance.
         total.var <- technical$total[subset.row] 
         scale <- all.var/total.var
@@ -166,6 +173,9 @@ NULL
         if (is.function(technical)) {
             tech.var <- technical(stats$means)
         } else {
+            if (length(technical)!=nrow(x)) {
+                stop("'length(technical)' should be the same as 'nrow(x)'")
+            }
             tech.var <- technical[subset.row]
         }
     }
