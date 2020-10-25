@@ -62,6 +62,17 @@ test_that("fitTrendVar works when lowess mode is turned off", {
     expect_error(fitTrendVar(means, vars, lowess=FALSE, parametric=FALSE), "at least one")
 })
 
+test_that("fitTrendVar works when density weights are turned off", {
+    out <- fitTrendVar(means, vars, density.weights=FALSE)
+    expect_equal(out$trend(0), 0)
+    expect_equal(out$trend(1:10), sapply(1:10, out$trend)) 
+    expect_equal(out$trend(100:1/20), sapply(100:1/20, out$trend)) 
+
+    # Right limits do not use rule=2.
+    mx <- max(means)
+    expect_false(isTRUE(all.equal(out$trend(mx), out$trend(mx+1))))
+})
+
 set.seed(91919)
 test_that("fitTrendVar handles nls errors gracefully",  {
     # This requires the set.seed(), as sometimes it *doesn't* fail. 

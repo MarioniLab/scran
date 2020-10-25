@@ -34,7 +34,7 @@ which may result in slight changes to the results due to numeric precision.
 
 \item Exported \code{combineBlocks()} to assist combining of block-wise statistics in other packages.
 
-\item Added \code{lowess=FALSE} option to \code{fitTrendVar()} to rescue overfitted curves.
+\item Added \code{lowess=} and \code{density.weights=} options to \code{fitTrendVar()} to rescue overfitted curves.
 
 \item Raised an error in \code{denoisePCA()} upon mismatches in the matrix and technical statistics.
 }}

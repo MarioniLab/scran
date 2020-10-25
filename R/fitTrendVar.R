@@ -6,6 +6,7 @@
 #' @param vars A numeric vector containing the variance of log-expression values for each gene.
 #' @param parametric A logical scalar indicating whether a parametric fit should be attempted.
 #' @param lowess A logical scalar indicating whether a LOWESS fit should be attempted.
+#' @param density.weights A logical scalar indicating whether to use inverse density weights.
 #' @param nls.args A list of parameters to pass to \code{\link{nls}} if \code{parametric=TRUE}.
 #' @param min.mean A numeric scalar specifying the minimum mean to use for trend fitting.
 #' @param ... Further arguments to pass to \code{\link{weightedLowess}} for LOWESS fitting.
@@ -30,6 +31,7 @@
 #' Starting values and the number of iterations are automatically set if not explicitly specified in \code{nls.args}.
 #' \item \code{\link{weightedLowess}} is applied to the log-ratios of the variance of each gene to the corresponding fitted value from the non-linear curve.
 #' The final trend is defined as the product of the fitted values from the non-linear curve and the exponential of the LOWESS fitted value. 
+#' If any tuning is necessary, the most important parameter here is \code{span}, which can be passed in the \code{...} arguments.
 #' }
 #' The aim is to use the parametric curve to reduce the sharpness of the expected mean-variance relationship for easier smoothing.
 #' Conversely, the parametric form is not exact, so the smoothers will model any remaining trends in the residuals.
@@ -42,20 +44,29 @@
 #' If \code{lowess=FALSE}, the LOWESS smoothing step is omitted and the parametric fit is used directly.
 #' This may be necessary in situations where the LOWESS overfits, e.g., because of very few points at high abundances.
 #'
+#' @section Filtering by mean:
 #' Genes with mean log-expression below \code{min.mean} are not used in trend fitting.
 #' This aims to remove the majority of low-abundance genes and preserve the sensitivity of span-based smoothers at moderate-to-high abundances.
 #' It also protects against discreteness, which can interfere with estimation of the variability of the variance estimates and accurate scaling of the trend.
+#'
 #' Filtering is applied on the mean log-expression to avoid introducing spurious trends at the filter boundary.
 #' The default threshold is chosen based on the point at which discreteness is observed in variance estimates from Poisson-distributed counts.
-#' For heterogeneous droplet data, a lower threshold of 0.001-0.01 may be more appropriate.
+#' For heterogeneous droplet data, a lower threshold of 0.001-0.01 may be more appropriate, though this usually does not matter all too much.
 #'
 #' When extrapolating to values below the smallest observed mean (or \code{min.mean}), the output function will approach zero as the mean approaches zero.
 #' This reflects the fact that the variance should be zero at a log-expression of zero (assuming a pseudo-count of 1 was used).
 #' When extrapolating to values above the largest observed mean, the output function will be set to the fitted value of the trend at the largest mean.
 #'
+#' @section Weighting by density:
 #' All fitting (with \code{\link{nls}} and \code{\link{weightedLowess}}) is performed by weighting each observation according to the inverse of the density of observations at the same mean.
-#' This avoids problems with differences in the distribution of means that would otherwise favor good fits in highly dense intervals at the expense of sparser intervals.
-#' Note that these densities are computed after filtering on \code{min.mean}.
+#' This ensures that parts of the curve with few points are fitted as well as parts of the trend with many points.
+#' Otherwise, differences in the distribution of means would favor good fits in highly dense intervals at the expense of sparser intervals.
+#' (Note that these densities are computed after filtering on \code{min.mean}, so the high density of points at zero has no effect.)
+#'
+#' That being said, the density weighting can give inappropriate weight to very sparse intervals, especially those at high abundance.
+#' This results in overfitting where the trend is compelled to pass through each point at these intervals.
+#' For most part, this is harmless as most high-abundance genes are not highly variable so an overfitted trend is actually appropriate.
+#' However, if high-abundance genes are variable, it may be better to set \code{density.weights=FALSE} to avoid this overfitting effect.
 #' 
 #' @author Aaron Lun
 #' @seealso
@@ -79,12 +90,17 @@
 #' @export
 #' @importFrom limma weightedLowess
 #' @importFrom stats nls predict fitted approxfun
-fitTrendVar <- function(means, vars, min.mean=0.1, parametric=TRUE, lowess=TRUE, nls.args=list(), ...) {
+fitTrendVar <- function(means, vars, min.mean=0.1, parametric=TRUE, lowess=TRUE, density.weights=TRUE, nls.args=list(), ...) {
     # Filtering out zero-variance and low-abundance genes.
     is.okay <- !is.na(vars) & vars > 1e-8 & means >= min.mean 
     v <- vars[is.okay]
     m <- means[is.okay]
-    w <- .inverse_density_weights(m, adjust=1)
+
+    if (density.weights) {
+        w <- .inverse_density_weights(m, adjust=1)
+    } else {
+        w <- rep(1, length(m))
+    }
 
     # Default parametric trend is a straight line from 0 to 1 below the supported range.
     if (length(v) < 2L) {
