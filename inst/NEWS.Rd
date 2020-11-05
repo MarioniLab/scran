@@ -2,6 +2,12 @@
 \title{scran News}
 \encoding{UTF-8}
 
+\section{Version 1.20.0}{\itemize{
+\item All deprecated functions from the previous release are now defunct.
+
+\item Added a \code{simplify=} option to \code{quickSubCluster()} to get the cluster assignments directly.
+}}
+
 \section{Version 1.18.0}{\itemize{
 \item Deprecated \code{coassignProbs()} as this is replaced by \code{bluster::pairwiseRand()} 
 

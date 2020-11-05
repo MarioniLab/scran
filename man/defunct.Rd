@@ -12,6 +12,22 @@
 \alias{multiBlockNorm}
 \alias{overlapExprs}
 \alias{parallelPCA}
+\alias{neighborsToSNNGraph}
+\alias{neighborsToKNNGraph}
+\alias{bootstrapCluster}
+\alias{clusterModularity}
+\alias{clusterPurity}
+\alias{clusterKNNGraph}
+\alias{clusterSNNGraph}
+\alias{coassignProb}
+\alias{createClusterMST}
+\alias{connectClusterMST}
+\alias{orderClusterMST}
+\alias{quickPseudotime}
+\alias{testPseudotime}
+\alias{doubletCells}
+\alias{doubletCluster}
+\alias{doubletRecovery}
 \title{Defunct functions}
 \usage{
 trendVar(...)
@@ -33,6 +49,38 @@ multiBlockNorm(...)
 overlapExprs(...)
 
 parallelPCA(...)
+
+neighborsToSNNGraph(...)
+
+neighborsToKNNGraph(...)
+
+bootstrapCluster(...)
+
+clusterModularity(...)
+
+clusterPurity(...)
+
+clusterKNNGraph(...)
+
+clusterSNNGraph(...)
+
+coassignProb(...)
+
+createClusterMST(...)
+
+connectClusterMST(...)
+
+orderClusterMST(...)
+
+quickPseudotime(...)
+
+testPseudotime(...)
+
+doubletCells(...)
+
+doubletCluster(...)
+
+doubletRecovery(...)
 }
 \arguments{
 \item{...}{Ignored arguments.}
@@ -44,7 +92,8 @@ All functions error out with a defunct message pointing towards its descendent (
 Functions that have passed on to the function afterlife.
 Their successors are also listed.
 }
-\details{
+\section{Variance modelling}{
+
 \code{trendVar}, \code{decomposeVar} and \code{testVar} are succeeded by a suite of funtions related to \code{\link{modelGeneVar}} and \code{\link{fitTrendVar}}.
 
 \code{improvedCV2} and \code{technicalCV2} are succeeded by \code{\link{modelGeneCV2}} and \code{\link{fitTrendCV2}}.
@@ -52,11 +101,48 @@ Their successors are also listed.
 \code{makeTechTrend} is succeeded by \code{\link{modelGeneVarByPoisson}}.
 
 \code{multiBlockVar} is succeeded by the \code{block} argument in many of the modelling functions, and \code{multiBlockNorm} is no longer necessary.
-
-\code{\link{overlapExprs}} is succeeded by \code{\link{findMarkers}} with \code{test.type="wilcox"}.
-
-\code{\link{parallelPCA}} has been moved over to the \pkg{PCAtools} package.
 }
+
+\section{Clustering-related functions}{
+
+\code{bootstrapCluster} has been moved over to the \pkg{bluster} package, as the \code{\link{bootstrapStability}} function.
+
+\code{neighborsToSNNGraph} and \code{neighborsToKNNGraph} have been moved over to the \pkg{bluster} package.
+
+\code{clusterModularity} has been moved over to the \pkg{bluster} package, as the \code{\link{pairwiseModularity}} function.
+
+\code{clusterPurity} has been moved over to the \pkg{bluster} package, as the \code{\link{neighborPurity}} function.
+
+\code{clusterSNNGraph} and \code{clusterKNNGraph} have been replaced by \code{\link{clusterRows}} with \linkS4class{NNGraphParam} or \linkS4class{TwoStepParam} from the \pkg{bluster} package.
+
+\code{coassignProb} and \code{clusterRand} have been replaced by \code{\link{pairwiseRand}} from the \pkg{bluster} package.
+}
+
+\section{Pseudotime-related functions}{
+
+\code{createClusterMST}, \code{quickPseudotime} and \code{testPseudotime} have been moved over to the \pkg{TSCAN} package.
+
+\code{connectClusterMST} has been moved over to the \pkg{TSCAN} package, as the \code{reportEdges} function.
+
+\code{orderClusterMST} has been moved over to the \pkg{TSCAN} package, as the \code{orderCells} function.
+}
+
+\section{Doublet-related functions}{
+
+\code{doubletCells} has been moved over to the \pkg{scDblFinder} package, as the \code{computeDoubletDensity} function.
+
+\code{doubletCluster} has been moved over to the \pkg{scDblFinder} package, as the \code{findDoubletClusters} function.
+
+\code{doubletRecovery} has been moved over to the \pkg{scDblFinder} package, as the \code{recoverDoublets} function.
+}
+
+\section{Other functions}{
+
+\code{overlapExprs} is succeeded by \code{\link{findMarkers}} with \code{test.type="wilcox"}.
+
+\code{parallelPCA} has been moved over to the \pkg{PCAtools} package.
+}
+
 \examples{
 try(trendVar())
 }

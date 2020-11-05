@@ -127,7 +127,8 @@ This will perform the trend fitting and decomposition within each block before c
 Statistics for each individual block can also be extracted for further inspection.
 
 ```{r, fig.wide=TRUE, fig.asp=1.5}
-dec3 <- modelGeneVar(sce, block=sce$donor)
+# Turned off weighting to avoid overfitting for each donor.
+dec3 <- modelGeneVar(sce, block=sce$donor, density.weights=FALSE)
 per.block <- dec3$per.block
 par(mfrow=c(3, 2))
 for (i in seq_along(per.block)) {
@@ -222,7 +223,8 @@ We would usually expect to see high observed weights between cells in the same c
 Off-diagonal entries indicate that some clusters are closely related, which is useful to know for checking that they are annotated consistently.
 
 ```{r}
-ratio <- clusterModularity(g, cluster, as.ratio=TRUE)
+library(bluster)
+ratio <- pairwiseModularity(g, cluster, as.ratio=TRUE)
 
 library(pheatmap)
 pheatmap(log10(ratio+1), cluster_cols=FALSE, cluster_rows=FALSE,
@@ -234,7 +236,7 @@ Given a clustering function, the `bootstrapCluster()` function uses bootstrappin
 Larger probabilities indicate that the separation between those clusters is unstable to the extent that it is sensitive to sampling noise, and thus should not be used for downstream inferences.
 
 ```{r}
-ass.prob <- bootstrapCluster(sce, FUN=function(x) {
+ass.prob <- bootstrapStability(sce, FUN=function(x) {
     g <- buildSNNGraph(x, use.dimred="PCAsub")
     igraph::cluster_walktrap(g)$membership
 }, clusters=sce$cluster)

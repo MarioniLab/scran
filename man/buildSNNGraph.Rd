@@ -3,8 +3,6 @@
 \docType{methods}
 \name{buildSNNGraph}
 \alias{buildSNNGraph}
-\alias{neighborsToSNNGraph}
-\alias{neighborsToKNNGraph}
 \alias{buildSNNGraph,ANY-method}
 \alias{buildSNNGraph,SummarizedExperiment-method}
 \alias{buildSNNGraph,SingleCellExperiment-method}
@@ -112,8 +110,6 @@ table(clusters)
 \code{\link{makeSNNGraph}} and \code{\link{makeKNNGraph}}, for the underlying functions that do the work.
 
 See \code{\link{cluster_walktrap}} and related functions in \pkg{igraph} for clustering based on the produced graph.
-
-Also see \code{\link{findKNN}} for specifics of the nearest-neighbor search.
 }
 \author{
 Aaron Lun

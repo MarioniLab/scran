@@ -36,8 +36,6 @@
 #' 
 #' See \code{\link{cluster_walktrap}} and related functions in \pkg{igraph} for clustering based on the produced graph.
 #' 
-#' Also see \code{\link{findKNN}} for specifics of the nearest-neighbor search.
-#' 
 #' @examples
 #' library(scuttle)
 #' sce <- mockSCE(ncells=500)
@@ -63,9 +61,6 @@
 #' table(clusters)
 #' 
 #' @name buildSNNGraph
-#' @aliases
-#' neighborsToSNNGraph
-#' neighborsToKNNGraph
 #' @docType methods
 NULL
 
@@ -159,20 +154,3 @@ setMethod("buildKNNGraph", "SingleCellExperiment", function(x, ..., use.dimred=N
         callNextMethod(x=x, ...)
     }
 })
-
-############################
-# Graph-building functions #
-############################
-
-#' @export
-neighborsToSNNGraph <- function(...) {
-    .Deprecated(new="bluster::neighborsToSNNGraph")
-    bluster::neighborsToSNNGraph(...)
-}
-
-
-#' @export
-neighborsToKNNGraph <- function(...) {
-    .Deprecated(new="bluster::neighborsToKNNGraph")
-    bluster::neighborsToKNNGraph(...)
-}
