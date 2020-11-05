@@ -22,7 +22,8 @@ quickSubCluster(x, ...)
   clusterFUN = NULL,
   BLUSPARAM = NNGraphParam(),
   format = "\%s.\%s",
-  assay.type = "counts"
+  assay.type = "counts",
+  simplify = FALSE
 )
 }
 \arguments{
@@ -51,12 +52,18 @@ Only used when \code{clusterFUN=NULL}.}
 \item{format}{A string to be passed to \code{\link{sprintf}}, specifying how the subclusters should be named with respect to the parent level in \code{groups} and the level returned by \code{clusterFUN}.}
 
 \item{assay.type}{String or integer scalar specifying the relevant assay.}
+
+\item{simplify}{Logical scalar indicating whether just the subcluster assignments should be returned.}
 }
 \value{
-A named \linkS4class{List} of \linkS4class{SingleCellExperiment} objects.
+By default, a named \linkS4class{List} of \linkS4class{SingleCellExperiment} objects.
 Each object corresponds to a level of \code{groups} and contains a \code{"subcluster"} column metadata field with the subcluster identities for each cell.
+The \code{\link{metadata}} of the List also contains \code{index}, a list of integer vectors specifying the cells in \code{x} in each returned SingleCellExperiment object; 
+and \code{subcluster}, a character vector of subcluster identities (see next).
 
-The \code{\link{metadata}} of the List also contains \code{index}, a list of integer vectors specifying the cells in \code{x} in each returned SingleCellExperiment object; and \code{subcluster}, a character vector of subcluster identities for all cells in \code{x}.
+If \code{simplify=TRUE}, the character vector of subcluster identities is returned.
+This is of length equal to \code{ncol(x)} and each entry follows the format defined in \code{format}.
+(Unless the number of cells in the parent cluster is less than \code{min.cells}, in which case the parent cluster's name is used.)
 }
 \description{
 Performs a quick subclustering for all cells within each group.

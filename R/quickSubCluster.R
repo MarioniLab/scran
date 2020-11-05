@@ -18,12 +18,17 @@
 #' @param ... For the generic, further arguments to pass to specific methods.
 #'
 #' For the ANY and SummarizedExperiment methods, further arguments to pass to the SingleCellExperiment method.
+#' @param simplify Logical scalar indicating whether just the subcluster assignments should be returned.
 #'
 #' @return
-#' A named \linkS4class{List} of \linkS4class{SingleCellExperiment} objects.
+#' By default, a named \linkS4class{List} of \linkS4class{SingleCellExperiment} objects.
 #' Each object corresponds to a level of \code{groups} and contains a \code{"subcluster"} column metadata field with the subcluster identities for each cell.
+#' The \code{\link{metadata}} of the List also contains \code{index}, a list of integer vectors specifying the cells in \code{x} in each returned SingleCellExperiment object; 
+#' and \code{subcluster}, a character vector of subcluster identities (see next).
 #'
-#' The \code{\link{metadata}} of the List also contains \code{index}, a list of integer vectors specifying the cells in \code{x} in each returned SingleCellExperiment object; and \code{subcluster}, a character vector of subcluster identities for all cells in \code{x}.
+#' If \code{simplify=TRUE}, the character vector of subcluster identities is returned.
+#' This is of length equal to \code{ncol(x)} and each entry follows the format defined in \code{format}.
+#' (Unless the number of cells in the parent cluster is less than \code{min.cells}, in which case the parent cluster's name is used.)
 #'
 #' @details
 #' \code{quickSubCluster} is a simple convenience function that loops over all levels of \code{groups} to perform subclustering.
@@ -85,7 +90,7 @@ NULL
 #' @importFrom bluster clusterRows NNGraphParam
 .quick_sub_cluster <- function(x, groups, normalize=TRUE, 
     prepFUN=NULL, min.ncells=50, clusterFUN=NULL, BLUSPARAM=NNGraphParam(), 
-    format="%s.%s", assay.type="counts") 
+    format="%s.%s", assay.type="counts", simplify=FALSE) 
 {
     if (normalize) {
         alt.assay <- "logcounts"
@@ -138,9 +143,13 @@ NULL
     all.clusters <- rep(NA_character_, ncol(x))
     all.clusters[unlist(by.group)] <- unlist(collated)
 
-    output <- as(all.sce, "List")
-    metadata(output) <- list(index=by.group, subcluster=all.clusters)
-    output
+    if (simplify) {
+        all.clusters
+    } else {
+        output <- as(all.sce, "List")
+        metadata(output) <- list(index=by.group, subcluster=all.clusters)
+        output
+    }
 }
 
 ############################
