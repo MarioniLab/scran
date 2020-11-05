@@ -33,6 +33,9 @@ test_that("quickSubCluster's metadata output makes sense", {
     }
 
     expect_identical(sub("\\..*", "", metadata(output)$subcluster), as.character(sampling))
+
+    raw.out <- quickSubCluster(dummy, groups=sampling, simplify=TRUE)
+    expect_identical(metadata(output)$subcluster, raw.out)
 })
 
 set.seed(30002)
@@ -57,7 +60,7 @@ test_that("quickSubCluster avoids subclustering with too few cells", {
     dummy <- matrix(rnbinom(ncells*ngenes, mu=10, size=20), ncol=ncells, nrow=ngenes)
     sampling <- sample(2, ncells, replace=TRUE)
 
-    output <- quickSubCluster(dummy, groups=sampling)
+    suppressWarnings(output <- quickSubCluster(dummy, groups=sampling))
     has.sub1 <- any(grepl("\\.", output[[1]]$subcluster))
     has.sub2 <- any(grepl("\\.", output[[2]]$subcluster))
     expect_true(has.sub1!=has.sub2)

@@ -248,7 +248,7 @@ This splits the input `SingleCellExperiment` into several smaller objects contai
 
 ```{r}
 subout <- quickSubCluster(sce, groups=colLabels(sce))
-table(subout[[1]]$subcluster) # subclusters for cluster 1
+table(metadata(subout)$subcluster) # formatted as '<parent>.<subcluster>'
 ```
 
 # Identifying marker genes
