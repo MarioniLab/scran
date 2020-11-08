@@ -78,19 +78,19 @@ test_that("pairwiseTTests works as expected without blocking or design matrices"
     re.clust <- clust$cluster
     re.clust[1] <- 4
     re.clust <- factor(re.clust)
-    REFFUN(X, re.clust)
+    expect_warning(REFFUN(X, re.clust), "no within-block")
 
     # Checking what happens if two of the groups have only one element.
     re.clust <- clust$cluster
     re.clust[1:2] <- 4:5
     re.clust <- factor(re.clust)
-    REFFUN(X, re.clust)
+    expect_warning(REFFUN(X, re.clust), "no within-block")
 
     # Checking what happens if there is an empty level.
     re.clusters <- clusters
     levels(re.clusters) <- 1:4
 
-    out <- pairwiseTTests(X, re.clusters)
+    expect_warning(out <- pairwiseTTests(X, re.clusters), "no within-block")
     ref <- pairwiseTTests(X, clusters)
     subset <- match(paste0(ref$pairs$first, ".", ref$pairs$second), 
         paste0(out$pairs$first, ".", out$pairs$second))

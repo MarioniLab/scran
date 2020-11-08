@@ -92,7 +92,7 @@ test_that("pairwiseBinom works as expected without blocking", {
     re.clusters <- clusters
     levels(re.clusters) <- 1:4
 
-    out <- pairwiseBinom(X, re.clusters)
+    expect_warning(out <- pairwiseBinom(X, re.clusters), "no within-block")
     ref <- pairwiseBinom(X, clusters)
     subset <- match(paste0(ref$pairs$first, ".", ref$pairs$second), 
         paste0(out$pairs$first, ".", out$pairs$second))
@@ -189,7 +189,7 @@ BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
         for (b in unique(block)) { 
             B <- as.character(b)
             chosen <- block==b & grouping %in% curpair
-            subgroup <- grouping[chosen]
+            subgroup <- factor(grouping[chosen]) # refactoring to get rid of empty levels.
 
             N1 <- sum(subgroup==curpair[1])
             N2 <- sum(subgroup==curpair[2])
@@ -198,18 +198,19 @@ BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
             } 
             block.weights[[B]] <- N1 + N2
 
+            suby <- y[,chosen,drop=FALSE]
             if (direction=="any") { 
                 # Recovering one-sided p-values for separate combining across blocks.
-                block.res.up <- pairwiseBinom(y[,chosen], grouping[chosen], direction="up", ...)
+                block.res.up <- pairwiseBinom(suby, subgroup, direction="up", ...)
                 to.use.up <- which(block.res.up$pairs$first==curpair[1] & block.res.up$pairs$second==curpair[2])
-                block.res.down <- pairwiseBinom(y[,chosen], grouping[chosen], direction="down", ...)
+                block.res.down <- pairwiseBinom(suby, subgroup, direction="down", ...)
                 to.use.down <- which(block.res.down$pairs$first==curpair[1] & block.res.down$pairs$second==curpair[2])
 
                 block.lfc[[B]] <- block.res.up$statistics[[to.use.up]]$logFC
                 block.up[[B]] <- block.res.up$statistics[[to.use.up]]$p.value
                 block.down[[B]] <- block.res.down$statistics[[to.use.down]]$p.value
             } else {
-                block.res <- pairwiseBinom(y[,chosen], grouping[chosen], direction=direction, ...)
+                block.res <- pairwiseBinom(suby, subgroup, direction=direction, ...)
                 to.use <- which(block.res$pairs$first==curpair[1] & block.res$pairs$second==curpair[2])
                 block.lfc[[B]] <- block.res$statistics[[to.use]]$logFC
                 block.up[[B]] <- block.down[[B]] <- block.res$statistics[[to.use]]$p.value
@@ -271,7 +272,7 @@ test_that("pairwiseBinom works as expected with blocking", {
     re.clust[block==1] <- 1
     re.block <- block
     re.block[re.clust==1] <- 1
-    BLOCKFUN(X, re.clust, re.block)
+    expect_warning(BLOCKFUN(X, re.clust, re.block), "no within-block")
 })
 
 set.seed(80000021)

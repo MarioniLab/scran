@@ -91,13 +91,13 @@ test_that("pairwiseWilcox works as expected without blocking", {
     re.clust <- clust$cluster
     re.clust[1:2] <- 4:5
     re.clust <- factor(re.clust)
-    REFFUN(X, re.clust)
+    expect_warning(REFFUN(X, re.clust), "no within-block")
 
     # Checking what happens if there is an empty level.
     re.clusters <- clusters
     levels(re.clusters) <- 1:4
 
-    out <- pairwiseWilcox(X, re.clusters)
+    expect_warning(out <- pairwiseWilcox(X, re.clusters), "no within-block")
     ref <- pairwiseWilcox(X, clusters)
     subset <- match(paste0(ref$pairs$first, ".", ref$pairs$second), 
         paste0(out$pairs$first, ".", out$pairs$second))
@@ -196,7 +196,7 @@ BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
         for (b in unique(block)) { 
             B <- as.character(b)
             chosen <- block==b & grouping %in% curpair
-            subgroup <- grouping[chosen]
+            subgroup <- factor(grouping[chosen]) # refactoring to eliminate unused levels.
 
             N1 <- sum(subgroup==curpair[1])
             N2 <- sum(subgroup==curpair[2])
@@ -205,11 +205,12 @@ BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
             } 
             block.weights[[B]] <- N1 * N2
 
+            suby <- y[,chosen,drop=FALSE]
             if (direction=="any") { 
                 # Recovering one-sided p-values for separate combining across blocks.
-                block.res.up <- pairwiseWilcox(y[,chosen], grouping[chosen], direction="up", ...)
+                block.res.up <- pairwiseWilcox(suby, subgroup, direction="up", ...)
                 to.use.up <- which(block.res.up$pairs$first==curpair[1] & block.res.up$pairs$second==curpair[2])
-                block.res.down <- pairwiseWilcox(y[,chosen], grouping[chosen], direction="down", ...)
+                block.res.down <- pairwiseWilcox(suby, subgroup, direction="down", ...)
                 to.use.down <- which(block.res.down$pairs$first==curpair[1] & block.res.down$pairs$second==curpair[2])
 
                 # Directional p-values exhibit different corrections from two-sided p-values for near-zero U-statistics,
@@ -219,7 +220,7 @@ BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
                 block.up[[B]] <- ifelse(middled, 0.5, block.res.up$statistics[[to.use.up]]$p.value)
                 block.down[[B]] <- ifelse(middled, 0.5, block.res.down$statistics[[to.use.down]]$p.value)
             } else {
-                block.res <- pairwiseWilcox(y[,chosen], grouping[chosen], direction=direction, ...)
+                block.res <- pairwiseWilcox(suby, subgroup, direction=direction, ...)
                 to.use <- which(block.res$pairs$first==curpair[1] & block.res$pairs$second==curpair[2])
                 block.lfc[[B]] <- block.res$statistics[[to.use]]$AUC
                 block.up[[B]] <- block.down[[B]] <- block.res$statistics[[to.use]]$p.value
@@ -286,7 +287,7 @@ test_that("pairwiseWilcox works as expected with blocking", {
     re.clust[block==1] <- 1
     re.block <- block
     re.block[re.clust==1] <- 1
-    BLOCKFUN(X, re.clust, re.block)
+    expect_warning(BLOCKFUN(X, re.clust, re.block), "no within-block")
 })
 
 set.seed(80000021)
