@@ -230,7 +230,7 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
 #' @importFrom methods as
 #' @importFrom stats p.adjust
 #' @importFrom BiocGenerics cbind
-#' @importFrom S4Vectors DataFrame 
+#' @importFrom S4Vectors DataFrame I
 .combine_markers_internal <- function(chosen, pairs, de.lists, method, gene.names, report.effects, 
     pval.type, effect.field, min.prop, log.p.in, log.p.out, pval.field, output.field, full.stats,
     sorted, flatten, BPPARAM=SerialParam())

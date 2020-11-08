@@ -50,7 +50,7 @@
 #' 
 #' @export
 #' @importFrom stats p.adjust
-#' @importFrom S4Vectors DataFrame
+#' @importFrom S4Vectors DataFrame I
 combineBlocks <- function(blocks, ave.fields, pval.field, method, geometric, equiweight, weights, valid) {
     if (length(blocks)==1L) {
         return(blocks[[1]])

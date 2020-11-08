@@ -61,7 +61,7 @@
 #' colnames(combined[[1]])
 #' 
 #' @export
-#' @importFrom S4Vectors DataFrame SimpleList
+#' @importFrom S4Vectors DataFrame SimpleList I
 multiMarkerStats <- function(..., repeated=NULL, sorted=TRUE) {
     all.methods <- list(...)
     nmethods <- length(all.methods)
