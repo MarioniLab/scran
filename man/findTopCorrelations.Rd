@@ -13,6 +13,7 @@ findTopCorrelations(x, number, ...)
   number = 10,
   y = NULL,
   d = 50,
+  direction = c("both", "positive", "negative"),
   use.names = TRUE,
   BSPARAM = IrlbaParam(),
   BNPARAM = KmknnParam(),
@@ -37,6 +38,8 @@ For the SummarizedExperiment method, this may also be a SummarizedExperiment obj
 \item{d}{Integer scalar specifying the number of dimensions to use for the approximate search via PCA.
 If \code{NA}, no approximation of the rank values is performed prior to the search.}
 
+\item{direction}{String specifying the sign of the correlations to search for.}
+
 \item{use.names}{Logical scalar specifying whether row names of \code{x} and/or \code{y} should be reported in the output, if available.}
 
 \item{BSPARAM}{A \linkS4class{BiocSingularParam} object specifying the algorithm to use for the PCA.}
@@ -48,7 +51,11 @@ If \code{NA}, no approximation of the rank values is performed prior to the sear
 \item{assay.type}{String or integer scalar specifying the assay containing the matrix of interest in \code{x} (and \code{y}, if a SummarizedExperiment).}
 }
 \value{
-A \linkS4class{DataFrame} with up to \code{nrow(x) * number} rows, containing the top \code{number} correlated genes for each gene in \code{x}.
+A \linkS4class{List} containing one or two \linkS4class{DataFrame}s for results in each direction.
+These are named \code{"positive"} and \code{"negative"}, and are generated according to \code{direction};
+if \code{direction="both"}, both DataFrames will be present.
+
+Each DataFrame has up to \code{nrow(x) * number} rows, containing the top \code{number} correlated genes for each gene in \code{x}.
 This contains the following fields:
 \itemize{
 \item \code{gene1}, the name (character) or row index (integer) of each gene in \code{x}.
@@ -58,6 +65,7 @@ This is another gene in \code{x} if \code{y=NULL}, otherwise it is a gene in \co
 \item \code{p.value}, the approximate p-value associated with \code{rho} under the null hypothesis that the correlation is zero.
 \item \code{FDR}, the adjusted p-value.
 }
+The rows are sorted by \code{gene1} and then \code{p.value}.
 }
 \description{
 For each gene, find the subset of other genes that have strongest positive/negative Spearman's rank correlations in a normalized expression matrix.
@@ -70,6 +78,15 @@ For the sake of speed, we approximate the search by performing PCA to compress t
 We compute the p-value for each gene using the approximate method implemented in \code{\link{cor.test}}.
 The FDR correction is performed by considering all possible pairs of genes, as these are implicitly tested in the neighbor search.
 Note that this is somewhat conservative as it does not consider strong correlations outside the reported genes.
+}
+\examples{
+library(scuttle)
+sce <- mockSCE()
+sce <- logNormCounts(sce)
+
+df <- findTopCorrelations(sce, number=20) # top 20 correlated genes for each gene.
+
+
 }
 \author{
 Aaron Lun

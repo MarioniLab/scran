@@ -17,8 +17,13 @@
 #'
 #' For the SummarizedExperiment method, further arguments to pass to the ANY method.
 #' @param assay.type String or integer scalar specifying the assay containing the matrix of interest in \code{x} (and \code{y}, if a SummarizedExperiment).
+#' @param direction String specifying the sign of the correlations to search for.
 #'
-#' @return A \linkS4class{DataFrame} with up to \code{nrow(x) * number} rows, containing the top \code{number} correlated genes for each gene in \code{x}.
+#' @return A \linkS4class{List} containing one or two \linkS4class{DataFrame}s for results in each direction.
+#' These are named \code{"positive"} and \code{"negative"}, and are generated according to \code{direction};
+#' if \code{direction="both"}, both DataFrames will be present.
+#'
+#' Each DataFrame has up to \code{nrow(x) * number} rows, containing the top \code{number} correlated genes for each gene in \code{x}.
 #' This contains the following fields:
 #' \itemize{
 #' \item \code{gene1}, the name (character) or row index (integer) of each gene in \code{x}.
@@ -28,6 +33,7 @@
 #' \item \code{p.value}, the approximate p-value associated with \code{rho} under the null hypothesis that the correlation is zero.
 #' \item \code{FDR}, the adjusted p-value.
 #' }
+#' The rows are sorted by \code{gene1} and then \code{p.value}.
 #' 
 #' @details
 #' In most cases, we only care about the top-correlated genes, allowing us to skip a lot of unnecessary computation.
@@ -40,6 +46,14 @@
 #'
 #' @author Aaron Lun
 #'
+#' @examples
+#' library(scuttle)
+#' sce <- mockSCE()
+#' sce <- logNormCounts(sce)
+#'
+#' df <- findTopCorrelations(sce, number=20) # top 20 correlated genes for each gene.
+#' 
+#' 
 #' @name findTopCorrelations
 NULL
 
@@ -47,68 +61,157 @@ NULL
 ##### Internals ######
 ######################
 
-#' @importFrom Matrix t
 #' @importFrom BiocSingular IrlbaParam
 #' @importFrom BiocNeighbors findKNN queryKNN KmknnParam
 #' @importFrom BiocParallel SerialParam
 #' @importFrom stats pt p.adjust
-#' @importFrom S4Vectors DataFrame
-#' @importFrom DelayedArray is_sparse
-#' @importFrom beachmat rowBlockApply
-.find_top_correlations <- function(x, number=10, y=NULL, d=50, use.names=TRUE, BSPARAM=IrlbaParam(), BNPARAM=KmknnParam(), BPPARAM=SerialParam()) {
+#' @importFrom S4Vectors DataFrame List
+.find_top_correlations <- function(x, number=10, y=NULL, d=50, direction=c("both", "positive", "negative"), use.names=TRUE, BSPARAM=IrlbaParam(), BNPARAM=KmknnParam(), BPPARAM=SerialParam()) {
+    direction <- match.arg(direction)
+
     if (is.null(y)) {
         names1 <- names2 <- rownames(x)
-        rank.x <- .create_rank_matrix(t(x), deferred=is_sparse(x), BPPARAM=BPPARAM, transposed=TRUE)
-
-        search.x <- .compress_rank_matrix(rank.x, d=d, BSPARAM=BSPARAM, BPPARAM=BPPARAM)
-        nn.out <- findKNN(search.x, k=number, BNPARAM=BNPARAM, BPPARAM=BPPARAM)
-
-        rho <- rowBlockApply(rank.x, FUN=.compute_exact_neighbor_distances, 
-            other=rank.x, indices=nn.out$index, BPPARAM=BPPARAM)
-        rho <- do.call(rbind, rho)
-
         ntests <- nrow(x) * (nrow(x) - 1L) / 2L
+        results <- .find_self_top_correlations(x, number=number, d=d, 
+            direction=direction, BSPARAM=BSPARAM, BNPARAM=BNPARAM, BPPARAM=BPPARAM)
 
     } else {
         names1 <- rownames(x)
         names2 <- rownames(y)
-        combined <- rbind(t(x), t(y))
-        rank.com <- .create_rank_matrix(combined, deferred=is_sparse(combined), BPPARAM=BPPARAM, transposed=TRUE)
+        ntests <- nrow(x) * nrow(y)
+        results <- .find_cross_top_correlations(x, y=y, number=number, d=d, 
+            direction=direction, BSPARAM=BSPARAM, BNPARAM=BNPARAM, BPPARAM=BPPARAM)
+    }
 
-        search.com <- .compress_rank_matrix(rank.x, d=d, BSPARAM=BSPARAM, BPPARAM=BPPARAM)
+    for (dir in names(results)) {
+        indices <- results[[dir]]$index
+        self <- rep(seq_len(nrow(indices)), ncol(indices))
+        df <- DataFrame(gene1=self, gene2=as.vector(indices), rho=as.vector(results[[dir]]$rho))
+
+        # Assembling the DF.
+        if (use.names) {
+            if (!is.null(names2)) {
+                df$gene2 <- names2[df$gene2]
+            } 
+            if (!is.null(names1)) {
+                df$gene1 <- names1[df$gene1]
+            }
+        }
+
+        # Mildly adapted from cor.test.
+        ncells <- ncol(x)
+        q <- (ncells^3 - ncells) * (1 - df$rho)/6
+        den <- (ncells * (ncells^2 - 1)/6)
+        r <- 1 - q/den
+        df$p.value <- pt(r/sqrt((1 - r^2)/(ncells - 2)), df = ncells - 2, lower.tail = (q > den))
+        df$FDR <- p.adjust(df$p.value, method="BH", n = ntests)
+
+        o <- order(df$gene1, df$p.value)
+        results[[dir]] <- df[o,,drop=FALSE]
+    }
+
+    List(results)
+}
+
+#' @importFrom Matrix t
+#' @importFrom BiocNeighbors findKNN queryKNN buildIndex
+#' @importFrom DelayedArray is_sparse
+#' @importFrom beachmat rowBlockApply
+#' @importFrom DelayedMatrixStats rowAnys
+.find_self_top_correlations <- function(x, direction, number, d, BSPARAM, BNPARAM, BPPARAM) {
+    if (direction=="positive") {
+        combined <- t(x)
+    } else {
+        combined <- t(x)
+        combined <- cbind(combined, -combined)
+    }
+
+    rank.out <- .create_rank_matrix(combined, deferred=is_sparse(combined), BPPARAM=BPPARAM, transposed=TRUE)
+    search.out <- .compress_rank_matrix(rank.out, d=d, BSPARAM=BSPARAM, BPPARAM=BPPARAM)
+
+    if (direction=="positive") {
+        target <- search.out
+        other.x <- rank.out
+    } else {
+        in.first <- seq_len(nrow(x))
+        in.second <- nrow(x) + seq_len(nrow(x))
+        target <- search.out[in.first,,drop=FALSE]
+        other.x <- rank.out[in.second,,drop=FALSE]
+        rank.x <- rank.out[in.first,,drop=FALSE]
+    }
+    precomputed <- buildIndex(target, BNPARAM=BNPARAM)
+
+    output <- list()
+
+    if (direction %in% c("positive", "both")) {
+        nn.out <- findKNN(BNINDEX=precomputed, k=number, BPPARAM=BPPARAM, get.distance=FALSE)
+        rho <- rowBlockApply(rank.x, FUN=.compute_exact_neighbor_rho, 
+            other=rank.x, indices=nn.out$index, BPPARAM=BPPARAM)
+        output$positive <- list(index=nn.out$index, rho=do.call(rbind, rho))
+    }
+
+    if (direction %in% c("negative", "both")) {
+        # Plus 1 and then stripping out self, if it should come to that.
+        nn.out <- queryKNN(query=search.out[in.second,,drop=FALSE],
+            BNINDEX=precomputed, k=number+1L, get.distance=FALSE, BPPARAM=BPPARAM)
+
+        discard <- nn.out$index==seq_len(nrow(nn.out$index))
+        discard[!rowAnys(discard),ncol(discard)] <- TRUE # removing the last.
+        stripped <- matrix(t(nn.out$index)[t(!discard)], ncol(nn.out$index) - 1L, nrow(nn.out$index)) # transposing so we refill by column-major.
+        nn.out$index <- t(stripped)
+
+        rho <- rowBlockApply(rank.x, FUN=.compute_exact_neighbor_rho, 
+            other=rank.x, indices=nn.out$index, BPPARAM=BPPARAM)
+        output$negative <- list(index=nn.out$index, rho=do.call(rbind, rho))
+    }
+
+    output
+}
+
+#' @importFrom Matrix t
+#' @importFrom BiocNeighbors queryKNN buildIndex
+#' @importFrom DelayedArray is_sparse
+#' @importFrom beachmat rowBlockApply
+.find_cross_top_correlations <- function(x, y, direction, number, d, BSPARAM, BNPARAM, BPPARAM) {
+    if (direction=="positive") {
         in.first <- seq_len(nrow(x))
         in.second <- nrow(x) + seq_len(nrow(y))
-        nn.out <- queryKNN(X=search.com[in.second,,drop=FALSE], query=search.com[in.first,,drop=FALSE],
-            k=number, BNPARAM=BNPARAM, BPPARAM=BPPARAM)
+        combined <- cbind(t(x), t(y))
+    } else {
+        in.first <- seq_len(nrow(x))
+        in.first.neg <- nrow(x) + in.first.pos
+        in.second <- 2L*nrow(x) + seq_len(nrow(y))
 
-        rho <- rowBlockApply(rank.com[in.first,,drop=FALSE], FUN=.compute_exact_neighbor_distances, 
-            other=rank.com[in.second,,drop=FALSE], indices=nn.out$index, BPPARAM=BPPARAM)
-        rho <- do.call(rbind, rho)
-
-        ntests <- nrow(x) * nrow(y)
+        # We make positive and negative versions of all of them for symmetry's sake.
+        # Technically we only need a negative version of the smaller one... oh well.
+        combined <- t(x)
+        alt <- t(y)
+        combined <- cbind(combined, -combined, alt, -alt)
     }
 
-    self <- rep(seq_len(nrow(x)), ncol(nn.out$index))
-    df <- DataFrame(gene1=self, gene2=as.vector(nn.out$index))
+    rank.out <- .create_rank_matrix(combined, deferred=is_sparse(combined), BPPARAM=BPPARAM, transposed=TRUE)
+    search.out <- .compress_rank_matrix(rank.out, d=d, BSPARAM=BSPARAM, BPPARAM=BPPARAM)
+    precomputed <- buildIndex(search.out[in.second,,drop=FALSE], BNPARAM=BNPARAM)
 
-    # Assembling the DF.
-    if (use.names) {
-        if (!is.null(names2)) {
-            df$gene2 <- names2[df$gene2]
-        } 
-        if (!is.null(names1)) {
-            df$gene1 <- names1[df$gene1]
-        }
+    output <- list()
+
+    if (direction %in% c("positive", "both")) {
+        nn.out <- queryKNN(query=search.out[in.first,,drop=FALSE], k=number, 
+            get.distance=FALSE, BNINDEX=BNINDEX, BPPARAM=BPPARAM)
+        rho <- rowBlockApply(rank.out[in.first,,drop=FALSE], FUN=.compute_exact_neighbor_rho, 
+            other=rank.out[in.second,,drop=FALSE], indices=nn.out$index, BPPARAM=BPPARAM)
+        output$positive <- list(index=nn.out$index, rho=do.call(rbind, rho))
     }
 
-    # Mildly adapted from cor.test.
-    ncells <- ncol(x)
-    r <- 1 - df$rho/(ncells * (ncells^2 - 1)/6)
-    df$p.value <- pt(r/sqrt((1 - r^2)/(ncells - 2)), df = ncells - 2, lower.tail = (df$rho <= (ncells^3 - ncells)/6))
-    df$FDR <- p.adjust(df$p.value, method="BH", n = ntests)
+    if (direction %in% c("negative", "both")) {
+        nn.out <- queryKNN(query=search.out[in.first.neg,,drop=FALSE], k=number, 
+            get.distance=FALSE, BNINDEX=BNINDEX, BPPARAM=BPPARAM)
+        rho <- rowBlockApply(rank.out[in.first,,drop=FALSE], FUN=.compute_exact_neighbor_rho, 
+            other=rank.out[in.second,,drop=FALSE], indices=nn.out$index, BPPARAM=BPPARAM)
+        output$negative <- list(index=nn.out$index, rho=do.call(rbind, rho))
+    }
 
-    o <- order(df$self, df$p.value)
-    df[o,,drop=FALSE]
+    output
 }
 
 .compress_rank_matrix <- function(rank.x, d, BSPARAM, BPPARAM) {
@@ -121,7 +224,7 @@ NULL
 }
 
 #' @importFrom DelayedArray currentViewport makeNindexFromArrayViewport
-.compute_exact_neighbor_distances <- function(block, other, indices) {
+.compute_exact_neighbor_rho <- function(block, other, indices) {
     vp <- currentViewport()
     subset <- makeNindexFromArrayViewport(vp, expand.RangeNSBS=TRUE)
     if (!is.null(subset[[1]])) {
@@ -130,8 +233,8 @@ NULL
 
     output <- matrix(0, nrow(block), ncol(indices))
     for (j in seq_len(ncol(indices))) {
-        current <- block - as.matrix(rank.x[indices[,j],,drop=FALSE])
-        output[,j] <- sqrt(rowSums(current^2))
+        current <- block - as.matrix(other[indices[,j],,drop=FALSE])
+        output[,j] <- 1 - 2*rowSums(current^2)
     }
 
     output

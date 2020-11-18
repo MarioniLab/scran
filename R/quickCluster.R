@@ -233,16 +233,19 @@ NULL
 #' @importFrom BiocSingular DeferredMatrix
 #' @importFrom DelayedArray getAutoBPPARAM setAutoBPPARAM
 #' @importFrom BiocParallel SerialParam
-.create_rank_matrix <- function(x, deferred, ..., BPPARAM=SerialParam()) {
+.create_rank_matrix <- function(x, deferred, ..., transposed=TRUE, BPPARAM=SerialParam()) {
     if (!deferred) {
-        y <- scaledColRanks(x, ..., transposed=TRUE)
+        y <- scaledColRanks(x, ..., transposed=transposed)
     } else {
         old <- getAutoBPPARAM()
         setAutoBPPARAM(BPPARAM)
         on.exit(setAutoBPPARAM(old))
 
         y <- scaledColRanks(x, ..., transposed=FALSE, as.sparse=TRUE, BPPARAM=BPPARAM)
-        y <- t(DeferredMatrix(y, center=colMeans(y)))
+        y <- DeferredMatrix(y, center=colMeans(y))
+        if (transposed) {
+            y <- t(y)
+        }
     }
     y
 }
