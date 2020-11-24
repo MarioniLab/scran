@@ -6,6 +6,8 @@
 \item All deprecated functions from the previous release are now defunct.
 
 \item Added a \code{simplify=} option to \code{quickSubCluster()} to get the cluster assignments directly.
+
+\item Deprecated \code{combinePValues()} as this is replaced by \code{metapod::combineParallelPValues()}.
 }}
 
 \section{Version 1.18.0}{\itemize{

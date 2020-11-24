@@ -104,7 +104,7 @@
 #' @section Consolidating with DE against some other clusters:
 #' The \code{pval.type="some"} setting serves as a compromise between \code{"all"} and \code{"any"}.
 #' A combined p-value is calculated by taking the middlemost value of the Holm-corrected p-values for each gene.
-#' (By default, this the median for odd numbers of contrasts and one-after-the-median for even numbers, but the exact proportion can be changed by setting \code{min.prop} - see \code{?\link{combinePValues}}.)
+#' (By default, this the median for odd numbers of contrasts and one-after-the-median for even numbers, but the exact proportion can be changed by setting \code{min.prop} - see \code{?\link{combineParallelPValues}}.)
 #' Here, the null hypothesis is that the gene is not DE in at least half of the contrasts.
 #' 
 #' Genes are then ranked by the combined p-value.
@@ -183,6 +183,7 @@
 #' @export
 #' @importFrom S4Vectors SimpleList
 #' @importFrom BiocParallel SerialParam bplapply
+#' @importFrom metapod combineParallelPValues
 combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="logFC", 
     pval.type=c("any", "some", "all"), min.prop=NULL, log.p.in=FALSE, log.p.out=log.p.in, 
     output.field=NULL, full.stats=FALSE, sorted=TRUE, flatten=TRUE, BPPARAM=SerialParam())
@@ -196,7 +197,7 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
     report.effects <- !is.null(effect.field)
 
     pval.type <- match.arg(pval.type)
-    method <- switch(pval.type, any="simes", some="holm-middle", all="berger")
+    method <- switch(pval.type, any="simes", some="holm-min", all="berger")
     if (is.null(min.prop))  {
         min.prop <- if (pval.type=="any") 0 else 0.5
     }
@@ -243,7 +244,7 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
     cur.stats <- cur.stats[keep]
 
     all.p <- lapply(cur.stats, "[[", i=pval.field)
-    pval <- do.call(combinePValues, c(all.p, list(method=method, log.p=log.p.in, min.prop=min.prop)))
+    pval <- combineParallelPValues(all.p, method=method, log.p=log.p.in, min.prop=min.prop)$p.value
     marker.set <- DataFrame(row.names=gene.names)
 
     # Determining rank.

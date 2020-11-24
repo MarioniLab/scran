@@ -22,7 +22,7 @@
 #' @param equiweight A logical scalar indicating whether statistics from each block should be given equal weight.
 #' Otherwise, each block is weighted according to its number of cells.
 #' Only used if \code{block} is specified.
-#' @param method String specifying how p-values should be combined when \code{block} is specified, see \code{\link{combinePValues}}.
+#' @param method String specifying how p-values should be combined when \code{block} is specified, see \code{\link{combineParallelPValues}}.
 #' @param assay.type String or integer scalar specifying the assay containing the log-expression values.
 #'
 #' @details
@@ -51,7 +51,7 @@
 #' \item For means and variance components, this is done by averaging values across levels.
 #' If \code{equiweight=FALSE}, a weighted average is used where the value for each level is weighted by the number of cells.
 #' By default, all levels are equally weighted when combining statistics.
-#' \item Per-level p-values are combined using \code{\link{combinePValues}} according to \code{method}.
+#' \item Per-level p-values are combined using \code{\link{combineParallelPValues}} according to \code{method}.
 #' By default, Fisher's method is used to identify genes that are highly variable in any batch.
 #' Whether or not this is responsive to \code{equiweight} depends on the chosen method.
 #' \item Blocks with fewer than 2 cells are completely ignored and do not contribute to the combined mean, variance component or p-value.

@@ -8,7 +8,7 @@
 #'
 #' Alternatively, one or more lists of DataFrames containing variance modelling results.
 #' Mixed inputs are also acceptable, e.g., lists of DataFrames alongside the DataFrames themselves.
-#' @param method String specifying how p-values are to be combined, see \code{\link{combinePValues}} for options.
+#' @param method String specifying how p-values are to be combined, see \code{\link{combineParallelPValues}} for options.
 #' @param pval.field A string specifying the column name of each element of \code{...} that contains the p-value.
 #' @param other.fields A character vector specifying the fields containing other statistics to combine.
 #' @param equiweight Logical scalar indicating whether each result is to be given equal weight in the combined statistics.
@@ -34,8 +34,9 @@
 #' The number of cells can be explicitly set using \code{ncells}, and is otherwise assumed to be equal for all batches.
 #' No weighting is performed by default, which ensures that all batches contribute equally to the combined statistics and avoids situations where batches with many cells dominate the output.
 #'
-#' The \code{\link{combinePValues}} function is used to combine p-values across batches.
-#' Only \code{method="z"} will perform any weighting of batches, and only if \code{weights} is set.
+#' The \code{\link{combineParallelPValues}} function is used to combine p-values across batches.
+#' The default is to use Fisher's method, which will achieve a low p-value if a gene is highly variable in any batch.
+#' Only \code{method="stouffer"} will perform any weighting of batches, and only if \code{weights} is set.
 #' 
 #' @return
 #' A DataFrame with the same numeric fields as that produced by \code{\link{modelGeneVar}} or \code{\link{modelGeneCV2}}.
@@ -46,7 +47,7 @@
 #' @seealso
 #' \code{\link{modelGeneVar}} and \code{\link{modelGeneCV2}}, for two possible inputs into this function.
 #'
-#' \code{\link{combinePValues}}, for details on how the p-values are combined.
+#' \code{\link{combineParallelPValues}}, for details on how the p-values are combined.
 #' 
 #' @author
 #' Aaron Lun

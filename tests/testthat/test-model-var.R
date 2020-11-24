@@ -48,12 +48,12 @@ test_that("modelGeneVar works correctly with blocking, no weighting", {
     expect_equal(out$bio, out$total - out$tech)
 
     all.p <- lapply(out$per.block, "[[", i="p.value")
-    expect_equal(out$p.value, do.call(combinePValues, all.p))
+    expect_equal(out$p.value, metapod::parallelFisher(all.p)$p.value)
 
     # Responds to choice of method. 
-    out2 <- modelGeneVar(dummy, block=block, method="z")
+    out2 <- modelGeneVar(dummy, block=block, method="stouffer")
     all.p <- lapply(out2$per.block, "[[", i="p.value")
-    expect_equal(out2$p.value, do.call(combinePValues, c(all.p, list(method='z'))))
+    expect_equal(out2$p.value, metapod::parallelStouffer(all.p)$p.value)
 })
 
 test_that("modelGeneVar works correctly with blocking and weighting", {
@@ -85,13 +85,13 @@ test_that("modelGeneVar works correctly with blocking and weighting", {
     expect_equal(out$bio, out$total - out$tech)
 
     all.p <- lapply(out$per.block, "[[", i="p.value")
-    expect_equal(out$p.value, do.call(combinePValues, all.p))
+    expect_equal(out$p.value, metapod::parallelFisher(all.p)$p.value)
 
     # Responds to choice of method with weighting.
-    out2 <- modelGeneVar(dummy, block=block, method="z", equiweight=FALSE)
+    out2 <- modelGeneVar(dummy, block=block, method="stouffer", equiweight=FALSE)
     all.p <- lapply(out2$per.block, "[[", i="p.value")
     w <- countMatches(names(all.p), block)
-    expect_equal(out2$p.value, do.call(combinePValues, c(all.p, list(method='z', weights=w))))
+    expect_equal(out2$p.value, metapod::parallelStouffer(all.p, weights=w)$p.value)
 })
 
 test_that("modelGeneVar handles blocks with no residual d.f.", {
@@ -290,7 +290,7 @@ test_that("modelGeneVarWithSpikes works correctly with blocking", {
     expect_equal(out$bio, out$total - out$tech)
 
     all.p <- lapply(out$per.block, "[[", i="p.value")
-    expect_equal(out$p.value, do.call(combinePValues, all.p))
+    expect_equal(out$p.value, metapod::parallelFisher(all.p)$p.value)
 })
 
 test_that("modelGeneVarWithSpikes centers size factors correctly", {

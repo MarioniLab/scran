@@ -143,7 +143,7 @@ Again, this value is not directly used for ranking and are only reported for the
 
 The \code{pval.type="some"} setting serves as a compromise between \code{"all"} and \code{"any"}.
 A combined p-value is calculated by taking the middlemost value of the Holm-corrected p-values for each gene.
-(By default, this the median for odd numbers of contrasts and one-after-the-median for even numbers, but the exact proportion can be changed by setting \code{min.prop} - see \code{?\link{combinePValues}}.)
+(By default, this the median for odd numbers of contrasts and one-after-the-median for even numbers, but the exact proportion can be changed by setting \code{min.prop} - see \code{?\link{combineParallelPValues}}.)
 Here, the null hypothesis is that the gene is not DE in at least half of the contrasts.
 
 Genes are then ranked by the combined p-value.

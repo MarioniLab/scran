@@ -69,7 +69,7 @@ NULL
 #' @importFrom beachmat rowBlockApply
 #' @importFrom stats p.adjust
 .test_linear_model <- function(x, design, coefs=ncol(design), contrasts=NULL, 
-    block=NULL, equiweight=FALSE, method="z", subset.row=NULL, BPPARAM=SerialParam()) 
+    block=NULL, equiweight=FALSE, method="stouffer", subset.row=NULL, BPPARAM=SerialParam()) 
 {
     if (!is.null(subset.row)) {
         x <- x[subset.row,,drop=FALSE]

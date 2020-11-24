@@ -65,6 +65,7 @@
 }
 
 #' @importFrom S4Vectors DataFrame
+#' @importFrom metapod combineParallelPValues
 .pairwise_blocked_internal <- function(i, group.vals, nblocks, direction="any", 
     gene.names=NULL, log.p=TRUE, STATFUN, effect.name) 
 {
@@ -91,9 +92,8 @@
         # Combining the p-values for each side across blocks.
         if (any(valid.test)) { 
             all.weight <- all.weight[valid.test]
-            comb.args <- list(method="z", weights=all.weight, log.p=TRUE)
-            com.left <- do.call(combinePValues, c(all.left[valid.test], comb.args))
-            com.right <- do.call(combinePValues, c(all.right[valid.test], comb.args))
+            com.left <- combineParallelPValues(all.left[valid.test], method="stouffer", weights=all.weight, log.p=TRUE)$p.value
+            com.right <- combineParallelPValues(all.right[valid.test], method="stouffer", weights=all.weight, log.p=TRUE)$p.value
 
             hvt.p <- .choose_leftright_pvalues(com.left, com.right, direction=direction)
             tvh.p <- .choose_leftright_pvalues(com.right, com.left, direction=direction)

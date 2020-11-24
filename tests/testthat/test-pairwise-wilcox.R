@@ -240,8 +240,8 @@ BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
         expect_equal(ave.lfc, ref.res$AUC)
 
         # Combining p-values in each direction.
-        up.p <- do.call(combinePValues, c(block.up, list(method="z", weights=block.weights)))
-        down.p <- do.call(combinePValues, c(block.down, list(method="z", weights=block.weights)))
+        up.p <- metapod::parallelStouffer(block.up, weights=block.weights)$p.value
+        down.p <- metapod::parallelStouffer(block.down, weights=block.weights)$p.value
 
         if (direction=="any") {
             expect_equal(pmin(up.p, down.p, 0.5) * 2, ref.res$p.value)

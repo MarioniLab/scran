@@ -23,7 +23,7 @@ dec3 <- modelGeneVar(alt.d, design=design)
 
 test_that("combineVar works correctly", {
     # Checking averaging of stats.
-    res <- combineVar(dec, dec2, dec3, method="z")
+    res <- combineVar(dec, dec2, dec3, method="stouffer")
     expect_equal(res$mean, rowMeans(cbind(dec$mean, dec2$mean, dec3$mean)))
     expect_equal(res$total, rowMeans(cbind(dec$total, dec2$total, dec3$total)))
     expect_equal(res$tech, rowMeans(cbind(dec$tech, dec2$tech, dec3$tech)))
@@ -47,18 +47,18 @@ test_that("combineVar works correctly", {
     expect_equivalent(res4$p.value, pchisq(-2*rowSums(log(pvalmat)), df=6, lower.tail=FALSE))
 
     # Same results with a list of DF's.
-    expect_identical(res, combineVar(list(dec, dec2, dec3), method="z"))
-    expect_identical(res, combineVar(list(dec, dec2), dec3, method="z"))
-    expect_identical(res, combineVar(dec, list(dec2), dec3, method="z"))
+    expect_identical(res, combineVar(list(dec, dec2, dec3), method="stouffer"))
+    expect_identical(res, combineVar(list(dec, dec2), dec3, method="stouffer"))
+    expect_identical(res, combineVar(dec, list(dec2), dec3, method="stouffer"))
 })
 
 test_that("combineVar works when weighting is turned on", {
-    ref <- combineVar(dec, dec2, dec3, method="z") 
-    res <- combineVar(dec, dec2, dec3, method="z", equiweight=FALSE)
+    ref <- combineVar(dec, dec2, dec3, method="stouffer") 
+    res <- combineVar(dec, dec2, dec3, method="stouffer", equiweight=FALSE)
     expect_equal(res, ref)
 
     N <- c(ncells, ncol(sub.d), ncol(alt.d))
-    res <- combineVar(dec, dec2, dec3, method="z", equiweight=FALSE, ncells=N)
+    res <- combineVar(dec, dec2, dec3, method="stouffer", equiweight=FALSE, ncells=N)
     expect_equal(res$mean, drop(cbind(dec$mean, dec2$mean, dec3$mean) %*% N)/sum(N))
     expect_equal(res$bio, drop(cbind(dec$bio, dec2$bio, dec3$bio) %*% N)/sum(N))
     expect_equal(res$total, drop(cbind(dec$total, dec2$total, dec3$total) %*% N)/sum(N))
@@ -69,8 +69,8 @@ test_that("combineVar works when weighting is turned on", {
     expect_equal(res$p.value, apply(pvalmat, 1, FUN=function(p) { pnorm(sum(N*qnorm(p))/sqrt(sum(N^2))) } ))
 
     # Other methods are unaffected.
-    ref <- combineVar(dec, dec2, dec3, method="simes")
-    res <- combineVar(dec, dec2, dec3, method="simes", equiweight=FALSE, ncells=N)
+    ref <- combineVar(dec, dec2, dec3, method="fisher")
+    res <- combineVar(dec, dec2, dec3, method="fisher", equiweight=FALSE, ncells=N)
     expect_equivalent(res$p.value, ref$p.value)
 })
 
@@ -106,7 +106,7 @@ test_that("combineCV2 works correctly", {
     expect_equal(res$total, geoRowMeans(cbind(dec$total, dec2$total, dec3$total)))
     expect_equal(res$trend, geoRowMeans(cbind(dec$trend, dec2$trend, dec3$trend)))
     expect_equal(res$ratio, geoRowMeans(cbind(dec$ratio, dec2$ratio, dec3$ratio)))
-    expect_equivalent(res$p.value, combinePValues(dec$p.value, dec2$p.value, dec3$p.value, method="fisher"))
+    expect_equivalent(res$p.value, metapod::parallelFisher(list(dec$p.value, dec2$p.value, dec3$p.value))$p.value)
 
     # Same results with a list of DF's.
     expect_identical(res, combineCV2(list(dec, dec2, dec3)))
@@ -119,12 +119,12 @@ geoRowMeansW <- function(mat, w) {
 }
 
 test_that("combineCV2 works when weighting is turned on", {
-    ref <- combineCV2(dec, dec2, dec3, method="z") 
-    res <- combineCV2(dec, dec2, dec3, method="z", equiweight=FALSE)
+    ref <- combineCV2(dec, dec2, dec3, method="stouffer") 
+    res <- combineCV2(dec, dec2, dec3, method="stouffer", equiweight=FALSE)
     expect_equal(res, ref)
 
     N <- c(ncells, ncol(sub.d), ncol(alt.d))
-    res <- combineCV2(dec, dec2, dec3, method="z", equiweight=FALSE, ncells=N)
+    res <- combineCV2(dec, dec2, dec3, method="stouffer", equiweight=FALSE, ncells=N)
     expect_equal(res$mean, geoRowMeansW(cbind(dec$mean, dec2$mean, dec3$mean), N))
     expect_equal(res$ratio, geoRowMeansW(cbind(dec$ratio, dec2$ratio, dec3$ratio), N))
     expect_equal(res$total, geoRowMeansW(cbind(dec$total, dec2$total, dec3$total), N))
