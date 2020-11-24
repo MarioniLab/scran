@@ -67,3 +67,5 @@ NeedsCompilation: yes
 VignetteBuilder: knitr
 SystemRequirements: C++11
 RoxygenNote: 7.1.1
+URL: https://github.com/MarioniLab/scran/
+BugReports: https://github.com/MarioniLab/scran/issues
