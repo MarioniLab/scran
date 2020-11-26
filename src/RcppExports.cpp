@@ -5,45 +5,6 @@
 
 using namespace Rcpp;
 
-// combine_rho
-Rcpp::List combine_rho(int Ngenes, Rcpp::IntegerVector first, Rcpp::IntegerVector second, Rcpp::NumericVector Rho, Rcpp::NumericVector Pval, Rcpp::LogicalVector Limited, Rcpp::IntegerVector Order);
-RcppExport SEXP _scran_combine_rho(SEXP NgenesSEXP, SEXP firstSEXP, SEXP secondSEXP, SEXP RhoSEXP, SEXP PvalSEXP, SEXP LimitedSEXP, SEXP OrderSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< int >::type Ngenes(NgenesSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type first(firstSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type second(secondSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Rho(RhoSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Pval(PvalSEXP);
-    Rcpp::traits::input_parameter< Rcpp::LogicalVector >::type Limited(LimitedSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type Order(OrderSEXP);
-    rcpp_result_gen = Rcpp::wrap(combine_rho(Ngenes, first, second, Rho, Pval, Limited, Order));
-    return rcpp_result_gen;
-END_RCPP
-}
-// combine_simes
-Rcpp::NumericVector combine_simes(Rcpp::List Pvals, bool logp);
-RcppExport SEXP _scran_combine_simes(SEXP PvalsSEXP, SEXP logpSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type Pvals(PvalsSEXP);
-    Rcpp::traits::input_parameter< bool >::type logp(logpSEXP);
-    rcpp_result_gen = Rcpp::wrap(combine_simes(Pvals, logp));
-    return rcpp_result_gen;
-END_RCPP
-}
-// combine_holm_middle
-Rcpp::NumericVector combine_holm_middle(Rcpp::List Pvals, bool logp, double prop);
-RcppExport SEXP _scran_combine_holm_middle(SEXP PvalsSEXP, SEXP logpSEXP, SEXP propSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type Pvals(PvalsSEXP);
-    Rcpp::traits::input_parameter< bool >::type logp(logpSEXP);
-    Rcpp::traits::input_parameter< double >::type prop(propSEXP);
-    rcpp_result_gen = Rcpp::wrap(combine_holm_middle(Pvals, logp, prop));
-    return rcpp_result_gen;
-END_RCPP
-}
 // compute_Top_statistic_from_ranks
 Rcpp::IntegerVector compute_Top_statistic_from_ranks(Rcpp::List Ranks, double prop);
 RcppExport SEXP _scran_compute_Top_statistic_from_ranks(SEXP RanksSEXP, SEXP propSEXP) {
@@ -64,6 +25,22 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::List >::type Effects(EffectsSEXP);
     Rcpp::traits::input_parameter< double >::type prop(propSEXP);
     rcpp_result_gen = Rcpp::wrap(choose_middle_effect_size(Pvals, Effects, prop));
+    return rcpp_result_gen;
+END_RCPP
+}
+// combine_rho
+Rcpp::List combine_rho(int Ngenes, Rcpp::IntegerVector first, Rcpp::IntegerVector second, Rcpp::NumericVector Rho, Rcpp::NumericVector Pval, Rcpp::LogicalVector Limited, Rcpp::IntegerVector Order);
+RcppExport SEXP _scran_combine_rho(SEXP NgenesSEXP, SEXP firstSEXP, SEXP secondSEXP, SEXP RhoSEXP, SEXP PvalSEXP, SEXP LimitedSEXP, SEXP OrderSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< int >::type Ngenes(NgenesSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type first(firstSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type second(secondSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Rho(RhoSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Pval(PvalSEXP);
+    Rcpp::traits::input_parameter< Rcpp::LogicalVector >::type Limited(LimitedSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type Order(OrderSEXP);
+    rcpp_result_gen = Rcpp::wrap(combine_rho(Ngenes, first, second, Rho, Pval, Limited, Order));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -216,11 +193,9 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_scran_combine_rho", (DL_FUNC) &_scran_combine_rho, 7},
-    {"_scran_combine_simes", (DL_FUNC) &_scran_combine_simes, 2},
-    {"_scran_combine_holm_middle", (DL_FUNC) &_scran_combine_holm_middle, 3},
     {"_scran_compute_Top_statistic_from_ranks", (DL_FUNC) &_scran_compute_Top_statistic_from_ranks, 2},
     {"_scran_choose_middle_effect_size", (DL_FUNC) &_scran_choose_middle_effect_size, 3},
+    {"_scran_combine_rho", (DL_FUNC) &_scran_combine_rho, 7},
     {"_scran_compute_blocked_stats_lognorm", (DL_FUNC) &_scran_compute_blocked_stats_lognorm, 5},
     {"_scran_compute_blocked_stats_norm", (DL_FUNC) &_scran_compute_blocked_stats_norm, 4},
     {"_scran_compute_blocked_stats_none", (DL_FUNC) &_scran_compute_blocked_stats_none, 3},
