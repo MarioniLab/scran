@@ -88,9 +88,6 @@
 #' hist(berger)
 #'
 #' @export
-#' @importFrom stats pnorm qnorm pchisq
-#' @importFrom DelayedMatrixStats rowRanks rowQuantiles 
-#' @importFrom DelayedArray rowMins
 #' @importFrom metapod combineParallelPValues
 combinePValues <- function(..., 
     method=c("fisher", "z", "simes", "berger", "holm-middle"), 

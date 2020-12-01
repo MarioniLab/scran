@@ -256,8 +256,8 @@ NULL
 
 #' @importFrom BiocParallel bpmapply 
 #' @importFrom DelayedMatrixStats rowRanks rowVars
-#' @importFrom DelayedArray DelayedArray rowMeans getAutoBPPARAM setAutoBPPARAM
-#' @importFrom Matrix t
+#' @importFrom DelayedArray DelayedArray getAutoBPPARAM setAutoBPPARAM
+#' @importFrom Matrix t rowMeans
 #' @importFrom stats var
 .calculate_rho <- function(sgene1, sgene2, x, subset.row, subset.col, ties.method, BPPARAM)
 # Iterating through all blocking levels (for one-way layouts; otherwise, this is a loop of length 1).
