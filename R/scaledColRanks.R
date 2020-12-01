@@ -61,7 +61,7 @@ scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
     }
 
     out <- colBlockApply(x[subset.row,,drop=FALSE], FUN=.get_scaled_ranks, 
-        transposed=transposed, as.sparse=as.sparse, BPPARAM=BPPARAM)
+        transposed=transposed, .as.sparse=as.sparse, BPPARAM=BPPARAM)
 
     if (transposed) {
         rkout <- do.call(rbind, out)
@@ -80,11 +80,10 @@ scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
 }
 
 #' @importClassesFrom Matrix sparseMatrix dgCMatrix
-#' @importFrom DelayedMatrixStats colRanks rowSds
-#' @importFrom DelayedArray rowMins
+#' @importFrom DelayedMatrixStats colRanks rowSds rowMins
 #' @importFrom Matrix rowMeans
 #' @importFrom DelayedArray getAutoBPPARAM setAutoBPPARAM
-.get_scaled_ranks <- function(block, transposed, as.sparse) {
+.get_scaled_ranks <- function(block, transposed, .as.sparse) {
     if (is(block, "SparseArraySeed")) {
         block <- as(block, "sparseMatrix")
     }
@@ -100,8 +99,8 @@ scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
         stop("rank variances of zero detected for a cell")
     }
 
-    if (as.sparse) {
-        out <- out - rowMins(DelayedArray(out)) # TODO: switch to MatGen once this is available.
+    if (.as.sparse) {
+        out <- out - rowMins(out) 
         out <- as(out, "dgCMatrix")
     } else {
         out <- out - rowMeans(out)

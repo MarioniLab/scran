@@ -97,6 +97,7 @@ test_that("scaledColRanks handles sparsity requests", {
 
     library(Matrix)
     rnks <- scaledColRanks(mat, as.sparse=TRUE)
+    expect_s4_class(rnks, "dgCMatrix")
     expect_identical(rnks!=0, as(mat, "dgCMatrix")!=0)
 
     centred <- sweep(rnks, 2, Matrix::colMeans(rnks), "-")
@@ -112,6 +113,14 @@ test_that("scaledColRanks handles sparsity requests", {
     centred <- as.matrix(centred)
     dimnames(centred) <- NULL
     expect_equal(centred, t(ref))
+})
+
+set.seed(430003)
+test_that("scaledColRanks handles DA inputs", {
+	dummy <- matrix(rnbinom(ncells*ngenes, mu=10, size=20), ncol=ncells, nrow=ngenes)
+    expect_identical(scaledColRanks(dummy), scaledColRanks(DelayedArray(dummy)))
+    expect_identical(scaledColRanks(dummy, transposed=TRUE), scaledColRanks(DelayedArray(dummy), transposed=TRUE))
+    expect_identical(scaledColRanks(dummy, as.sparse=TRUE), scaledColRanks(DelayedArray(dummy), as.sparse=TRUE))
 })
 
 set.seed(430004)
