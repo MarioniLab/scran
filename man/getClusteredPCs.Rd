@@ -8,6 +8,7 @@ getClusteredPCs(
   pcs,
   FUN = NULL,
   ...,
+  BLUSPARAM = NNGraphParam(),
   min.rank = 5,
   max.rank = ncol(pcs),
   by = 1
@@ -17,9 +18,13 @@ getClusteredPCs(
 \item{pcs}{A numeric matrix of PCs, where rows are cells and columns are dimensions representing successive PCs.}
 
 \item{FUN}{A clustering function that takes a numeric matrix with rows as cells and
-returns a vector containing a cluster label for each cell.}
+returns a vector containing a cluster label for each cell.
+Defaults to \code{\link{clusterRows}}.}
 
-\item{...}{Further arguments to pass to \code{FUN}.}
+\item{...}{Further arguments to pass to \code{FUN}.
+Ignored if \code{FUN=NULL}, use \code{BLUSPARAM} instead.}
+
+\item{BLUSPARAM}{A \linkS4class{BlusterParam} object specifying the clustering to use when \code{FUN=NULL}.}
 
 \item{min.rank}{Integer scalar specifying the minimum number of PCs to use.}
 
@@ -61,7 +66,7 @@ until the point that the extra signal outweights the added noise at high dimensi
 such that resolution decreases and it becomes more difficult for \code{FUN} to distinguish between subpopulations.
 
 Any \code{FUN} can be used that automatically chooses the number of clusters based on the data.
-The default is a graph-based clustering method using \code{\link{buildSNNGraph}} and \code{\link{cluster_walktrap}},
+The default is a graph-based clustering method using \code{\link{makeSNNGraph}} and \code{\link{cluster_walktrap}},
 where arguments in \code{...} are passed to the former.
 Users should not supply \code{FUN} where the number of clusters is fixed in advance, 
 (e.g., k-means, hierarchical clustering with known \code{k} in \code{\link{cutree}}).
@@ -83,7 +88,7 @@ metadata(output)$chosen
 \seealso{
 \code{\link{runPCA}}, to compute the PCs in the first place.
 
-\code{\link{buildSNNGraph}}, for arguments to use in with default \code{FUN}.
+\code{\link{clusterRows}} and \linkS4class{BlusterParam}, for possible choices of \code{BLUSPARAM}.
 }
 \author{
 Aaron Lun
