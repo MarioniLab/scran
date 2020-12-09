@@ -53,7 +53,7 @@ decideTestsPerLabel <- function(results, method=c("separate", "global"), thresho
     pval.field="PValue", lfc.field="logFC") 
 {
     method <- match.arg(method)
-    all.p <- lapply(results, "[[", i="PValue")
+    all.p <- lapply(results, "[[", i=pval.field)
 
     if (method=="separate") {
         all.p <- lapply(all.p, p.adjust, method="BH")
