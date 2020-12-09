@@ -9,7 +9,7 @@ decideTestsPerLabel(
   results,
   method = c("separate", "global"),
   threshold = 0.05,
-  pval.field = "PValue",
+  pval.field = NULL,
   lfc.field = "logFC"
 )
 
@@ -27,7 +27,8 @@ or separately within each label.}
 
 \item{threshold}{Numeric scalar specifying the FDR threshold to consider genes as significant.}
 
-\item{pval.field}{String containing the name of the column containing the p-value in each entry of \code{results}.}
+\item{pval.field}{String containing the name of the column containing the p-value in each entry of \code{results}.
+Defaults to \code{"PValue"}, \code{"P.Value"} or \code{"p.value"} based on fields in the first entry of \code{results}.}
 
 \item{lfc.field}{String containing the name of the column containing the log-fold change.
 Ignored if the column is not available Defaults to \code{"logFC"} if this field is available.}

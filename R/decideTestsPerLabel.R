@@ -13,6 +13,7 @@
 #' or separately within each label.
 #' @param threshold Numeric scalar specifying the FDR threshold to consider genes as significant.
 #' @param pval.field String containing the name of the column containing the p-value in each entry of \code{results}.
+#' Defaults to \code{"PValue"}, \code{"P.Value"} or \code{"p.value"} based on fields in the first entry of \code{results}.
 #' @param lfc.field String containing the name of the column containing the log-fold change.
 #' Ignored if the column is not available Defaults to \code{"logFC"} if this field is available.
 #' @param ... Further arguments to pass to \code{decideTestsPerLabel} if \code{results} is a List.
@@ -50,10 +51,18 @@
 #' @export
 #' @importFrom stats p.adjust
 decideTestsPerLabel <- function(results, method=c("separate", "global"), threshold=0.05, 
-    pval.field="PValue", lfc.field="logFC") 
+    pval.field=NULL, lfc.field="logFC") 
 {
     method <- match.arg(method)
-    all.p <- lapply(results, "[[", i="PValue")
+
+    if (is.null(pval.field)) {
+        pval.field <- intersect(c("PValue", "P.Value", "p.value"), colnames(results[[1]]))
+        if (length(pval.field)==0) {
+            stop("could not automatically determine 'pval.field'")
+        }
+        pval.field <- pval.field[1]
+    }
+    all.p <- lapply(results, "[[", i=pval.field)
 
     if (method=="separate") {
         all.p <- lapply(all.p, p.adjust, method="BH")
