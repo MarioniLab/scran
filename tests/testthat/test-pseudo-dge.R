@@ -292,4 +292,19 @@ test_that("decideTestsPerLabel works correctly", {
     }
     dt02 <- decideTestsPerLabel(out)
     expect_identical(dt02, dt0)
+
+    # Works automatically with voom.
+    out <- pseudoBulkDGE(pseudo,
+        label=pseudo$cluster,
+        design=~DRUG,
+        coef="DRUG2",
+        method="voom"
+    )
+
+    dt <- decideTestsPerLabel(out)
+    dtp <- decideTestsPerLabel(out, pval.field="P.Value")
+    expect_identical(dt, dtp)
+
+    colnames(out[[1]]) <- head(LETTERS, ncol(out[[1]]))
+    expect_error(decideTestsPerLabel(out), "pval.field")
 })
