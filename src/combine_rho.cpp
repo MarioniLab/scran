@@ -10,7 +10,7 @@
 
 // [[Rcpp::export(rng=false)]]
 Rcpp::List combine_rho (int Ngenes, Rcpp::IntegerVector first, Rcpp::IntegerVector second, 
-    Rcpp::NumericVector Rho, Rcpp::NumericVector Pval, Rcpp::LogicalVector Limited, Rcpp::IntegerVector Order) 
+    Rcpp::NumericVector Rho, Rcpp::NumericVector Pval, Rcpp::IntegerVector Order) 
 {
     // Checking inputs.
     if (first.size()!=second.size()) { 
@@ -22,9 +22,6 @@ Rcpp::List combine_rho (int Ngenes, Rcpp::IntegerVector first, Rcpp::IntegerVect
     if (first.size()!=Pval.size()) {
         throw std::runtime_error("'pval' must be a double precision vector of length equal to the number of pairs");
     }
-    if (first.size()!=Limited.size()) {
-        throw std::runtime_error("'limited' must be a logical vector of length equal to the number of pairs");
-    }
     if (first.size()!=Order.size()) {
         throw std::runtime_error("'order' must be an integer vector of length equal to the number of pairs");
     }
@@ -34,7 +31,6 @@ Rcpp::List combine_rho (int Ngenes, Rcpp::IntegerVector first, Rcpp::IntegerVect
 
     // Going through and computing the combined p-value for each gene. 
     Rcpp::NumericVector pout(Ngenes), rout(Ngenes);
-    Rcpp::LogicalVector lout(Ngenes);
     std::vector<int> sofar(Ngenes);
 
     for (auto oIt=Order.begin(); oIt!=Order.end(); ++oIt) {
@@ -44,7 +40,6 @@ Rcpp::List combine_rho (int Ngenes, Rcpp::IntegerVector first, Rcpp::IntegerVect
         }
         const double& currho=Rho[curp];
         const double& curpval=Pval[curp];
-        const int& curlimit=Limited[curp];
 
         for (int i=0; i<2; ++i) {
             const int& gx=(i==0 ? first[curp] : second[curp]);
@@ -62,14 +57,6 @@ Rcpp::List combine_rho (int Ngenes, Rcpp::IntegerVector first, Rcpp::IntegerVect
                 combined_pval=temp_combined;
             }
 
-            // If any individual p-value is limited, the combined p-value is potentially limited;
-            // one could imagine obtaining an arbitrarily low individual p-value that drives the
-            // combined p-value to zero.
-            int& islim=lout[gx];
-            if (curlimit && !islim) {
-                islim=1;
-            }
-
             double& max_rho=rout[gx];
             if (already_there==1 || std::abs(max_rho) < std::abs(currho)) {
                 max_rho=currho;
@@ -83,5 +70,5 @@ Rcpp::List combine_rho (int Ngenes, Rcpp::IntegerVector first, Rcpp::IntegerVect
         (*poIt)*=(*sfIt); 
     }
 
-    return Rcpp::List::create(pout, rout, lout);
+    return Rcpp::List::create(pout, rout);
 }

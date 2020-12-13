@@ -16,7 +16,6 @@ A \linkS4class{DataFrame} with one row per unique gene in \code{stats} and conta
 \item{\code{rho}:}{Numeric, the correlation with the largest magnitude across all gene pairs involving the corresponding gene.}
 \item{\code{p.value}:}{Numeric, the Simes p-value for this gene.}
 \item{\code{FDR}:}{Numeric, the adjusted \code{p.value} across all rows.}
-\item{\code{limited}:}{Logical, indicates whether the combined p-value is at its lower bound.}
 }
 }
 \description{
