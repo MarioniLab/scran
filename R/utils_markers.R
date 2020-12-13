@@ -190,16 +190,23 @@
 }
 
 .weighted_average_vals <- function(vals, weights) {
+    if (is.null(weights)) {
+        weights <- rep(1, length(vals))
+    }
+
     combined <- total.weight <- 0
     for (x in seq_along(vals)) {
+        cur.vals <- vals[[x]]
         cur.weights <- weights[[x]]
-        product <- vals[[x]] * cur.weights
+        product <- cur.vals * cur.weights
 
-        # avoid problems with NA values that have zero weight.
-        product[is.na(product) & cur.weights==0] <- 0
+        # NA values are given zero weight.
+        failed <- is.na(cur.vals)
+        product[failed] <- 0
+        w <- ifelse(failed, 0, cur.weights)
 
         combined <- combined + product
-        total.weight <- total.weight + cur.weights
+        total.weight <- total.weight + w
     }
     combined/total.weight
 }

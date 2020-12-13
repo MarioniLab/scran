@@ -8,8 +8,7 @@
 #'     A numeric matrix-like object of log-normalized expression values, where rows are genes and columns are cells.
 #'     Alternatively, a \linkS4class{SummarizedExperiment} object containing such a matrix.
 #' 
-#' @param null.dist A numeric vector of rho values under the null hypothesis.
-#' @param ties.method String specifying how tied ranks should be handled.
+#' @param null.dist,ties.method,iters Deprecated arguments, ignored.
 #' @param use.names 
 #'     A logical scalar specifying whether the row names of \code{x} should be used in the output.
 #'     Alternatively, a character vector containing the names to use.
@@ -22,7 +21,6 @@
 #' @param equiweight A logical scalar indicating whether statistics from each block should be given equal weight.
 #' Otherwise, each block is weighted according to its number of cells.
 #' Only used if \code{block} is specified.
-#' @param iters Integer scalar specifying the number of iterations to use in \code{\link{correlateNull}} to build the null distribution.
 #' @param ... 
 #' For the generic, additional arguments to pass to specific methods.
 #'
@@ -36,19 +34,11 @@
 #' In contrast, genes driven by random noise should not exhibit any correlations with other genes.
 #' 
 #' We use Spearman's rho to quantify correlations robustly based on ranked gene expression.
-#' To identify correlated gene pairs, the significance of non-zero correlations is assessed using a permutation test.
+#' To identify correlated gene pairs, the significance of non-zero correlations is assessed using \code{\link{rhoToPValue}}.
 #' The null hypothesis is that the ranking of normalized expression across cells should be independent between genes.
-#' This allows us to construct a null distribution by randomizing the ranks within each gene.
-#' A pre-computed empirical distribution can be supplied as \code{null.dist}, which saves some time by avoiding repeated calls to \code{\link{correlateNull}}.
-#' 
-#' The p-value for each gene pair is defined as the tail probability of this distribution at the observed correlation (with some adjustment to avoid zero p-values).
 #' Correction for multiple testing is done using the BH method.
-#' The lower bound of the p-values is determined by the value of \code{iters}.
-#' If the \code{limited} field is \code{TRUE} in the returned dataframe, it may be possible to obtain lower p-values by increasing \code{iters}.
-#' This should be examined for non-significant pairs, in case some correlations are overlooked due to computational limitations.
-#' The function will automatically raise a warning if any genes are limited in their significance at a FDR of 5\%.
 #'
-#' For the SingleCellExperiment method, correlations should be computed for normalized expression values in the specified \code{assay.type}. 
+#' For the SingleCellExperiment method, normalized expression values should be specified by \code{assay.type}. 
 #' 
 #' @return
 #' A \linkS4class{DataFrame} is returned with one row per gene pair and the following fields:
@@ -58,8 +48,7 @@
 #'     If \code{use.names=FALSE}, integers are returned representing row indices of \code{x}, otherwise gene names are returned.
 #' }
 #' \item{\code{rho}:}{A numeric field containing the approximate Spearman's rho.}
-#' \item{\code{p.value, FDR}:}{Numeric fields containing the permutation p-value and its BH-corrected equivalent.}
-#' \item{\code{limited}:}{A logical scalar indicating whether the p-value is at its lower bound, defined by \code{iters}.}
+#' \item{\code{p.value, FDR}:}{Numeric fields containing the approximate p-value and its BH-corrected equivalent.}
 #' } 
 #' Rows are sorted by increasing \code{p.value} and, if tied, decreasing absolute size of \code{rho}.
 #' The exception is if \code{subset.row} is a matrix, in which case each row in the dataframe correspond to a row of \code{subset.row}.
@@ -72,17 +61,17 @@
 #' The approach used to remove these factors depends on whether \code{design} or \code{block} is used.
 #' If there is only one factor, e.g., for plate or animal of origin, \code{block} should be used.
 #' Each level of the factor is defined as a separate group of cells.
-#' For each pair of genes, correlations are computed within each group, and a weighted mean based on the group size) of the correlations is taken across all groups.
-#' The same strategy is used to generate the null distribution where ranks are computed and shuffled within each group.
+#' For each pair of genes, correlations are computed within each group, and a mean of the correlations is taken across all groups.
+#' If \code{equiweight=FALSE}, a weighted mean is computed based on the size of each group.
+#'
+#' Similarly, \code{\link{parallelStouffer}} is used to combine the (one-sided) p-values across all groups.
+#' This is done for each direction and a final p-value is computed for each gene pair using this Bonferri method.
+#' The idea is to ensure that the final p-value is only low when correlations are in the same direction across groups.
+#' If \code{equiweight=FALSE}, each p-value is weighted by the size of the corresponding group.
 #' 
 #' For experiments containing multiple factors or covariates, a design matrix should be passed into \code{design}.
-#' The \code{correlatePairs} function will fit a linear model to the (log-normalized) expression values.
-#' The correlation between a pair of genes is then computed from the residuals of the fitted model.
-#' Similarly, to obtain a null distribution of rho values, normally-distributed random errors are simulated in a fitted model based on \code{design};
-#'     the corresponding residuals are generated from these errors; and the correlation between sets of residuals is computed at each iteration.
-#' 
-#' We recommend using \code{block} wherever possible.
-#' While \code{design} can also be used for one-way layouts, this is not ideal as it assumes normality of errors and deals poorly with ties.
+#' The correlation between a pair of genes is then computed from the residuals of the fitted model (see \code{\link{ResidualMatrix}} for the implementation details).
+#' However, we recommend using \code{block} wherever possible as \code{design} assumes normality of errors and deals poorly with ties.
 #' Specifically, zero counts within or across groups may no longer be tied when converted to residuals, potentially resulting in spuriously large correlations.
 #'
 #' If any level of \code{block} has fewer than 3 cells, it is ignored.
@@ -111,22 +100,6 @@
 #' For example, we could select only HVGs to focus on genes contributing to cell-to-cell heterogeneity (and thus more likely to be involved in driving substructure).
 #' There is no need to account for HVG pre-selection in multiple testing, because rank correlations are unaffected by the variance.
 #' 
-#' @section Handling tied values:
-#' By default, \code{ties.method="expected"} which uses the expectation of the pairwise correlation from randomly broken ties.
-#' Imagine obtaining unique ranks by randomly breaking ties in expression values, e.g., by addition of some very small random jitter.
-#' The reported value of the correlation is simply the expected value across all possible permutations of broken ties.
-#' 
-#' With \code{ties.method="average"}, each set of tied observations is assigned the average rank across all tied values.
-#' This yields the standard value of Spearman's rho as computed by \code{\link{cor}}.
-#' 
-#' We use the expected rho by default as avoids inflated correlations in the presence of many ties.
-#' This is especially relevant for single-cell data containing many zeroes that remain tied after scaling normalization.
-#' An extreme example is that of two genes that are only expressed in the same cell, for which the standard rho is 1 while the expected rho is close to zero.
-#' 
-#' Note that the p-value calculations are not accurate in the presence of ties, as tied ranks are not considered by \code{correlateNull}.
-#' With \code{ties.method="expected"}, the p-values are probably a bit conservative.
-#' With \code{ties.method="average"}, they will be very anticonservative.
-#' 
 #' @author
 #' Aaron Lun
 #' 
@@ -140,25 +113,21 @@
 #' Some thoughts on testing for correlations.
 #' \url{https://ltla.github.io/SingleCellThoughts/software/correlations/corsim.html}
 #' 
-#' Phipson B and Smyth GK (2010).
-#' Permutation P-values should never be zero: calculating exact P-values when permutations are randomly drawn.
-#' \emph{Stat. Appl. Genet. Mol. Biol.} 9:Article 39.
-#' 
 #' @examples
 #' library(scuttle)
 #' sce <- mockSCE()
 #' sce <- logNormCounts(sce)
 #'
-#' # Basic pairwise application (turning down iters for speed).
-#' out <- correlatePairs(sce, subset.row=1:100, iters=1e5)
+#' # Basic pairwise application.
+#' out <- correlatePairs(sce, subset.row=1:100)
 #' head(out)
 #'
 #' # Computing between specific subsets of genes:
-#' out <- correlatePairs(sce, pairings=list(1:10, 110:120), iters=1e5)
+#' out <- correlatePairs(sce, pairings=list(1:10, 110:120))
 #' head(out)
 #'
 #' # Computing between specific pairs:
-#' out <- correlatePairs(sce, pairings=rbind(c(1,10), c(2, 50)), iters=1e5)
+#' out <- correlatePairs(sce, pairings=rbind(c(1,10), c(2, 50)))
 #' head(out)
 #' 
 #' @name correlatePairs
@@ -168,151 +137,119 @@ NULL
 #' @importFrom S4Vectors DataFrame
 #' @importFrom stats p.adjust
 #' @importFrom scuttle .bpNotSharedOrUp .assignIndicesToWorkers .splitVectorByWorkers fitLinearModel
-.correlate_pairs <- function(x, null.dist=NULL, ties.method=c("expected", "average"), 
-    iters=1e6, block=NULL, design=NULL, equiweight=TRUE, use.names=TRUE, subset.row=NULL, 
+#' @importFrom DelayedArray DelayedArray
+#' @importFrom ResidualMatrix ResidualMatrix
+#' @importFrom Matrix t
+#' @importFrom BiocGenerics cbind
+#' @importFrom metapod parallelStouffer
+.correlate_pairs <- function(x, null.dist=NULL, ties.method=NULL, iters=NULL, 
+    block=NULL, design=NULL, equiweight=TRUE, use.names=TRUE, subset.row=NULL, 
     pairings=NULL, BPPARAM=SerialParam())
 {
-    # Checking which pairwise correlations should be computed.
-    pair.out <- .construct_pair_indices(subset.row=subset.row, x=x, pairings=pairings)
-    subset.row <- pair.out$subset.row
-    gene1 <- pair.out$gene1
-    gene2 <- pair.out$gene2
-    reorder <- pair.out$reorder
-
     if (.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))
     }
 
-    null.dist <- .check_null_dist(x, block=block, design=design, iters=iters, 
-        equiweight=equiweight, null.dist=null.dist, BPPARAM=BPPARAM)
-    ties.method <- match.arg(ties.method)
-
-    # Splitting up gene pairs into jobs for multicore execution, converting to 0-based indices.
-    wout <- .assignIndicesToWorkers(length(gene1), BPPARAM)
-    sgene1 <- .splitVectorByWorkers(gene1 - 1L, BPPARAM, assignments=wout)
-    sgene2 <- .splitVectorByWorkers(gene2 - 1L, BPPARAM, assignments=wout)
-
-    blockFUN <- function(subset.col) {
-        .calculate_rho(sgene1, sgene2, x=x, subset.row=subset.row, 
-            subset.col=subset.col, ties.method=ties.method, BPPARAM=BPPARAM)
+    if (!is.null(iters) || !is.null(ties.method) || !is.null(null.dist)) {
+        .Deprecated(msg="'iters=', 'ties.method=' and 'null.dist=' are deprecated.")
     }
 
-    designFUN <- function(design) {
-        fitted <- fitLinearModel(x, design, subset.row=subset.row)
-        resids <- x[subset.row,,drop=FALSE] - tcrossprod(fitted$coefficients, design)
-        .calculate_rho(sgene1, sgene2, x=resids, subset.row=NULL, 
-            subset.col=NULL, ties.method=ties.method, BPPARAM=BPPARAM)
+    # Checking which pairwise correlations should be computed.
+    pair.out <- .construct_pair_indices(subset.row=subset.row, x=x, pairings=pairings)
+    gene1 <- pair.out$gene1
+    gene2 <- pair.out$gene2
+    reorder <- pair.out$reorder
+
+    if (!is.null(design)) {
+        block <- NULL 
+        x <- t(ResidualMatrix(t(x), design=design))
     }
 
-    all.rho <- .correlator_base(ncol(x), block, design, equiweight, blockFUN, designFUN)
-    if (is.null(all.rho)) {
-        all.rho <- rep(NA_real_, length(gene1))
+    if (is.null(block)) {
+        block <- list(NULL)
+    } else {
+        block <- split(seq_along(block), block)
+    }
+    rhos <- up.p <- down.p <- vector("list", length(block)) 
+
+    x <- DelayedArray(x)
+    for (b in seq_along(block)) {
+        x0 <- x
+        if (!is.null(block[[b]])) {
+            x0 <- x0[,block[[b]],drop=FALSE]
+        }
+
+        x1 <- x0[gene1,,drop=FALSE]
+        x2 <- x0[gene2,,drop=FALSE]
+        y <- cbind(x1, x2) # so we can block process both matrices at the same time.
+
+        output <- rowBlockApply(y, FUN=.calculate_rho, BPPARAM=BPPARAM)
+        output <- unlist(output)
+        rhos[[b]] <- output
+
+        p.out <- rhoToPValue(output, n=ncol(x0))
+        up.p[[b]] <- p.out$positive
+        down.p[[b]] <- p.out$negative
     }
 
-    # Computing p-values and formatting the output.
-    stats <- .rho_to_pval(all.rho, null.dist)
-    all.pval <- stats$p
-    all.lim <- stats$limited
+    weights <- NULL
+    if (!equiweight && length(block) > 1) {
+        weights <- lengths(block)
+    }
+    all.rho <- .weighted_average_vals(rhos, weights)
 
-    final.names <- .choose_gene_names(subset.row=subset.row, x=x, use.names=use.names)
-    gene1 <- final.names[gene1]
-    gene2 <- final.names[gene2]
+    up.p <- parallelStouffer(up.p, weights=weights)$p.value
+    down.p <- parallelStouffer(down.p, weights=weights)$p.value
+    all.pval <- pmin(up.p, down.p) * 2
 
-    out <- DataFrame(gene1=gene1, gene2=gene2, rho=all.rho, p.value=all.pval, 
-        FDR=p.adjust(all.pval, method="BH"), limited=all.lim)
+    if (!is.null(rownames(x)) && use.names) {
+        gene1 <- rownames(x)[gene1]
+        gene2 <- rownames(x)[gene2]
+    } 
+
+    out <- DataFrame(gene1=gene1, gene2=gene2, rho=all.rho, 
+        p.value=all.pval, FDR=p.adjust(all.pval, method="BH"))
     if (reorder) {
         out <- out[order(out$p.value, -abs(out$rho)),]
         rownames(out) <- NULL
     }
-    .is_sig_limited(out)
 
     out
 }
 
-##########################################
-### INTERNAL (correlation calculation) ###
-##########################################
-
-.check_null_dist <- function(x, block, design, ..., null.dist) 
-# This makes sure that the null distribution is in order.
-{
-    if (is.null(null.dist)) { 
-        if (!is.null(block)) { 
-            null.dist <- correlateNull(block=block, ...)
-        } else if (!is.null(design)) { 
-            null.dist <- correlateNull(design=design, ...)
-        } else {
-            null.dist <- correlateNull(ncol(x), ...)
-        }
-    }
-
-    null.dist <- as.double(null.dist)
-    if (is.unsorted(null.dist)) { 
-        null.dist <- sort(null.dist)
-    }
-    null.dist
-}
+###############################
+### INTERNAL (calculations) ###
+###############################
 
 #' @importFrom BiocParallel bpmapply 
-#' @importFrom DelayedMatrixStats rowRanks rowVars
-#' @importFrom DelayedArray DelayedArray getAutoBPPARAM setAutoBPPARAM
+#' @importFrom DelayedMatrixStats rowRanks rowSds
 #' @importFrom Matrix t rowMeans
 #' @importFrom stats var
-.calculate_rho <- function(sgene1, sgene2, x, subset.row, subset.col, ties.method, BPPARAM)
-# Iterating through all blocking levels (for one-way layouts; otherwise, this is a loop of length 1).
-# Computing correlations between gene pairs, and adding a weighted value to the final average.
-{
-    old <- getAutoBPPARAM()
-    setAutoBPPARAM(BPPARAM)
-    on.exit(setAutoBPPARAM(old))
-
-    ranks <- rowRanks(DelayedArray(x), rows=subset.row, cols=subset.col, ties.method="average") 
-    ranks <- DelayedArray(ranks)
-    ranks <- ranks - rowMeans(ranks)
-
-    if (ties.method=="average") {
-        rank.scale <- rowVars(ranks)
-    } else {
-        rank.scale <- var(seq_len(ncol(ranks)))
+.calculate_rho <- function(block) {
+    half <- ncol(block)/2
+    if (half < 2) {
+        return(rep(NA_real_, nrow(block)))
     }
 
-    N <- ncol(ranks)
-    rank.scale <- rank.scale * (N-1)/N # convert from var to mean square.
-    ranks <- ranks/sqrt(rank.scale)
+    first <- seq_len(half)
+    halves <- list(block[,first,drop=FALSE], block[,half + first,drop=FALSE])
 
-    # Transposing for easier C++ per-gene access.
-    # Realizing to avoid need to cache repeatedly.
-    ranks <- t(ranks)
-    ranks <- as.matrix(ranks) 
+    for (i in seq_along(halves)) {
+        current <- halves[[i]]
+        current <- rowRanks(current, ties.method="average")
+        current <- (current - rowMeans(current)) / rowSds(current)
+        halves[[i]] <- current
+    }
 
-    out <- bpmapply(FUN=compute_rho_pairs, gene1=sgene1, gene2=sgene2, 
-        MoreArgs=list(ranks=ranks), BPPARAM=BPPARAM, SIMPLIFY=FALSE)
-    unlist(out)
+    out <- rowSums(halves[[1]] * halves[[2]]) / (half - 1)
+    out[!is.finite(out)] <- NA_real_
+    out
 }
-
-.rho_to_pval <- function(all.rho, null.dist) 
-# Estimating the p-values (need to shift values to break ties conservatively by increasing the p-value).
-{
-    left <- findInterval(all.rho + 1e-8, null.dist)
-    right <- length(null.dist) - findInterval(all.rho - 1e-8, null.dist)
-    limited <- left==0L | right==0L
-    all.pval <- (pmin(left, right)+1)*2/(length(null.dist)+1)
-    all.pval <- pmin(all.pval, 1)
-    list(p=all.pval, limited=limited)
-}
-
-##################################
-### INTERNAL (pair definition) ###
-##################################
 
 #' @importFrom utils combn
 #' @importFrom scuttle .subset2index
-.construct_pair_indices <- function(subset.row, x, pairings) 
-# This returns a new subset-by-row vector, along with the pairs of elements
-# indexed along that vector (i.e., "1" refers to the first element of subset.row,
-# rather than the first element of "x").
-{
+.construct_pair_indices <- function(subset.row, x, pairings) {
     subset.row <- .subset2index(subset.row, x, byrow=TRUE)
     reorder <- TRUE
 
@@ -326,12 +263,8 @@ NULL
 
         # Discarding elements not in subset.row.
         keep <- s1 %in% subset.row & s2 %in% subset.row
-        s1 <- s1[keep]
-        s2 <- s2[keep]
-
-        subset.row <- sort(unique(c(s1, s2)))
-        gene1 <- match(s1, subset.row)
-        gene2 <- match(s2, subset.row)
+        gene1 <- s1[keep]
+        gene2 <- s2[keep]
         reorder <- FALSE
 
     } else if (is.list(pairings)) {
@@ -347,11 +280,7 @@ NULL
             stop("need at least one gene in each set to compute correlations") 
         }
 
-        subset.row <- sort(unique(unlist(converted)))
-        m1 <- match(converted[[1]], subset.row)
-        m2 <- match(converted[[2]], subset.row)
-        all.pairs <- expand.grid(m1, m2)
-
+        all.pairs <- expand.grid(converted[[1]], converted[[2]])
         keep <- all.pairs[,1]!=all.pairs[,2]
         gene1 <- all.pairs[keep,1]
         gene2 <- all.pairs[keep,2]
@@ -364,7 +293,7 @@ NULL
         }
        
         # Generating all pairs of genes within the subset.
-        all.pairs <- combn(ngenes, 2L)
+        all.pairs <- combn(subset.row, 2L)
         gene1 <- all.pairs[1,]
         gene2 <- all.pairs[2,]
 
@@ -372,14 +301,10 @@ NULL
         stop("pairings should be a list, matrix or NULL")
     }
 
-    return(list(subset.row=subset.row, gene1=gene1, gene2=gene2, reorder=reorder))
+    list(gene1=gene1, gene2=gene2, reorder=reorder)
 }
 
-####################################
-### INTERNAL (output formatting) ###
-####################################
-
-.choose_gene_names <- function(subset.row, x, use.names) {
+.choose_gene_names <- function(x, use.names) {
     newnames <- NULL
     if (is.logical(use.names)) {
         if (use.names) {

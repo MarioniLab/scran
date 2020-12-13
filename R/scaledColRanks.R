@@ -80,7 +80,7 @@ scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
 }
 
 #' @importClassesFrom Matrix sparseMatrix dgCMatrix
-#' @importFrom DelayedMatrixStats colRanks rowSds rowMins
+#' @importFrom DelayedMatrixStats colRanks rowMins rowVars
 #' @importFrom Matrix rowMeans
 #' @importFrom DelayedArray getAutoBPPARAM setAutoBPPARAM
 .get_scaled_ranks <- function(block, transposed, .as.sparse) {

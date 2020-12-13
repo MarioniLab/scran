@@ -290,23 +290,21 @@ markers[[1]][,1:2]
 
 Another useful procedure is to identify significant pairwise correlations between pairs of HVGs.
 The idea is to distinguish between HVGs caused by random stochasticity, and those that are driving systematic heterogeneity, e.g., between subpopulations.
-Correlations are computed in the `correlatePairs` method using a slightly modified version of Spearman's rho.
-Testing is performed against the null hypothesis of independent genes, using a permutation method in `correlateNull` to construct a null distribution.
+Correlations are computed by the `correlatePairs` method using a slightly modified version of Spearman's rho, 
+tested against the null hypothesis of zero correlation using the same method in `cor.test()`.
 
 ```{r}
 # Using the first 200 HVs, which are the most interesting anyway.
-# Also turning down the number of iterations for speed.
 of.interest <- top.hvgs[1:200]
-cor.pairs <- correlatePairs(sce, subset.row=of.interest, iters=1e5)
+cor.pairs <- correlatePairs(sce, subset.row=of.interest)
 cor.pairs
 ```
 
-As with variance estimation, if uninteresting substructure is present, this should be blocked on using the `block=` argument in both `correlateNull` and `correlatePairs`.
+As with variance estimation, if uninteresting substructure is present, this should be blocked on using the `block=` argument.
 This avoids strong correlations due to the blocking factor.
 
 ```{r}
-cor.pairs2 <- correlatePairs(sce, subset.row=of.interest, 
-    block=sce$donor, iters=1e5)
+cor.pairs2 <- correlatePairs(sce, subset.row=of.interest, block=sce$donor)
 ```
 
 The pairs can be used for choosing marker genes in experimental validation, and to construct gene-gene association networks.

@@ -9,8 +9,8 @@ choose_middle_effect_size <- function(Pvals, Effects, prop) {
     .Call('_scran_choose_middle_effect_size', PACKAGE = 'scran', Pvals, Effects, prop)
 }
 
-combine_rho <- function(Ngenes, first, second, Rho, Pval, Limited, Order) {
-    .Call('_scran_combine_rho', PACKAGE = 'scran', Ngenes, first, second, Rho, Pval, Limited, Order)
+combine_rho <- function(Ngenes, first, second, Rho, Pval, Order) {
+    .Call('_scran_combine_rho', PACKAGE = 'scran', Ngenes, first, second, Rho, Pval, Order)
 }
 
 compute_blocked_stats_lognorm <- function(mat, block, nblocks, sf, pseudo) {
@@ -39,10 +39,6 @@ get_null_rho <- function(Ncells, Niters, Seeds, Streams) {
 
 get_null_rho_design <- function(qr, qraux, Niters, Seeds, Streams) {
     .Call('_scran_get_null_rho_design', PACKAGE = 'scran', qr, qraux, Niters, Seeds, Streams)
-}
-
-compute_rho_pairs <- function(gene1, gene2, ranks) {
-    .Call('_scran_compute_rho_pairs', PACKAGE = 'scran', gene1, gene2, ranks)
 }
 
 cyclone_scores <- function(exprs, marker1, marker2, indices, niters, miniters, minpairs, seeds, streams) {

@@ -11,8 +11,8 @@ correlatePairs(x, ...)
 \S4method{correlatePairs}{ANY}(
   x,
   null.dist = NULL,
-  ties.method = c("expected", "average"),
-  iters = 1e+06,
+  ties.method = NULL,
+  iters = NULL,
   block = NULL,
   design = NULL,
   equiweight = TRUE,
@@ -32,11 +32,7 @@ Alternatively, a \linkS4class{SummarizedExperiment} object containing such a mat
 
 For the SummarizedExperiment method, additional methods to pass to the ANY method.}
 
-\item{null.dist}{A numeric vector of rho values under the null hypothesis.}
-
-\item{ties.method}{String specifying how tied ranks should be handled.}
-
-\item{iters}{Integer scalar specifying the number of iterations to use in \code{\link{correlateNull}} to build the null distribution.}
+\item{null.dist, ties.method, iters}{Deprecated arguments, ignored.}
 
 \item{block}{A factor specifying the blocking level for each cell in \code{x}.
 If specified, correlations are computed separately within each block and statistics are combined across blocks.}
@@ -68,8 +64,7 @@ A \linkS4class{DataFrame} is returned with one row per gene pair and the followi
     If \code{use.names=FALSE}, integers are returned representing row indices of \code{x}, otherwise gene names are returned.
 }
 \item{\code{rho}:}{A numeric field containing the approximate Spearman's rho.}
-\item{\code{p.value, FDR}:}{Numeric fields containing the permutation p-value and its BH-corrected equivalent.}
-\item{\code{limited}:}{A logical scalar indicating whether the p-value is at its lower bound, defined by \code{iters}.}
+\item{\code{p.value, FDR}:}{Numeric fields containing the approximate p-value and its BH-corrected equivalent.}
 } 
 Rows are sorted by increasing \code{p.value} and, if tied, decreasing absolute size of \code{rho}.
 The exception is if \code{subset.row} is a matrix, in which case each row in the dataframe correspond to a row of \code{subset.row}.
@@ -84,19 +79,11 @@ By definition, such genes should be correlated as they are behaving in the same 
 In contrast, genes driven by random noise should not exhibit any correlations with other genes.
 
 We use Spearman's rho to quantify correlations robustly based on ranked gene expression.
-To identify correlated gene pairs, the significance of non-zero correlations is assessed using a permutation test.
+To identify correlated gene pairs, the significance of non-zero correlations is assessed using \code{\link{rhoToPValue}}.
 The null hypothesis is that the ranking of normalized expression across cells should be independent between genes.
-This allows us to construct a null distribution by randomizing the ranks within each gene.
-A pre-computed empirical distribution can be supplied as \code{null.dist}, which saves some time by avoiding repeated calls to \code{\link{correlateNull}}.
-
-The p-value for each gene pair is defined as the tail probability of this distribution at the observed correlation (with some adjustment to avoid zero p-values).
 Correction for multiple testing is done using the BH method.
-The lower bound of the p-values is determined by the value of \code{iters}.
-If the \code{limited} field is \code{TRUE} in the returned dataframe, it may be possible to obtain lower p-values by increasing \code{iters}.
-This should be examined for non-significant pairs, in case some correlations are overlooked due to computational limitations.
-The function will automatically raise a warning if any genes are limited in their significance at a FDR of 5\%.
 
-For the SingleCellExperiment method, correlations should be computed for normalized expression values in the specified \code{assay.type}.
+For the SingleCellExperiment method, normalized expression values should be specified by \code{assay.type}.
 }
 \section{Accounting for uninteresting variation}{
 
@@ -107,17 +94,17 @@ Examples might be to block on batch effects or cell cycle phase, which may have 
 The approach used to remove these factors depends on whether \code{design} or \code{block} is used.
 If there is only one factor, e.g., for plate or animal of origin, \code{block} should be used.
 Each level of the factor is defined as a separate group of cells.
-For each pair of genes, correlations are computed within each group, and a weighted mean based on the group size) of the correlations is taken across all groups.
-The same strategy is used to generate the null distribution where ranks are computed and shuffled within each group.
+For each pair of genes, correlations are computed within each group, and a mean of the correlations is taken across all groups.
+If \code{equiweight=FALSE}, a weighted mean is computed based on the size of each group.
+
+Similarly, \code{\link{parallelStouffer}} is used to combine the (one-sided) p-values across all groups.
+This is done for each direction and a final p-value is computed for each gene pair using this Bonferri method.
+The idea is to ensure that the final p-value is only low when correlations are in the same direction across groups.
+If \code{equiweight=FALSE}, each p-value is weighted by the size of the corresponding group.
 
 For experiments containing multiple factors or covariates, a design matrix should be passed into \code{design}.
-The \code{correlatePairs} function will fit a linear model to the (log-normalized) expression values.
-The correlation between a pair of genes is then computed from the residuals of the fitted model.
-Similarly, to obtain a null distribution of rho values, normally-distributed random errors are simulated in a fitted model based on \code{design};
-    the corresponding residuals are generated from these errors; and the correlation between sets of residuals is computed at each iteration.
-
-We recommend using \code{block} wherever possible.
-While \code{design} can also be used for one-way layouts, this is not ideal as it assumes normality of errors and deals poorly with ties.
+The correlation between a pair of genes is then computed from the residuals of the fitted model (see \code{\link{ResidualMatrix}} for the implementation details).
+However, we recommend using \code{block} wherever possible as \code{design} assumes normality of errors and deals poorly with ties.
 Specifically, zero counts within or across groups may no longer be tied when converted to residuals, potentially resulting in spuriously large correlations.
 
 If any level of \code{block} has fewer than 3 cells, it is ignored.
@@ -149,39 +136,21 @@ For example, we could select only HVGs to focus on genes contributing to cell-to
 There is no need to account for HVG pre-selection in multiple testing, because rank correlations are unaffected by the variance.
 }
 
-\section{Handling tied values}{
-
-By default, \code{ties.method="expected"} which uses the expectation of the pairwise correlation from randomly broken ties.
-Imagine obtaining unique ranks by randomly breaking ties in expression values, e.g., by addition of some very small random jitter.
-The reported value of the correlation is simply the expected value across all possible permutations of broken ties.
-
-With \code{ties.method="average"}, each set of tied observations is assigned the average rank across all tied values.
-This yields the standard value of Spearman's rho as computed by \code{\link{cor}}.
-
-We use the expected rho by default as avoids inflated correlations in the presence of many ties.
-This is especially relevant for single-cell data containing many zeroes that remain tied after scaling normalization.
-An extreme example is that of two genes that are only expressed in the same cell, for which the standard rho is 1 while the expected rho is close to zero.
-
-Note that the p-value calculations are not accurate in the presence of ties, as tied ranks are not considered by \code{correlateNull}.
-With \code{ties.method="expected"}, the p-values are probably a bit conservative.
-With \code{ties.method="average"}, they will be very anticonservative.
-}
-
 \examples{
 library(scuttle)
 sce <- mockSCE()
 sce <- logNormCounts(sce)
 
-# Basic pairwise application (turning down iters for speed).
-out <- correlatePairs(sce, subset.row=1:100, iters=1e5)
+# Basic pairwise application.
+out <- correlatePairs(sce, subset.row=1:100)
 head(out)
 
 # Computing between specific subsets of genes:
-out <- correlatePairs(sce, pairings=list(1:10, 110:120), iters=1e5)
+out <- correlatePairs(sce, pairings=list(1:10, 110:120))
 head(out)
 
 # Computing between specific pairs:
-out <- correlatePairs(sce, pairings=rbind(c(1,10), c(2, 50)), iters=1e5)
+out <- correlatePairs(sce, pairings=rbind(c(1,10), c(2, 50)))
 head(out)
 
 }
@@ -189,10 +158,6 @@ head(out)
 Lun ATL (2019).
 Some thoughts on testing for correlations.
 \url{https://ltla.github.io/SingleCellThoughts/software/correlations/corsim.html}
-
-Phipson B and Smyth GK (2010).
-Permutation P-values should never be zero: calculating exact P-values when permutations are randomly drawn.
-\emph{Stat. Appl. Genet. Mol. Biol.} 9:Article 39.
 }
 \seealso{
 Compare to \code{\link{cor}} for the standard Spearman's calculation.
