@@ -1,6 +1,52 @@
 # This checks the correlatePairs function.
 # require(scran); require(testthat); source("setup.R"); source("test-correlate-pairs.R")
 
+####################################################################################################
+# This checks the basics of the correlation calculator.
+
+test_that("rhoToPValue works as expected", {
+    # Without ties.
+    x1 <- rnorm(20)
+    x2 <- rnorm(20)
+
+    y <- cor.test(x1, x2, method="spearman", alternative="less", exact=FALSE)
+    out <- rhoToPValue(cor(x1, x2, method="spearman"), n=length(x1), positive=FALSE)
+    expect_equal(y$p.value, out)
+
+    y <- cor.test(x1, x2, method="spearman", alternative="greater", exact=FALSE)
+    out <- rhoToPValue(cor(x1, x2, method="spearman"), n=length(x1), positive=TRUE)
+    expect_equal(y$p.value, out)
+
+    y <- cor.test(x1, x2, method="spearman", exact=FALSE)
+    out2 <- rhoToPValue(cor(x1, x2, method="spearman"), n=length(x1))
+    expect_equal(y$p.value, pmin(out2[[1]], out2[[2]])*2)
+
+    # Works with ties.
+    x1 <- rpois(20, lambda=3)
+    x2 <- rpois(20, lambda=3)
+
+    y <- cor.test(x1, x2, method="spearman", alternative="less", exact=FALSE)
+    out <- rhoToPValue(cor(x1, x2, method="spearman"), n=length(x1), positive=FALSE)
+    expect_equal(y$p.value, out)
+
+    y <- cor.test(x1, x2, method="spearman", alternative="greater", exact=FALSE)
+    out <- rhoToPValue(cor(x1, x2, method="spearman"), n=length(x1), positive=TRUE)
+    expect_equal(y$p.value, out)
+
+    y <- cor.test(x1, x2, method="spearman", exact=FALSE)
+    out2 <- rhoToPValue(cor(x1, x2, method="spearman"), n=length(x1))
+    expect_equal(y$p.value, pmin(out2[[1]], out2[[2]])*2)
+
+    # Vectorized properly.
+    r <- runif(20, -1, 1)
+    out <- rhoToPValue(r, n=length(x1))
+    ref <- lapply(r, FUN=rhoToPValue, n=length(x1))
+    ref <- do.call(mapply, c(list(c), ref, list(SIMPLIFY=FALSE)))
+    expect_equal(out, ref)
+})
+
+####################################################################################################
+
 checkCorrelations <- function(out, exprs, null.dist) {
     ranked.exprs <- apply(exprs, 1, FUN=rank, ties.method="average")
 
