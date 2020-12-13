@@ -228,6 +228,10 @@ NULL
 #' @importFrom stats var
 .calculate_rho <- function(block) {
     half <- ncol(block)/2
+    if (half < 2) {
+        return(rep(NA_real_, nrow(block)))
+    }
+
     first <- seq_len(half)
     halves <- list(block[,first,drop=FALSE], block[,half + first,drop=FALSE])
 
