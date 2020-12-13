@@ -142,7 +142,7 @@ NULL
 #' @importFrom Matrix t
 #' @importFrom BiocGenerics cbind
 #' @importFrom metapod parallelStouffer
-.correlate_pairs <- function(x, null.dist=NULL, ties.method=NULL, iters=1e6, 
+.correlate_pairs <- function(x, null.dist=NULL, ties.method=NULL, iters=NULL, 
     block=NULL, design=NULL, equiweight=TRUE, use.names=TRUE, subset.row=NULL, 
     pairings=NULL, BPPARAM=SerialParam())
 {
@@ -203,9 +203,10 @@ NULL
     down.p <- parallelStouffer(down.p, weights=weights)$p.value
     all.pval <- pmin(up.p, down.p) * 2
 
-    final.names <- .choose_gene_names(subset.row=subset.row, x=x, use.names=use.names)
-    gene1 <- final.names[gene1]
-    gene2 <- final.names[gene2]
+    if (!is.null(rownames(x)) && use.names) {
+        gene1 <- rownames(x)[gene1]
+        gene2 <- rownames(x)[gene2]
+    } 
 
     out <- DataFrame(gene1=gene1, gene2=gene2, rho=all.rho, 
         p.value=all.pval, FDR=p.adjust(all.pval, method="BH"))
@@ -258,8 +259,8 @@ NULL
 
         # Discarding elements not in subset.row.
         keep <- s1 %in% subset.row & s2 %in% subset.row
-        s1 <- s1[keep]
-        s2 <- s2[keep]
+        gene1 <- s1[keep]
+        gene2 <- s2[keep]
         reorder <- FALSE
 
     } else if (is.list(pairings)) {
@@ -275,7 +276,7 @@ NULL
             stop("need at least one gene in each set to compute correlations") 
         }
 
-        all.pairs <- expand.grid(converted[[1]], converted[[1]])
+        all.pairs <- expand.grid(converted[[1]], converted[[2]])
         keep <- all.pairs[,1]!=all.pairs[,2]
         gene1 <- all.pairs[keep,1]
         gene2 <- all.pairs[keep,2]
@@ -299,7 +300,7 @@ NULL
     list(gene1=gene1, gene2=gene2, reorder=reorder)
 }
 
-.choose_gene_names <- function(subset.row, x, use.names) {
+.choose_gene_names <- function(x, use.names) {
     newnames <- NULL
     if (is.logical(use.names)) {
         if (use.names) {

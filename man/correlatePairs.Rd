@@ -12,7 +12,7 @@ correlatePairs(x, ...)
   x,
   null.dist = NULL,
   ties.method = NULL,
-  iters = 1e+06,
+  iters = NULL,
   block = NULL,
   design = NULL,
   equiweight = TRUE,
