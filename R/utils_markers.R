@@ -190,6 +190,10 @@
 }
 
 .weighted_average_vals <- function(vals, weights) {
+    if (is.null(weights)) {
+        weights <- rep(1, length(vals))
+    }
+
     combined <- total.weight <- 0
     for (x in seq_along(vals)) {
         cur.weights <- weights[[x]]
