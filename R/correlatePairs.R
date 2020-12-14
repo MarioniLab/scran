@@ -141,7 +141,7 @@ NULL
 #' @importFrom ResidualMatrix ResidualMatrix
 #' @importFrom Matrix t
 #' @importFrom BiocGenerics cbind
-#' @importFrom metapod parallelStouffer
+#' @importFrom metapod parallelStouffer averageParallelStats
 .correlate_pairs <- function(x, null.dist=NULL, ties.method=NULL, iters=NULL, 
     block=NULL, design=NULL, equiweight=TRUE, use.names=TRUE, subset.row=NULL, 
     pairings=NULL, BPPARAM=SerialParam())
@@ -197,7 +197,7 @@ NULL
     if (!equiweight && length(block) > 1) {
         weights <- lengths(block)
     }
-    all.rho <- .weighted_average_vals(rhos, weights)
+    all.rho <- averageParallelStats(rhos, weights)
 
     up.p <- parallelStouffer(up.p, weights=weights)$p.value
     down.p <- parallelStouffer(down.p, weights=weights)$p.value

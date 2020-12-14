@@ -65,7 +65,7 @@
 }
 
 #' @importFrom S4Vectors DataFrame
-#' @importFrom metapod combineParallelPValues
+#' @importFrom metapod combineParallelPValues averageParallelStats
 .pairwise_blocked_internal <- function(i, group.vals, nblocks, direction="any", 
     gene.names=NULL, log.p=TRUE, STATFUN, effect.name) 
 {
@@ -98,8 +98,8 @@
             hvt.p <- .choose_leftright_pvalues(com.left, com.right, direction=direction)
             tvh.p <- .choose_leftright_pvalues(com.right, com.left, direction=direction)
 
-            forward.effect <- .weighted_average_vals(all.forward[valid.test], all.weight)
-            reverse.effect <- .weighted_average_vals(all.reverse[valid.test], all.weight)
+            forward.effect <- averageParallelStats(all.forward[valid.test], all.weight)
+            reverse.effect <- averageParallelStats(all.reverse[valid.test], all.weight)
         } else {
             hvt.p <- tvh.p <- forward.effect <- reverse.effect <- rep(NA_real_, length(all.left[[1]]))
             warning(paste("no within-block comparison between", host, "and", target))
@@ -187,26 +187,4 @@
     repval <- rev(cummin(rev(repval)))
     repval[o] <- repval
     repval
-}
-
-.weighted_average_vals <- function(vals, weights) {
-    if (is.null(weights)) {
-        weights <- rep(1, length(vals))
-    }
-
-    combined <- total.weight <- 0
-    for (x in seq_along(vals)) {
-        cur.vals <- vals[[x]]
-        cur.weights <- weights[[x]]
-        product <- cur.vals * cur.weights
-
-        # NA values are given zero weight.
-        failed <- is.na(cur.vals)
-        product[failed] <- 0
-        w <- ifelse(failed, 0, cur.weights)
-
-        combined <- combined + product
-        total.weight <- total.weight + w
-    }
-    combined/total.weight
 }
