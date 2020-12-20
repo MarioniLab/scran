@@ -49,7 +49,7 @@
 scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, as.sparse=FALSE, 
     withDimnames=TRUE, BPPARAM=SerialParam())
 {
-    if (!.bpNotSharedOrUp(BPPARAM)) {
+    if (.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))
     }
