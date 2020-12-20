@@ -150,7 +150,7 @@ setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
         }
     }
 
-    if (!.bpNotSharedOrUp(BPPARAM)) {
+    if (.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))
     }
