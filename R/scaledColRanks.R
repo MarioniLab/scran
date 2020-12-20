@@ -60,7 +60,7 @@ scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
         subset.row <- subset.row[further.subset]
     }
 
-    out <- colBlockApply(x[subset.row,,drop=FALSE], FUN=.get_scaled_ranks, 
+    out <- colBlockApply(x[subset.row,,drop=FALSE], FUN=.get_scaled_ranks, grid=as.sparse, 
         transposed=transposed, .as.sparse=as.sparse, BPPARAM=BPPARAM)
 
     if (transposed) {
@@ -100,7 +100,12 @@ scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
     }
 
     if (.as.sparse) {
-        out <- out - rowMins(out) 
+        # Figure out what the zeroes got transformed into.
+        is.zero <- which(block==0, arr.ind=TRUE)
+        offset <- numeric(ncol(block))
+        offset[is.zero[,2]] <- out[is.zero[,2:1]]
+
+        out <- out - offset
         out <- as(out, "dgCMatrix")
     } else {
         out <- out - rowMeans(out)
