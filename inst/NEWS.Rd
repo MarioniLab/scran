@@ -12,6 +12,8 @@
 \item \code{getClusteredPCs()} now uses \code{bluster::clusterRows()} by default.
 
 \item \code{decideTestsPerLabel()} now automatically detects \code{pval.field=} if not supplied.
+
+\item Added the \code{clusterCells()} wrapper around \pkg{bluster} functionality.
 }}
 
 \section{Version 1.18.0}{\itemize{
