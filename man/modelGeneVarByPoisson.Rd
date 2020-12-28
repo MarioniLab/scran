@@ -66,7 +66,7 @@ Only used if \code{block} is specified.}
 
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object indicating whether parallelization should be performed across genes.}
 
-\item{assay.type}{String or integer scalar specifying the assay containing the log-expression values.}
+\item{assay.type}{String or integer scalar specifying the assay containing the counts.}
 }
 \value{
 A \linkS4class{DataFrame} is returned where each row corresponds to a gene in \code{x} (or in \code{subset.row}, if specified).

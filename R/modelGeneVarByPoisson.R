@@ -17,6 +17,7 @@
 #' For the \linkS4class{SingleCellExperiment} method, further arguments to pass to the SummarizedExperiment method.
 #' @inheritParams modelGeneVar
 #' @inheritParams fitTrendPoisson
+#' @param assay.type String or integer scalar specifying the assay containing the counts.
 #'
 #' @details
 #' For each gene, we compute the variance and mean of the log-expression values.
