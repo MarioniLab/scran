@@ -153,6 +153,7 @@ test_that("modelGeneVar works with design matrices", {
     design0 <- matrix(1, ncol(dummy), 1)
     out <- modelGeneVar(dummy, design=design0)
     ref <- modelGeneVar(dummy)
+    metadata(out) <- metadata(ref) <- list() # the fit parameters are more sensitive to numerical precision.
     expect_equal(out, ref)
 
     REFFUN <- function(y, X) {
