@@ -32,8 +32,6 @@ Imports:
     DelayedMatrixStats, 
     BiocSingular,
     bluster,
-    ResidualMatrix,
-    ScaledMatrix,
     metapod,
     dqrng,
     beachmat
@@ -44,6 +42,8 @@ Suggests:
     HDF5Array, 
     scRNAseq,
     dynamicTreeCut, 
+    ResidualMatrix,
+    ScaledMatrix,
     DESeq2, 
     monocle, 
     Biobase,

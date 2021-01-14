@@ -230,7 +230,6 @@ NULL
 ############################
 
 #' @importFrom Matrix colMeans t
-#' @importFrom ScaledMatrix ScaledMatrix
 #' @importFrom DelayedArray getAutoBPPARAM setAutoBPPARAM
 #' @importFrom BiocParallel SerialParam
 .create_rank_matrix <- function(x, deferred, ..., BPPARAM=SerialParam()) {
@@ -242,7 +241,7 @@ NULL
         on.exit(setAutoBPPARAM(old))
 
         y <- scaledColRanks(x, ..., transposed=FALSE, as.sparse=TRUE, BPPARAM=BPPARAM)
-        y <- t(ScaledMatrix(y, center=colMeans(y)))
+        y <- t(ScaledMatrix::ScaledMatrix(y, center=colMeans(y)))
     }
     y
 }
