@@ -1,6 +1,6 @@
 Package: scran
-Version: 1.19.9
-Date: 2021-01-01
+Version: 1.19.10
+Date: 2021-01-13
 Title: Methods for Single-Cell RNA-Seq Data Analysis
 Description: 
     Implements miscellaneous functions for interpretation of single-cell RNA-seq data.
@@ -33,6 +33,7 @@ Imports:
     BiocSingular,
     bluster,
     ResidualMatrix,
+    ScaledMatrix,
     metapod,
     dqrng,
     beachmat
