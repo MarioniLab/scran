@@ -103,7 +103,7 @@ The idea is to ensure that the final p-value is only low when correlations are i
 If \code{equiweight=FALSE}, each p-value is weighted by the size of the corresponding group.
 
 For experiments containing multiple factors or covariates, a design matrix should be passed into \code{design}.
-The correlation between a pair of genes is then computed from the residuals of the fitted model (see \code{\link{ResidualMatrix}} for the implementation details).
+The correlation between each pair of genes is then computed from the residuals of the fitted model.
 However, we recommend using \code{block} wherever possible as \code{design} assumes normality of errors and deals poorly with ties.
 Specifically, zero counts within or across groups may no longer be tied when converted to residuals, potentially resulting in spuriously large correlations.
 
