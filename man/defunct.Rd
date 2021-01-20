@@ -12,8 +12,6 @@
 \alias{multiBlockNorm}
 \alias{overlapExprs}
 \alias{parallelPCA}
-\alias{neighborsToSNNGraph}
-\alias{neighborsToKNNGraph}
 \alias{bootstrapCluster}
 \alias{clusterModularity}
 \alias{clusterPurity}
@@ -49,10 +47,6 @@ multiBlockNorm(...)
 overlapExprs(...)
 
 parallelPCA(...)
-
-neighborsToSNNGraph(...)
-
-neighborsToKNNGraph(...)
 
 bootstrapCluster(...)
 
