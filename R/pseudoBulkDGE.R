@@ -9,8 +9,8 @@
 #' @param col.data A data.frame or \linkS4class{DataFrame} containing metadata for each column of \code{x}.
 #' @param label A vector of factor of length equal to \code{ncol(x)},
 #' specifying the cluster or cell type assignment for each column of \code{x}.
-#' @param design A formula to be used to construct a design matrix from variables in \code{data}.
-#' Alternatively, a function that accepts a data.frame with the same fields as \code{data} and returns a design matrix.
+#' @param design A formula to be used to construct a design matrix from variables in \code{col.data}.
+#' Alternatively, a function that accepts a data.frame with the same fields as \code{col.data} and returns a design matrix.
 #' @param condition A vector or factor of length equal to \code{ncol(x)},
 #' specifying the experimental condition for each column of \code{x}.
 #' Only used for abundance-based filtering of genes.
@@ -250,7 +250,8 @@ NULL
         curcond <- condition[m]
 
         de.out <- .pseudo_bulk_edgeR(y, curdesign=curdesign, curcond=curcond,
-            coef=coef, contrast=contrast, lfc=lfc)
+            coef=coef, contrast=contrast, lfc=lfc, row.names=rownames(x),
+            null.lfc=NULL, include.intermediates=FALSE)
 
         if (de.out$failed) {
             failed <- c(failed, i)
