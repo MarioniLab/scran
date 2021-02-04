@@ -253,10 +253,11 @@ NULL
             coef=coef, contrast=contrast, lfc=lfc, row.names=rownames(x),
             null.lfc=NULL, include.intermediates=FALSE)
 
-        if (de.out$failed) {
+        if (is.null(de.out)) {
             failed <- c(failed, i)
+            next
         }
-        de.results[[i]] <- de.out$result
+        de.results[[i]] <- de.out
     }
 
     output <- List(de.results)
