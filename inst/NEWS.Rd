@@ -14,6 +14,8 @@
 \item \code{decideTestsPerLabel()} now automatically detects \code{pval.field=} if not supplied.
 
 \item Added the \code{clusterCells()} wrapper around \pkg{bluster} functionality.
+
+\item Removed the option to pass a matrix in \code{design=} from \code{pseudoBulkDGE()}.
 }}
 
 \section{Version 1.18.0}{\itemize{

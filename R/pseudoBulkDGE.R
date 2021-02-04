@@ -144,16 +144,16 @@ NULL
     condition=NULL, lfc=0, include.intermediates=TRUE, row.data=NULL, sorted=FALSE, 
     method=c("edgeR", "voom"), qualities=TRUE, robust=TRUE, sample=NULL)
 {
-    if (is.function(design) || is(design, "formula")) {
-        .pseudo_bulk_dge(x=x, col.data=col.data, label=label, condition=condition, 
-            design=design, coef=coef, contrast=contrast, lfc=lfc, row.data=row.data, 
-            sorted=sorted, include.intermediates=include.intermediates,
-            method=match.arg(method), qualities=qualities, robust=robust)
-    } else {
-        .Deprecated(msg="matrix arguments for 'design=' are deprecated. \nUse functions or formulas instead.")
-        .pseudo_bulk_old(x=x, label=label, sample=sample, design=design, condition=condition,
-            coef=coef, contrast=contrast, lfc=lfc) 
+    if (!is.null(sample)) {
+        .Deprecated(msg="'sample=' is deprecated and will be ignored")
     }
+    if (is.matrix(design)) {
+        .Defunct(msg="matrix 'design=' is defunct, use a formula or function instead")
+    }
+    .pseudo_bulk_dge(x=x, col.data=col.data, label=label, condition=condition, 
+        design=design, coef=coef, contrast=contrast, lfc=lfc, row.data=row.data, 
+        sorted=sorted, include.intermediates=include.intermediates,
+        method=match.arg(method), qualities=qualities, robust=robust)
 }
 
 #' @importFrom edgeR DGEList 
@@ -226,44 +226,6 @@ NULL
     output
 }
 
-#' @importFrom edgeR DGEList 
-#' @importFrom S4Vectors DataFrame List metadata metadata<-
-.pseudo_bulk_old <- function(x, sample, label, design, coef, contrast=NULL, condition=NULL, lfc=0) {
-    sample <- as.character(sample)
-    label <- as.character(label)
-
-    if (!identical(sort(rownames(design)), sort(unique(sample)))) {
-        stop("'rownames(design)' and 'sample' should have the same levels")
-    }
-
-    de.results <- list()
-    failed <- character(0)
-
-    for (i in sort(unique(label))) {
-        chosen <- i==label
-
-        curx <- x[,chosen,drop=FALSE]
-        y <- DGEList(curx, samples=data.frame(sample=sample[chosen], stringsAsFactors=FALSE))
-
-        m <- match(as.character(y$samples$sample), rownames(design))
-        curdesign <- design[m,,drop=FALSE]
-        curcond <- condition[m]
-
-        de.out <- .pseudo_bulk_edgeR(y, curdesign=curdesign, curcond=curcond,
-            coef=coef, contrast=contrast, lfc=lfc, row.names=rownames(x),
-            null.lfc=NULL, include.intermediates=FALSE)
-
-        if (de.out$failed) {
-            failed <- c(failed, i)
-        }
-        de.results[[i]] <- de.out$result
-    }
-
-    output <- List(de.results)
-    metadata(output)$failed <- failed
-    output
-}
-
 #' @importFrom S4Vectors DataFrame metadata metadata<-
 #' @importFrom edgeR estimateDisp glmQLFit glmQLFTest getOffset scaleOffset
 #' calcNormFactors filterByExpr topTags glmLRT glmFit glmTreat
@@ -292,7 +254,7 @@ NULL
     }
 
     y <- estimateDisp(y, curdesign)
-    fit <- glmQLFit(y, curdesign, robust=TRUE)
+    fit <- glmQLFit(y, curdesign, robust=robust)
 
     if (lfc==0) {
         res <- glmQLFTest(fit, coef=coef, contrast=contrast)
