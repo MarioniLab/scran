@@ -16,6 +16,10 @@
 \item Added the \code{clusterCells()} wrapper around \pkg{bluster} functionality.
 
 \item Removed the option to pass a matrix in \code{design=} from \code{pseudoBulkDGE()}.
+
+\item Migrated all normalization-related functions (\code{computeSumFactors()}, \code{calculateSumFactors()},
+\code{cleanSizeFactors()} and \code{computeSpikeFactors()}) to a better home in \pkg{scuttle}.
+Soft-deprecated existing functions.
 }}
 
 \section{Version 1.18.0}{\itemize{

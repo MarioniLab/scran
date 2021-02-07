@@ -32,7 +32,7 @@ set.seed(100)
 Single-cell RNA sequencing (scRNA-seq) is a widely used technique for profiling gene expression in individual cells.
 This allows molecular biology to be studied at a resolution that cannot be matched by bulk sequencing of cell populations.
 The `r Biocpkg("scran")` package implements methods to perform low-level processing of scRNA-seq data,
-including cell cycle phase assignment, scaling normalization, variance modelling and testing for corrrelated genes.
+including cell cycle phase assignment, variance modelling and testing for marker genes and gene-gene correlations.
 This vignette provides brief descriptions of these methods and some toy examples to demonstrate their use.
 
 **Note:** A more comprehensive description of the use of `r Biocpkg("scran")` (along with other packages) in a scRNA-seq analysis workflow is available at https://osca.bioconductor.org.
@@ -63,39 +63,13 @@ sce <- sce[,!qcfilter$discard]
 summary(qcfilter$discard)
 ```
 
-# Normalizing cell-specific biases
-
 Cell-specific biases are normalized using the `computeSumFactors` method, which implements the deconvolution strategy for scaling normalization [@lun2016pooling].
-This computes size factors that are used to scale the counts in each cell.
-The assumption is that most genes are not differentially expressed (DE) between cells, such that any differences in expression across the majority of genes represents some technical bias that should be removed.
 
 ```{r}
 library(scran)
 clusters <- quickCluster(sce)
 sce <- computeSumFactors(sce, clusters=clusters)
 summary(sizeFactors(sce))
-```
-
-For larger data sets, clustering should be performed with the `quickCluster` function before normalization.
-Briefly, cells are grouped into clusters of similar expression; normalization is applied within each cluster to compute size factors for each cell; and the factors are rescaled by normalization between clusters.
-This reduces the risk of violating the above assumption when many genes are DE between clusters in a heterogeneous population.
-We also assume that quality control on the cells has already been performed, as low-quality cells with few expressed genes can often have negative size factor estimates.
-
-An alternative approach is to normalize based on the spike-in counts [@lun2017assessing].
-The idea is that the same quantity of spike-in RNA was added to each cell prior to library preparation.
-Size factors are computed to scale the counts such that the total coverage of the spike-in transcripts is equal across cells.
-The main practical difference is that spike-in normalization preserves differences in total RNA content between cells, whereas `computeSumFactors` and other non-DE methods do not.
-
-```{r}
-sce2 <- computeSpikeFactors(sce, "ERCC")
-summary(sizeFactors(sce2))
-```
-
-Regardless of which size factor calculation we choose,
-we will use the size factors to compute normalized expression values using `logNormCounts()` from `r Biocpkg("scuttle")`.
-Each expression value can be interpreted as a log-transformed "normalized count", and can be used in downstream applications like clustering or dimensionality reduction.
-
-```{r}
 sce <- logNormCounts(sce)
 ```
 

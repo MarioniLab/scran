@@ -165,19 +165,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// pool_size_factors
-Rcpp::List pool_size_factors(Rcpp::RObject exprs, Rcpp::NumericVector pseudo_cell, Rcpp::IntegerVector order, Rcpp::IntegerVector pool_sizes);
-RcppExport SEXP _scran_pool_size_factors(SEXP exprsSEXP, SEXP pseudo_cellSEXP, SEXP orderSEXP, SEXP pool_sizesSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::RObject >::type exprs(exprsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type pseudo_cell(pseudo_cellSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type order(orderSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type pool_sizes(pool_sizesSEXP);
-    rcpp_result_gen = Rcpp::wrap(pool_size_factors(exprs, pseudo_cell, order, pool_sizes));
-    return rcpp_result_gen;
-END_RCPP
-}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_scran_compute_Top_statistic_from_ranks", (DL_FUNC) &_scran_compute_Top_statistic_from_ranks, 2},
@@ -192,7 +179,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_scran_get_null_rho_design", (DL_FUNC) &_scran_get_null_rho_design, 5},
     {"_scran_cyclone_scores", (DL_FUNC) &_scran_cyclone_scores, 9},
     {"_scran_overlap_exprs", (DL_FUNC) &_scran_overlap_exprs, 3},
-    {"_scran_pool_size_factors", (DL_FUNC) &_scran_pool_size_factors, 4},
     {NULL, NULL, 0}
 };
 

@@ -49,7 +49,3 @@ overlap_exprs <- function(exprs, groups, lfc) {
     .Call('_scran_overlap_exprs', PACKAGE = 'scran', exprs, groups, lfc)
 }
 
-pool_size_factors <- function(exprs, pseudo_cell, order, pool_sizes) {
-    .Call('_scran_pool_size_factors', PACKAGE = 'scran', exprs, pseudo_cell, order, pool_sizes)
-}
-

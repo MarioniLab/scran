@@ -137,7 +137,7 @@
 NULL
 
 #' @importFrom stats hclust dist
-#' @importFrom scuttle librarySizeFactors normalizeCounts
+#' @importFrom scuttle librarySizeFactors normalizeCounts .guessMinMean
 #' @importFrom BiocParallel SerialParam bpmapply
 #' @importFrom Matrix t
 #' @importFrom BiocSingular bsparam bsdeferred
@@ -183,7 +183,7 @@ NULL
         # - we're allowing deferred calculations for PCA.
         deferred <- !is.na(d) && is(x, "dgCMatrix") && bsdeferred(BSPARAM)
 
-        min.mean <- .guess_min_mean(x, min.mean=min.mean, BPPARAM=BPPARAM)
+        min.mean <- .guessMinMean(x, min.mean=min.mean, BPPARAM=BPPARAM)
         y <- .create_rank_matrix(x, deferred=deferred, subset.row=subset.row, min.mean=min.mean, BPPARAM=BPPARAM)
     } else {
         sf <- librarySizeFactors(x, subset_row=subset.row)
