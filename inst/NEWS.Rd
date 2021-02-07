@@ -20,6 +20,8 @@
 \item Migrated all normalization-related functions (\code{computeSumFactors()}, \code{calculateSumFactors()},
 \code{cleanSizeFactors()} and \code{computeSpikeFactors()}) to a better home in \pkg{scuttle}.
 Soft-deprecated existing functions.
+
+\item Modified \code{getTopHVGs()} to accept a SingleCellExperiment and compute the DataFrame with \code{modelGeneVar()}.
 }}
 
 \section{Version 1.18.0}{\itemize{
