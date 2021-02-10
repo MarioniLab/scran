@@ -226,5 +226,5 @@ test_that("denoisePCA works with SingleCellExperiment inputs", {
     # Checking lowrank calculations.
     X3 <- denoisePCA(X, technical=dec, value="lowrank")
     pcx <- assay(X3, "lowrank")
-    expect_equivalent(pcx, tcrossprod(pcs$rotation, pcs$components))
+    expect_equivalent(as.matrix(pcx), tcrossprod(pcs$rotation, pcs$components))
 })

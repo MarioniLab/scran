@@ -11,13 +11,6 @@
         BPPARAM=BPPARAM)
 }
 
-.keep_rank_in_range <- function(chosen, min.rank, nd)
-# A function to sensibly incorporate the min.rank information,
-# while avoiding failures due to specification of a min.rank that is too large.
-{
-    max(chosen, min(min.rank, nd))
-}
-
 .svd_to_pca <- function(svd.out, ncomp, named=TRUE) 
 # Converts centred results to PCs.
 {
@@ -37,5 +30,60 @@
     if (named) {
         colnames(pcs) <- sprintf("PC%i", ix)
     }
-    return(pcs)
+    pcs
+}
+
+#' @importFrom Matrix rowMeans colSums
+.svd_to_rot <- function(svd.out, ncomp, original.mat, subset.row, fill.missing) {
+    ncomp <- min(ncomp, ncol(svd.out$v))
+
+    ix <- seq_len(ncomp)
+    V <- svd.out$v[,ix,drop=FALSE]
+    if (is.null(subset.row) || !fill.missing) {
+        rownames(V) <- rownames(original.mat)[subset.row]
+        return(V)
+    }
+
+    U <- svd.out$u[,ix,drop=FALSE]
+    D <- svd.out$d[ix]
+
+    fullV <- matrix(0, nrow(original.mat), ncomp)
+    rownames(fullV) <- rownames(original.mat)
+    colnames(fullV) <- colnames(V)
+    fullV[subset.row,] <- V
+
+    # The idea is that after our SVD, we have X=UDV' where each column of X is a gene.
+    # Leftover genes are new columns in X, which are projected on the space of U by doing U'X.
+    # This can be treated as new columns in DV', which can be multiplied by U to give denoised values.
+    # I've done a lot of implicit transpositions here, hence the code does not tightly follow the logic above.
+    leftovers <- !logical(nrow(original.mat))
+    leftovers[subset.row] <- FALSE
+
+    left.x <- original.mat[leftovers,,drop=FALSE] 
+    left.x <- as.matrix(left.x %*% U) - outer(rowMeans(left.x), colSums(U))
+
+    fullV[leftovers,] <- sweep(left.x, 2, D, "/", check.margin=FALSE)
+
+    fullV
+}
+
+#' @importFrom BiocSingular LowRankMatrix
+#' @importFrom SingleCellExperiment reduced.dim.matrix reducedDim<-
+#' @importFrom SummarizedExperiment assay<-
+.pca_to_output <- function(x, pcs, value=c("pca", "lowrank")) { 
+    if (value=="pca"){
+        out <- reduced.dim.matrix(pcs$components)
+        attr(out, "percentVar") <- pcs$percent.var
+        attr(out, "rotation") <- pcs$rotation
+    } else {
+        out <- LowRankMatrix(pcs$rotation, pcs$components)
+    }
+
+    value <- match.arg(value)
+    if (value=="pca"){
+        reducedDim(x, "PCA") <- out
+    } else if (value=="lowrank") {
+        assay(x, i="lowrank") <- out
+    }
+    x
 }

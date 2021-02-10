@@ -47,7 +47,8 @@
 #' \code{denoisePCA} will return a modified \code{x} with:
 #' \itemize{
 #' \item the PC results stored in the \code{\link{reducedDims}} as a \code{"PCA"} entry, if \code{type="pca"}.
-#' \item a low-rank approximation stored as a new \code{"lowrank"} assay, if \code{type="lowrank"}.
+#' \item a low-rank approximation as a new \code{"lowrank"} assay, if \code{type="lowrank"}.
+#' This is represented as a \linkS4class{LowRankMatrix}.
 #' }
 #' 
 #' \code{denoisePCANumber} will return an integer scalar specifying the number of PCs to retain.
@@ -143,11 +144,6 @@ NULL
 #' @importFrom scuttle .subset2index
 .get_denoised_pcs <- function(x, technical, subset.row=NULL, min.rank=5, max.rank=50, 
     fill.missing=FALSE, BSPARAM=bsparam(), BPPARAM=SerialParam())
-# Performs PCA and chooses the number of PCs to keep based on the technical noise.
-# This is done on the residuals if a design matrix is supplied.
-#
-# written by Aaron Lun
-# created 13 March 2017    
 {
     subset.row <- .subset2index(subset.row, x, byrow=TRUE)
     stats <- .compute_mean_var(x, BPPARAM=BPPARAM, subset.row=subset.row, design=NULL,
@@ -195,7 +191,7 @@ NULL
     var.exp <- svd.out$d^2 / (ncol(y) - 1)
     total.var <- sum(all.var)
     npcs <- denoisePCANumber(var.exp, sum(tech.var), total.var)
-    npcs <- .keep_rank_in_range(npcs, min.rank, length(var.exp))
+    npcs <- max(npcs, min(min.rank, length(var.exp)))
 
     list(
         components=.svd_to_pca(svd.out, npcs), 
@@ -203,37 +199,6 @@ NULL
         percent.var=var.exp/total.var*100
     )
 } 
-
-.svd_to_rot <- function(svd.out, ncomp, original.mat, subset.row, fill.missing) {
-    ix <- seq_len(ncomp)
-    V <- svd.out$v[,ix,drop=FALSE]
-    if (is.null(subset.row) || !fill.missing) {
-        rownames(V) <- rownames(original.mat)[subset.row]
-        return(V)
-    }
-
-    U <- svd.out$u[,ix,drop=FALSE]
-    D <- svd.out$d[ix]
-
-    fullV <- matrix(0, nrow(original.mat), ncomp)
-    rownames(fullV) <- rownames(original.mat)
-    colnames(fullV) <- colnames(V)
-    fullV[subset.row,] <- V
-
-    # The idea is that after our SVD, we have X=UDV' where each column of X is a gene.
-    # Leftover genes are new columns in X, which are projected on the space of U by doing U'X.
-    # This can be treated as new columns in DV', which can be multiplied by U to give denoised values.
-    # I've done a lot of implicit transpositions here, hence the code does not tightly follow the logic above.
-    leftovers <- !logical(nrow(original.mat))
-    leftovers[subset.row] <- FALSE
-
-    left.x <- original.mat[leftovers,,drop=FALSE] 
-    left.x <- as.matrix(left.x %*% U) - outer(rowMeans(left.x), colSums(U))
-
-    fullV[leftovers,] <- sweep(left.x, 2, D, "/", check.margin=FALSE)
-
-    fullV
-}
 
 ##############################
 # S4 method definitions here #
@@ -258,25 +223,10 @@ setMethod("getDenoisedPCs", "SummarizedExperiment", function(x, ..., assay.type=
 #' @rdname denoisePCA
 #' @importFrom SummarizedExperiment assay "assay<-"
 #' @importFrom SingleCellExperiment reducedDim<- 
-denoisePCA <- function(x, ..., value=c("pca", "lowrank"), assay.type="logcounts")
-{
+denoisePCA <- function(x, ..., value=c("pca", "lowrank"), assay.type="logcounts") {
     value <- match.arg(value) 
     pcs <- .get_denoised_pcs(assay(x, i=assay.type), ..., fill.missing=(value=="lowrank"))
-
-    if (value=="pca"){ 
-        out <- pcs$components
-    } else {
-        out <- tcrossprod(pcs$rotation, pcs$components)
-    }
-    attr(out, "percentVar") <- pcs$percent.var
-
-    value <- match.arg(value) 
-    if (value=="pca"){ 
-        reducedDim(x, "PCA") <- out
-    } else if (value=="lowrank") {
-        assay(x, i="lowrank") <- out
-    }
-    x
+    .pca_to_output(x, pcs, value=value)
 }
 
 #' @export

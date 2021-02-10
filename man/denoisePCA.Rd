@@ -84,7 +84,8 @@ This has number of columns between \code{min.rank} and \code{max.rank} inclusive
 \code{denoisePCA} will return a modified \code{x} with:
 \itemize{
 \item the PC results stored in the \code{\link{reducedDims}} as a \code{"PCA"} entry, if \code{type="pca"}.
-\item a low-rank approximation stored as a new \code{"lowrank"} assay, if \code{type="lowrank"}.
+\item a low-rank approximation as a new \code{"lowrank"} assay, if \code{type="lowrank"}.
+This is represented as a \linkS4class{LowRankMatrix}.
 }
 
 \code{denoisePCANumber} will return an integer scalar specifying the number of PCs to retain.
