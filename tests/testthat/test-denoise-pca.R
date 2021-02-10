@@ -224,7 +224,20 @@ test_that("denoisePCA works with SingleCellExperiment inputs", {
     expect_identical(attr(pcx, "percentVar"), pcs$percent.var)
 
     # Checking lowrank calculations.
+    set.seed(10)
     X3 <- denoisePCA(X, technical=dec, value="lowrank")
     pcx <- assay(X3, "lowrank")
     expect_equivalent(as.matrix(pcx), tcrossprod(pcs$rotation, pcs$components))
+
+    set.seed(10)
+    X3b <- denoisePCA(rbind(X, X[1:10,]), technical=rbind(dec, dec[1:10,]), subset.row=1:nrow(X), value="lowrank")
+    pcxb <- assay(X3b, "lowrank")
+    expect_equivalent(as.matrix(pcx), as.matrix(pcxb)[1:nrow(X),]) 
+    expect_equivalent(as.matrix(pcx[1:10,]), as.matrix(pcxb)[nrow(X) + 1:10,]) 
+
+    X4 <- denoisePCA(X, technical=dec, value="lowrank", subset.row=1:200)
+    expect_identical(dim(X3), dim(X4))
+
+    X5 <- denoisePCA(X, technical=dec, value="lowrank", subset.row=1:200, preserve.shape=FALSE)
+    expect_identical(rownames(X5), rownames(X)[seq_len(nrow(X)) <= 200L & dec$bio > 0])
 })

@@ -23,7 +23,14 @@ getDenoisedPCs(x, ...)
 
 \S4method{getDenoisedPCs}{SummarizedExperiment}(x, ..., assay.type = "logcounts")
 
-denoisePCA(x, ..., value = c("pca", "lowrank"), assay.type = "logcounts")
+denoisePCA(
+  x,
+  ...,
+  value = c("pca", "lowrank"),
+  subset.row = NULL,
+  preserve.shape = (value == "lowrank"),
+  assay.type = "logcounts"
+)
 
 denoisePCANumber(var.exp, var.tech, var.total)
 }
@@ -65,6 +72,9 @@ for genes that were not used in the PCA.}
 \code{"pca"} will return the PCs, \code{"n"} will return the number of retained components, 
 and \code{"lowrank"} will return a low-rank approximation.}
 
+\item{preserve.shape}{Logical scalar indicating whether or not the output SingleCellExperiment should be subsetted to \code{subset.row}.
+Only used if \code{subset.row} is not \code{NULL}.}
+
 \item{var.exp}{A numeric vector of the variances explained by successive PCs, starting from the first (but not necessarily containing all PCs).}
 
 \item{var.tech}{A numeric scalar containing the variance attributable to technical noise.}
@@ -76,9 +86,10 @@ For \code{getDenoisedPCs}, a list is returned containing:
 \itemize{
 \item \code{components}, a numeric matrix containing the selected PCs (columns) for all cells (rows).
 This has number of columns between \code{min.rank} and \code{max.rank} inclusive.
-\item \code{rotation}, a numeric matrix containing rotation vectors (columns) for all genes (rows).
+\item \code{rotation}, a numeric matrix containing rotation vectors (columns) for some or all genes (rows).
 This has number of columns between \code{min.rank} and \code{max.rank} inclusive.
 \item \code{percent.var}, a numeric vector containing the percentage of variance explained by the first \code{max.rank} PCs.
+\item \code{used.rows}, a integer vector specifying the rows of \code{x} that were used in the PCA.
 }
 
 \code{denoisePCA} will return a modified \code{x} with:
@@ -122,12 +133,14 @@ This can be used to only perform the PCA on genes with the largest biological co
 thus increasing the signal-to-noise ratio of downstream analyses.
 Note that only rows with positive components are actually used in the PCA, 
 even if we explicitly specified them in \code{subset.row}.
+The final set of genes used in the PCA is returned in \code{used.rows}.
 
 If \code{fill.missing=TRUE}, entries of the rotation matrix are imputed for all genes in \code{x}.
 This includes \dQuote{unselected} genes, i.e., with negative biological components or that were not selected with \code{subset.row}.
 Rotation vectors are extrapolated to these genes by projecting their expression profiles into the low-dimensional space defined by the SVD on the selected genes.
 This is useful for guaranteeing that any low-rank approximation has the same dimensions as the input \code{x}.
-For example, \code{denoisePCA} will only ever use \code{fill.missing=TRUE} when \code{value="lowrank"}.
+For example, \code{denoisePCA} will use \code{fill.missing=TRUE} internally when \code{preserve.shape=TRUE};
+this guarantees that any \code{value="lowrank"} setting will be of the same dimensions as the input \code{x}.
 }
 
 \section{Caveats with interpretation}{
