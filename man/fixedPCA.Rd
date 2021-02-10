@@ -9,7 +9,7 @@ fixedPCA(
   rank = 50,
   value = c("pca", "lowrank"),
   subset.row = NULL,
-  preserve.shape = TRUE,
+  preserve.shape = (value == "lowrank"),
   assay.type = "logcounts",
   BSPARAM = bsparam(),
   BPPARAM = SerialParam()
@@ -26,7 +26,7 @@ and \code{"lowrank"} will return a low-rank approximation.}
 
 \item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 
-\item{preserve.shape}{Logical scalar indicating whether or not the output should be subsetted to \code{subset.row}.
+\item{preserve.shape}{Logical scalar indicating whether or not the output SingleCellExperiment should be subsetted to \code{subset.row}.
 Only used if \code{subset.row} is not \code{NULL}.}
 
 \item{assay.type}{A string specifying which assay values to use.}
@@ -39,13 +39,10 @@ Only used if \code{subset.row} is not \code{NULL}.}
 A modified \code{x} with:
 \itemize{
 \item the PC results stored in the \code{\link{reducedDims}} as a \code{"PCA"} entry, if \code{type="pca"}.
-The attributes contain the rotation matrix and 
+The attributes contain the rotation matrix and the percentage of variance explained.
 \item a low-rank approximation stored as a new \code{"lowrank"} assay, if \code{type="lowrank"}.
 This is represented as a \linkS4class{LowRankMatrix}.
 }
-
-If \code{preserve.shape=TRUE}, the output always has the same number of rows as \code{x}.
-Otherwise, the output is subsetted by any non-\code{NULL} value of \code{subset.row}.
 }
 \description{
 Perform a PCA where the desired number of components is known ahead of time.
@@ -56,6 +53,11 @@ but in practice, the criterion for the optimum is difficult to define.
 As a result, it is often satisfactory to take an \emph{a priori}-defined \dQuote{reasonable} number of PCs for downstream analyses.
 A good rule of thumb is to set this to the upper bound on the expected number of subpopulations in the dataset
 (see the reasoning in \code{\link{getClusteredPCs}}.
+
+If \code{preserve.shape=TRUE}, the rotation matrix is extrapolated to include loadings for \dQuote{unselected} genes, i.e., not in \code{subset.row}.
+This is done by projecting their expression profiles into the low-dimensional space defined by the SVD on the selected genes.
+By doing so, we ensure that the output always has the same number of rows as \code{x} such that any \code{value="lowrank"} can fit into the assays.
+Otherwise, the output is subsetted by any non-\code{NULL} value of \code{subset.row}.
 }
 \examples{
 library(scuttle)

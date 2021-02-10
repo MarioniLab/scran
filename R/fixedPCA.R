@@ -5,20 +5,15 @@
 #' @param x A \linkS4class{SingleCellExperiment} object containing a log-expression amtrix.
 #' @inheritParams denoisePCA
 #' @param rank Integer scalar specifying the number of components.
-#' @param preserve.shape Logical scalar indicating whether or not the output should be subsetted to \code{subset.row}.
-#' Only used if \code{subset.row} is not \code{NULL}.
 #'
 #' @return 
 #' A modified \code{x} with:
 #' \itemize{
 #' \item the PC results stored in the \code{\link{reducedDims}} as a \code{"PCA"} entry, if \code{type="pca"}.
-#' The attributes contain the rotation matrix and 
+#' The attributes contain the rotation matrix and the percentage of variance explained.
 #' \item a low-rank approximation stored as a new \code{"lowrank"} assay, if \code{type="lowrank"}.
 #' This is represented as a \linkS4class{LowRankMatrix}.
 #' }
-#'
-#' If \code{preserve.shape=TRUE}, the output always has the same number of rows as \code{x}.
-#' Otherwise, the output is subsetted by any non-\code{NULL} value of \code{subset.row}.
 #'
 #' @details
 #' In theory, there is an optimal number of components for any given application,
@@ -27,6 +22,11 @@
 #' A good rule of thumb is to set this to the upper bound on the expected number of subpopulations in the dataset
 #' (see the reasoning in \code{\link{getClusteredPCs}}.
 #' 
+#' If \code{preserve.shape=TRUE}, the rotation matrix is extrapolated to include loadings for \dQuote{unselected} genes, i.e., not in \code{subset.row}.
+#' This is done by projecting their expression profiles into the low-dimensional space defined by the SVD on the selected genes.
+#' By doing so, we ensure that the output always has the same number of rows as \code{x} such that any \code{value="lowrank"} can fit into the assays.
+#' Otherwise, the output is subsetted by any non-\code{NULL} value of \code{subset.row}.
+#'
 #' @author Aaron Lun
 #'
 #' @seealso 
@@ -57,7 +57,7 @@
 #' @importFrom SummarizedExperiment assay
 #' @importFrom scuttle .bpNotSharedOrUp
 #' @importFrom Matrix t 
-fixedPCA <- function(x, rank=50, value=c("pca", "lowrank"), subset.row=NULL, preserve.shape=TRUE, assay.type="logcounts", BSPARAM=bsparam(), BPPARAM=SerialParam()) {
+fixedPCA <- function(x, rank=50, value=c("pca", "lowrank"), subset.row=NULL, preserve.shape=(value=="lowrank"), assay.type="logcounts", BSPARAM=bsparam(), BPPARAM=SerialParam()) {
     if (!.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))
@@ -77,6 +77,8 @@ fixedPCA <- function(x, rank=50, value=c("pca", "lowrank"), subset.row=NULL, pre
     var.exp <- svd.out$d^2 / (ncol(y) - 1)
 
     value <- match.arg(value)
+    force(preserve.shape) # must happen after 'value', for the defaults to work properly.
+
     pcs <- list(
         components=.svd_to_pca(svd.out, rank), 
         rotation=.svd_to_rot(svd.out, rank, x, subset.row, fill.missing=preserve.shape),
