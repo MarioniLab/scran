@@ -8,7 +8,7 @@ library(BiocSingular)
 
 test_that("fixedPCA works correctly", {
     set.seed(100)
-    sce <- fixedPCA(sce)
+    sce <- fixedPCA(sce, subset.row=NULL)
     set.seed(100)
     ref <- runPCA(t(logcounts(sce)), rank=50, BSPARAM=bsparam())
     expect_equal(unclass(reducedDim(sce))[,], ref$x)
@@ -34,9 +34,9 @@ test_that("fixedPCA works correctly", {
 
 test_that("fixedPCA works correctly with low rank approximations", {
     set.seed(100)
-    sce <- fixedPCA(sce)
+    sce <- fixedPCA(sce, subset.row=NULL)
     set.seed(100)
-    sce2 <- fixedPCA(sce, value="lowrank")
+    sce2 <- fixedPCA(sce, value="lowrank", subset.row=NULL)
     rot <- attr(reducedDim(sce), "rotation")
     expect_identical(as.matrix(assay(sce2, "lowrank")[1:10,]), tcrossprod(rot[1:10,], reducedDim(sce)))
 
@@ -51,3 +51,8 @@ test_that("fixedPCA works correctly with low rank approximations", {
     sce4 <- fixedPCA(rbind(sce, sce[1:10,]), subset.row=seq_len(nrow(sce)), value="lowrank", preserve.shape=FALSE)
     expect_identical(assay(sce2, "lowrank"), assay(sce4, "lowrank"))
 })
+
+test_that("fixedPCA warns when subset.row is not specified", {
+    expect_warning(fixedPCA(sce), "subset.row")
+})
+

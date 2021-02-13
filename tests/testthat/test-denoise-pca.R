@@ -61,7 +61,7 @@ lcounts <- log2(counts + 1)
 ##########################################
 
 test_that("getDenoisedPCs works as expected", {
-    d.out <- getDenoisedPCs(lcounts, technical=dec)
+    d.out <- getDenoisedPCs(lcounts, technical=dec, subset.row=NULL)
     expect_identical(nrow(d.out$components), ncol(lcounts))
 
     verify_npcs <- function(d.out, sdev, tech.total) {
@@ -92,7 +92,7 @@ test_that("getDenoisedPCs works as expected", {
     for (sub in c(0.05, 0.1, 0.2)) {
         tmp <- dec
         tmp$tech <- tmp$tech - sub
-        d.out2 <- getDenoisedPCs(lcounts, technical=tmp)
+        d.out2 <- getDenoisedPCs(lcounts, technical=tmp, subset.row=NULL)
         expect_false(ncol(d.out$components)==ncol(d.out2$components))
 
         keep <- tmp$total > tmp$tech
@@ -107,7 +107,7 @@ test_that("getDenoisedPCs works as expected", {
 })
 
 test_that("Rotation vectors are projected correctly", {
-    lrout <- getDenoisedPCs(lcounts, technical=metadata(dec)$trend, fill.missing=TRUE)
+    lrout <- getDenoisedPCs(lcounts, technical=metadata(dec)$trend, subset.row=NULL, fill.missing=TRUE)
 
     lcounts.extra <- rbind(lcounts, lcounts[1:10,])
     lrout.extra <- getDenoisedPCs(lcounts.extra, technical=metadata(dec)$trend, 
@@ -118,14 +118,14 @@ test_that("Rotation vectors are projected correctly", {
 
     # Checking that we get the exact input back when we ask for everything.
     lrout <- getDenoisedPCs(lcounts, technical=dec, min.rank=ncol(lcounts), 
-        max.rank=ncol(lcounts), fill.missing=TRUE)
+        max.rank=ncol(lcounts), fill.missing=TRUE, subset.row=NULL)
     expect_equal(tcrossprod(lrout$rotation, lrout$components), lcounts - rowMeans(lcounts))
 }) 
 
 set.seed(1001)
 test_that("getDenoisedPCs works with different technical inputs", {
-    ref <- getDenoisedPCs(lcounts, technical=dec)
-    pcs <- getDenoisedPCs(lcounts, technical=dec$tech)
+    ref <- getDenoisedPCs(lcounts, technical=dec, subset.row=NULL)
+    pcs <- getDenoisedPCs(lcounts, technical=dec$tech, subset.row=NULL)
     expect_equal(ref, pcs)
 
     # Row sums in C++ have different precision from row sums in R on 32 bit,
@@ -135,7 +135,7 @@ test_that("getDenoisedPCs works with different technical inputs", {
     #
     # Maybe this was fixed by my use of modelGeneVar above, but I'm not sure.
     if (.Platform$r_arch=="") {
-        alt <- getDenoisedPCs(lcounts, technical=metadata(dec)$trend)
+        alt <- getDenoisedPCs(lcounts, technical=metadata(dec)$trend, subset.row=NULL)
         expect_equal(ref, alt)
     }
 
@@ -147,8 +147,8 @@ test_that("getDenoisedPCs works with different technical inputs", {
     # what with us being so close to release. 
     rescaled <- runif(nrow(lcounts))
     lcountsX <- lcounts * rescaled
-    ref <- scran:::.get_denoised_pcs(lcountsX, technical=dec$tech * rescaled^2)
-    pcs <- scran:::.get_denoised_pcs(lcountsX, technical=dec)
+    ref <- scran:::.get_denoised_pcs(lcountsX, technical=dec$tech * rescaled^2, subset.row=NULL)
+    pcs <- scran:::.get_denoised_pcs(lcountsX, technical=dec, subset.row=NULL)
     expect_equal(ref, pcs)
 
     # Handles all-zero rows with zero variance, where scaling would be undefined.
@@ -156,21 +156,21 @@ test_that("getDenoisedPCs works with different technical inputs", {
     lcountsAlt[1,] <- 0
     decAlt <- dec	
     decAlt$total[1] <- decAlt$tech[1] <- decAlt$bio[1] <- 0
-    ref <- getDenoisedPCs(lcountsAlt, technical=decAlt$tech)
-    pcs <- getDenoisedPCs(lcountsAlt, technical=decAlt)
+    ref <- getDenoisedPCs(lcountsAlt, technical=decAlt$tech, subset.row=NULL)
+    pcs <- getDenoisedPCs(lcountsAlt, technical=decAlt, subset.row=NULL)
     expect_equal(ref, pcs)
 
     # Handles cases where observed variance is zero but reported variance is not, e.g., after blocking.
     lcountsAlt[1,] <- runif(ncol(lcountsAlt))
-    ref <- getDenoisedPCs(lcountsAlt[-1,], technical=decAlt$tech[-1])
-    pcs <- getDenoisedPCs(lcountsAlt, technical=decAlt)
+    ref <- getDenoisedPCs(lcountsAlt[-1,], technical=decAlt$tech[-1], subset.row=NULL)
+    pcs <- getDenoisedPCs(lcountsAlt, technical=decAlt, subset.row=NULL)
     expect_equal(ref$components, pcs$components)
 })
 
 test_that("getDenoisedPCs works with subsetting", {
     sub <- sample(ngenes, ngenes/2)
     pcs <- getDenoisedPCs(lcounts, technical=dec, subset.row=sub)
-    pcs2 <- getDenoisedPCs(lcounts[sub,], technical=dec[sub,])
+    pcs2 <- getDenoisedPCs(lcounts[sub,], technical=dec[sub,], subset.row=NULL)
 
     are_PCs_equal(pcs$components, pcs2$components)
     are_PCs_equal(pcs$rotation, pcs2$rotation)
@@ -185,47 +185,49 @@ test_that("getDenoisedPCs works with subsetting", {
 
 test_that("getDenoisedPCs works with min/max rank settings", {
     # Setting the min/max at around ncol(ref) to force it to a predictable number of pcs.
-    ref <- getDenoisedPCs(lcounts, technical=dec)$components
-    pcs <- getDenoisedPCs(lcounts, technical=dec, min.rank=ncol(ref)+1)$components
+    ref <- getDenoisedPCs(lcounts, technical=dec, subset.row=NULL)$components
+    pcs <- getDenoisedPCs(lcounts, technical=dec, min.rank=ncol(ref)+1, subset.row=NULL)$components
     expect_identical(ncol(pcs), ncol(ref)+1L)
     expect_identical(pcs[,seq_len(ncol(ref))], ref[,]) 
 
-    pcs <- getDenoisedPCs(lcounts, technical=dec, max.rank=ncol(ref)-1)$components
+    pcs <- getDenoisedPCs(lcounts, technical=dec, max.rank=ncol(ref)-1, subset.row=NULL)$components
     expect_identical(ncol(pcs), ncol(ref)-1L)
     expect_identical(pcs[,], ref[,-ncol(ref)])
 
     # Stress-testing some gibberish min/max settings.
-    pcs <- getDenoisedPCs(lcounts, technical=dec, min.rank=ncol(lcounts), max.rank=ncol(ref))$components
+    pcs <- getDenoisedPCs(lcounts, technical=dec, min.rank=ncol(lcounts), max.rank=ncol(ref), subset.row=NULL)$components
     expect_identical(ncol(pcs), ncol(ref))
-    pcs <- getDenoisedPCs(lcounts, technical=dec, min.rank=ncol(ref), max.rank=Inf)$components
+    pcs <- getDenoisedPCs(lcounts, technical=dec, min.rank=ncol(ref), max.rank=Inf, subset.row=NULL)$components
     expect_identical(ncol(pcs), ncol(ref))
-    pcs <- getDenoisedPCs(lcounts, technical=dec, min.rank=0, max.rank=Inf)$components
+    pcs <- getDenoisedPCs(lcounts, technical=dec, min.rank=0, max.rank=Inf, subset.row=NULL)$components
     expect_identical(ncol(pcs), ncol(ref))
 })
-
-##########################################
-##########################################
 
 test_that("denoisePCA throws errors correctly", {
-    expect_error(getDenoisedPCs(lcounts[0,], dec), "same rows")
-    expect_error(getDenoisedPCs(lcounts[0,], dec$tech), "same as")
-    expect_error(getDenoisedPCs(lcounts[0,,drop=FALSE], dec[0,]), "a dimension is zero")
-    expect_error(getDenoisedPCs(lcounts[,0], dec), "no residual d.f. in any level")
+    expect_error(getDenoisedPCs(lcounts[0,], dec, subset.row=NULL), "same rows")
+    expect_error(getDenoisedPCs(lcounts[0,], dec$tech, subset.row=NULL), "same as")
+    expect_error(getDenoisedPCs(lcounts[0,,drop=FALSE], dec[0,], subset.row=NULL), "a dimension is zero")
+    expect_error(getDenoisedPCs(lcounts[,0], dec, subset.row=NULL), "no residual d.f. in any level")
+
+    expect_warning(getDenoisedPCs(lcounts, dec), "subset.row")
 })
+
+##########################################
+##########################################
 
 test_that("denoisePCA works with SingleCellExperiment inputs", {
     X <- SingleCellExperiment(list(logcounts=lcounts))
-    X2 <- denoisePCA(X, technical=dec)
+    expect_warning(X2 <- denoisePCA(X, technical=dec), "subset.row")
     pcx <- reducedDim(X2, "PCA")
     rownames(pcx) <- NULL
 
-    pcs <- getDenoisedPCs(lcounts, technical=dec, fill.missing=TRUE)
+    pcs <- getDenoisedPCs(lcounts, technical=dec, fill.missing=TRUE, subset.row=NULL)
     are_PCs_equal(pcx, pcs$components)
     expect_identical(attr(pcx, "percentVar"), pcs$percent.var)
 
     # Checking lowrank calculations.
     set.seed(10)
-    X3 <- denoisePCA(X, technical=dec, value="lowrank")
+    X3 <- denoisePCA(X, technical=dec, value="lowrank", subset.row=NULL)
     pcx <- assay(X3, "lowrank")
     expect_equivalent(as.matrix(pcx), tcrossprod(pcs$rotation, pcs$components))
 

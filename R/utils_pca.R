@@ -87,3 +87,12 @@
     }
     x
 }
+
+#' @importFrom scuttle .subset2index
+.process_subset_for_pca <- function(subset.row, x) {
+    if (missing(subset.row)) {
+        warning(paste(strwrap("'subset.row=' is typically used to specify HVGs for PCA. If the use of all genes is intentional, suppress this message with 'subset.row=NULL'."), collapse="\n"))
+        subset.row <- NULL
+    }
+    .subset2index(subset.row, x, byrow=TRUE)
+}

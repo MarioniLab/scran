@@ -21,11 +21,15 @@
 #' As a result, it is often satisfactory to take an \emph{a priori}-defined \dQuote{reasonable} number of PCs for downstream analyses.
 #' A good rule of thumb is to set this to the upper bound on the expected number of subpopulations in the dataset
 #' (see the reasoning in \code{\link{getClusteredPCs}}.
-#' 
+#'
+#' We can use \code{subset.row} to perform the PCA on a subset of genes.
+#' This is typically used to subset to HVGs to reduce computational time and increase the signal-to-noise ratio of downstream analyses.
 #' If \code{preserve.shape=TRUE}, the rotation matrix is extrapolated to include loadings for \dQuote{unselected} genes, i.e., not in \code{subset.row}.
 #' This is done by projecting their expression profiles into the low-dimensional space defined by the SVD on the selected genes.
 #' By doing so, we ensure that the output always has the same number of rows as \code{x} such that any \code{value="lowrank"} can fit into the assays.
-#' Otherwise, the output is subsetted by any non-\code{NULL} value of \code{subset.row}.
+#'
+#' Otherwise, if \code{preserve.shape=FALSE}, the output is subsetted by any non-\code{NULL} value of \code{subset.row}.
+#' This is equivalent to the return value after calling the function on \code{x[subset.row,]}.
 #'
 #' @author Aaron Lun
 #'
@@ -57,7 +61,7 @@
 #' @importFrom SummarizedExperiment assay
 #' @importFrom scuttle .bpNotSharedOrUp
 #' @importFrom Matrix t 
-fixedPCA <- function(x, rank=50, value=c("pca", "lowrank"), subset.row=NULL, preserve.shape=(value=="lowrank"), assay.type="logcounts", BSPARAM=bsparam(), BPPARAM=SerialParam()) {
+fixedPCA <- function(x, rank=50, value=c("pca", "lowrank"), subset.row, preserve.shape=(value=="lowrank"), assay.type="logcounts", BSPARAM=bsparam(), BPPARAM=SerialParam()) {
     if (!.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))
@@ -66,7 +70,7 @@ fixedPCA <- function(x, rank=50, value=c("pca", "lowrank"), subset.row=NULL, pre
     original <- x
     x <- assay(x, assay.type)
 
-    subset.row <- .subset2index(subset.row, x, byrow=TRUE)
+    subset.row <- .process_subset_for_pca(subset.row, x)
     stats <- .compute_mean_var(x, BPPARAM=BPPARAM, subset.row=subset.row, 
         design=NULL, block.FUN=compute_blocked_stats_none, block=NULL)
     total.var <- sum(stats$vars)

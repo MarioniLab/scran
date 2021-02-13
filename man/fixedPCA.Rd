@@ -8,7 +8,7 @@ fixedPCA(
   x,
   rank = 50,
   value = c("pca", "lowrank"),
-  subset.row = NULL,
+  subset.row,
   preserve.shape = (value == "lowrank"),
   assay.type = "logcounts",
   BSPARAM = bsparam(),
@@ -24,7 +24,8 @@ fixedPCA(
 \code{"pca"} will return the PCs, \code{"n"} will return the number of retained components, 
 and \code{"lowrank"} will return a low-rank approximation.}
 
-\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
+\item{subset.row}{A logical, character or integer vector specifying the rows of \code{x} to use in the PCA.
+Defaults to \code{NULL} (i.e., all rows used) with a warning.}
 
 \item{preserve.shape}{Logical scalar indicating whether or not the output SingleCellExperiment should be subsetted to \code{subset.row}.
 Only used if \code{subset.row} is not \code{NULL}.}
@@ -54,10 +55,14 @@ As a result, it is often satisfactory to take an \emph{a priori}-defined \dQuote
 A good rule of thumb is to set this to the upper bound on the expected number of subpopulations in the dataset
 (see the reasoning in \code{\link{getClusteredPCs}}.
 
+We can use \code{subset.row} to perform the PCA on a subset of genes.
+This is typically used to subset to HVGs to reduce computational time and increase the signal-to-noise ratio of downstream analyses.
 If \code{preserve.shape=TRUE}, the rotation matrix is extrapolated to include loadings for \dQuote{unselected} genes, i.e., not in \code{subset.row}.
 This is done by projecting their expression profiles into the low-dimensional space defined by the SVD on the selected genes.
 By doing so, we ensure that the output always has the same number of rows as \code{x} such that any \code{value="lowrank"} can fit into the assays.
-Otherwise, the output is subsetted by any non-\code{NULL} value of \code{subset.row}.
+
+Otherwise, if \code{preserve.shape=FALSE}, the output is subsetted by any non-\code{NULL} value of \code{subset.row}.
+This is equivalent to the return value after calling the function on \code{x[subset.row,]}.
 }
 \examples{
 library(scuttle)
