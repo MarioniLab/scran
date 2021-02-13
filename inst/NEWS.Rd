@@ -22,6 +22,10 @@
 Soft-deprecated existing functions.
 
 \item Modified \code{getTopHVGs()} to accept a SingleCellExperiment and compute the DataFrame with \code{modelGeneVar()}.
+
+\item Added \code{fixedPCA()} to compute a PCA with a fixed number of components, a la \code{scater::runPCA()} (but without requiring \pkg{scater}).
+
+\item Modified \code{denoisePCA()} so that it now complains if \code{subset.row=} is not provided.
 }}
 
 \section{Version 1.18.0}{\itemize{
