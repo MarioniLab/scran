@@ -27,7 +27,7 @@ denoisePCA(
   x,
   ...,
   value = c("pca", "lowrank"),
-  preserve.shape = (value == "lowrank"),
+  preserve.shape = TRUE,
   assay.type = "logcounts"
 )
 

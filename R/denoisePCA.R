@@ -231,7 +231,7 @@ setMethod("getDenoisedPCs", "SummarizedExperiment", function(x, ..., assay.type=
 #' @rdname denoisePCA
 #' @importFrom SummarizedExperiment assay "assay<-"
 #' @importFrom SingleCellExperiment reducedDim<- 
-denoisePCA <- function(x, ..., value=c("pca", "lowrank"), preserve.shape=(value=="lowrank"), assay.type="logcounts") {
+denoisePCA <- function(x, ..., value=c("pca", "lowrank"), preserve.shape=TRUE, assay.type="logcounts") {
     value <- match.arg(value) 
     force(preserve.shape)
 

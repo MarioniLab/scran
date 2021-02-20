@@ -9,7 +9,7 @@ fixedPCA(
   rank = 50,
   value = c("pca", "lowrank"),
   subset.row,
-  preserve.shape = (value == "lowrank"),
+  preserve.shape = TRUE,
   assay.type = "logcounts",
   BSPARAM = bsparam(),
   BPPARAM = SerialParam()

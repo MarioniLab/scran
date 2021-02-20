@@ -8,16 +8,17 @@ library(BiocSingular)
 
 test_that("fixedPCA works correctly", {
     set.seed(100)
-    sce <- fixedPCA(sce, subset.row=NULL)
+    sce2 <- fixedPCA(sce, subset.row=NULL)
     set.seed(100)
-    ref <- runPCA(t(logcounts(sce)), rank=50, BSPARAM=bsparam())
-    expect_equal(unclass(reducedDim(sce))[,], ref$x)
+    ref <- runPCA(t(logcounts(sce2)), rank=50, BSPARAM=bsparam())
+    expect_equal(unclass(reducedDim(sce2))[,], ref$x)
 
     set.seed(100)
-    sce <- fixedPCA(sce, subset.row=1:200)
+    sce2 <- fixedPCA(sce, subset.row=1:200)
     set.seed(100)
-    ref <- runPCA(t(logcounts(sce)[1:200,]), rank=50, BSPARAM=bsparam())
-    expect_equal(unclass(reducedDim(sce))[,], ref$x)
+    ref <- runPCA(t(logcounts(sce2)[1:200,]), rank=50, BSPARAM=bsparam())
+    expect_equal(unclass(reducedDim(sce2))[,], ref$x)
+    expect_equal(logcounts(sce), logcounts(sce2))
 
     # Doesn't preserve shape if we don't ask.
     set.seed(100)
