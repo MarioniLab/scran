@@ -122,10 +122,12 @@ The magnitude of the log-fold changes can also be tested by setting \code{lfc}.
 By default, \code{lfc=0} meaning that we will reject the null upon detecting any differential expression.
 If this is set to some other positive value, the null hypothesis will change depending on \code{direction}:
 \itemize{
-\item If \code{direction="any"}, the null hypothesis is that the true log-fold change is either \code{-lfc} or \code{lfc} with equal probability.
-A two-sided p-value is computed against this composite null.
-\item If \code{direction="up"}, the null hypothesis is that the true log-fold change is \code{lfc}, and a one-sided p-value is computed.
-\item If \code{direction="down"}, the null hypothesis is that the true log-fold change is \code{-lfc}, and a one-sided p-value is computed.
+\item If \code{direction="any"}, the null hypothesis is that the true log-fold change lies inside \code{[-lfc, lfc]}.
+To be conservative, we perform one-sided tests against the boundaries of this interval, and combine them to obtain a two-sided p-value.
+\item If \code{direction="up"}, the null hypothesis is that the true log-fold change is less than or equal to \code{lfc}.
+A one-sided p-value is computed against the boundary of this interval.
+\item If \code{direction="down"}, the null hypothesis is that the true log-fold change is greater than or equal to \code{-lfc}.
+A one-sided p-value is computed against the boundary of this interval.
 }
 This is similar to the approach used in \code{\link[limma:eBayes]{treat}} and allows users to focus on genes with strong log-fold changes.
 
