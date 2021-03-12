@@ -306,21 +306,8 @@ setMethod("pairwiseBinom", "SingleCellExperiment", function(x, groups=colLabels(
             valid=host.n > 0L && target.n > 0L
         )
 
-        left.lower <- pbinom(host.nzero, size, p.left, log.p=TRUE)
-        right.upper <- pbinom(host.nzero - 1, size, p.right, lower.tail=FALSE, log.p=TRUE)
-
-        if (direction=="any") {
-            left.upper <- pbinom(host.nzero, size, p.right, log.p=TRUE)
-            right.lower <- pbinom(host.nzero - 1, size, p.left, lower.tail=FALSE, log.p=TRUE)
-
-            # Here, the null hypothesis is that the shift is evenly distributed at 50%
-            # probability for -lfc and lfc, hence we take the average of the two p-values.
-            output$left <- .add_log_values(left.lower, left.upper) - log(2)
-            output$right <- .add_log_values(right.lower, right.upper) - log(2)
-        } else {
-            output$left <- left.lower
-            output$right <- right.upper
-        }
+        output$left <- pbinom(host.nzero, size, p.left, log.p=TRUE)
+        output$right <- pbinom(host.nzero - 1, size, p.right, lower.tail=FALSE, log.p=TRUE)
 
         output
     }

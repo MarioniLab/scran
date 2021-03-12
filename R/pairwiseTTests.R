@@ -438,28 +438,15 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
         left <- pt(cur.t, df=cur.df, lower.tail=TRUE, log.p=TRUE)
         right <- pt(cur.t, df=cur.df, lower.tail=FALSE, log.p=TRUE)
     } else {
-        upper.t <- (cur.lfc - thresh.lfc)/sqrt(cur.err)
+        # For one-sided tests, testing against the lfc threshold in the specified direction.
+        # Note that if direction='up', only 'right' is used; nonetheless, 'left' is still calculated
+        # using 'lower.t' so as to allow quick calculation of the p-value for the reversed contrast,
+        # by simply swapping 'left' and 'right'. The same applies when direction='down'.
         lower.t <- (cur.lfc + thresh.lfc)/sqrt(cur.err)
+        left <- pt(lower.t, df=cur.df, lower.tail=TRUE, log.p=TRUE)
 
-        left.lower <- pt(lower.t, df=cur.df, lower.tail=TRUE, log.p=TRUE)
-        right.upper <- pt(upper.t, df=cur.df, lower.tail=FALSE, log.p=TRUE)
-
-        if (direction=="any") {
-            # Using the TREAT method, which tests against a null where the log-fold change is
-            # takes values at the extremes of [-thresh, thresh]. The null probability is 50%
-            # distributed across both extremes, hence the -log(2) at the end.
-            left.upper <- pt(upper.t, df=cur.df, lower.tail=TRUE, log.p=TRUE)
-            right.lower <- pt(lower.t, df=cur.df, lower.tail=FALSE, log.p=TRUE)
-            left <- .add_log_values(left.upper, left.lower) - log(2)
-            right <- .add_log_values(right.upper, right.lower) - log(2)
-        } else {
-            # For one-sided tests, testing against the lfc threshold in the specified direction.
-            # Note that if direction='up', only 'right' is used; nonetheless, 'left' is still calculated
-            # using 'lower.t' so as to allow quick calculation of the p-value for the reversed contrast,
-            # by simply swapping 'left' and 'right'. The same applies when direction='down'.
-            left <- left.lower
-            right <- right.upper
-        }
+        upper.t <- (cur.lfc - thresh.lfc)/sqrt(cur.err)
+        right <- pt(upper.t, df=cur.df, lower.tail=FALSE, log.p=TRUE)
     }
 
     list(left=left, right=right)
