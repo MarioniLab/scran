@@ -279,8 +279,9 @@ setMethod("pairwiseWilcox", "SingleCellExperiment", function(x, groups=colLabels
         z <- effect - cur.prod/2
         SIGMA <- .get_sigma(host.n, target.n, all.ties[[b]][[host]][,target])
 
-        # using 0.25 to avoid numerical imprecision; z should go up in units of 0.5's.
-        CORRECTION <- if (direction=="any") ifelse(abs(z) < 0.25, 0, 0.5) else 0.5 
+        # Always dealing with one-sided tests, so we fix the correction at 0.5
+        # rather than allowing it to be zero for direction='any' (as in wilcox.test()).
+        CORRECTION <- 0.5
         output$left <- pnorm((z + CORRECTION)/SIGMA, log.p=TRUE)
         output$right <- pnorm((z - CORRECTION)/SIGMA, log.p=TRUE, lower.tail=FALSE)
 

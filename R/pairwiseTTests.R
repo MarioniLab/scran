@@ -273,7 +273,7 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
         cur.err <- t.out$err
         cur.df <- t.out$test.df
         cur.lfc <- out.means[[b]][,host] - out.means[[b]][,target]
-        p.out <- .run_t_test(cur.lfc, cur.err, cur.df, thresh.lfc=lfc, direction=direction)
+        p.out <- .run_t_test(cur.lfc, cur.err, cur.df, thresh.lfc=lfc) 
 
         effect.size <- cur.lfc
         if (std.lfc) {
@@ -398,7 +398,7 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
             target <- clust.vals[tdex]
             cur.lfc <- ref.coef - coefficients[,tdex]
 
-            test.out <- .run_t_test(cur.lfc, lfit2$stdev.unscaled[tdex]^2*sigma2, resid.df, thresh.lfc=lfc, direction=direction)
+            test.out <- .run_t_test(cur.lfc, lfit2$stdev.unscaled[tdex]^2*sigma2, resid.df, thresh.lfc=lfc)
             hvt.p <- .choose_leftright_pvalues(test.out$left, test.out$right, direction=direction)
             tvh.p <- .choose_leftright_pvalues(test.out$right, test.out$left, direction=direction)
 
@@ -428,7 +428,7 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
 ###########################################################
 
 #' @importFrom stats pt
-.run_t_test <- function(cur.lfc, cur.err, cur.df, thresh.lfc=0, direction="any")
+.run_t_test <- function(cur.lfc, cur.err, cur.df, thresh.lfc=0) 
 # This runs the t-test given the relevant statistics, regardless of how
 # they were computed (i.e., within blocks, or in a linear model).
 {
