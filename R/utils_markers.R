@@ -139,7 +139,7 @@
     } else if (direction=="down") {
         return(left)
     } else {
-        # The x2 can also be interpreted as a Bonferroni correction,
+        # The doubling can also be interpreted as a Bonferroni correction,
         # and thus is valid even if the null regions are not symmetric.
         log.p.out <- pmin(left, right) + log(2)
         return(pmin(0, log.p.out)) 

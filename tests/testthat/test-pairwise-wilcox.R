@@ -29,14 +29,9 @@ REFFUN <- function(y, grouping, direction="any", lfc=0)
                         if (direction=="any") {
                             left.result1 <- wilcox.test(host.vals, target.vals, alternative="less", mu=-lfc, exact=FALSE)
                             left.result2 <- wilcox.test(host.vals, target.vals, alternative="less", mu=lfc, exact=FALSE)
-                            left.p <- (left.result1$p.value + left.result2$p.value) / 2
-
-                            right.result1 <- wilcox.test(host.vals, target.vals, alternative="greater", mu=-lfc, exact=FALSE)
-                            right.result2 <- wilcox.test(host.vals, target.vals, alternative="greater", mu=lfc, exact=FALSE)
-                            right.p <- (right.result1$p.value + right.result2$p.value) / 2
-
+                            right.p <- wilcox.test(host.vals, target.vals, alternative="greater", mu=lfc, exact=FALSE)$p.value
                             auc[i] <- (left.result1$statistic + left.result2$statistic) / 2
-                            pval[i] <- pmin(left.p, right.p, 0.5) * 2
+                            pval[i] <- pmin(left.result1$p.value, right.p, 0.5) * 2
                         } else if (direction=="up") {
                             result <- wilcox.test(host.vals, target.vals, alternative=alt.hyp, mu=lfc, exact=FALSE)
                             auc[i] <- result$statistic
@@ -210,15 +205,13 @@ BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
                 # Recovering one-sided p-values for separate combining across blocks.
                 block.res.up <- pairwiseWilcox(suby, subgroup, direction="up", ...)
                 to.use.up <- which(block.res.up$pairs$first==curpair[1] & block.res.up$pairs$second==curpair[2])
+                block.up[[B]] <- block.res.up$statistics[[to.use.up]]$p.value
+
                 block.res.down <- pairwiseWilcox(suby, subgroup, direction="down", ...)
                 to.use.down <- which(block.res.down$pairs$first==curpair[1] & block.res.down$pairs$second==curpair[2])
+                block.down[[B]] <- block.res.down$statistics[[to.use.down]]$p.value
 
-                # Directional p-values exhibit different corrections from two-sided p-values for near-zero U-statistics,
-                # so some care is required here; see pairwiseWilcox() for why we use 0.25.
                 block.lfc[[B]] <- block.res.up$statistics[[to.use.up]]$AUC
-                middled <- abs(block.lfc[[B]] - 0.5) * N1 * N2 < 0.25 
-                block.up[[B]] <- ifelse(middled, 0.5, block.res.up$statistics[[to.use.up]]$p.value)
-                block.down[[B]] <- ifelse(middled, 0.5, block.res.down$statistics[[to.use.down]]$p.value)
             } else {
                 block.res <- pairwiseWilcox(suby, subgroup, direction=direction, ...)
                 to.use <- which(block.res$pairs$first==curpair[1] & block.res$pairs$second==curpair[2])

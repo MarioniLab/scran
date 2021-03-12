@@ -273,7 +273,7 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
         cur.err <- t.out$err
         cur.df <- t.out$test.df
         cur.lfc <- out.means[[b]][,host] - out.means[[b]][,target]
-        p.out <- .run_t_test(cur.lfc, cur.err, cur.df, thresh.lfc=lfc, direction=direction)
+        p.out <- .run_t_test(cur.lfc, cur.err, cur.df, thresh.lfc=lfc) 
 
         effect.size <- cur.lfc
         if (std.lfc) {
@@ -398,7 +398,7 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
             target <- clust.vals[tdex]
             cur.lfc <- ref.coef - coefficients[,tdex]
 
-            test.out <- .run_t_test(cur.lfc, lfit2$stdev.unscaled[tdex]^2*sigma2, resid.df, thresh.lfc=lfc, direction=direction)
+            test.out <- .run_t_test(cur.lfc, lfit2$stdev.unscaled[tdex]^2*sigma2, resid.df, thresh.lfc=lfc)
             hvt.p <- .choose_leftright_pvalues(test.out$left, test.out$right, direction=direction)
             tvh.p <- .choose_leftright_pvalues(test.out$right, test.out$left, direction=direction)
 
@@ -428,7 +428,7 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
 ###########################################################
 
 #' @importFrom stats pt
-.run_t_test <- function(cur.lfc, cur.err, cur.df, thresh.lfc=0, direction="any")
+.run_t_test <- function(cur.lfc, cur.err, cur.df, thresh.lfc=0) 
 # This runs the t-test given the relevant statistics, regardless of how
 # they were computed (i.e., within blocks, or in a linear model).
 {
@@ -438,28 +438,15 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
         left <- pt(cur.t, df=cur.df, lower.tail=TRUE, log.p=TRUE)
         right <- pt(cur.t, df=cur.df, lower.tail=FALSE, log.p=TRUE)
     } else {
-        upper.t <- (cur.lfc - thresh.lfc)/sqrt(cur.err)
+        # For one-sided tests, testing against the lfc threshold in the specified direction.
+        # Note that if direction='up', only 'right' is used; nonetheless, 'left' is still calculated
+        # using 'lower.t' so as to allow quick calculation of the p-value for the reversed contrast,
+        # by simply swapping 'left' and 'right'. The same applies when direction='down'.
         lower.t <- (cur.lfc + thresh.lfc)/sqrt(cur.err)
+        left <- pt(lower.t, df=cur.df, lower.tail=TRUE, log.p=TRUE)
 
-        left.lower <- pt(lower.t, df=cur.df, lower.tail=TRUE, log.p=TRUE)
-        right.upper <- pt(upper.t, df=cur.df, lower.tail=FALSE, log.p=TRUE)
-
-        if (direction=="any") {
-            # Using the TREAT method, which tests against a null where the log-fold change is
-            # takes values at the extremes of [-thresh, thresh]. The null probability is 50%
-            # distributed across both extremes, hence the -log(2) at the end.
-            left.upper <- pt(upper.t, df=cur.df, lower.tail=TRUE, log.p=TRUE)
-            right.lower <- pt(lower.t, df=cur.df, lower.tail=FALSE, log.p=TRUE)
-            left <- .add_log_values(left.upper, left.lower) - log(2)
-            right <- .add_log_values(right.upper, right.lower) - log(2)
-        } else {
-            # For one-sided tests, testing against the lfc threshold in the specified direction.
-            # Note that if direction='up', only 'right' is used; nonetheless, 'left' is still calculated
-            # using 'lower.t' so as to allow quick calculation of the p-value for the reversed contrast,
-            # by simply swapping 'left' and 'right'. The same applies when direction='down'.
-            left <- left.lower
-            right <- right.upper
-        }
+        upper.t <- (cur.lfc - thresh.lfc)/sqrt(cur.err)
+        right <- pt(upper.t, df=cur.df, lower.tail=FALSE, log.p=TRUE)
     }
 
     list(left=left, right=right)

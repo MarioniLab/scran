@@ -279,8 +279,9 @@ setMethod("pairwiseWilcox", "SingleCellExperiment", function(x, groups=colLabels
         z <- effect - cur.prod/2
         SIGMA <- .get_sigma(host.n, target.n, all.ties[[b]][[host]][,target])
 
-        # using 0.25 to avoid numerical imprecision; z should go up in units of 0.5's.
-        CORRECTION <- if (direction=="any") ifelse(abs(z) < 0.25, 0, 0.5) else 0.5 
+        # Always dealing with one-sided tests, so we fix the correction at 0.5
+        # rather than allowing it to be zero for direction='any' (as in wilcox.test()).
+        CORRECTION <- 0.5
         output$left <- pnorm((z + CORRECTION)/SIGMA, log.p=TRUE)
         output$right <- pnorm((z - CORRECTION)/SIGMA, log.p=TRUE, lower.tail=FALSE)
 
@@ -306,11 +307,7 @@ setMethod("pairwiseWilcox", "SingleCellExperiment", function(x, groups=colLabels
         added.effect <- all.stats[[b]][[target]][,host]
 
         if (direction=="any") {
-            # Taking the average to ensure that the AUC is interpretable around 0.5. 
-            # This has the benefit that the effect size is agnostic to the setting of direction
-            # (which is necessary, as .pairwise_blocked_template() doesn't have any concept
-            # of choosing a different effect value according to the direction of change).
-            # Also see Details for an interpretation of what this actually means.
+            # Taking the average to ensure that the AUC is interpretable around 0.5, see Details.
             effect <- minus.effect/2 + added.effect/2
             auc <- effect/cur.prod
             output <- list(forward=auc, reverse=1-auc)
@@ -331,25 +328,13 @@ setMethod("pairwiseWilcox", "SingleCellExperiment", function(x, groups=colLabels
         added.SIGMA <- .get_sigma(host.n, target.n, all.ties[[b]][[target]][,host])
 
         CORRECTION <- 0.5
-        left.lower <- pnorm((added.z + CORRECTION)/added.SIGMA, log.p=TRUE)
-        right.upper <- pnorm((minus.z - CORRECTION)/minus.SIGMA, log.p=TRUE, lower.tail=FALSE)
 
-        if (direction=="any") {
-            left.upper <- pnorm((minus.z + CORRECTION)/minus.SIGMA, log.p=TRUE)
-            right.lower <- pnorm((added.z - CORRECTION)/added.SIGMA, log.p=TRUE, lower.tail=FALSE)
-
-            # Here, the null hypothesis is that the shift is evenly distributed at 50%
-            # probability for -lfc and lfc, hence we take the average of the two p-values.
-            output$left <- .add_log_values(left.lower, left.upper) - log(2)
-            output$right <- .add_log_values(right.lower, right.upper) - log(2)
-        } else {
-            # For one-sided tests, testing against the lfc threshold in the specified direction.
-            # Note that if direction='up', only 'right' is used; nonetheless, 'left' is still calculated
-            # so as to allow quick calculation of the p-value for the reversed contrast,
-            # by simply swapping 'left' and 'right'. The same applies when direction='down'.
-            output$left <- left.lower 
-            output$right <- right.upper
-        }
+        # For one-sided tests, testing against the lfc threshold in the specified direction.
+        # Note that if direction='up', only 'right' is used; nonetheless, 'left' is still calculated
+        # so as to allow quick calculation of the p-value for the reversed contrast,
+        # by simply swapping 'left' and 'right'. The same applies when direction='down'.
+        output$left <- pnorm((added.z + CORRECTION)/added.SIGMA, log.p=TRUE)
+        output$right <- pnorm((minus.z - CORRECTION)/minus.SIGMA, log.p=TRUE, lower.tail=FALSE)
 
         output
     }

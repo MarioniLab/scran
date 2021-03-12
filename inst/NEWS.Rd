@@ -26,6 +26,9 @@ Soft-deprecated existing functions.
 \item Added \code{fixedPCA()} to compute a PCA with a fixed number of components, a la \code{scater::runPCA()} (but without requiring \pkg{scater}).
 
 \item Modified \code{denoisePCA()} so that it now complains if \code{subset.row=} is not provided.
+
+\item Modified all \code{pairwise*} functions so that the p-value from \code{direction="any"} is derived from the two p-values from the one-sided tests.
+This is necessary for correctness with all choices of \code{lfc=} and \code{block=}, at the cost of conservativeness when \code{block=NULL} and \code{lfc} is large.
 }}
 
 \section{Version 1.18.0}{\itemize{

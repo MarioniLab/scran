@@ -23,13 +23,9 @@ REFFUN <- function(y, grouping, direction="any", lfc=0)
                         cur.p <- t.test(host.y[i,], target.y[i,], alternative=alt.hyp)$p.value
                     } else {
                         if (direction=="any") {
-                            left.p <- t.test(host.y[i,], target.y[i,], alternative="less", mu=-lfc)$p.value + 
-                                t.test(host.y[i,], target.y[i,], alternative="less", mu=lfc)$p.value
-                            left.p <- left.p / 2
-                            right.p <- t.test(host.y[i,], target.y[i,], alternative="greater", mu=-lfc)$p.value + 
-                                t.test(host.y[i,], target.y[i,], alternative="greater", mu=lfc)$p.value
-                            right.p <- right.p / 2
-                            cur.p <- pmin(left.p, right.p) * 2
+                            left.p <- t.test(host.y[i,], target.y[i,], alternative="less", mu=-lfc)$p.value
+                            right.p <- t.test(host.y[i,], target.y[i,], alternative="greater", mu=lfc)$p.value
+                            cur.p <- pmin(left.p, right.p, 0.5) * 2
                         } else if (direction=="up") {
                             cur.p <- t.test(host.y[i,], target.y[i,], alternative=alt.hyp, mu=lfc)$p.value 
                         } else {
@@ -41,7 +37,7 @@ REFFUN <- function(y, grouping, direction="any", lfc=0)
             } else {
                 pval <- effect <- rep(NA_real_, nrow(y))
             }
-            
+
 			currow <- which(output$pairs[,1]==host & output$pairs[,2]==target)
             curres <- output$statistics[[currow]]
 			expect_equal(unname(curres$logFC), unname(effect))
@@ -211,18 +207,22 @@ BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
             }
 
             block.weights[[B]] <- 1/(1/N1 + 1/N2)
-            block.res <- pairwiseTTests(y[,chosen], subgroup, direction=direction, ...)
-            to.use <- which(block.res$pairs$first==curpair[1] & block.res$pairs$second==curpair[2])
 
-            block.lfc[[B]] <- block.res$statistics[[to.use]]$logFC
             if (direction=="any") { 
-                # Recovering one-sided p-values for separate combining across blocks.
-                going.up <- block.lfc[[B]] > 0
-                curp <- block.res$statistics[[to.use]]$p.value/2
-                block.up[[B]] <- ifelse(going.up, curp, 1-curp)
-                block.down[[B]] <- ifelse(!going.up, curp, 1-curp)
+                up.res <- pairwiseTTests(y[,chosen], subgroup, direction="up", ...)
+                to.use <- which(up.res$pairs$first==curpair[1] & up.res$pairs$second==curpair[2])
+                block.up[[B]] <- up.res$statistics[[to.use]]$p.value
+
+                down.res <- pairwiseTTests(y[,chosen], subgroup, direction="down", ...)
+                to.use <- which(down.res$pairs$first==curpair[1] & down.res$pairs$second==curpair[2])
+                block.down[[B]] <- down.res$statistics[[to.use]]$p.value
+
+                block.lfc[[B]] <- down.res$statistics[[to.use]]$logFC
             } else {
+                block.res <- pairwiseTTests(y[,chosen], subgroup, direction=direction, ...)
+                to.use <- which(block.res$pairs$first==curpair[1] & block.res$pairs$second==curpair[2])
                 block.up[[B]] <- block.down[[B]] <- block.res$statistics[[to.use]]$p.value
+                block.lfc[[B]] <- block.res$statistics[[to.use]]$logFC
             }
         }
 
@@ -242,7 +242,7 @@ BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
         up.p <- metapod::parallelStouffer(block.up, weights=block.weights)$p.value
         down.p <- metapod::parallelStouffer(block.down, weights=block.weights)$p.value
         if (direction=="any") {
-            expect_equal(pmin(up.p, down.p) * 2, ref.res$p.value)
+            expect_equal(pmin(up.p, down.p, 0.5) * 2, ref.res$p.value)
         } else if (direction=="up") {
             expect_equal(up.p, ref.res$p.value)
         } else if (direction=="down") {
@@ -361,12 +361,7 @@ LINEARFUN <- function(y, grouping, design, direction="any", lfc=0) {
             right <- pt((cur.lfc - lfc) / (fit$sigma * fit$stdev.unscaled[,target]), lower.tail=FALSE, df = fit$df.residual)
 
             if (direction=="any") {
-                left2 <- pt((cur.lfc - lfc) / (fit$sigma * fit$stdev.unscaled[,target]), lower.tail=TRUE, df = fit$df.residual)
-                right2 <- pt((cur.lfc + lfc) / (fit$sigma * fit$stdev.unscaled[,target]), lower.tail=FALSE, df = fit$df.residual)
-                left.p <- (left + left2)/2
-                right.p <- (right + right2)/2
-                pval <- pmin(left.p, right.p) * 2
-
+                pval <- pmin(left, right, 0.5) * 2
             } else if (direction=="up") {
                 pval <- right
             } else {
