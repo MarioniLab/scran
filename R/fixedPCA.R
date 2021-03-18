@@ -10,7 +10,8 @@
 #' A modified \code{x} with:
 #' \itemize{
 #' \item the PC results stored in the \code{\link{reducedDims}} as a \code{"PCA"} entry, if \code{type="pca"}.
-#' The attributes contain the rotation matrix and the percentage of variance explained.
+#' The attributes contain the rotation matrix, the variance explained and the percentage of variance explained.
+#' (Note that the last may not sum to 100\% if \code{max.rank} is smaller than the total number of PCs.)
 #' \item a low-rank approximation stored as a new \code{"lowrank"} assay, if \code{type="lowrank"}.
 #' This is represented as a \linkS4class{LowRankMatrix}.
 #' }
@@ -61,7 +62,7 @@
 #' @importFrom SummarizedExperiment assay
 #' @importFrom scuttle .bpNotSharedOrUp
 #' @importFrom Matrix t 
-fixedPCA <- function(x, rank=50, value=c("pca", "lowrank"), subset.row, preserve.shape=TRUE, assay.type="logcounts", BSPARAM=bsparam(), BPPARAM=SerialParam()) {
+fixedPCA <- function(x, rank=50, value=c("pca", "lowrank"), subset.row, preserve.shape=TRUE, assay.type="logcounts", name=NULL, BSPARAM=bsparam(), BPPARAM=SerialParam()) {
     if (!.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))
@@ -86,11 +87,12 @@ fixedPCA <- function(x, rank=50, value=c("pca", "lowrank"), subset.row, preserve
     pcs <- list(
         components=.svd_to_pca(svd.out, rank), 
         rotation=.svd_to_rot(svd.out, rank, x, subset.row, fill.missing=preserve.shape),
+        var.explained=var.exp,
         percent.var=var.exp/total.var*100
     )
 
     if (!preserve.shape) {
         original <- original[subset.row,]
     }
-    .pca_to_output(original, pcs, value=value)
+    .pca_to_output(original, pcs, value=value, name=name)
 }

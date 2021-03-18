@@ -70,10 +70,11 @@
 #' @importFrom BiocSingular LowRankMatrix
 #' @importFrom SingleCellExperiment reduced.dim.matrix reducedDim<-
 #' @importFrom SummarizedExperiment assay<-
-.pca_to_output <- function(x, pcs, value=c("pca", "lowrank")) { 
+.pca_to_output <- function(x, pcs, value=c("pca", "lowrank"), name="PCA") { 
     if (value=="pca"){
         out <- reduced.dim.matrix(pcs$components)
         attr(out, "percentVar") <- pcs$percent.var
+        attr(out, "varExplained") <- pcs$var.explained
         attr(out, "rotation") <- pcs$rotation
     } else {
         out <- LowRankMatrix(pcs$rotation, pcs$components)
@@ -81,9 +82,11 @@
 
     value <- match.arg(value)
     if (value=="pca"){
-        reducedDim(x, "PCA") <- out
+        if (is.null(name)) name <- "PCA"
+        reducedDim(x, name) <- out
     } else if (value=="lowrank") {
-        assay(x, i="lowrank") <- out
+        if (is.null(name)) name <- "lowrank"
+        assay(x, i=name) <- out
     }
     x
 }

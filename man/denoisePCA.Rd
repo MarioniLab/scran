@@ -28,7 +28,8 @@ denoisePCA(
   ...,
   value = c("pca", "lowrank"),
   preserve.shape = TRUE,
-  assay.type = "logcounts"
+  assay.type = "logcounts",
+  name = NULL
 )
 
 denoisePCANumber(var.exp, var.tech, var.total)
@@ -75,6 +76,9 @@ and \code{"lowrank"} will return a low-rank approximation.}
 \item{preserve.shape}{Logical scalar indicating whether or not the output SingleCellExperiment should be subsetted to \code{subset.row}.
 Only used if \code{subset.row} is not \code{NULL}.}
 
+\item{name}{String containing the name which which to store the results.
+Defaults to \code{"PCA"} in the \code{\link{reducedDimNames}} for \code{value="pca"} and \code{"lowrank"} in the \code{\link{assays}} for \code{value="lowrank"}.}
+
 \item{var.exp}{A numeric vector of the variances explained by successive PCs, starting from the first (but not necessarily containing all PCs).}
 
 \item{var.tech}{A numeric scalar containing the variance attributable to technical noise.}
@@ -88,7 +92,9 @@ For \code{getDenoisedPCs}, a list is returned containing:
 This has number of columns between \code{min.rank} and \code{max.rank} inclusive.
 \item \code{rotation}, a numeric matrix containing rotation vectors (columns) for some or all genes (rows).
 This has number of columns between \code{min.rank} and \code{max.rank} inclusive.
+\item \code{var.explained}, a numeric vector containing the variance explained by the first \code{max.rank} PCs.
 \item \code{percent.var}, a numeric vector containing the percentage of variance explained by the first \code{max.rank} PCs.
+Note that this may not sum to 100\% if \code{max.rank} is smaller than the total number of PCs.
 \item \code{used.rows}, a integer vector specifying the rows of \code{x} that were used in the PCA.
 }
 

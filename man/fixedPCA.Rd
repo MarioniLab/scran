@@ -11,6 +11,7 @@ fixedPCA(
   subset.row,
   preserve.shape = TRUE,
   assay.type = "logcounts",
+  name = NULL,
   BSPARAM = bsparam(),
   BPPARAM = SerialParam()
 )
@@ -32,6 +33,9 @@ Only used if \code{subset.row} is not \code{NULL}.}
 
 \item{assay.type}{A string specifying which assay values to use.}
 
+\item{name}{String containing the name which which to store the results.
+Defaults to \code{"PCA"} in the \code{\link{reducedDimNames}} for \code{value="pca"} and \code{"lowrank"} in the \code{\link{assays}} for \code{value="lowrank"}.}
+
 \item{BSPARAM}{A \linkS4class{BiocSingularParam} object specifying the algorithm to use for PCA.}
 
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object to use for parallel processing.}
@@ -40,7 +44,8 @@ Only used if \code{subset.row} is not \code{NULL}.}
 A modified \code{x} with:
 \itemize{
 \item the PC results stored in the \code{\link{reducedDims}} as a \code{"PCA"} entry, if \code{type="pca"}.
-The attributes contain the rotation matrix and the percentage of variance explained.
+The attributes contain the rotation matrix, the variance explained and the percentage of variance explained.
+(Note that the last may not sum to 100\% if \code{max.rank} is smaller than the total number of PCs.)
 \item a low-rank approximation stored as a new \code{"lowrank"} assay, if \code{type="lowrank"}.
 This is represented as a \linkS4class{LowRankMatrix}.
 }
