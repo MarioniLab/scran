@@ -24,6 +24,7 @@
 #' @param include.intermediates Logical scalar indicating whether the intermediate \pkg{edgeR} objects should be returned.
 #' @param row.data A \linkS4class{DataFrame} containing additional row metadata for each gene in \code{x},
 #' to be included in each of the output DataFrames.
+#' This should have the same number and order of rows as \code{x}.
 #' @param ... For the generic, additional arguments to pass to individual methods.
 #'
 #' For the SummarizedExperiment method, additional arguments to pass to the ANY method.
@@ -212,7 +213,8 @@ NULL
         }
 
         if (!is.null(row.data)) {
-            stuff <- cbind(row.data, stuff)
+            # Adding stuff[,0] to preserve the DF's metadata and row names.
+            stuff <- cbind(stuff[,0], row.data, stuff)
         }
         if (sorted) {
             o <- order(stuff[,pval.field])

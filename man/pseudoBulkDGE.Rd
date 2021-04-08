@@ -60,7 +60,8 @@ Only used for abundance-based filtering of genes.}
 \item{include.intermediates}{Logical scalar indicating whether the intermediate \pkg{edgeR} objects should be returned.}
 
 \item{row.data}{A \linkS4class{DataFrame} containing additional row metadata for each gene in \code{x},
-to be included in each of the output DataFrames.}
+to be included in each of the output DataFrames.
+This should have the same number and order of rows as \code{x}.}
 
 \item{sorted}{Logical scalar indicating whether the output tables should be sorted by p-value.}
 
