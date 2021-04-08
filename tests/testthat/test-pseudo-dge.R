@@ -264,6 +264,7 @@ test_that("sorting in the pseudoBulkDGE works", {
     for (i in seq_len(3)) {
         expect_false(is.unsorted(ref[[i]]$PValue))
         expect_true("X" %in% colnames(ref[[i]]))
+        expect_true(!is.null(metadata(ref[[i]])$y)) # metadata is preserved by the cbind.
     }
 })
 
