@@ -2,16 +2,27 @@
 % Please edit documentation in R/scoreMarkers.R
 \name{scoreMarkers}
 \alias{scoreMarkers}
+\alias{scoreMarkers,ANY-method}
+\alias{scoreMarkers,SummarizedExperiment-method}
+\alias{scoreMarkers,SingleCellExperiment-method}
 \title{Score marker genes}
 \usage{
-scoreMarkers(
+scoreMarkers(x, groups, ...)
+
+\S4method{scoreMarkers}{ANY}(
   x,
   groups,
-  ...,
+  block = NULL,
+  design = NULL,
   weight.fun = NULL,
+  row.data = NULL,
   full.stats = FALSE,
   BPPARAM = SerialParam()
 )
+
+\S4method{scoreMarkers}{SummarizedExperiment}(x, groups, ..., assay.type = "logcounts")
+
+\S4method{scoreMarkers}{SingleCellExperiment}(x, groups = colLabels(x, onAbsence = "error"), ...)
 }
 \arguments{
 \item{x}{A matrix-like object containing log-normalized expression values, with genes in rows and cells in columns.
@@ -19,13 +30,19 @@ Alternatively, a \linkS4class{SummarizedExperiment} object containing such a mat
 
 \item{groups}{A factor or vector containing the identity of the group for each cell in \code{x}.}
 
-\item{...}{Further arguments to be passed to \code{\link{pairwiseTTest}} and related functions.
-The most obvious of these is \code{block}.}
+\item{...}{For the generic, further arguments to pass to individual methods.
+
+For the SummarizedExperiment method, further arguments to pass to the ANY method.
+
+For the SingleCellExperiment method, further arguments to pass to the SummarizedExperiment method.}
+
+\item{block, design}{Further arguments to be passed to \code{\link{pairwiseTTest}} and related functions.}
 
 \item{weight.fun}{Function indicating how the statistics from different comparisons should be weighted.
 This should accept a vector of integers containing the number of cells involved in the comparison,
-and return a vector of equal length containing the weights. 
-Defaults to \code{log10}.}
+and return a vector of equal length containing the weights.}
+
+\item{row.data}{A DataFrame of length equal to \code{nrow(x)}, containing extra information to insert into each DataFrame.}
 
 \item{full.stats}{Logical scalar indicating whether the statistics from the pairwise comparisons should be directly returned.}
 
@@ -84,15 +101,15 @@ For each group \eqn{X}, we consider the effect sizes from all pairwise compariso
 We then compute the following values:
 \itemize{
 \item \code{mean.*}, the mean effect sze across all pairwise comparisons involving \eqn{X}.
-A positive value indicates that the gene is upregulated in \eqn{X} compared to the average of the other groups.
+A large value (>0 for log-fold changes, >0.5 for the AUCs) indicates that the gene is upregulated in \eqn{X} compared to the average of the other groups.
 \item \code{median.*}, the median effect size across all pairwise comparisons involving \eqn{X}.
-A positive value indicates that the gene is upregulated in \eqn{X} compared to most (>50\%) other groups.
+A large value indicates that the gene is upregulated in \eqn{X} compared to most (>50\%) other groups.
 \item \code{min.*}, the minimum effect size across all pairwise comparisons involving \eqn{X}.
-A positive value indicates that the gene is upregulated in \eqn{X} compared to all other groups,
-while a negative value indicates that the gene is downregulated in \eqn{X} compared to at least one other group.
+A large value indicates that the gene is upregulated in \eqn{X} compared to all other groups,
+while a small value (<0 for log-fold changes, <0.5 for the AUCs) indicates that the gene is downregulated in \eqn{X} compared to at least one other group.
 \item \code{max.*}, the minimum effect size across all pairwise comparisons involving \eqn{X}.
-A positive value indicates that the gene is upregulated in \eqn{X} compared to at least one other group,
-while a negative value indicates that the gene is downregulated in \eqn{X} compared to all other groups.
+A large value indicates that the gene is upregulated in \eqn{X} compared to at least one other group,
+while a small value indicates that the gene is downregulated in \eqn{X} compared to all other groups.
 }
 
 One set of these columns is added to the DataFrame for each effect size described above.
@@ -100,10 +117,10 @@ For example, the mean column for the AUC would be \code{mean.AUC}.
 We can then reorder each group's DataFrame by our column of choice, depending on which summary and effect size we are interested in.
 For example, if we ranked by decreasing \code{min.logFC.detected}, we would be aiming for marker genes that exhibit strong binary increases in expression in \eqn{X} compared to \emph{all} other groups.
 
-In practice, the mean and the median metrics are obtained by weighting each comparison according to the number of cells involved.
-This ensures that statistics from comparisons with very few cells do not skew the summaries.
-If \code{weight.fun=NULL}, the default weight is defined as the log10-transformed number of cells, capped at 100 cells;
-this favors comparisons with "enough" cells while ensuring that comparisons involving very large groups do not dominate the summary.
+The mean is obtained by weighting each comparison according to the number of cells involved.
+This ensures that statistics from comparisons with very few cells do not skew the summary.
+If \code{weight.fun=NULL}, the default weight is defined as the number of cells, capped at 100 cells;
+this upweights comparisons with "enough" cells while ensuring that comparisons involving very large groups do not dominate the summary.
 
 If \code{full.stats=TRUE}, an extra \code{full.*} column is returned in the DataFrame.
 This contains a nested DataFrame with number of columns equal to the number of other groups.
@@ -119,6 +136,10 @@ sce <- logNormCounts(sce)
 kout <- kmeans(t(logcounts(sce)), centers=4) 
 
 out <- scoreMarkers(sce, groups=kout$cluster)
+out
+
+of.interest <- out[[1]]
+of.interest[order(of.interest$min.logFC.detected, decreasing=TRUE),]
 
 }
 \author{

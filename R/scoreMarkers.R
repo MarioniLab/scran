@@ -5,14 +5,18 @@
 #' @param x A matrix-like object containing log-normalized expression values, with genes in rows and cells in columns.
 #' Alternatively, a \linkS4class{SummarizedExperiment} object containing such a matrix in its assays.
 #' @param groups A factor or vector containing the identity of the group for each cell in \code{x}.
-#' @param ... Further arguments to be passed to \code{\link{pairwiseTTest}} and related functions.
-#' The most obvious of these is \code{block}.
+#' @param block,design Further arguments to be passed to \code{\link{pairwiseTTest}} and related functions.
 #' @param weight.fun Function indicating how the statistics from different comparisons should be weighted.
 #' This should accept a vector of integers containing the number of cells involved in the comparison,
 #' and return a vector of equal length containing the weights. 
-#' Defaults to \code{log10}.
+#' @param row.data A DataFrame of length equal to \code{nrow(x)}, containing extra information to insert into each DataFrame.
 #' @param full.stats Logical scalar indicating whether the statistics from the pairwise comparisons should be directly returned.
 #' @param BPPARAM A \linkS4class{BiocParallelParam} object specifying how the calculations should be parallelized.
+#' @param ... For the generic, further arguments to pass to individual methods.
+#' 
+#' For the SummarizedExperiment method, further arguments to pass to the ANY method.
+#'
+#' For the SingleCellExperiment method, further arguments to pass to the SummarizedExperiment method.
 #'
 #' @return
 #' A List of DataFrames containing marker scores for each gene in each group.
@@ -61,15 +65,15 @@
 #' We then compute the following values:
 #' \itemize{
 #' \item \code{mean.*}, the mean effect sze across all pairwise comparisons involving \eqn{X}.
-#' A positive value indicates that the gene is upregulated in \eqn{X} compared to the average of the other groups.
+#' A large value (>0 for log-fold changes, >0.5 for the AUCs) indicates that the gene is upregulated in \eqn{X} compared to the average of the other groups.
 #' \item \code{median.*}, the median effect size across all pairwise comparisons involving \eqn{X}.
-#' A positive value indicates that the gene is upregulated in \eqn{X} compared to most (>50\%) other groups.
+#' A large value indicates that the gene is upregulated in \eqn{X} compared to most (>50\%) other groups.
 #' \item \code{min.*}, the minimum effect size across all pairwise comparisons involving \eqn{X}.
-#' A positive value indicates that the gene is upregulated in \eqn{X} compared to all other groups,
-#' while a negative value indicates that the gene is downregulated in \eqn{X} compared to at least one other group.
+#' A large value indicates that the gene is upregulated in \eqn{X} compared to all other groups,
+#' while a small value (<0 for log-fold changes, <0.5 for the AUCs) indicates that the gene is downregulated in \eqn{X} compared to at least one other group.
 #' \item \code{max.*}, the minimum effect size across all pairwise comparisons involving \eqn{X}.
-#' A positive value indicates that the gene is upregulated in \eqn{X} compared to at least one other group,
-#' while a negative value indicates that the gene is downregulated in \eqn{X} compared to all other groups.
+#' A large value indicates that the gene is upregulated in \eqn{X} compared to at least one other group,
+#' while a small value indicates that the gene is downregulated in \eqn{X} compared to all other groups.
 #' }
 #'
 #' One set of these columns is added to the DataFrame for each effect size described above.
@@ -102,13 +106,35 @@
 #' of.interest <- out[[1]]
 #' of.interest[order(of.interest$min.logFC.detected, decreasing=TRUE),]
 #' 
-#' @export
+#' @name scoreMarkers
+NULL
+
 #' @importFrom S4Vectors I DataFrame List
 #' @importFrom MatrixGenerics rowMins rowMedians rowWeightedMeans
-scoreMarkers <- function(x, groups, ..., weight.fun=NULL, full.stats=FALSE, BPPARAM=SerialParam()) {
+#' @importFrom DelayedArray DelayedArray
+#' @importFrom BiocParallel SerialParam bpstart bpstop
+#' @importFrom Matrix t
+.scoreMarkers <- function(x, groups, block=NULL, design=NULL, weight.fun=NULL, row.data=NULL, full.stats=FALSE, BPPARAM=SerialParam()) {
     if (.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))
+    }
+
+    if (!is.null(design)) {
+        if (!is.null(block)) {
+            stop("'block' and 'design' cannot both be specified")
+        }
+
+        # An unprincipled hack to deal with the design matrix for AUCs and the
+        # logFC.detected. Especially for the latter; negative corrected values
+        # are just set to zero and considered to be "undetected". Close enough.
+        gdesign <- model.matrix(~0 + groups)
+        x <- ResidualMatrix::ResidualMatrix(
+            t(DelayedArray(x)), 
+            design=cbind(gdesign, design), 
+            keep=seq_len(ncol(gdesign))
+        )
+        x <- t(x)
     }
 
     # TODO: avoid the need to do multiple extractions from 'x' 
@@ -129,7 +155,7 @@ scoreMarkers <- function(x, groups, ..., weight.fun=NULL, full.stats=FALSE, BPPA
             output.field <- "logFC.detected"
         }
 
-        fit <- FUN(x, groups, ..., log.p=TRUE, BPPARAM=BPPARAM)
+        fit <- FUN(x, groups, block=block, log.p=TRUE, BPPARAM=BPPARAM)
         output <- combineMarkers(fit$statistics, fit$pairs, 
             log.p.in=TRUE, log.p.out=TRUE, full.stats=TRUE, pval.field="log.p.value", 
             effect.field=effect.field, sorted=FALSE, BPPARAM=BPPARAM)
@@ -165,7 +191,7 @@ scoreMarkers <- function(x, groups, ..., weight.fun=NULL, full.stats=FALSE, BPPA
 
             current.out[[paste0("mean.", out)]] <- rowWeightedMeans(effect.mat, w=w[colnames(effect.mat)], na.rm=TRUE)
             current.out[[paste0("min.", out)]] <- rowMins(effect.mat, na.rm=TRUE)
-            current.out[[paste0("med.", out)]] <- rowMedians(effect.mat, w=w[colnames(effect.mat)], na.rm=TRUE)
+            current.out[[paste0("median.", out)]] <- rowMedians(effect.mat, w=w[colnames(effect.mat)], na.rm=TRUE)
             current.out[[paste0("max.", out)]] <- rowMaxs(effect.mat, na.rm=TRUE)
         
             if (full.stats) {
@@ -182,10 +208,30 @@ scoreMarkers <- function(x, groups, ..., weight.fun=NULL, full.stats=FALSE, BPPA
     names(summary.effects) <- names(output.effect[[1]])
 
     # Throwing in the usual stats.
-    row.data <- summaryMarkerStats(x, groups, BPPARAM=BPPARAM)
+    row.data <- summaryMarkerStats(x, groups, row.data=row.data, BPPARAM=BPPARAM)
     summary.effects <- .add_row_data(summary.effects, row.data, match.names=FALSE)
 
     List(summary.effects)
 }
 
+#' @export
+#' @rdname scoreMarkers
+setGeneric("scoreMarkers", function(x, groups, ...) standardGeneric("scoreMarkers"))
 
+#' @export
+#' @rdname scoreMarkers
+setMethod("scoreMarkers", "ANY", .scoreMarkers) 
+
+#' @export
+#' @rdname scoreMarkers
+#' @importFrom SummarizedExperiment assay
+setMethod("scoreMarkers", "SummarizedExperiment", function(x, groups, ..., assay.type="logcounts") {
+    .scoreMarkers(assay(x, assay.type), groups, ...)
+})
+
+#' @export
+#' @rdname scoreMarkers
+#' @importFrom SingleCellExperiment colLabels
+setMethod("scoreMarkers", "SingleCellExperiment", function(x, groups=colLabels(x, onAbsence="error"), ...) {
+    callNextMethod()
+})
