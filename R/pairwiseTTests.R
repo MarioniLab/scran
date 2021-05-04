@@ -279,7 +279,9 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
         if (std.lfc) {
             # Computing Cohen's D.
             pooled.s2 <- ((host.n - 1) * host.s2 + (target.n - 1) * target.s2)/(target.n + host.n - 2)
+            is.zero <- effect.size == 0
             effect.size <- effect.size / sqrt(pooled.s2)
+            effect.size[is.zero] <- 0
         }
         
         list(forward=effect.size, reverse=-effect.size, left=p.out$left, right=p.out$right, 
@@ -404,7 +406,9 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
 
             if (std.lfc) {
                 # Computing Cohen's D.
+                is.zero <- cur.lfc == 0
                 cur.lfc <- cur.lfc / sqrt(sigma2)
+                cur.lfc[is.zero] <- 0
             }
 
             collected.stats[[counter]] <- list(

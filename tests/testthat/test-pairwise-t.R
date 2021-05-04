@@ -558,6 +558,13 @@ test_that("pairwiseTTests behaves with standardization of the log-fold changes",
     s.pool <- sqrt((s1 * (sum(in.1) - 1) + s2 * (sum(in.2) - 1))/(sum(in.1|in.2) -2))
     expect_equal(ref[[1]][[1]]$logFC / s.pool, std[[1]][[1]]$logFC)
 
+    # Handles zero-variance cases properly.
+    ref <- pairwiseTTests(rbind(rep(0, 20)), g, std.lfc=TRUE)
+    expect_identical(unname(ref[[1]][[1]]$logFC), 0)
+
+    ref <- pairwiseTTests(rbind(c(0,0,1,1)), c(1,1,2,2), std.lfc=TRUE)
+    expect_identical(unname(ref[[1]][[1]]$logFC), -Inf)
+
     # With linear models.
     ref <- pairwiseTTests(y, g, design=X) 
     std <- pairwiseTTests(y, g, design=X, std.lfc=TRUE)
