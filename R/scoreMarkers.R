@@ -110,7 +110,6 @@
 NULL
 
 #' @importFrom S4Vectors I DataFrame List
-#' @importFrom MatrixGenerics rowMins rowMedians rowWeightedMeans
 #' @importFrom DelayedArray DelayedArray
 #' @importFrom BiocParallel SerialParam bpstart bpstop
 #' @importFrom Matrix t
@@ -128,7 +127,7 @@ NULL
         # An unprincipled hack to deal with the design matrix for AUCs and the
         # logFC.detected. Especially for the latter; negative corrected values
         # are just set to zero and considered to be "undetected". Close enough.
-        gdesign <- model.matrix(~0 + groups)
+        gdesign <- model.matrix(~0 + factor(groups))
         x <- ResidualMatrix::ResidualMatrix(
             t(DelayedArray(x)), 
             design=cbind(gdesign, design), 
@@ -137,82 +136,240 @@ NULL
         x <- t(x)
     }
 
-    # TODO: avoid the need to do multiple extractions from 'x' 
-    # when computing gene-wise statistics.
-    output.p <- output.effect <- list()
+    ugroups <- unique(groups)
+    desired <- DataFrame(expand.grid(left=ugroups, right=ugroups))
+    desired <- desired[desired$left != desired$right,,drop=FALSE]
 
-    for (tt in c("t", "wilcox", "binom")) {
-        if (tt == "t") {
-            FUN <- function(...) pairwiseTTests(..., std.lfc=TRUE)
-            effect.field <- "logFC"
-            output.field <- "logFC.cohen"
-        } else if (tt == "wilcox") {
-            FUN <- pairwiseWilcox
-            effect.field <- output.field <- "AUC"
+    # Preparing the data structures for processing.
+    combo.out <- .find_block_combinations(groups, block)
+    combo.id <- combo.out$assignments
+    combos <- combo.out$combinations
+
+    comp.out <- .create_blocked_comparisons(combos, desired)
+    left <- comp.out$left
+    right <- comp.out$right
+    comparisons <- comp.out$comparisons
+
+    ncells <- tabulate(combo.id, nbins=nrow(combos))
+    left.n <- ncells[left]
+    right.n <- ncells[right]
+
+    involved <- seq_len(nrow(combos)) %in% left | seq_len(nrow(combos)) %in% right
+
+    # Performing the per-cell calculations and gathering the statistics.
+    stats <- rowBlockApply(x, combo.id=combo.id, 
+        left=left, right=right, left.n=left.n, right.n=right.n, involved=involved,
+        BPPARAM=BPPARAM)
+
+    res <- do.call(mapply, c(list(FUN=rbind), stats, list(SIMPLIFY=FALSE, USE.NAMES=FALSE)))
+    names(res) <- names(stats[[1]])
+
+    # Averaging across blocks and then collating.
+    merge.combos <- .create_block_mergers(combos)
+    w <- left.n * right.n
+    for (i in seq_along(res)) {
+        effect.name <- names(res)[i]
+        if (effect.name=="AUC") {
+            REVERSE <- function(x) 1-x
         } else {
-            FUN <- pairwiseBinom
-            effect.field <- "logFC"
-            output.field <- "logFC.detected"
+            REVERSE <- function(x) -x
         }
 
-        fit <- FUN(x, groups, block=block, log.p=TRUE, BPPARAM=BPPARAM)
-        output <- combineMarkers(fit$statistics, fit$pairs, 
-            log.p.in=TRUE, log.p.out=TRUE, full.stats=TRUE, pval.field="log.p.value", 
-            effect.field=effect.field, sorted=FALSE, BPPARAM=BPPARAM)
+        ave.out <- .combine_across_blocks(res[[i]], weights=w, to.merge=merge.combos)
 
-        current.p <- current.effect <- list()
-        for (i in names(output)) {
-            df <- output[[i]]
-            my.stats <- as.list(df[,grepl("^stats.", colnames(df)),drop=FALSE])
-            my.effects <- lapply(my.stats, function(x) x[[effect.field]])
-            names(my.effects) <- sub("^stats.", "", names(my.effects))
-            current.effect[[i]] <- DataFrame(my.effects, row.names=rownames(df), check.names=FALSE)
-        }
-
-        output.effect[[output.field]] <- current.effect
+        res[[i]] <- .collate_into_DataFrame(comparisons, 
+            averaged=ave.out$averaged, 
+            weights=ave.out$weights, 
+            desired=desired, 
+            REVERSE=REVERSE,
+            effect.name=effect.name,
+            row.names=rownames(x), 
+            full=full.stats) 
     }
-
-    # Computing the weighted averages.
-    # TODO: need a more refined way of computing weights when block= is set.
-    ncells <- table(groups)
-    if (is.null(weight.fun)) {
-        weight.fun <- function(x) pmin(x, 100)
-    }
-    w <- weight.fun(ncells)
-    names(w) <- names(ncells)
-
-    summary.effects <- vector("list", length(output.effect[[1]]))
-    for (i in seq_along(output.effect[[1]])) {
-        current.out <- list()
-
-        for (out in names(output.effect)) {
-            effect.df <- output.effect[[out]][[i]]
-            effect.mat <- as.matrix(effect.df)
-
-            current.out[[paste0("mean.", out)]] <- rowWeightedMeans(effect.mat, w=w[colnames(effect.mat)], na.rm=TRUE)
-            current.out[[paste0("min.", out)]] <- rowMins(effect.mat, na.rm=TRUE)
-            current.out[[paste0("median.", out)]] <- rowMedians(effect.mat, w=w[colnames(effect.mat)], na.rm=TRUE)
-            current.out[[paste0("max.", out)]] <- rowMaxs(effect.mat, na.rm=TRUE)
-        
-            if (full.stats) {
-                current.out[[paste0("full.", out)]] <- I(effect.df)
-            }
-        }
-
-        df <- do.call(DataFrame, current.out)
-        rownames(df) <- rownames(output.effect[[out]][[1]])
-
-        summary.effects[[i]] <- df
-    }
-
-    names(summary.effects) <- names(output.effect[[1]])
-
-    # Throwing in the usual stats.
-    row.data <- summaryMarkerStats(x, groups, row.data=row.data, BPPARAM=BPPARAM)
-    summary.effects <- .add_row_data(summary.effects, row.data, match.names=FALSE)
-
-    List(summary.effects)
+    
+    do.call(cbind, res)
 }
+
+#####################################################################
+#####################################################################
+
+#' @importFrom S4Vectors selfmatch
+.uniquify_DataFrame <- function(df) {
+    id <- selfmatch(df)
+    keep <- !duplicated(id)
+    uid <- id[keep]
+    ucombos <- df[keep,,drop=FALSE]
+    list(unique=ucombos, id=match(id, uid))
+}
+
+.find_block_combinations <- function(group, block) {
+    everything <- DataFrame(group=groups)
+    if (!is.null(block)) {
+        everything$block <- block
+    }
+    out <- .uniquify_DataFrame(everything)
+    list(combinations=out$unique, assignments=out$id)
+}
+
+#' @importFrom S4Vectors DataFrame
+.create_blocked_comparisons <- function(ucombos, desired) {
+    rows <- seq_len(nrow(ucombos))
+    if (!is.null(ucombos$block)) {
+        by.block <- split(rows, ucombos$block)
+    } else {
+        by.block <- list(rows)
+    }
+
+    left <- right <- actual.comp <- vector("list", length(by.block))
+    for (i in seq_along(by.block)) {
+        current <- by.block[[i]]
+
+        all.pairs <- DataFrame(expand.grid(left=current, right=current))
+        all.pairs <- all.pairs[all.pairs %in% desired,,drop=FALSE]
+        keep <- all.pairs$left > all.pairs$right
+        all.pairs <- all.pairs[keep,]
+
+        left[[i]] <- all.pairs$left
+        right[[i]] <- all.pairs$right
+    }
+
+    block.id <- rep(seq_along(left), lengths(left))
+    if (!is.null(names(by.block))) {
+        block.id <- names(by.block)[block.id]
+    }
+
+    left <- unlist(left)
+    right <- unlist(right)
+    actual.comp <- DataFrame(left=ucombos$group[left], right=ucombos$group[right], block=block.id)
+
+    list(left=left, right=right, comparisons=actual.comp)
+}
+
+#####################################################################
+#####################################################################
+
+#' @importFrom scuttle summarizeAssayByGroup
+.compute_all_effect_sizes <- function(x, combo.id, left, right, left.n, right.n, involved) {
+    stats <- .compute_mean_var(x, BPPARAM=SerialParam(), subset.row=NULL, design=NULL, block.FUN=compute_blocked_stats_none, block=combo.id)
+    cohen <- .compute_pairwise_cohen_d(stats$means, stats$vars, stats$ncells, left, right, left.n, right.n)
+
+    detected <- summarizeAssayByGroup(x, combo.id, statistics="num.detected")
+    o <- order(detected$id)
+    lfc <- .compute_lfc_detected(assay(detected, withDimnames=FALSE)[,o,drop=FALSE],
+        detected$ncells[o], left, right, left.n, right.n)
+
+    auc <- .compute_auc(x, combo.id, involved, left, right, left.n, right.n)
+
+    list(logFC.cohen=cohen, AUC=auc, logFC.detected=lfc)
+}
+
+#' @importFrom DelayedMatrixStats rowWeightedMeans
+.compute_pairwise_cohen_d <- function(means, vars, ncells, left, right, left.n, right.n) {
+    all.delta <- means[,left,drop=FALSE] - stats$means[,right,drop=FALSE]
+
+    left.s2 <- t(vars[,left,drop=FALSE])
+    right.s2 <- t(vars[,right,drop=FALSE])
+    pooled.s2 <- ((left.n - 1) * left.s2 + (right.n - 1) * right.s2)/(left.n + right.n - 2)
+    pooled.s2 <- t(pooled.s2)
+
+    is.zero <- all.delta == 0
+    d <- all.delta / sqrt(pooled.s2)
+    d[is.zero] <- 0
+
+    d
+}
+
+.compute_lfc_detected <- function(ndetected, ncells, left, right, left.n, right.n) {
+    left.detected <- ndetected[,left,drop=FALSE]
+    right.detected <- ndetected[,right,drop=FALSE]
+
+    mean.n <- (left.n + right.n)/2
+    left.pseudo <- 1 * left.n / mean.n
+    right.pseudo <- 1 * right.n / mean.n
+
+    left.prop <- (t(left.detected) + left.pseudo) / (left.n + left.pseudo * 2)
+    right.prop <- (t(right.detected) + right.pseudo) / (right.n + right.pseudo * 2)
+    log2(t(left.prop/right.prop))
+}
+
+.compute_auc <- function(x, combinations, involved, left, right, left.n, right.n) {
+    overlap <- overlap_exprs_paired(x, combinations, left, right, involved)
+    t(t(overlap) / (left.n * right.n))
+}
+
+#####################################################################
+#####################################################################
+
+#' @importFrom S4Vectors splitAsList
+.create_block_mergers <- function(combinations) {
+    u.out <- .uniquify_DataFrame(combinations[,1:2])
+    f <- factor(u.out$id, seq_len(nrow(u.out$unique)))
+    list(comparisons=u.out$unique, block=splitAsList(seq_along(f), f))
+}
+
+.combine_across_blocks <- function(statistics, weights, to.merge) {
+    output <- vector("list", length(to.merge))
+    combined.weight <- numeric(length(to.merge))
+
+    for (i in seq_along(to.merge)) {
+        current <- statistics[,to.merge[[i]],drop=FALSE]
+        ns <- sum(weights)
+        combined.weight[[i]] <- ns
+        output[[i]] <- colSums(t(current) * weights, na.rm=TRUE) / ns
+    }
+
+    list(averaged=output, weights=combined.weight)
+}
+
+#' @importFrom S4Vectors splitAsList DataFrame
+#' @importFrom DelayedMatrixStats rowMins rowMedians rowWeightedMeans
+.collate_into_DataFrame <- function(comparisons, averaged, weights, desired, REVERSE, effect.name, row.names=NULL, full=FALSE) {
+    m <- match(desired, comparisons)
+
+    flipped <- comparisons[,2:1]
+    colnames(flipped) <- colnames(comparisons)
+    fm <- match(desired, flipped)
+
+    by.left <- splitAsList(seq_len(nrow(desired)), desired$left)
+    for (i in names(by.left)) {
+        chosen <- by.left[[i]]
+        collated <- vector("list", length(chosen))
+        names(collated) <- desired$right[chosen]
+        w <- numeric(length(chosen))
+
+        original <- m[chosen]
+        keep <- !is.na(original)
+        original.kept <- original[keep]
+        collated[keep] <- averaged[original.kept]
+        w[keep] <- weights[original.kept]
+
+        flipped <- fm[chosen]
+        fkeep <- !is.na(flipped)
+        flipped.kept <- flipped[keep]
+        collated[fkeep] <- lapply(averaged[flipped.kept], REVERSE)
+        w[fkeep] <- weights[flipped.kept]
+
+        mat <- do.call(cbind, collated)
+        df <- DataFrame(
+            mean=rowWeightedMeans(effect.mat, w=w, na.rm=TRUE),
+            min=rowMins(effect.mat, na.rm=TRUE),
+            median=rowMedians(effect.mat, na.rm=TRUE),
+            max=rowMaxs(effect.mat, na.rm=TRUE),
+            row.names=rn
+        )
+        if (full) {
+            df$full <- DataFrame(collated, row.names=rn)
+        }
+        colnames(df) <- paste0(colnames(df), ".", effect.name)
+
+        by.left[[i]] <- df
+    }
+
+    by.left
+}
+
+#####################################################################
+#####################################################################
 
 #' @export
 #' @rdname scoreMarkers
