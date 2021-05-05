@@ -160,8 +160,9 @@ NULL
     left.ncells <- ncells[left]
     right.ncells <- ncells[right]
 
-    row.index <- seq_len(nrow(unique.combinations)) 
-    involved <- row.index %in% left | row.index %in% right
+    useful <- which(combination.id %in% c(left, right))
+    f <- factor(combination.id[useful], seq_len(nrow(unique.combinations)))
+    involved <- split(useful - 1L, f)
 
     # Performing the per-cell calculations and gathering the statistics.
     stats <- rowBlockApply(x, FUN=.compute_all_effect_sizes,
@@ -284,9 +285,9 @@ NULL
     lfc <- .compute_lfc_detected(assay(detected, withDimnames=FALSE)[,o,drop=FALSE],
         detected$ncells[o], left, right, left.ncells, right.ncells)
 
-    # auc <- .compute_auc(x, combination.id, involved, left, right, left.ncells, right.ncells)
+    auc <- .compute_auc(x, involved, left, right, left.ncells, right.ncells)
 
-    list(logFC.cohen=cohen, logFC.detected=lfc)
+    list(logFC.cohen=cohen, AUC=auc, logFC.detected=lfc)
 }
 
 #' @importFrom DelayedMatrixStats rowWeightedMeans
@@ -318,9 +319,9 @@ NULL
     log2(t(left.prop/right.prop))
 }
 
-.compute_auc <- function(x, combinations, involved, left, right, left.ncells, right.ncells) {
-    overlap <- overlap_exprs_paired(x, combinations, left, right, involved)
-    t(t(overlap) / (left.ncells * right.ncells))
+.compute_auc <- function(x, involved, left, right, left.ncells, right.ncells) {
+    overlap <- overlap_exprs_paired(x, left, right, involved)
+    t(overlap / (left.ncells * right.ncells))
 }
 
 #####################################################################
