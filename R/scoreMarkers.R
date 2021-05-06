@@ -116,28 +116,28 @@ NULL
 #' @importFrom DelayedArray DelayedArray
 #' @importFrom BiocParallel SerialParam bpstart bpstop
 #' @importFrom Matrix t
-.scoreMarkers <- function(x, groups, block=NULL, design=NULL, row.data=NULL, full.stats=FALSE, BPPARAM=SerialParam()) {
+.scoreMarkers <- function(x, groups, block=NULL, row.data=NULL, full.stats=FALSE, BPPARAM=SerialParam()) {
     if (.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))
     }
 
-    if (!is.null(design)) {
-        if (!is.null(block)) {
-            stop("'block' and 'design' cannot both be specified")
-        }
-
-        # An unprincipled hack to deal with the design matrix for AUCs and the
-        # logFC.detected. Especially for the latter; negative corrected values
-        # are just set to zero and considered to be "undetected". Close enough.
-        gdesign <- model.matrix(~0 + factor(groups))
-        x <- ResidualMatrix::ResidualMatrix(
-            t(DelayedArray(x)), 
-            design=cbind(gdesign, design), 
-            keep=seq_len(ncol(gdesign))
-        )
-        x <- t(x)
-    }
+#    if (!is.null(design)) {
+#        if (!is.null(block)) {
+#            stop("'block' and 'design' cannot both be specified")
+#        }
+#
+#        # An unprincipled hack to deal with the design matrix for AUCs and the
+#        # logFC.detected. Especially for the latter; negative corrected values
+#        # are just set to zero and considered to be "undetected". Close enough.
+#        gdesign <- model.matrix(~0 + factor(groups))
+#        x <- ResidualMatrix::ResidualMatrix(
+#            t(DelayedArray(x)), 
+#            design=cbind(gdesign, design), 
+#            keep=seq_len(ncol(gdesign))
+#        )
+#        x <- t(x)
+#    }
 
     # Define the desired comparisons here.        
     if (1) {
@@ -169,15 +169,16 @@ NULL
         combination.id=combination.id, left=left, right=right, left.ncells=left.ncells, right.ncells=right.ncells, 
         involved=involved, BPPARAM=BPPARAM)
 
-    res <- do.call(mapply, c(list(FUN=rbind), stats, list(SIMPLIFY=FALSE, USE.NAMES=FALSE)))
-    names(res) <- names(stats[[1]])
+    res <- .mapply_bind(stats, rbind)
 
     # Averaging across blocks and then collating.
     pre.ave <- .identify_effects_to_average(reindexed.comparisons)
     pre.index <- .cross_reference_to_desired(pre.ave$averaged.comparisons, desired.comparisons)
     weights <- left.ncells * right.ncells
+    output <- list()
 
-    for (effect in names(res)) {
+    not.effects <- c(detected="prop.detected", average="mean")
+    for (effect in setdiff(names(res), not.effects)) {
         if (effect == "AUC") {
             REVERSE <- function(x) 1-x
         } else {
@@ -186,7 +187,7 @@ NULL
 
         ave.out <- .average_effect_across_blocks(res[[effect]], weights=weights, indices.to.average=pre.ave$indices.to.average)
 
-        res[[effect]] <- .collate_into_DataFrame(
+        output[[effect]] <- .collate_into_DataFrame(
             pre.index,
             averaged.effects=ave.out$averaged.effects, 
             combined.weights=ave.out$combined.weights, 
@@ -197,9 +198,22 @@ NULL
             full.stats=full.stats) 
     }
 
-    res2 <- do.call(mapply, c(list(FUN=cbind), unname(res), list(SIMPLIFY=FALSE, USE.NAMES=FALSE)))
-    names(res2) <- names(res[[1]])
-    SimpleList(res2)
+    output <- .mapply_bind(unname(output), cbind)
+
+    # Computing mean stats across blocks.
+    # TODO: add scater::batchCorrectedAverages after migrating that to scuttle.
+    for (i in names(not.effects)) {
+        for (j in seq_along(output)) {
+            keep <- unique.combinations$group == names(output)[j]
+            mat <- res[[not.effects[i]]]
+            existing <- output[[j]]
+            extra <- DataFrame(self=rowMeans(mat[,keep,drop=FALSE]), other=rowMeans(mat[,!keep,drop=FALSE]), row.names=rownames(existing))
+            colnames(extra) <- paste0(colnames(extra), ".", i)
+            output[[j]] <- cbind(extra, existing)
+        }
+    }
+
+    SimpleList(output)
 }
 
 #####################################################################
@@ -275,19 +289,36 @@ NULL
 #####################################################################
 #####################################################################
 
+.mapply_bind <- function(df.list, FUN) {
+    ref <- df.list[[1]]
+    for (i in seq_along(df.list)[-1]) {
+        chosen <- df.list[[i]]
+        for (j in seq_along(chosen)) {
+            ref[[j]] <- FUN(ref[[j]], chosen[[j]])
+        }
+    }
+    ref
+}
+
 #' @importFrom scuttle summarizeAssayByGroup
 .compute_all_effect_sizes <- function(x, combination.id, left, right, left.ncells, right.ncells, involved) {
     stats <- .compute_mean_var(x, BPPARAM=SerialParam(), subset.row=NULL, design=NULL, block.FUN=compute_blocked_stats_none, block=combination.id)
     cohen <- .compute_pairwise_cohen_d(stats$means, stats$vars, stats$ncells, left, right, left.ncells, right.ncells)
 
-    detected <- summarizeAssayByGroup(x, combination.id, statistics="num.detected")
+    detected <- summarizeAssayByGroup(x, combination.id, statistics=c("num.detected", "prop.detected"))
     o <- order(detected$ids)
     lfc <- .compute_lfc_detected(assay(detected, withDimnames=FALSE)[,o,drop=FALSE],
         detected$ncells[o], left, right, left.ncells, right.ncells)
 
     auc <- .compute_auc(x, involved, left, right, left.ncells, right.ncells)
 
-    list(logFC.cohen=cohen, AUC=auc, logFC.detected=lfc)
+    list(
+        logFC.cohen=cohen, 
+        AUC=auc, 
+        logFC.detected=lfc, 
+        mean=stats$mean,
+        prop.detected=assay(detected, "prop.detected")
+    )
 }
 
 #' @importFrom DelayedMatrixStats rowWeightedMeans
