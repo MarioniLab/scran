@@ -180,3 +180,107 @@ test_that(".cross_reference_to_desired works correctly", {
     expect_identical(out$B$direct.match, c(2L, NA_integer_))
     expect_identical(out$B$flipped.match, c(NA_integer_, 3L))
 })
+
+test_that(".cohen's D calculation works correctly", {
+    means <- matrix(rnorm(100), ncol=5)
+    vars <- matrix(runif(100), ncol=5)
+    ncells <- sample(100, 5)
+
+    left <- c(1,2,3,4,5)
+    right <- c(2,3,4,5,1)
+    left.ncells <- ncells[left]
+    right.ncells <- ncells[right]
+
+    out <- scran:::.compute_pairwise_cohen_d(means, vars, left, right, left.ncells, right.ncells)
+    delta <- means[,left] - means[,right]
+    pooled.s2 <- (t(vars[,left]) * (ncells[left] - 1) + t(vars[,right]) * (ncells[right] - 1)) /(ncells[left] + ncells[right] - 2)
+    expect_identical(out, delta / t(sqrt(pooled.s2)))
+
+    # Handles zero variances gracefully.
+    means[1,1:2] <- 5
+    vars[1,1:2] <- 0
+    out <- scran:::.compute_pairwise_cohen_d(means, vars, left, right, left.ncells, right.ncells)
+    expect_identical(out[1,1], 0)
+    expect_false(any(out[-1]==0))
+
+    means[1,1] <- 1
+    out <- scran:::.compute_pairwise_cohen_d(means, vars, left, right, left.ncells, right.ncells)
+    expect_identical(out[1,1], NaN)
+    expect_false(any(is.na(out[-1])))
+})
+
+test_that("AUC calculations work correctly", {
+    x <- matrix(rpois(1000, 0.5), ncol=100)
+    combo.id <- sample(5, ncol(x), replace=TRUE)
+
+    left <- c(5,4,3,2,1)
+    right <- c(3,1,5,1,3)
+    involved <- scran:::.group_by_used_combinations(combo.id, left, right, 5)
+
+    auc <- scran:::.compute_auc(x, involved, left, right)
+    for (i in seq_along(left)) {
+        L <- involved[[left[i]]] + 1L
+        R <- involved[[right[i]]] + 1L
+        collected <- vapply(seq_len(nrow(x)), function(i) wilcox.test(x[i,L], x[i,R], exact=FALSE)$statistic, 0)
+        expect_equal(collected / length(L) / length(R), auc[,i])
+    }
+
+    # Handles negative values.
+    auc.neg <- scran:::.compute_auc(-x, involved, left, right)
+    expect_equal(auc, 1 - auc.neg)
+
+    # Handles not all groups being involved.
+    chosen <- c(1, 3)
+    involved <- scran:::.group_by_used_combinations(combo.id, left[chosen], right[chosen], 5)
+    auc2 <- scran:::.compute_auc(x, involved, left[chosen], right[chosen])
+    expect_identical(auc[,chosen], auc2)
+})
+
+test_that("logFC-detected calculations work correctly", {
+    ncells <- sample(200, 5)
+    ndetected <- t(matrix(rbinom(1000, ncells, 0.2), nrow=5))
+
+    left <- c(5,4,3,2,1)
+    right <- c(3,1,5,1,3)
+    out <- scran:::.compute_lfc_detected(ndetected, left, right, ncells[left], ncells[right])
+
+    ref.left <- t( t(ndetected[,left]) / ncells[left] )
+    ref.right <- t( t(ndetected[,right]) / ncells[right] )
+
+    # Shrinkage works correctly.
+    pos <- out > 1e-8
+    expect_identical(pos, ref.left > ref.right + 1e-8)
+    expect_true(all(out[pos] < log2(ref.left[pos] / ref.right[pos])))
+
+    neg <- out < -1e-8
+    expect_identical(neg, ref.left < ref.right - 1e-8)
+    expect_true(all(out[neg] > log2(ref.left[neg] / ref.right[neg])))
+
+    # Properly set to zero.
+    left <- c(5,3,1)
+    right <- c(5,3,1)
+    out <- scran:::.compute_lfc_detected(ndetected, left, right, ncells[left], ncells[right])
+    expect_true(all(out==0))
+
+    # Avoids undefined log-fold changes.
+    copy <- ndetected
+    copy[,1] <- 0
+    left <- c(5,4,3,2,1)
+    right <- c(3,1,5,1,3)
+    out <- scran:::.compute_lfc_detected(copy, left, right, ncells[left], ncells[right])
+    expect_false(any(!is.finite(out)))
+})
+
+test_that("overall effect size calculations work correctly", {
+    y <- matrix(rpois(1000, 0.5), ncol=100)
+    combo.id <- sample(5, ncol(x), replace=TRUE)
+    ncells <- tabulate(combo.id, 5)
+
+    left <- c(3,1,2)
+    right <- c(5,5,1)
+    left.ncells <- ncells[left]
+    right.ncells <- ncells[right]
+
+    stats <- scran:::compute_blocked_stats_none(y, combo.id - 1L, 5)
+    cohen <- scran:::.compute_pairwise_cohen_d(stats[[1]], stats[[2]], left, right, left.ncells, right.ncells)
+})

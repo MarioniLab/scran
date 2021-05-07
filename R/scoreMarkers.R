@@ -153,16 +153,14 @@ NULL
     unique.combinations <- combination.out$combinations
 
     reindexed.comparisons <- .reindex_comparisons_for_combinations(unique.combinations, desired.comparisons)
-    left <- reindexed.comparisons$combination.left
-    right <- reindexed.comparisons$combination.right
+    left <- reindexed.comparisons$left
+    right <- reindexed.comparisons$right
 
     ncells <- tabulate(combination.id, nbins=nrow(unique.combinations))
     left.ncells <- ncells[left]
     right.ncells <- ncells[right]
 
-    useful <- which(combination.id %in% c(left, right))
-    f <- factor(combination.id[useful], seq_len(nrow(unique.combinations)))
-    involved <- split(useful - 1L, f)
+    involved <- .group_by_used_combinations(combination.id, left, right, ncombinations)
 
     # Performing the per-cell calculations and gathering the statistics.
     stats <- rowBlockApply(x, FUN=.compute_all_effect_sizes,
@@ -172,7 +170,7 @@ NULL
     res <- .mapply_bind(stats, rbind)
 
     # Averaging across blocks and then collating.
-    pre.ave <- .identify_effects_to_average(reindexed.comparisons)
+    pre.ave <- .identify_effects_to_average(unique.combinations, reindexed.comparisons)
     pre.index <- .cross_reference_to_desired(pre.ave$averaged.comparisons, desired.comparisons)
     weights <- left.ncells * right.ncells
     output <- list()
@@ -248,7 +246,7 @@ NULL
         by.block <- list(rows)
     }
 
-    left <- right <- vector("list", length(by.block))
+    left <- right <- block.val <- vector("list", length(by.block))
     for (i in seq_along(by.block)) {
         indices <- by.block[[i]]
         group <- unique.combinations$group[indices]
@@ -269,21 +267,74 @@ NULL
         right[[i]] <- index.pairs$right
     }
 
-    block.id <- rep(seq_along(left), lengths(left))
-    if (!is.null(names(by.block))) {
-        block.id <- names(by.block)[block.id]
-    }
+    DataFrame(left=unlist(left), right=unlist(right))
+}
 
-    left <- unlist(left)
-    right <- unlist(right)
+.group_by_used_combinations <- function(combination.id, left, right, ncombinations) {
+    useful <- which(combination.id %in% c(left, right))
+    f <- factor(combination.id[useful], seq_len(ncombinations))
+    split(useful - 1L, f)
+}
 
-    DataFrame(
-        combination.left=left,
-        combination.right=right,
-        group.left=unique.combinations$group[left], 
-        group.right=unique.combinations$group[right], 
-        block=block.id
+#####################################################################
+#####################################################################
+
+#' @importFrom scuttle summarizeAssayByGroup
+.compute_all_effect_sizes <- function(x, combination.id, left, right, left.ncells, right.ncells, involved) {
+    stats <- compute_blocked_stats_none(x, combination.id - 1L, length(involved))
+    cohen <- .compute_pairwise_cohen_d(stats$means, stats$vars, left, right, left.ncells, right.ncells)
+
+    detected <- summarizeAssayByGroup(x, combination.id, statistics=c("num.detected", "prop.detected"))
+    o <- order(detected$ids)
+    lfc <- .compute_lfc_detected(assay(detected, withDimnames=FALSE)[,o,drop=FALSE],
+        left, right, left.ncells, right.ncells)
+
+    auc <- .compute_auc(x, involved, left, right, left.ncells, right.ncells)
+
+    list(
+        logFC.cohen=cohen, 
+        AUC=auc, 
+        logFC.detected=lfc, 
+        mean=stats$mean,
+        prop.detected=assay(detected, "prop.detected")
     )
+}
+
+#' @importFrom DelayedMatrixStats rowWeightedMeans
+.compute_pairwise_cohen_d <- function(means, vars, left, right, left.ncells, right.ncells) {
+    all.delta <- means[,left,drop=FALSE] - means[,right,drop=FALSE]
+
+    left.s2 <- t(vars[,left,drop=FALSE])
+    right.s2 <- t(vars[,right,drop=FALSE])
+    pooled.s2 <- ((left.ncells - 1) * left.s2 + (right.ncells - 1) * right.s2)/(left.ncells + right.ncells - 2)
+    pooled.s2 <- t(pooled.s2)
+
+    is.zero <- all.delta == 0
+    invalid <- pooled.s2 == 0
+    d <- all.delta / sqrt(pooled.s2)
+    d[invalid] <- NaN
+    d[is.zero] <- 0
+
+    d
+}
+
+.compute_lfc_detected <- function(ndetected, left, right, left.ncells, right.ncells) {
+    left.detected <- ndetected[,left,drop=FALSE]
+    right.detected <- ndetected[,right,drop=FALSE]
+
+    # Using the minimum to provide greater shrinkage when either group has very few cells.
+    min.n <- pmin(left.ncells, right.ncells)
+    left.pseudo <- 1 * left.ncells / min.n
+    right.pseudo <- 1 * right.ncells / min.n
+
+    left.prop <- (t(left.detected) + left.pseudo) / (left.ncells + left.pseudo * 2)
+    right.prop <- (t(right.detected) + right.pseudo) / (right.ncells + right.pseudo * 2)
+    log2(t(left.prop/right.prop))
+}
+
+.compute_auc <- function(x, involved, left, right, left.ncells=lengths(involved)[left], right.ncells=lengths(involved)[right]) {
+    overlap <- overlap_exprs_paired(x, left, right, involved)
+    t(overlap / (left.ncells * right.ncells))
 }
 
 #####################################################################
@@ -300,69 +351,15 @@ NULL
     ref
 }
 
-#' @importFrom scuttle summarizeAssayByGroup
-.compute_all_effect_sizes <- function(x, combination.id, left, right, left.ncells, right.ncells, involved) {
-    stats <- .compute_mean_var(x, BPPARAM=SerialParam(), subset.row=NULL, design=NULL, block.FUN=compute_blocked_stats_none, block=combination.id)
-    cohen <- .compute_pairwise_cohen_d(stats$means, stats$vars, stats$ncells, left, right, left.ncells, right.ncells)
-
-    detected <- summarizeAssayByGroup(x, combination.id, statistics=c("num.detected", "prop.detected"))
-    o <- order(detected$ids)
-    lfc <- .compute_lfc_detected(assay(detected, withDimnames=FALSE)[,o,drop=FALSE],
-        detected$ncells[o], left, right, left.ncells, right.ncells)
-
-    auc <- .compute_auc(x, involved, left, right, left.ncells, right.ncells)
-
-    list(
-        logFC.cohen=cohen, 
-        AUC=auc, 
-        logFC.detected=lfc, 
-        mean=stats$mean,
-        prop.detected=assay(detected, "prop.detected")
+#' @importFrom S4Vectors DataFrame splitAsList
+.identify_effects_to_average <- function(unique.combinations, reindexed.comparisons) {
+    df <- DataFrame(
+        left = unique.combinations$group[reindexed.comparisons$left],
+        right = unique.combinations$group[reindexed.comparisons$right]
     )
-}
 
-#' @importFrom DelayedMatrixStats rowWeightedMeans
-.compute_pairwise_cohen_d <- function(means, vars, ncells, left, right, left.ncells, right.ncells) {
-    all.delta <- means[,left,drop=FALSE] - means[,right,drop=FALSE]
-
-    left.s2 <- t(vars[,left,drop=FALSE])
-    right.s2 <- t(vars[,right,drop=FALSE])
-    pooled.s2 <- ((left.ncells - 1) * left.s2 + (right.ncells - 1) * right.s2)/(left.ncells + right.ncells - 2)
-    pooled.s2 <- t(pooled.s2)
-
-    is.zero <- all.delta == 0
-    d <- all.delta / sqrt(pooled.s2)
-    d[is.zero] <- 0
-
-    d
-}
-
-.compute_lfc_detected <- function(ndetected, ncells, left, right, left.ncells, right.ncells) {
-    left.detected <- ndetected[,left,drop=FALSE]
-    right.detected <- ndetected[,right,drop=FALSE]
-
-    mean.n <- (left.ncells + right.ncells)/2
-    left.pseudo <- 1 * left.ncells / mean.n
-    right.pseudo <- 1 * right.ncells / mean.n
-
-    left.prop <- (t(left.detected) + left.pseudo) / (left.ncells + left.pseudo * 2)
-    right.prop <- (t(right.detected) + right.pseudo) / (right.ncells + right.pseudo * 2)
-    log2(t(left.prop/right.prop))
-}
-
-.compute_auc <- function(x, involved, left, right, left.ncells, right.ncells) {
-    overlap <- overlap_exprs_paired(x, left, right, involved)
-    t(overlap / (left.ncells * right.ncells))
-}
-
-#####################################################################
-#####################################################################
-
-#' @importFrom S4Vectors splitAsList
-.identify_effects_to_average <- function(reindexed.comparisons) {
-    u.out <- .uniquify_DataFrame(reindexed.comparisons[,c("group.left", "group.right")])
+    u.out <- .uniquify_DataFrame(df)
     comp <- u.out$unique
-    colnames(comp) <- c("left", "right")
 
     f <- factor(u.out$id, seq_len(nrow(comp)))
     merger <- splitAsList(seq_along(f), f)
@@ -370,6 +367,7 @@ NULL
     list(averaged.comparisons=comp, indices.to.average=merger)
 }
 
+#' @importFrom DelayedMatrixStats rowWeightedMeans 
 .average_effect_across_blocks <- function(effects, weights, indices.to.average) {
     output <- vector("list", length(indices.to.average))
     combined.weight <- numeric(length(indices.to.average))
@@ -378,9 +376,8 @@ NULL
         m <- indices.to.average[[i]]
         cur.e <- effects[,m,drop=FALSE]
         cur.w <- weights[m]
-        ns <- sum(cur.w)
-        combined.weight[[i]] <- ns
-        output[[i]] <- colSums(t(cur.e) * cur.w, na.rm=TRUE) / ns
+        combined.weight[[i]] <- sum(cur.w)
+        output[[i]] <- rowWeightedMeans(cur.e, cur.w, na.rm=TRUE)
     }
 
     list(averaged.effects=output, combined.weights=combined.weight)
