@@ -31,10 +31,6 @@
 #' This yields a DataFrame for each group where each column contains a different summarized effect and each row corresponds to a gene in \code{x}.
 #' Reordering the rows by the summary of choice can yield a ranking of potential marker genes for downstream analyses.
 #' 
-#' In addition, we report the mean log-expression of all cells in \eqn{X}, as well as the grand mean of mean log-expression values for all other groups.
-#' This can be used to easily compute an overall log-fold change though ranking is best performed on one of the effect sizes described below.
-#' We also report the proportion of cells with detectable expression in \eqn{X} and the mean proportion for all other groups.
-#'
 #' @section Choice of effect sizes:
 #' The \code{logFC.cohen} columns contain the standardized log-fold change, i.e., Cohen's d.
 #' For each pairwise comparison, this is defined as the difference in the mean log-expression for each group scaled by the root of the pooled variance across the groups.
@@ -86,6 +82,16 @@
 #' If \code{full.stats=TRUE}, an extra \code{full.*} column is returned in the DataFrame.
 #' This contains a nested DataFrame with number of columns equal to the number of other groups.
 #' Each column contains the statistic from the comparison between \eqn{X} and the other group.
+#'
+#' @section Computing other descriptive statistics: 
+#' We report the mean log-expression of all cells in \eqn{X}, as well as the grand mean of mean log-expression values for all other groups.
+#' This is purely descriptive; while it can be used to compute an overall log-fold change, ranking is best performed on one of the effect sizes described above.
+#' We also report the proportion of cells with detectable expression in \eqn{X} and the mean proportion for all other groups.
+#'
+#' When \code{block} is specified, the reported mean for each group is computed via \code{\link{correctGroupSummary}}. 
+#' Briefly, this involves fitting a linear model to remove the effect of the blocking factor from the per-group mean log-expression.
+#' The same is done for the detected proportion, except that the values are subjected to a logit transformation prior to the model fitting.
+#' In both cases, each group/block combination is weighted by its number of cells in the model.
 #'
 #' @author Aaron Lun
 #' 
@@ -486,7 +492,7 @@ NULL
 
 #' @export
 #' @rdname scoreMarkers
-setGeneric("scoreMarkers", function(x, groups, ...) standardGeneric("scoreMarkers"))
+setGeneric("scoreMarkers", function(x, ...) standardGeneric("scoreMarkers"))
 
 #' @export
 #' @rdname scoreMarkers
@@ -503,5 +509,6 @@ setMethod("scoreMarkers", "SummarizedExperiment", function(x, groups, ..., assay
 #' @rdname scoreMarkers
 #' @importFrom SingleCellExperiment colLabels
 setMethod("scoreMarkers", "SingleCellExperiment", function(x, groups=colLabels(x, onAbsence="error"), ...) {
+    force(groups)
     callNextMethod()
 })

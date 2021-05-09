@@ -7,7 +7,7 @@
 \alias{scoreMarkers,SingleCellExperiment-method}
 \title{Score marker genes}
 \usage{
-scoreMarkers(x, groups, ...)
+scoreMarkers(x, ...)
 
 \S4method{scoreMarkers}{ANY}(
   x,
@@ -26,13 +26,13 @@ scoreMarkers(x, groups, ...)
 \item{x}{A matrix-like object containing log-normalized expression values, with genes in rows and cells in columns.
 Alternatively, a \linkS4class{SummarizedExperiment} object containing such a matrix in its assays.}
 
-\item{groups}{A factor or vector containing the identity of the group for each cell in \code{x}.}
-
 \item{...}{For the generic, further arguments to pass to individual methods.
 
 For the SummarizedExperiment method, further arguments to pass to the ANY method.
 
 For the SingleCellExperiment method, further arguments to pass to the SummarizedExperiment method.}
+
+\item{groups}{A factor or vector containing the identity of the group for each cell in \code{x}.}
 
 \item{block, design}{Further arguments to be passed to \code{\link{pairwiseTTest}} and related functions.}
 
@@ -60,10 +60,6 @@ Here, the strategy is to perform pairwise comparisons between each pair of group
 For each group \eqn{X}, we summarize the effect sizes across all pairwise comparisons involving that group, e.g., mean, min, max and so on.
 This yields a DataFrame for each group where each column contains a different summarized effect and each row corresponds to a gene in \code{x}.
 Reordering the rows by the summary of choice can yield a ranking of potential marker genes for downstream analyses.
-
-In addition, we report the mean log-expression of all cells in \eqn{X}, as well as the grand mean of mean log-expression values for all other groups.
-This can be used to easily compute an overall log-fold change though ranking is best performed on one of the effect sizes described below.
-We also report the proportion of cells with detectable expression in \eqn{X} and the mean proportion for all other groups.
 }
 \section{Choice of effect sizes}{
 
@@ -119,6 +115,18 @@ this upweights comparisons with "enough" cells while ensuring that comparisons i
 If \code{full.stats=TRUE}, an extra \code{full.*} column is returned in the DataFrame.
 This contains a nested DataFrame with number of columns equal to the number of other groups.
 Each column contains the statistic from the comparison between \eqn{X} and the other group.
+}
+
+\section{Computing other descriptive statistics}{
+ 
+We report the mean log-expression of all cells in \eqn{X}, as well as the grand mean of mean log-expression values for all other groups.
+This is purely descriptive; while it can be used to compute an overall log-fold change, ranking is best performed on one of the effect sizes described above.
+We also report the proportion of cells with detectable expression in \eqn{X} and the mean proportion for all other groups.
+
+When \code{block} is specified, the reported mean for each group is computed via \code{\link{correctGroupSummary}}. 
+Briefly, this involves fitting a linear model to remove the effect of the blocking factor from the per-group mean log-expression.
+The same is done for the detected proportion, except that the values are subjected to a logit transformation prior to the model fitting.
+In both cases, each group/block combination is weighted by its number of cells in the model.
 }
 
 \examples{
