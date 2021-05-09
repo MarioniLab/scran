@@ -34,13 +34,15 @@ For the SingleCellExperiment method, further arguments to pass to the Summarized
 
 \item{groups}{A factor or vector containing the identity of the group for each cell in \code{x}.}
 
-\item{block, design}{Further arguments to be passed to \code{\link{pairwiseTTest}} and related functions.}
+\item{block}{A factor or vector specifying the blocking level for each cell in \code{x}.}
 
 \item{row.data}{A DataFrame of length equal to \code{nrow(x)}, containing extra information to insert into each DataFrame.}
 
 \item{full.stats}{Logical scalar indicating whether the statistics from the pairwise comparisons should be directly returned.}
 
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object specifying how the calculations should be parallelized.}
+
+\item{assay.type}{String or integer scalar specifying the assay containing the log-expression matrix to use.}
 }
 \value{
 A List of DataFrames containing marker scores for each gene in each group.

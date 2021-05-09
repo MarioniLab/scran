@@ -5,7 +5,7 @@
 #' @param x A matrix-like object containing log-normalized expression values, with genes in rows and cells in columns.
 #' Alternatively, a \linkS4class{SummarizedExperiment} object containing such a matrix in its assays.
 #' @param groups A factor or vector containing the identity of the group for each cell in \code{x}.
-#' @param block,design Further arguments to be passed to \code{\link{pairwiseTTest}} and related functions.
+#' @param block A factor or vector specifying the blocking level for each cell in \code{x}.
 #' @param row.data A DataFrame of length equal to \code{nrow(x)}, containing extra information to insert into each DataFrame.
 #' @param full.stats Logical scalar indicating whether the statistics from the pairwise comparisons should be directly returned.
 #' @param BPPARAM A \linkS4class{BiocParallelParam} object specifying how the calculations should be parallelized.
@@ -14,6 +14,7 @@
 #' For the SummarizedExperiment method, further arguments to pass to the ANY method.
 #'
 #' For the SingleCellExperiment method, further arguments to pass to the SummarizedExperiment method.
+#' @param assay.type String or integer scalar specifying the assay containing the log-expression matrix to use.
 #'
 #' @return
 #' A List of DataFrames containing marker scores for each gene in each group.
@@ -102,7 +103,7 @@
 #'
 #' # Any clustering method is okay, only using k-means for convenience.
 #' kout <- kmeans(t(logcounts(sce)), centers=4) 
-#'
+#' 
 #' out <- scoreMarkers(sce, groups=kout$cluster)
 #' out
 #'
@@ -260,7 +261,7 @@ NULL
 #####################################################################
 #####################################################################
 
-#' @importFrom scuttle summarizeAssayByGroup
+#' @importFrom scuttle summarizeAssayByGroup correctGroupSummary
 .compute_all_effect_sizes <- function(x, combination.id, left, right, ncells,
     involved, unique.combinations, indices.to.average, desired.indices, full.stats)
 {
@@ -430,7 +431,7 @@ NULL
     indices
 }
 
-#' @importFrom S4Vectors DataFrame 
+#' @importFrom S4Vectors DataFrame mcols mcols<-
 #' @importFrom DelayedMatrixStats rowMins rowMedians rowMaxs 
 #' @importFrom Matrix rowMeans
 .collate_into_DataFrame <- function(desired.indices, averaged.effects, combined.weights, REVERSE, effect.name, nrow, row.names=NULL, full.stats=FALSE) {
@@ -509,6 +510,5 @@ setMethod("scoreMarkers", "SummarizedExperiment", function(x, groups, ..., assay
 #' @rdname scoreMarkers
 #' @importFrom SingleCellExperiment colLabels
 setMethod("scoreMarkers", "SingleCellExperiment", function(x, groups=colLabels(x, onAbsence="error"), ...) {
-    force(groups)
-    callNextMethod()
+    callNextMethod(x, groups=groups, ...)
 })
