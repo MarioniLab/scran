@@ -13,8 +13,6 @@ scoreMarkers(x, groups, ...)
   x,
   groups,
   block = NULL,
-  design = NULL,
-  weight.fun = NULL,
   row.data = NULL,
   full.stats = FALSE,
   BPPARAM = SerialParam()
@@ -37,10 +35,6 @@ For the SummarizedExperiment method, further arguments to pass to the ANY method
 For the SingleCellExperiment method, further arguments to pass to the SummarizedExperiment method.}
 
 \item{block, design}{Further arguments to be passed to \code{\link{pairwiseTTest}} and related functions.}
-
-\item{weight.fun}{Function indicating how the statistics from different comparisons should be weighted.
-This should accept a vector of integers containing the number of cells involved in the comparison,
-and return a vector of equal length containing the weights.}
 
 \item{row.data}{A DataFrame of length equal to \code{nrow(x)}, containing extra information to insert into each DataFrame.}
 
@@ -138,8 +132,11 @@ kout <- kmeans(t(logcounts(sce)), centers=4)
 out <- scoreMarkers(sce, groups=kout$cluster)
 out
 
+# Ranking by a metric of choice:
 of.interest <- out[[1]]
-of.interest[order(of.interest$min.logFC.detected, decreasing=TRUE),]
+of.interest[order(of.interest$mean.AUC, decreasing=TRUE),1:4]
+of.interest[order(of.interest$median.logFC.cohen, decreasing=TRUE),1:4]
+of.interest[order(of.interest$min.logFC.detected, decreasing=TRUE),1:4]
 
 }
 \author{

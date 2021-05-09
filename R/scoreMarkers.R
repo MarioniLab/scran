@@ -6,9 +6,6 @@
 #' Alternatively, a \linkS4class{SummarizedExperiment} object containing such a matrix in its assays.
 #' @param groups A factor or vector containing the identity of the group for each cell in \code{x}.
 #' @param block,design Further arguments to be passed to \code{\link{pairwiseTTest}} and related functions.
-#' @param weight.fun Function indicating how the statistics from different comparisons should be weighted.
-#' This should accept a vector of integers containing the number of cells involved in the comparison,
-#' and return a vector of equal length containing the weights. 
 #' @param row.data A DataFrame of length equal to \code{nrow(x)}, containing extra information to insert into each DataFrame.
 #' @param full.stats Logical scalar indicating whether the statistics from the pairwise comparisons should be directly returned.
 #' @param BPPARAM A \linkS4class{BiocParallelParam} object specifying how the calculations should be parallelized.
@@ -141,7 +138,7 @@ NULL
 
     # Define the desired comparisons here.        
     if (1) {
-        ugroups <- unique(groups)
+        ugroups <- sort(unique(groups))
         desired.comparisons <- DataFrame(expand.grid(left=ugroups, right=ugroups))
         keep <- desired.comparisons$left != desired.comparisons$right
         desired.comparisons <- desired.comparisons[keep,,drop=FALSE]
@@ -151,67 +148,33 @@ NULL
     combination.out <- .group_block_combinations(groups, block)
     combination.id <- combination.out$id
     unique.combinations <- combination.out$combinations
+    ncells <- tabulate(combination.id, nbins=nrow(unique.combinations))
 
     reindexed.comparisons <- .reindex_comparisons_for_combinations(unique.combinations, desired.comparisons)
     left <- reindexed.comparisons$left
     right <- reindexed.comparisons$right
 
-    ncells <- tabulate(combination.id, nbins=nrow(unique.combinations))
-    left.ncells <- ncells[left]
-    right.ncells <- ncells[right]
-
-    involved <- .group_by_used_combinations(combination.id, left, right, ncombinations)
+    involved <- .group_by_used_combinations(combination.id, left, right, nrow(unique.combinations))
+    pre.ave <- .identify_effects_to_average(unique.combinations, reindexed.comparisons)
+    desired.indices <- .cross_reference_to_desired(pre.ave$averaged.comparisons, desired.comparisons)
 
     # Performing the per-cell calculations and gathering the statistics.
-    stats <- rowBlockApply(x, FUN=.compute_all_effect_sizes,
-        combination.id=combination.id, left=left, right=right, left.ncells=left.ncells, right.ncells=right.ncells, 
-        involved=involved, BPPARAM=BPPARAM)
+    stats <- rowBlockApply(x, 
+        FUN=.compute_all_effect_sizes,
+        combination.id=combination.id, 
+        left=left, 
+        right=right, 
+        ncells=ncells,
+        unique.combinations=unique.combinations, 
+        indices.to.average=pre.ave$indices.to.average, 
+        desired.indices=desired.indices,
+        involved=involved,
+        full.stats=full.stats,
+        BPPARAM=BPPARAM)
 
     res <- .mapply_bind(stats, rbind)
 
-    # Averaging across blocks and then collating.
-    pre.ave <- .identify_effects_to_average(unique.combinations, reindexed.comparisons)
-    pre.index <- .cross_reference_to_desired(pre.ave$averaged.comparisons, desired.comparisons)
-    weights <- left.ncells * right.ncells
-    output <- list()
-
-    not.effects <- c(detected="prop.detected", average="mean")
-    for (effect in setdiff(names(res), not.effects)) {
-        if (effect == "AUC") {
-            REVERSE <- function(x) 1-x
-        } else {
-            REVERSE <- function(x) -x
-        }
-
-        ave.out <- .average_effect_across_blocks(res[[effect]], weights=weights, indices.to.average=pre.ave$indices.to.average)
-
-        output[[effect]] <- .collate_into_DataFrame(
-            pre.index,
-            averaged.effects=ave.out$averaged.effects, 
-            combined.weights=ave.out$combined.weights, 
-            REVERSE=REVERSE,
-            effect.name=effect,
-            nrow=nrow(x),
-            row.names=rownames(x), 
-            full.stats=full.stats) 
-    }
-
-    output <- .mapply_bind(unname(output), cbind)
-
-    # Computing mean stats across blocks.
-    # TODO: add scater::batchCorrectedAverages after migrating that to scuttle.
-    for (i in names(not.effects)) {
-        for (j in seq_along(output)) {
-            keep <- unique.combinations$group == names(output)[j]
-            mat <- res[[not.effects[i]]]
-            existing <- output[[j]]
-            extra <- DataFrame(self=rowMeans(mat[,keep,drop=FALSE]), other=rowMeans(mat[,!keep,drop=FALSE]), row.names=rownames(existing))
-            colnames(extra) <- paste0(colnames(extra), ".", i)
-            output[[j]] <- cbind(extra, existing)
-        }
-    }
-
-    SimpleList(output)
+    SimpleList(res)
 }
 
 #####################################################################
@@ -222,7 +185,18 @@ NULL
     id <- selfmatch(df)
     keep <- !duplicated(id)
     uid <- id[keep]
+
+    # Ordering to ensure that earlier combination IDs imply earlier DF values.
+    # This ensures that we can deduplicate comparisons by removing those where
+    # the left ID < right ID, which implies that the left group < right group.
+    # Otherwise, if the combinations were not ordered, we would have some 
+    # comparisons where the left group < right group and others where the 
+    # left group > right group, despite all of them having left ID < right ID.
     ucombos <- df[keep,,drop=FALSE]
+    o <- order(ucombos)
+    uid <- uid[o]
+    ucombos <- ucombos[o,,drop=FALSE]
+
     list(unique=ucombos, id=match(id, uid))
 }
 
@@ -280,24 +254,68 @@ NULL
 #####################################################################
 
 #' @importFrom scuttle summarizeAssayByGroup
-.compute_all_effect_sizes <- function(x, combination.id, left, right, left.ncells, right.ncells, involved) {
-    stats <- compute_blocked_stats_none(x, combination.id - 1L, length(involved))
-    cohen <- .compute_pairwise_cohen_d(stats$means, stats$vars, left, right, left.ncells, right.ncells)
+.compute_all_effect_sizes <- function(x, combination.id, left, right, ncells,
+    involved, unique.combinations, indices.to.average, desired.indices, full.stats)
+{
+    left.ncells <- ncells[left]
+    right.ncells <- ncells[right]
 
-    detected <- summarizeAssayByGroup(x, combination.id, statistics=c("num.detected", "prop.detected"))
-    o <- order(detected$ids)
-    lfc <- .compute_lfc_detected(assay(detected, withDimnames=FALSE)[,o,drop=FALSE],
-        left, right, left.ncells, right.ncells)
+    # Computing effects.
+    stats <- compute_blocked_stats_none(x, combination.id - 1L, length(involved))
+    cohen <- .compute_pairwise_cohen_d(stats[[1]], stats[[2]], left, right, left.ncells, right.ncells)
+
+    detected.se <- summarizeAssayByGroup(x, combination.id, statistics=c("num.detected", "prop.detected"))
+    m <- match(seq_len(nrow(unique.combinations)), detected.se$ids)
+    ndetected <- assay(detected.se, withDimnames=FALSE)[,m,drop=FALSE]
+    lfc <- .compute_lfc_detected(ndetected, left, right, left.ncells, right.ncells)
 
     auc <- .compute_auc(x, involved, left, right, left.ncells, right.ncells)
 
-    list(
-        logFC.cohen=cohen, 
-        AUC=auc, 
-        logFC.detected=lfc, 
-        mean=stats$mean,
-        prop.detected=assay(detected, "prop.detected")
+    # Averaging across blocks and then collating.
+    weights <- left.ncells * right.ncells
+    output <- list(logFC.cohen=cohen, AUC=auc, logFC.detected=lfc)
+
+    for (effect in names(output)) {
+        if (effect == "AUC") {
+            REVERSE <- function(x) 1-x
+        } else {
+            REVERSE <- function(x) -x
+        }
+
+        ave.out <- .average_effect_across_blocks(output[[effect]], weights=weights, indices.to.average=indices.to.average)
+
+        output[[effect]] <- .collate_into_DataFrame(
+            desired.indices,
+            averaged.effects=ave.out$averaged.effects, 
+            combined.weights=ave.out$combined.weights, 
+            REVERSE=REVERSE,
+            effect.name=effect,
+            nrow=nrow(x),
+            row.names=rownames(x), 
+            full.stats=full.stats) 
+    }
+
+    output <- .mapply_bind(output, cbind)
+
+    # Computing mean stats across blocks.
+    FUN <- function(...) correctGroupSummary(..., group=unique.combinations$group, block=unique.combinations$block, weights=ncells)
+    more.stats <- list(
+        detected=FUN(assay(detected.se, "prop.detected", withDimnames=FALSE)[,m,drop=FALSE], transform="logit"),
+        average=FUN(x=stats[[1]])
     )
+
+    for (i in names(more.stats)) {
+        mat <- more.stats[[i]]
+        for (j in names(output)) {
+            existing <- output[[j]]
+            keep <- colnames(mat) == j
+            extra <- DataFrame(self=rowMeans(mat[,keep,drop=FALSE]), other=rowMeans(mat[,!keep,drop=FALSE]), row.names=rownames(existing))
+            colnames(extra) <- paste0(colnames(extra), ".", i)
+            output[[j]] <- cbind(extra, existing)
+        }
+    }
+
+    output
 }
 
 #' @importFrom DelayedMatrixStats rowWeightedMeans
@@ -310,9 +328,7 @@ NULL
     pooled.s2 <- t(pooled.s2)
 
     is.zero <- all.delta == 0
-    invalid <- pooled.s2 == 0
     d <- all.delta / sqrt(pooled.s2)
-    d[invalid] <- NaN
     d[is.zero] <- 0
 
     d
@@ -336,6 +352,7 @@ NULL
     overlap <- overlap_exprs_paired(x, left, right, involved)
     t(overlap / (left.ncells * right.ncells))
 }
+
 
 #####################################################################
 #####################################################################
@@ -433,15 +450,13 @@ NULL
         w[fkeep] <- combined.weights[flipped.kept]
 
         # Filling in the leftovers, e.g., due to an impossible comparison.
-        for (j in seq_along(collated)) {
-            if (is.null(collated[[j]])) {
-                collated[[j]] <- rep(NA_real_, nrow)
-            }
+        for (j in which(!keep & !fkeep)) {
+            collated[[j]] <- rep(NA_real_, nrow)
         }
 
         # 'current', and thus 'collated', is guaranteed to be non-empty due to drop=TRUE.
         # As such, there's no need to implement any protection in the constructor.
-        full <- DataFrame(collated, row.names=row.names)
+        full <- DataFrame(collated, row.names=row.names, check.names=FALSE)
 
         effect.mat <- as.matrix(full)
         df <- DataFrame(
