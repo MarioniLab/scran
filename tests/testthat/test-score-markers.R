@@ -1,286 +1,342 @@
 # This provides some tests for scoreMarkers.
 # library(testthat); library(scran); source("test-score-markers.R")
 
-test_that(".uniquify_DataFrame works as expected", {
-    df <- DataFrame(group=rep(1:5, 3), block=rep(LETTERS[1:3], each=5))
-    chosen <- sample(nrow(df), 1000, replace=TRUE)
-    expanded <- df[chosen,]
+set.seed(10000)
 
-    u.out <- scran:::.uniquify_DataFrame(expanded)
-    expect_identical(expanded, u.out$unique[u.out$id,])
-    expect_identical(sort(u.out$unique), sort(df))
+split_by_cluster <- function(y, cluster) {
+    by.clust <- split(seq_along(cluster), cluster)
+    lapply(by.clust, function(i) y[,i,drop=FALSE])
+}
 
-    gblock <- scran:::.group_block_combinations(expanded$group, expanded$block)
-    expect_identical(gblock$combinations, u.out$unique)
-    expect_identical(gblock$id, u.out$id)
+test_that("Cohen calculations are collated correctly", {
+    y <- matrix(rnorm(1000), ncol=100)
+    cluster <- sample(letters[1:5], ncol(y), replace=TRUE)
+    out <- scoreMarkers(y, cluster, full.stats=TRUE) 
+    mats <- split_by_cluster(y, cluster)
 
-    # Works for a single column.
-    df <- DataFrame(group=sample(letters, 100, replace=TRUE))
-    u.out <- scran:::.uniquify_DataFrame(df)
+    for (i in names(mats)) {
+        current <- out[[i]]$full.logFC.cohen
+        lmat <- mats[[i]]
+        left <- rowMeans(lmat)
 
-    expect_identical(df[,1], u.out$unique[u.out$id,])
-    expect_false(anyDuplicated(u.out$unique))
+        for (j in setdiff(names(mats), i)) {
+            rmat <- mats[[j]]
+            right <- rowMeans(rmat)
 
-    gblock <- scran:::.group_block_combinations(df$group, NULL)
-    expect_identical(gblock$combinations, u.out$unique)
-    expect_identical(gblock$id, u.out$id)
-})
+            expect_equal(current[,j], (left - right)/sqrt( (rowSums((lmat - left)^2) + rowSums((rmat - right)^2)) / (ncol(lmat) + ncol(rmat) - 2)) )
+            expect_equal(mcols(current)[j,], ncol(lmat) * ncol(rmat))
 
-test_that(".reindex_for_comparisons works as expected", {
-    uniq.combos <- DataFrame(group=rep(1:5, 3), block=rep(LETTERS[1:3], each=5))
-
-    desired <- DataFrame(left=1, right=2)
-    df <- scran:::.reindex_comparisons_for_combinations(uniq.combos, desired)
-    expect_true(all(uniq.combos$group[df$left]==2L))
-    expect_true(all(uniq.combos$group[df$right]==1L))
-    expect_identical(uniq.combos$block[df$left], LETTERS[1:3])
-    expect_identical(uniq.combos$block[df$right], LETTERS[1:3])
-
-    # Order doesn't matter.
-    desired <- DataFrame(left=2, right=1)
-    df2 <- scran:::.reindex_comparisons_for_combinations(uniq.combos, desired)
-    expect_identical(df, df2)
-
-    # Deduplicates correctly.
-    desired <- DataFrame(left=1:2, right=2:1)
-    df2 <- scran:::.reindex_comparisons_for_combinations(uniq.combos, desired)
-    expect_identical(df, df2)
-
-    # A more complex example.
-    desired <- DataFrame(left=c(1, 5, 3), right=c(4, 4, 4))
-    df <- scran:::.reindex_comparisons_for_combinations(uniq.combos, desired)
-    group.left <- uniq.combos$group[df$left]
-    group.right <- uniq.combos$group[df$right]
-    expect_true(all((group.left %in% desired$right & group.right %in% desired$left) | (group.left %in% desired$left & group.right %in% desired$right)))
-    expect_identical(uniq.combos$block[df$left], uniq.combos$block[df$right])
-    expect_identical(uniq.combos$block[df$left], rep(LETTERS[1:3], each=3))
-
-    # Works when not all blocks have the comparison of interest.
-    uniq2 <- uniq.combos[-1,]
-    desired <- DataFrame(left=c(1, 5, 3), right=c(2, 4, 4))
-    ref <- scran:::.reindex_comparisons_for_combinations(uniq.combos, desired)
-    df <- scran:::.reindex_comparisons_for_combinations(uniq2, desired)
-    expect_identical(ref[-1,1], df[,1]+1L)
-    expect_identical(ref[-1,2], df[,2]+1L)
-
-    # Or when none of the blocks have the comparison of interest.
-    desired <- DataFrame(left=6, right=1)
-    df <- scran:::.reindex_comparisons_for_combinations(uniq.combos, desired)
-    expect_identical(ncol(df), 2L)
-    expect_identical(nrow(df), 0L)
-
-    # Works without 'block='.
-    desired <- DataFrame(left=2, right=1)
-    df <- scran:::.reindex_comparisons_for_combinations(uniq.combos[,1,drop=FALSE], desired)
-    expect_identical(df$left, 2L)
-    expect_identical(df$right, 1L)
-        
-    # Same result with character names.
-    desired <- DataFrame(left=c(5, 3, 2), right=c(2, 1, 4))
-    ref <- scran:::.reindex_comparisons_for_combinations(uniq.combos, desired)
-
-    scramble <- sample(letters)
-    uniq.char <- DataFrame(group=scramble[uniq.combos$group], block=match(uniq.combos$block, LETTERS))
-    desired.char <- DataFrame(left=scramble[desired$left], right=scramble[desired$right])
-    df <- scran:::.reindex_comparisons_for_combinations(uniq.char, desired.char)
-
-    expect_identical(ref, df)
-})
-
-test_that(".mapply_bind works as expected", {
-    A1 <- matrix(runif(runif(20)), ncol=5)
-    A2 <- matrix(runif(runif(20)), ncol=5)
-    B1 <- matrix(runif(runif(10)), ncol=5)
-    B2 <- matrix(runif(runif(10)), ncol=5)
-    C1 <- matrix(runif(runif(15)), ncol=5)
-    C2 <- matrix(runif(runif(15)), ncol=5)
-
-    output <- scran:::.mapply_bind(df.list=list(list(X=A1, Y=A2), list(B1, B2), list(C1, C2)), FUN=rbind)
-    expect_identical(output, list(X=rbind(A1, B1, C1), Y=rbind(A2, B2, C2)))
-
-    A1 <- matrix(runif(runif(20)), nrow=5)
-    A2 <- matrix(runif(runif(20)), nrow=5)
-    B1 <- matrix(runif(runif(10)), nrow=5)
-    B2 <- matrix(runif(runif(10)), nrow=5)
-    C1 <- matrix(runif(runif(15)), nrow=5)
-    C2 <- matrix(runif(runif(15)), nrow=5)
-
-    output <- scran:::.mapply_bind(df.list=list(list(X=A1, Y=A2), list(B1, B2), list(C1, C2)), FUN=cbind)
-    expect_identical(output, list(X=cbind(A1, B1, C1), Y=cbind(A2, B2, C2)))
-})
-
-.to_list <- function(x) unname(as.list(x))
-
-test_that(".identify_effects_to_average works correctly", {
-    scramble <- paste0("GROUP_", sample(letters)[1:5])
-    uniq.combos <- DataFrame(group=rep(scramble, 3), block=rep(LETTERS[1:3], each=5))
-
-    desired <- DataFrame(left=scramble[-2], right=scramble[2])
-    reindexed <- scran:::.reindex_comparisons_for_combinations(uniq.combos, desired)
-    averaged <- scran:::.identify_effects_to_average(uniq.combos, reindexed)
-
-    expect_identical(lengths(averaged$indices.to.average), setNames(rep(3L, 4L), 1:4))
-    expect_identical(averaged$averaged.comparisons[-1,], desired[-1,])
-    expect_identical(.to_list(averaged$averaged.comparisons[1,]), rev(.to_list(desired[1,])))
-    
-    # Make a batch-specific comparison.
-    uniq.combos2 <- rbind(uniq.combos, DataFrame(group="FOO", block="A"))
-    desired2 <- DataFrame(left=c("FOO", scramble[1]), right=scramble[2])
-    reindexed2 <- scran:::.reindex_comparisons_for_combinations(uniq.combos2, desired2)
-    averaged2 <- scran:::.identify_effects_to_average(uniq.combos2, reindexed2)
-
-    expect_identical(averaged2$averaged.comparisons[1,], desired2[1,])
-    expect_identical(.to_list(averaged2$averaged.comparisons[-1,]), rev(.to_list(desired2[-1,])))
-    expect_identical(averaged2$indices.to.average[[1]], 1L)
-    expect_identical(averaged2$indices.to.average[[2]], 2:4)
-})
-
-test_that(".average_effects_across_blocks works correctly", {
-    effects <- matrix(rnorm(1000), ncol=10)
-    weights <- sample(20, 10)
-    indices <- list(c(1, 5), c(6, 2, 7), c(4, 8))
-
-    averaged <- scran:::.average_effect_across_blocks(effects, weights, indices)
-    for (i in seq_along(indices)) {
-        chosen <- indices[[i]]
-        expect_equal(averaged$averaged.effects[[i]], DelayedMatrixStats::rowWeightedMeans(effects[,chosen], weights[chosen]))
-        expect_equal(averaged$combined.weights[i], sum(weights[chosen]))
-    }
-
-    # Handles NA's in there correctly.
-    effects[,1] <- NA
-    effects[1:5,2] <- NA
-
-    averaged <- scran:::.average_effect_across_blocks(effects, weights, indices)
-    for (i in seq_along(indices)) {
-        chosen <- indices[[i]]
-        expect_equal(averaged$averaged.effects[[i]], DelayedMatrixStats::rowWeightedMeans(effects[,chosen], weights[chosen], na.rm=TRUE))
-        expect_equal(averaged$combined.weights[i], sum(weights[chosen]))
+            flip <- out[[j]]$full.logFC.cohen[,i]
+            expect_equal(flip, -current[,j])
+        }
     }
 })
 
-test_that(".cross_reference_to_desired works correctly", {
-    desired <- DataFrame(left=c("A", "B", "C", "B"), right=c("D", "D", "D", "A"))
-    observed <- DataFrame(left=c("A", "A", "D"), right=c("D", "B", "B"))
+test_that("Cohen calculations handle zero variances gracefully", {
+    y <- matrix(rnorm(1000), ncol=100)
+    cluster <- rep(letters[1:2], length.out=ncol(y))
+    ref <- scoreMarkers(y, cluster, full.stats=TRUE) 
 
-    out <- scran:::.cross_reference_to_desired(observed, desired)
-    expect_identical(out$A$right, "D")
-    expect_identical(out$A$direct.match, 1L)
-    expect_identical(out$B$right, c("D", "A"))
-    expect_identical(out$B$direct.match, c(NA_integer_, NA_integer_))
-    expect_identical(out$B$flipped.match, 3:2)
-    expect_identical(out$C$right, "D")
-    expect_identical(out$C$direct.match, NA_integer_)
-    expect_identical(out$C$flipped.match, NA_integer_)
+    y[c(1, 10),cluster=='b'] <- 0
+    y[c(1, 10),cluster=='a'] <- 1
+    out <- scoreMarkers(y, cluster, full.stats=TRUE) 
 
-    desired <- DataFrame(left=c("A", "B", "C", "B"), right=c("D", "A", "D", "D"))
-    observed <- DataFrame(left=c("A", "B", "D"), right=c("D", "A", "B"))
-    out <- scran:::.cross_reference_to_desired(observed, desired)
-    expect_identical(out$B$right, c("A", "D"))
-    expect_identical(out$B$direct.match, c(2L, NA_integer_))
-    expect_identical(out$B$flipped.match, c(NA_integer_, 3L))
-})
-
-test_that(".cohen's D calculation works correctly", {
-    means <- matrix(rnorm(100), ncol=5)
-    vars <- matrix(runif(100), ncol=5)
-    ncells <- sample(100, 5)
-
-    left <- c(1,2,3,4,5)
-    right <- c(2,3,4,5,1)
-    left.ncells <- ncells[left]
-    right.ncells <- ncells[right]
-
-    out <- scran:::.compute_pairwise_cohen_d(means, vars, left, right, left.ncells, right.ncells)
-    delta <- means[,left] - means[,right]
-    pooled.s2 <- (t(vars[,left]) * (ncells[left] - 1) + t(vars[,right]) * (ncells[right] - 1)) /(ncells[left] + ncells[right] - 2)
-    expect_identical(out, delta / t(sqrt(pooled.s2)))
-
-    # Handles zero variances gracefully.
-    means[1,1:2] <- 5
-    vars[1,1:2] <- 0
-    out <- scran:::.compute_pairwise_cohen_d(means, vars, left, right, left.ncells, right.ncells)
-    expect_identical(out[1,1], 0)
-    expect_false(any(out[-1]==0))
-
-    means[1,1] <- 1
-    out <- scran:::.compute_pairwise_cohen_d(means, vars, left, right, left.ncells, right.ncells)
-    expect_identical(out[1,1], NaN)
-    expect_false(any(is.na(out[-1])))
-})
-
-test_that("AUC calculations work correctly", {
-    x <- matrix(rpois(1000, 0.5), ncol=100)
-    combo.id <- sample(5, ncol(x), replace=TRUE)
-
-    left <- c(5,4,3,2,1)
-    right <- c(3,1,5,1,3)
-    involved <- scran:::.group_by_used_combinations(combo.id, left, right, 5)
-
-    auc <- scran:::.compute_auc(x, involved, left, right)
-    for (i in seq_along(left)) {
-        L <- involved[[left[i]]] + 1L
-        R <- involved[[right[i]]] + 1L
-        collected <- vapply(seq_len(nrow(x)), function(i) wilcox.test(x[i,L], x[i,R], exact=FALSE)$statistic, 0)
-        expect_equal(collected / length(L) / length(R), auc[,i])
+    for (i in names(ref)) {
+        curref <- ref[[i]]$full.logFC.cohen
+        curout <- out[[i]]$full.logFC.cohen
+        curref[c(1,10),] <- Inf * (-1)^(i=="b")
+        expect_identical(curref, curout)
     }
 
-    # Handles negative values.
-    auc.neg <- scran:::.compute_auc(-x, involved, left, right)
-    expect_equal(auc, 1 - auc.neg)
+    # Special case if the log-fold change is zero.
+    y[c(1, 10),cluster=='a'] <- 0
+    out <- scoreMarkers(y, cluster, full.stats=TRUE) 
 
-    # Handles not all groups being involved.
-    chosen <- c(1, 3)
-    involved <- scran:::.group_by_used_combinations(combo.id, left[chosen], right[chosen], 5)
-    auc2 <- scran:::.compute_auc(x, involved, left[chosen], right[chosen])
-    expect_identical(auc[,chosen], auc2)
+    for (i in names(ref)) {
+        curref <- ref[[i]]$full.logFC.cohen
+        curout <- out[[i]]$full.logFC.cohen
+        curref[c(1,10),] <- 0
+        expect_identical(curref, curout)
+    }
 })
 
-test_that("logFC-detected calculations work correctly", {
-    ncells <- sample(200, 5)
-    ndetected <- t(matrix(rbinom(1000, ncells, 0.2), nrow=5))
-
-    left <- c(5,4,3,2,1)
-    right <- c(3,1,5,1,3)
-    out <- scran:::.compute_lfc_detected(ndetected, left, right, ncells[left], ncells[right])
-
-    ref.left <- t( t(ndetected[,left]) / ncells[left] )
-    ref.right <- t( t(ndetected[,right]) / ncells[right] )
-
-    # Shrinkage works correctly.
-    pos <- out > 1e-8
-    expect_identical(pos, ref.left > ref.right + 1e-8)
-    expect_true(all(out[pos] < log2(ref.left[pos] / ref.right[pos])))
-
-    neg <- out < -1e-8
-    expect_identical(neg, ref.left < ref.right - 1e-8)
-    expect_true(all(out[neg] > log2(ref.left[neg] / ref.right[neg])))
-
-    # Properly set to zero.
-    left <- c(5,3,1)
-    right <- c(5,3,1)
-    out <- scran:::.compute_lfc_detected(ndetected, left, right, ncells[left], ncells[right])
-    expect_true(all(out==0))
-
-    # Avoids undefined log-fold changes.
-    copy <- ndetected
-    copy[,1] <- 0
-    left <- c(5,4,3,2,1)
-    right <- c(3,1,5,1,3)
-    out <- scran:::.compute_lfc_detected(copy, left, right, ncells[left], ncells[right])
-    expect_false(any(!is.finite(out)))
-})
-
-test_that("overall effect size calculations work correctly", {
+test_that("AUC effect size calculations are collated correctly", {
     y <- matrix(rpois(1000, 0.5), ncol=100)
-    combo.id <- sample(5, ncol(x), replace=TRUE)
-    ncells <- tabulate(combo.id, 5)
+    cluster <- sample(letters[1:5], ncol(y), replace=TRUE)
+    out <- scoreMarkers(y, cluster, full.stats=TRUE) 
+    mats <- split_by_cluster(y, cluster)
 
-    left <- c(3,1,2)
-    right <- c(5,5,1)
-    left.ncells <- ncells[left]
-    right.ncells <- ncells[right]
+    AUC_calculator <- function(left, right) { 
+        U <- vapply(seq_len(nrow(left)), function(i) wilcox.test(left[i,], right[i,], exact=FALSE)$statistic, 0)
+        U / ncol(left) / ncol(right)
+    }
 
-    stats <- scran:::compute_blocked_stats_none(y, combo.id - 1L, 5)
-    cohen <- scran:::.compute_pairwise_cohen_d(stats[[1]], stats[[2]], left, right, left.ncells, right.ncells)
+    for (i in names(mats)) {
+        current <- out[[i]]$full.AUC
+        lmat <- mats[[i]]
+
+        for (j in setdiff(names(mats), i)) {
+            rmat <- mats[[j]]
+            ref <- AUC_calculator(lmat, rmat)
+            expect_equal(current[,j], ref)
+
+            flip <- out[[j]]$full.AUC[,i]
+            expect_equal(flip, 1-current[,j])
+        }
+    }
 })
+
+test_that("AUC calculations handle ties and zeroes properly", {
+    y <- matrix(0, ncol=100, nrow=5)
+    cluster <- sample(letters[1:5], ncol(y), replace=TRUE)
+    out <- scoreMarkers(y, cluster, full.stats=TRUE) 
+
+    for (i in names(out)) {
+        expect_true(all(abs(as.matrix(out[[i]]$full.AUC) - 0.5) < 1e-8))
+    }
+
+    # Same behavior for non-zero tied values.
+    y <- matrix(1, ncol=100, nrow=5)
+    out2 <- scoreMarkers(y, cluster, full.stats=TRUE)
+
+    for (i in names(out)) {
+        expect_identical(out[[i]]$full.AUC, out2[[i]]$full.AUC)
+    }
+})
+
+test_that("AUC calculations handles negative values properly", {
+    y <- matrix(rpois(1000, 0.5), ncol=100)
+    cluster <- sample(letters[1:5], ncol(y), replace=TRUE)
+
+    ref <- scoreMarkers(y, cluster, full.stats=TRUE) 
+    out <- scoreMarkers(-y, cluster, full.stats=TRUE) 
+
+    for (i in names(out)) {
+        expect_equal(as.matrix(out[[i]]$full.AUC), 1-as.matrix(ref[[i]]$full.AUC))
+    }
+})
+
+test_that("logFC detected calculations are done properly", {
+    y <- matrix(rbinom(1000, 1, 0.2), ncol=100)
+    cluster <- sample(letters[1:5], ncol(y), replace=TRUE)
+    out <- scoreMarkers(y, cluster, full.stats=TRUE) 
+
+    mats <- split_by_cluster(y, cluster)
+
+    for (i in names(mats)) {
+        current <- out[[i]]$full.logFC.detected
+        ref.left <- rowMeans(mats[[i]] > 0)
+
+        for (j in setdiff(names(mats), i)) {
+            ref.right <- rowMeans(mats[[j]] > 0)
+            lfc <- current[,j]
+
+            # Shrinkage works correctly.
+            pos <- lfc > 1e-8
+            expect_identical(pos, ref.left > ref.right + 1e-8)
+            expect_true(all(lfc[pos] < log2(ref.left[pos] / ref.right[pos])))
+
+            neg <- lfc < -1e-8
+            expect_identical(neg, ref.left < ref.right - 1e-8)
+            expect_true(all(lfc[neg] > log2(ref.left[neg] / ref.right[neg])))
+        }
+    }
+})
+
+test_that("logFC detected are properly set to zero", {
+    y0 <- matrix(rbinom(1000, 1, 0.2), ncol=20)
+    y <- cbind(y0, y0)
+    cluster <- rep(1:2, each=ncol(y0))
+    out <- scoreMarkers(y, cluster, full.stats=TRUE) 
+
+    for (i in names(out)) {
+        current <- out[[i]]$full.logFC.detected
+        expect_true(all(as.matrix(current)==0))
+    }
+})
+
+test_that("logFC detected avoids undefined log-fold changes", {
+    y0 <- matrix(rbinom(1000, 1, 0.2), ncol=20)
+    y <- cbind(y0, matrix(0, nrow(y0), ncol(y0)))
+    cluster <- rep(1:2, each=ncol(y0))
+    out <- scoreMarkers(y, cluster, full.stats=TRUE) 
+
+    for (i in names(out)) {
+        current <- out[[i]]$full.logFC.detected
+        expect_true(all(is.finite(as.matrix(current))))
+        if (i=="1") {
+            expect_true(all(as.matrix(current) > 0))
+        } else {
+            expect_true(all(as.matrix(current) < 0))
+        }
+    }
+})
+
+test_that("effect summary statistics are correctly computed", {
+    y <- matrix(rnorm(1000), ncol=100)
+    cluster <- rep(letters[5:10], length.out=ncol(y))
+    ref <- scoreMarkers(y, cluster, full.stats=TRUE) 
+
+    for (i in names(ref)) {
+        current <- ref[[i]]
+
+        for (n in c("logFC.cohen", "AUC", "logFC.detected")) {
+            mat <- as.matrix(current[,paste0("full.", n)])
+            expect_equal(current[,paste0("mean.", n)], rowMeans(mat))
+            expect_equal(current[,paste0("max.", n)], rowMaxs(mat))
+            expect_equal(current[,paste0("max.", n)], rowMaxs(mat))
+            expect_equal(current[,paste0("median.", n)], rowMedians(mat))
+        }
+    }
+})
+
+test_that("non-effect summary statistics are correctly computed", {
+    y <- matrix(rnorm(1000), ncol=100)
+    cluster <- rep(letters[5:10], length.out=ncol(y))
+    ref <- scoreMarkers(y, cluster, full.stats=TRUE) 
+
+    mats <- split_by_cluster(y, cluster)
+    means <- do.call(cbind, lapply(mats, rowMeans))
+    detect <- do.call(cbind, lapply(mats, function(x) rowMeans(x > 0)))
+
+    for (i in names(ref)) {
+        current <- ref[[i]]
+
+        expect_equal(current$self.average, means[,i])
+        expect_equal(current$other.average, rowMeans(means[,setdiff(colnames(means), i)]))
+
+        expect_equal(current$self.detected, detect[,i])
+        expect_equal(current$other.detected, rowMeans(detect[,setdiff(colnames(detect), i)]))
+    }
+})
+
+test_that("blocking is performed correctly", {
+    y <- matrix(rpois(1000, 0.5), ncol=100)
+    cluster <- sample(letters[1:5], ncol(y), replace=TRUE)
+    block <- sample(1:3, ncol(y), replace=TRUE)
+
+    b1 <- scoreMarkers(y[,block==1], cluster[block==1], full.stats=TRUE)
+    b2 <- scoreMarkers(y[,block==2], cluster[block==2], full.stats=TRUE)
+    b3 <- scoreMarkers(y[,block==3], cluster[block==3], full.stats=TRUE)
+
+    out <- scoreMarkers(y, cluster, full.stats=TRUE, block=block) 
+
+    for (i in letters[1:5]) {
+        # Effect size is computed correctly.
+        current1 <- b1[[i]]$full.logFC.cohen
+        current2 <- b2[[i]]$full.logFC.cohen
+        current3 <- b3[[i]]$full.logFC.cohen
+
+        for (j in setdiff(letters[1:5], i)) {
+            vmat <- cbind(current1[,j], current2[,j], current3[,j])
+
+            w1 <- mcols(current1)[j,]
+            w2 <- mcols(current2)[j,]
+            w3 <- mcols(current3)[j,]
+            wmat <- t(t(!is.na(vmat)) * c(w1, w2, w3))
+
+            expect_equal(out[[i]]$full.logFC.cohen[,j], rowSums(vmat * wmat)/rowSums(wmat))
+        }
+    }
+
+    # Summary stats make sense.
+    for (i in names(out)) {
+        current <- out[[i]]
+        summed <- current$self.average + current$other.average * 4L
+        if (i==names(out)[1]) {
+            ref <- summed
+            first <- current$self.average
+        } else {
+            expect_equal(summed, ref)
+            expect_false(isTRUE(all.equal(first, current$self.average)))
+        }
+    }
+})
+
+test_that("blocking is performed correctly (group-specific batches)", {
+    y <- matrix(rpois(1000, 0.5), ncol=100)
+    cluster <- sample(10:14, ncol(y), replace=TRUE)
+    block <- ifelse(cluster %% 2 == 1, "odd", "even")
+
+    bo <- scoreMarkers(y[,block=="odd"], cluster[block=="odd"], full.stats=TRUE)
+    be <- scoreMarkers(y[,block=="even"], cluster[block=="even"], full.stats=TRUE)
+    out <- scoreMarkers(y, cluster, full.stats=TRUE, block=block) 
+
+    onames <- as.character(10:14)
+    for (i in onames) {
+        currentO <- bo[[i]]$full.logFC.detected
+        currentE <- be[[i]]$full.logFC.detected
+
+        for (j in setdiff(onames, i)) {
+            if ((as.integer(j) %% 2) != (as.integer(i) %% 2)) {
+                expect_equal(out[[i]]$full.logFC.detected[,j], rep(NA_real_, nrow(out[[i]])))
+            } else {
+                if (as.integer(j) %% 2) {
+                    vmat <- currentO[,j]
+                } else {
+                    vmat <- currentE[,j]
+                }
+                expect_equal(out[[i]]$full.logFC.detected[,j], vmat)
+            }
+        }
+    }
+
+    # Summary stats are valid.
+    for (i in names(out)) {
+        current <- out[[i]][,1:4]
+        expect_true(all(is.finite(as.matrix(current))))
+    }
+})
+
+test_that("blocking is performed correctly (batch-specific groups)", {
+    y <- matrix(rpois(1000, 0.5), ncol=100)
+    cluster <- sample(10:14, ncol(y), replace=TRUE)
+    block <- sample(2, ncol(y), replace=TRUE)
+    block[cluster==10] <- 1
+    block[cluster==14] <- 2
+
+    b1 <- scoreMarkers(y[,block==1], cluster[block==1], full.stats=TRUE)
+    b2 <- scoreMarkers(y[,block==2], cluster[block==2], full.stats=TRUE)
+    out <- scoreMarkers(y, cluster, full.stats=TRUE, block=block) 
+
+    is.shared <- !cluster %in% c(10, 14)
+    shared <- scoreMarkers(y[,is.shared], cluster[is.shared], full.stats=TRUE, block=block[is.shared])
+
+    onames <- as.character(10:14)
+    for (i in onames) {
+        current1 <- b1[[i]]$full.AUC
+        current2 <- b2[[i]]$full.AUC
+
+        for (j in setdiff(onames, i)) {
+            if (i=="10") {
+                if (j!="14") {
+                    ref <- current1[,j]
+                } else {
+                    ref <- rep(NA_real_, nrow(y))
+                }
+            } else if (i=="14") {
+                if (j!="10") {
+                    ref <- current2[,j]
+                } else {
+                    ref <- rep(NA_real_, nrow(y))
+                }
+            } else {
+                if (j=="10") {
+                    ref <- current1[,j]
+                } else if (j=="14") {
+                    ref <- current2[,j]
+                } else {
+                    ref <- shared[[i]]$full.AUC[,j]
+                }
+            }
+            expect_equal(ref, out[[i]]$full.AUC[,j])
+        }
+    }
+
+    # Summary stats are valid.
+    for (i in names(out)) {
+        current <- out[[i]][,1:4]
+        expect_true(all(is.finite(as.matrix(current))))
+    }
+})
+
