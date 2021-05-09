@@ -340,3 +340,46 @@ test_that("blocking is performed correctly (batch-specific groups)", {
     }
 })
 
+set.seed(100002)
+test_that("group ordering is correct", {
+    y <- matrix(rnorm(1000), ncol=100)
+    cluster <- sample(1:5, ncol(y), replace=TRUE)
+    cluster[1:5] <- c(1,5,2,4,3) # guaranteeing that the first few elements are out of order.
+    ref <- scoreMarkers(y, cluster, full.stats=TRUE) 
+
+    n <- as.character(1:5)
+    expect_identical(names(ref), n)
+    for (i in n) {
+        expect_identical(colnames(ref[[i]]$full.AUC), setdiff(n, i))
+    }
+
+    super_unname <- function(x) {
+        x <- as.matrix(x)
+        colnames(x) <- NULL
+        x
+    }
+
+    out <- scoreMarkers(y, LETTERS[cluster], full.stats=TRUE) 
+    n <- LETTERS[1:5]
+    expect_identical(names(out), n)
+    for (i in seq_along(n)) {
+        expect_identical(colnames(out[[i]]$full.AUC), setdiff(n, n[i]))
+        expect_identical(super_unname(ref[[i]]$full.AUC), super_unname(out[[i]]$full.AUC))
+    }
+
+    # Handles factors with unordered factors.
+    n <- factor(LETTERS[1:5], LETTERS[5:1])
+    out2 <- scoreMarkers(y, n[cluster], full.stats=TRUE) 
+    expect_identical(names(out2), levels(n))
+    for (i in LETTERS[1:5]) {
+        past <- out[[i]]$full.AUC
+        curr <- out2[[i]]$full.AUC
+        expect_equal(past, curr[,rev(colnames(curr))])
+    }
+
+    # Handles factors with unused levels.
+    n <- factor(LETTERS[2:6], LETTERS[1:10])
+    ref <- scoreMarkers(y, n[cluster], full.stats=TRUE) 
+    out <- scoreMarkers(y, as.character(n)[cluster], full.stats=TRUE) 
+    expect_identical(ref, out)
+})

@@ -191,7 +191,8 @@ NULL
     # the left ID < right ID, which implies that the left group < right group.
     # Otherwise, if the combinations were not ordered, we would have some 
     # comparisons where the left group < right group and others where the 
-    # left group > right group, despite all of them having left ID < right ID.
+    # left group > right group, despite all of them having left ID < right ID;
+    # this prevents collapsing of the same comparison across multiple blocks.
     ucombos <- df[keep,,drop=FALSE]
     o <- order(ucombos)
     uid <- uid[o]
