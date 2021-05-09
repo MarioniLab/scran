@@ -92,7 +92,7 @@ To simplify interpretation, we summarize the effect sizes across all pairwise co
 For each group \eqn{X}, we consider the effect sizes from all pairwise comparisons between \eqn{X} and other groups. 
 We then compute the following values:
 \itemize{
-\item \code{mean.*}, the mean effect sze across all pairwise comparisons involving \eqn{X}.
+\item \code{mean.*}, the mean effect size across all pairwise comparisons involving \eqn{X}.
 A large value (>0 for log-fold changes, >0.5 for the AUCs) indicates that the gene is upregulated in \eqn{X} compared to the average of the other groups.
 \item \code{median.*}, the median effect size across all pairwise comparisons involving \eqn{X}.
 A large value indicates that the gene is upregulated in \eqn{X} compared to most (>50\%) other groups.
@@ -102,17 +102,14 @@ while a small value (<0 for log-fold changes, <0.5 for the AUCs) indicates that 
 \item \code{max.*}, the minimum effect size across all pairwise comparisons involving \eqn{X}.
 A large value indicates that the gene is upregulated in \eqn{X} compared to at least one other group,
 while a small value indicates that the gene is downregulated in \eqn{X} compared to all other groups.
+\item \code{rank.*}, the smallest rank across all pairwise comparisons involving \eqn{X} - see \code{?\link{computeTopRank}} for details.
+A small rank indicates that the gene is one of the top upregulated genes in at least one comparison to another group.
 }
 
 One set of these columns is added to the DataFrame for each effect size described above.
 For example, the mean column for the AUC would be \code{mean.AUC}.
 We can then reorder each group's DataFrame by our column of choice, depending on which summary and effect size we are interested in.
 For example, if we ranked by decreasing \code{min.logFC.detected}, we would be aiming for marker genes that exhibit strong binary increases in expression in \eqn{X} compared to \emph{all} other groups.
-
-The mean is obtained by weighting each comparison according to the number of cells involved.
-This ensures that statistics from comparisons with very few cells do not skew the summary.
-If \code{weight.fun=NULL}, the default weight is defined as the number of cells, capped at 100 cells;
-this upweights comparisons with "enough" cells while ensuring that comparisons involving very large groups do not dominate the summary.
 
 If \code{full.stats=TRUE}, an extra \code{full.*} column is returned in the DataFrame.
 This contains a nested DataFrame with number of columns equal to the number of other groups.
@@ -145,6 +142,7 @@ out
 # Ranking by a metric of choice:
 of.interest <- out[[1]]
 of.interest[order(of.interest$mean.AUC, decreasing=TRUE),1:4]
+of.interest[order(of.interest$rank.AUC),1:4]
 of.interest[order(of.interest$median.logFC.cohen, decreasing=TRUE),1:4]
 of.interest[order(of.interest$min.logFC.detected, decreasing=TRUE),1:4]
 
