@@ -131,12 +131,10 @@ top.hvgs4 <- getTopHVGs(dec, fdr.threshold=0.05)
 ```
 
 The selected subset of genes can then be passed to the `subset.row` argument (or equivalent) in downstream steps.
-This process is demonstrated below for the PCA step, using the `runPCA()` function from the `r Biocpkg("scater")` package.
+This process is demonstrated below for the PCA step:
 
 ```{r}
-# Running the PCA with the 10% of HVGs.
-library(scater)
-sce <- runPCA(sce, subset_row=top.hvgs)
+sce <- fixedPCA(sce, subset.row=top.hvgs)
 reducedDimNames(sce)
 ```
 
@@ -188,6 +186,7 @@ Note that `colLabels()<-` will just add the cluster assignments to the `"label"`
 however, any name can be used as long as downstream functions are adjusted appropriately.
 
 ```{r}
+library(scater)
 sce <- runTSNE(sce, dimred="PCAsub")
 plotTSNE(sce, colour_by="label", text_by="label")
 ```
@@ -233,7 +232,7 @@ The `scoreMarkers()` wrapper function will perform differential expression compa
 For each pairwise comparison, we compute a variety of effect sizes to quantify the differences between those clusters.
 
 - Cohen's $d$ is a standardized log-fold change, representing the number of standard deviations that separate the means of two groups.
-This is analogous to the $t$-statistic in the Welch $t$-test.
+This is analogous to the $t$-statistic in Student's $t$-test.
 - The area under the curve (AUC) is the probability that a randomly chosen observation from one group is greater than a random observation from another group.
 This is proportional to the U-statistic from the Wilcoxon ranked sum test.
 - We also compute the log-fold change in the proportion of cells with detectable (i.e., non-zero) expression.

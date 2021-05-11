@@ -62,6 +62,7 @@
 #' @importFrom SummarizedExperiment assay
 #' @importFrom scuttle .bpNotSharedOrUp
 #' @importFrom Matrix t 
+#' @importFrom beachmat realizeFileBackedMatrix
 fixedPCA <- function(x, rank=50, value=c("pca", "lowrank"), subset.row, preserve.shape=TRUE, assay.type="logcounts", name=NULL, BSPARAM=bsparam(), BPPARAM=SerialParam()) {
     if (!.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
@@ -72,17 +73,14 @@ fixedPCA <- function(x, rank=50, value=c("pca", "lowrank"), subset.row, preserve
     x <- assay(x, assay.type)
 
     subset.row <- .process_subset_for_pca(subset.row, x)
-    stats <- .compute_mean_var(x, BPPARAM=BPPARAM, subset.row=subset.row, 
-        design=NULL, block.FUN=compute_blocked_stats_none, block=NULL)
-    total.var <- sum(stats$vars)
+    y <- t(x[subset.row,,drop=FALSE])
+    y <- realizeFileBackedMatrix(y)
 
-    y <- x[subset.row,,drop=FALSE]
-    svd.out <- .centered_SVD(t(y), rank, keep.left=TRUE, keep.right=TRUE,
+    svd.out <- .centered_SVD(y, rank, keep.left=TRUE, keep.right=TRUE,
         BSPARAM=BSPARAM, BPPARAM=BPPARAM)
-    var.exp <- svd.out$d^2 / (ncol(y) - 1)
+    var.exp <- svd.out$d^2 / (nrow(y) - 1)
 
-    value <- match.arg(value)
-    force(preserve.shape) # must happen after 'value', for the defaults to work properly.
+    total.var <- sum(colVars(y))
 
     pcs <- list(
         components=.svd_to_pca(svd.out, rank), 
@@ -94,5 +92,7 @@ fixedPCA <- function(x, rank=50, value=c("pca", "lowrank"), subset.row, preserve
     if (!preserve.shape) {
         original <- original[subset.row,]
     }
+
+    value <- match.arg(value)
     .pca_to_output(original, pcs, value=value, name=name)
 }

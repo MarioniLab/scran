@@ -187,19 +187,20 @@ NULL
         }
     }
 
-    # Filtering out genes with negative biological components.
+    # Filtering out genes with negative biological components before running the SVD.
     keep <- all.var > tech.var
     tech.var <- tech.var[keep]
     all.var <- all.var[keep]
     use.rows <- subset.row[keep]
-    y <- x[use.rows,,drop=FALSE] 
 
-    # Setting up the SVD results. 
-    svd.out <- .centered_SVD(t(y), max.rank, keep.left=TRUE, keep.right=TRUE,
+    y <- t(x[use.rows,,drop=FALSE])
+    y <- realizeFileBackedMatrix(y)
+
+    svd.out <- .centered_SVD(y, max.rank, keep.left=TRUE, keep.right=TRUE,
         BSPARAM=BSPARAM, BPPARAM=BPPARAM)
 
     # Choosing the number of PCs.
-    var.exp <- svd.out$d^2 / (ncol(y) - 1)
+    var.exp <- svd.out$d^2 / (nrow(y) - 1)
     total.var <- sum(all.var)
     npcs <- denoisePCANumber(var.exp, sum(tech.var), total.var)
     npcs <- max(npcs, min(min.rank, length(var.exp)))
