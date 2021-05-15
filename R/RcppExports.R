@@ -49,7 +49,7 @@ overlap_exprs <- function(exprs, groups, lfc) {
     .Call('_scran_overlap_exprs', PACKAGE = 'scran', exprs, groups, lfc)
 }
 
-overlap_exprs_paired <- function(exprs, left, right, groups) {
-    .Call('_scran_overlap_exprs_paired', PACKAGE = 'scran', exprs, left, right, groups)
+overlap_exprs_paired <- function(exprs, left, right, groups, lfc) {
+    .Call('_scran_overlap_exprs_paired', PACKAGE = 'scran', exprs, left, right, groups, lfc)
 }
 

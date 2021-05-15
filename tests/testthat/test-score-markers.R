@@ -384,3 +384,30 @@ test_that("group ordering is correct", {
     out <- scoreMarkers(y, as.character(n)[cluster], full.stats=TRUE) 
     expect_identical(ref, out)
 })
+
+set.seed(100002)
+test_that("lfc handling is correct", {
+    y <- matrix(rnorm(1000), ncol=100)
+    cluster <- sample(c(1,"A",3,"C",5), ncol(y), replace=TRUE)
+    out <- scoreMarkers(y, cluster, full.stats=TRUE, lfc=1.5)
+    
+    for (x in c("1", "A", "3", "C", "5")) {
+        y2 <- y
+        y2[,cluster==x] <- y2[,cluster==x] - 1.5
+        ref <- scoreMarkers(y2, cluster, full.stats=TRUE)
+
+        expect_equal(out[[x]]$full.logFC.cohen, ref[[x]]$full.logFC.cohen)
+        expect_equal(out[[x]]$mean.logFC.cohen, ref[[x]]$mean.logFC.cohen)
+        expect_equal(out[[x]]$mean.AUC, ref[[x]]$mean.AUC)
+        expect_equal(out[[x]]$full.AUC, ref[[x]]$full.AUC)
+    }
+
+    # Detected log-fold change is unaffected.
+    ref2 <- scoreMarkers(y, cluster, full.stats=TRUE)
+
+    for (x in c("1", "A", "3", "C", "5")) {
+        expect_equal(out[[x]]$mean.logFC.detected, ref2[[x]]$mean.logFC.detected)
+        expect_equal(out[[x]]$full.logFC.detected, ref2[[x]]$full.logFC.detected)
+        expect_equal(out[[x]][,1:4], ref2[[x]][,1:4])
+    }
+})

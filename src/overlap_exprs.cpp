@@ -193,7 +193,7 @@ Rcpp::List overlap_exprs(Rcpp::RObject exprs, Rcpp::List groups, double lfc) {
 }
 
 // [[Rcpp::export(rng=false)]]
-Rcpp::NumericMatrix overlap_exprs_paired(Rcpp::RObject exprs, Rcpp::IntegerVector left, Rcpp::IntegerVector right, Rcpp::List groups) {
+Rcpp::NumericMatrix overlap_exprs_paired(Rcpp::RObject exprs, Rcpp::IntegerVector left, Rcpp::IntegerVector right, Rcpp::List groups, double lfc) {
     auto mat = beachmat::read_lin_block(exprs);
     const size_t ngenes=mat->get_nrow();
     const size_t ncells=mat->get_ncol();
@@ -212,7 +212,7 @@ Rcpp::NumericMatrix overlap_exprs_paired(Rcpp::RObject exprs, Rcpp::IntegerVecto
         wilcox_calc.initialize(ptr);
 
         for (size_t i=0; i<left.size(); ++i, ++oIt) {
-            *oIt = wilcox_calc.contrast_groups(left[i] - 1, right[i] - 1, 0).first;
+            *oIt = wilcox_calc.contrast_groups(left[i] - 1, right[i] - 1, lfc).first;
         }
     }
 

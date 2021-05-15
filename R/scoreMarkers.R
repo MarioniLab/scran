@@ -15,6 +15,7 @@
 #'
 #' For the SingleCellExperiment method, further arguments to pass to the SummarizedExperiment method.
 #' @param assay.type String or integer scalar specifying the assay containing the log-expression matrix to use.
+#' @param lfc Numeric scalar specifying the log-fold change threshold to compute effect sizes against.
 #'
 #' @return
 #' A List of DataFrames containing marker scores for each gene in each group.
@@ -35,7 +36,7 @@
 #' @section Choice of effect sizes:
 #' The \code{logFC.cohen} columns contain the standardized log-fold change, i.e., Cohen's d.
 #' For each pairwise comparison, this is defined as the difference in the mean log-expression for each group scaled by the root of the pooled variance across the groups.
-#' The standardization is analogous to the calculation of the t-statistic and avoids spuriously large effect sizes from highly variable groups.
+#' Cohen's d is analogous to the t-statistic in Student's t-test and avoids spuriously large effect sizes from comparisons between highly variable groups.
 #' We can also interpret Cohen's d as the number of standard deviations between the two group means.
 #' 
 #' The \code{AUC} columns contain the area under the curve.
@@ -45,14 +46,32 @@
 #'
 #' The key difference between the AUC and Cohen's d is that the former is less sensitive to the variance within each group.
 #' The clearest example is that of two distributions that exhibit no overlap, where the AUC is the same regardless of the variance of each distribution.
-#' This may or may not be desirable, as it improves robustness to outliers but reduces the information available to obtain a highly resolved ranking. 
+#' This may or may not be desirable as it improves robustness to outliers but reduces the information available to obtain a highly resolved ranking. 
 #' The most appropriate choice of effect size is left at the user's discretion.
-#' 
+#'
 #' Finally, the \code{logFC.detected} columns contain the log-fold change in the proportion of cells with detected (i.e., non-zero) expression between groups.
 #' This is specifically useful for detecting binary expression patterns, e.g., activation of an otherwise silent gene.
-#' Note that the non-zero status of the data is not affected by normalization, so differences in library size will implicitly affect the value of this metric.
-#' However, this is not necessarily problematic for marker gene detection - users can treat this as \emph{retaining} information about the total RNA content, analogous to spike-in normalization.
+#' Note that the non-zero status of the data is not altered by normalization, so differences in library size will not be removed when computing this metric.
+#' This effect is not necessarily problematic - users can interpret it as \emph{retaining} information about the total RNA content, analogous to spike-in normalization.
 #'
+#' @section Setting a log-fold change threshold:
+#' The default settings may yield highly ranked genes with large effect sizes but low log-fold changes if the variance is low (Cohen's d) or separation is clear (AUC).
+#' Such genes may not be particularly interesting as the actual change in expression is modest.
+#' Setting \code{lfc} allows us to focus on genes with large log-fold changes between groups,
+#' by simply shifting the \dQuote{other} group's expression values by \code{lfc} before computing effect sizes.
+#'
+#' When \code{lfc} is not zero, Cohen's d is generalized to the standardized difference between the observed log-fold change and \code{lfc}.
+#' For example, if we had \code{lfc=2} and we obtained a Cohen's d of 3, this means that the observed log-fold change was 3 standard deviations above a value of 2.
+#' A side effect is that we can only unambiguously interpret the direction of Cohen's d when it has the same sign as \code{lfc}.
+#' Our above example represents upregulation, but if our Cohen's d was negative, this could either mean downregulation or simply that our observed log-fold change was less than \code{lfc}.
+#' 
+#' When \code{lfc} is not zero, the AUC is generalized to the probability of obtaining a random observation in one group that is greater than a random observation plus \code{lfc} in the other group.
+#' For example, if we had \code{lfc=2} and we obtained an AUC of 0.8, this means that we would observe a difference of \code{lfc} or greater between the random observations.
+#' Again, we can only unambiguously interpret the direction of the change when it is the same as the sign of the \code{lfc}.
+#' In this case, an AUC above 0.5 with a positive \code{lfc} represents upregulation, but an AUC below 0.5 could mean either downregulation or a log-fold change less than \code{lfc}.
+#' 
+#' A non-zero setting of \code{lfc} has no effect on the log-fold change in the proportion of cells with detected expression.
+#' 
 #' @section Computing effect size summaries:
 #' To simplify interpretation, we summarize the effect sizes across all pairwise comparisons into a few key metrics.
 #' For each group \eqn{X}, we consider the effect sizes from all pairwise comparisons between \eqn{X} and other groups. 
@@ -60,18 +79,19 @@
 #' \itemize{
 #' \item \code{mean.*}, the mean effect size across all pairwise comparisons involving \eqn{X}.
 #' A large value (>0 for log-fold changes, >0.5 for the AUCs) indicates that the gene is upregulated in \eqn{X} compared to the average of the other groups.
+#' A small value (<0 for the log-fold changes, <0.5 for the AUCs) indicates that the gene is downregulated in \eqn{X} instead.
 #' \item \code{median.*}, the median effect size across all pairwise comparisons involving \eqn{X}.
 #' A large value indicates that the gene is upregulated in \eqn{X} compared to most (>50\%) other groups.
+#' A small value indicates that the gene is downregulated in \eqn{X} instead.
 #' \item \code{min.*}, the minimum effect size across all pairwise comparisons involving \eqn{X}.
-#' A large value indicates that the gene is upregulated in \eqn{X} compared to all other groups,
-#' while a small value (<0 for log-fold changes, <0.5 for the AUCs) indicates that the gene is downregulated in \eqn{X} compared to at least one other group.
+#' A large value indicates that the gene is upregulated in \eqn{X} compared to all other groups.
+#' A small value indicates that the gene is downregulated in \eqn{X} compared to at least one other group.
 #' \item \code{max.*}, the minimum effect size across all pairwise comparisons involving \eqn{X}.
-#' A large value indicates that the gene is upregulated in \eqn{X} compared to at least one other group,
-#' while a small value indicates that the gene is downregulated in \eqn{X} compared to all other groups.
+#' A large value indicates that the gene is upregulated in \eqn{X} compared to at least one other group.
+#' A small value indicates that the gene is downregulated in \eqn{X} compared to all other groups.
 #' \item \code{rank.*}, the smallest rank across all pairwise comparisons involving \eqn{X} - see \code{?\link{computeTopRank}} for details.
 #' A small rank indicates that the gene is one of the top upregulated genes in at least one comparison to another group.
 #' }
-#'
 #' One set of these columns is added to the DataFrame for each effect size described above.
 #' For example, the mean column for the AUC would be \code{mean.AUC}.
 #' We can then reorder each group's DataFrame by our column of choice, depending on which summary and effect size we are interested in.
@@ -80,6 +100,12 @@
 #' If \code{full.stats=TRUE}, an extra \code{full.*} column is returned in the DataFrame.
 #' This contains a nested DataFrame with number of columns equal to the number of other groups.
 #' Each column contains the statistic from the comparison between \eqn{X} and the other group.
+#'
+#' Keep in mind that the interpretations above also depend on the sign of \code{lfc}.
+#' The concept of a \dQuote{large} summary statistic (>0 for Cohen's d, >0.5 for the AUCs) can only be interpreted as upregulation when \code{lfc >= 0}.
+#' Similarly, the concept of a \dQuote{small} value (<0 for Cohen's d, <0.5 for the AUCs) cannot be interpreted as downregulation when \code{lfc <= 0}.
+#' For example, if \code{lfc=1}, a positive \code{min.logFC.cohen} can still be interpreted as upregulation in \eqn{X} compared to all other groups,
+#' but a negative \code{max.logFC.cohen} could not be interpreted as downregulation in \eqn{X} compared to all other groups.
 #'
 #' @section Computing other descriptive statistics: 
 #' We report the mean log-expression of all cells in \eqn{X}, as well as the grand mean of mean log-expression values for all other groups.
@@ -118,7 +144,7 @@ NULL
 #' @importFrom DelayedArray DelayedArray
 #' @importFrom BiocParallel SerialParam bpstart bpstop
 #' @importFrom Matrix t
-.scoreMarkers <- function(x, groups, block=NULL, row.data=NULL, full.stats=FALSE, BPPARAM=SerialParam()) {
+.scoreMarkers <- function(x, groups, block=NULL, lfc=0, row.data=NULL, full.stats=FALSE, BPPARAM=SerialParam()) {
     if (.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))
@@ -155,13 +181,14 @@ NULL
     unique.combinations <- combination.out$combinations
     ncells <- tabulate(combination.id, nbins=nrow(unique.combinations))
 
-    reindexed.comparisons <- .reindex_comparisons_for_combinations(unique.combinations, desired.comparisons)
+    collapse.symmetric <- lfc==0
+    reindexed.comparisons <- .reindex_comparisons_for_combinations(unique.combinations, desired.comparisons, collapse.symmetric=collapse.symmetric)
     left <- reindexed.comparisons$left
     right <- reindexed.comparisons$right
 
     involved <- .group_by_used_combinations(combination.id, left, right, nrow(unique.combinations))
     pre.ave <- .identify_effects_to_average(unique.combinations, reindexed.comparisons)
-    desired.indices <- .cross_reference_to_desired(pre.ave$averaged.comparisons, desired.comparisons)
+    desired.indices <- .cross_reference_to_desired(pre.ave$averaged.comparisons, desired.comparisons, collapse.symmetric=collapse.symmetric)
 
     # Performing the per-cell calculations and gathering the statistics.
     stats <- rowBlockApply(x, 
@@ -174,6 +201,7 @@ NULL
         indices.to.average=pre.ave$indices.to.average, 
         desired.indices=desired.indices,
         involved=involved,
+        lfc=lfc,
         full.stats=full.stats,
         BPPARAM=BPPARAM)
 
@@ -218,7 +246,7 @@ NULL
 
 #' @importFrom S4Vectors DataFrame
 #' @importMethodsFrom S4Vectors %in%
-.reindex_comparisons_for_combinations <- function(unique.combinations, desired.comparisons) {
+.reindex_comparisons_for_combinations <- function(unique.combinations, desired.comparisons, collapse.symmetric=TRUE) {
     rows <- seq_len(nrow(unique.combinations))
     if (!is.null(unique.combinations$block)) {
         by.block <- split(rows, unique.combinations$block)
@@ -239,8 +267,13 @@ NULL
         index.left <- indices[mleft[keep]]
         index.right <- indices[mright[keep]]
 
-        # Eliminating redundant comparisons with flipped orientations.
-        index.pairs <- DataFrame(left=pmax(index.left, index.right), right=pmin(index.left, index.right))
+        if (collapse.symmetric) { 
+            # Eliminating redundant comparisons with flipped orientations. This
+            # is only permissible when the effect sizes are somehow symmetric.
+            index.pairs <- DataFrame(left=pmax(index.left, index.right), right=pmin(index.left, index.right))
+        } else {
+            index.pairs <- DataFrame(left=index.left, right=index.right)
+        }
         index.pairs <- unique(index.pairs)
 
         left[[i]] <- index.pairs$left
@@ -261,25 +294,25 @@ NULL
 
 #' @importFrom scuttle summarizeAssayByGroup correctGroupSummary
 .compute_all_effect_sizes <- function(x, combination.id, left, right, ncells,
-    involved, unique.combinations, indices.to.average, desired.indices, full.stats)
+    involved, unique.combinations, indices.to.average, desired.indices, lfc, full.stats)
 {
     left.ncells <- ncells[left]
     right.ncells <- ncells[right]
 
     # Computing effects.
     stats <- compute_blocked_stats_none(x, combination.id - 1L, length(involved))
-    cohen <- .compute_pairwise_cohen_d(stats[[1]], stats[[2]], left, right, left.ncells, right.ncells)
+    cohen <- .compute_pairwise_cohen_d(stats[[1]], stats[[2]], left, right, left.ncells, right.ncells, lfc=lfc)
 
     detected.se <- summarizeAssayByGroup(x, combination.id, statistics=c("num.detected", "prop.detected"))
     m <- match(seq_len(nrow(unique.combinations)), detected.se$ids)
     ndetected <- assay(detected.se, withDimnames=FALSE)[,m,drop=FALSE]
-    lfc <- .compute_lfc_detected(ndetected, left, right, left.ncells, right.ncells)
+    nlfc <- .compute_lfc_detected(ndetected, left, right, left.ncells, right.ncells)
 
-    auc <- .compute_auc(x, involved, left, right, left.ncells, right.ncells)
+    auc <- .compute_auc(x, involved, left, right, left.ncells, right.ncells, lfc=lfc)
 
     # Averaging across blocks and then collating.
     weights <- left.ncells * right.ncells
-    output <- list(logFC.cohen=cohen, AUC=auc, logFC.detected=lfc)
+    output <- list(logFC.cohen=cohen, AUC=auc, logFC.detected=nlfc)
 
     for (effect in names(output)) {
         if (effect == "AUC") {
@@ -325,8 +358,8 @@ NULL
 }
 
 #' @importFrom DelayedMatrixStats rowWeightedMeans
-.compute_pairwise_cohen_d <- function(means, vars, left, right, left.ncells, right.ncells) {
-    all.delta <- means[,left,drop=FALSE] - means[,right,drop=FALSE]
+.compute_pairwise_cohen_d <- function(means, vars, left, right, left.ncells, right.ncells, lfc) {
+    all.delta <- means[,left,drop=FALSE] - means[,right,drop=FALSE] - lfc
 
     left.s2 <- t(vars[,left,drop=FALSE])
     right.s2 <- t(vars[,right,drop=FALSE])
@@ -354,8 +387,8 @@ NULL
     log2(t(left.prop/right.prop))
 }
 
-.compute_auc <- function(x, involved, left, right, left.ncells=lengths(involved)[left], right.ncells=lengths(involved)[right]) {
-    overlap <- overlap_exprs_paired(x, left, right, involved)
+.compute_auc <- function(x, involved, left, right, left.ncells, right.ncells, lfc) {
+    overlap <- overlap_exprs_paired(x, left, right, involved, lfc)
     t(overlap / (left.ncells * right.ncells))
 }
 
@@ -407,12 +440,18 @@ NULL
 }
 
 #' @importFrom S4Vectors match
-.cross_reference_to_desired <- function(averaged.comparisons, desired.comparisons) {
+.cross_reference_to_desired <- function(averaged.comparisons, desired.comparisons, collapse.symmetric=TRUE) {
     m <- match(desired.comparisons, averaged.comparisons)
-
-    flipped <- averaged.comparisons[,2:1]
-    colnames(flipped) <- colnames(averaged.comparisons)
-    fm <- match(desired.comparisons, flipped)
+   
+    if (collapse.symmetric) {
+        # If the symmetric comparisons were deduplicated by flipping left/right,
+        # we flip them for the cross-referencing back to 'desired.comparisons'.
+        flipped.comparisons <- averaged.comparisons[,2:1]
+        colnames(flipped.comparisons) <- colnames(averaged.comparisons)
+        fm <- match(desired.comparisons, flipped.comparisons)
+    } else {
+        fm <- rep(NA_integer_, nrow(desired.comparisons))
+    }
 
     # drop=TRUE to ignore unused factor levels, which are highly unlikely to be desired.
     indices <- split(seq_len(nrow(desired.comparisons)), desired.comparisons$left, drop=TRUE)
@@ -445,15 +484,19 @@ NULL
 
         original <- current$direct.match
         keep <- !is.na(original)
-        original.kept <- original[keep]
-        collated[keep] <- averaged.effects[original.kept]
-        w[keep] <- combined.weights[original.kept]
+        if (any(keep)) {
+            original.kept <- original[keep]
+            collated[keep] <- averaged.effects[original.kept]
+            w[keep] <- combined.weights[original.kept]
+        }
 
         flipped <- current$flipped.match
         fkeep <- !is.na(flipped)
-        flipped.kept <- flipped[fkeep]
-        collated[fkeep] <- lapply(averaged.effects[flipped.kept], REVERSE)
-        w[fkeep] <- combined.weights[flipped.kept]
+        if (any(fkeep)) {
+            flipped.kept <- flipped[fkeep]
+            collated[fkeep] <- lapply(averaged.effects[flipped.kept], REVERSE)
+            w[fkeep] <- combined.weights[flipped.kept]
+        }
 
         # Filling in the leftovers, e.g., due to an impossible comparison.
         for (j in which(!keep & !fkeep)) {

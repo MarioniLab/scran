@@ -166,15 +166,16 @@ BEGIN_RCPP
 END_RCPP
 }
 // overlap_exprs_paired
-Rcpp::NumericMatrix overlap_exprs_paired(Rcpp::RObject exprs, Rcpp::IntegerVector left, Rcpp::IntegerVector right, Rcpp::List groups);
-RcppExport SEXP _scran_overlap_exprs_paired(SEXP exprsSEXP, SEXP leftSEXP, SEXP rightSEXP, SEXP groupsSEXP) {
+Rcpp::NumericMatrix overlap_exprs_paired(Rcpp::RObject exprs, Rcpp::IntegerVector left, Rcpp::IntegerVector right, Rcpp::List groups, double lfc);
+RcppExport SEXP _scran_overlap_exprs_paired(SEXP exprsSEXP, SEXP leftSEXP, SEXP rightSEXP, SEXP groupsSEXP, SEXP lfcSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::RObject >::type exprs(exprsSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type left(leftSEXP);
     Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type right(rightSEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type groups(groupsSEXP);
-    rcpp_result_gen = Rcpp::wrap(overlap_exprs_paired(exprs, left, right, groups));
+    Rcpp::traits::input_parameter< double >::type lfc(lfcSEXP);
+    rcpp_result_gen = Rcpp::wrap(overlap_exprs_paired(exprs, left, right, groups, lfc));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -192,7 +193,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_scran_get_null_rho_design", (DL_FUNC) &_scran_get_null_rho_design, 5},
     {"_scran_cyclone_scores", (DL_FUNC) &_scran_cyclone_scores, 9},
     {"_scran_overlap_exprs", (DL_FUNC) &_scran_overlap_exprs, 3},
-    {"_scran_overlap_exprs_paired", (DL_FUNC) &_scran_overlap_exprs_paired, 4},
+    {"_scran_overlap_exprs_paired", (DL_FUNC) &_scran_overlap_exprs_paired, 5},
     {NULL, NULL, 0}
 };
 
