@@ -28,7 +28,7 @@
 #' A named \linkS4class{List} of \linkS4class{DataFrame}s where each DataFrame contains the consolidated marker statistics for each gene (row) for the cluster of the same name.
 #' The DataFrame for cluster \eqn{X} contains the fields:
 #' \describe{
-#' \item{\code{Top}:}{Integer, the minimum rank across all pairwise comparisons.
+#' \item{\code{Top}:}{Integer, the minimum rank across all pairwise comparisons - see \code{?\link{computeMinRank}} for details.
 #' This is only reported if \code{pval.type="any"}.}
 #' \item{\code{p.value}:}{Numeric, the combined p-value across all comparisons if \code{log.p.out=FALSE}.}
 #' \item{\code{FDR}:}{Numeric, the BH-adjusted p-value for each gene if \code{log.p.out=FALSE}.}
@@ -67,20 +67,11 @@
 #' }
 #' 
 #' @section Consolidating with DE against any other cluster:
-#' By default, each DataFrame is sorted by the \code{Top} value when \code{pval.type="any"}.
-#' Taking all rows with \code{Top} values less than or equal to T yields a marker set containing the top T genes (ranked by significance) from each pairwise comparison.
+#' When \code{pval.type="any"}, each DataFrame is sorted by the min-rank in the \code{Top} column.
+#' Taking all rows with \code{Top} values less than or equal to \eqn{T} yields a marker set containing the top \eqn{T} genes (ranked by significance) from each pairwise comparison.
 #' This guarantees the inclusion of genes that can distinguish between any two clusters.
+#' Also see \code{?\link{computeMinRank}} for more details on the rationale behind this metric.
 #' 
-#' To demonstrate, let us define a marker set with an T of 1 for a given cluster.
-#' The set of genes with \code{Top <= 1} will contain the top gene from each pairwise comparison to every other cluster.
-#' If T is instead, say, 5, the set will consist of the \emph{union} of the top 5 genes from each pairwise comparison.
-#' Obviously, multiple genes can have the same \code{Top} as different genes may have the same rank across different pairwise comparisons.
-#' Conversely, the marker set may be smaller than the product of \code{Top} and the number of other clusters, as the same gene may be shared across different comparisons.
-#' 
-#' This approach does not explicitly favour genes that are uniquely expressed in a cluster.
-#' Rather, it focuses on combinations of genes that - together - drive separation of a cluster from the others.
-#' This is more general and robust but tends to yield a less focused marker set compared to the other \code{pval.type} settings.
-#'
 #' For each gene and cluster, the summary effect size is defined as the effect size from the pairwise comparison with the lowest p-value.
 #' The combined p-value is computed by applying Simes' method to all p-values.
 #' Neither of these values are directly used for ranking and are only reported for the sake of the user.

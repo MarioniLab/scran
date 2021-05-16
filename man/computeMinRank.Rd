@@ -21,18 +21,19 @@ Compute the minimum rank in a matrix of statistics, usually effect sizes from a 
 }
 \details{
 For each gene, the minimum rank, a.k.a., \dQuote{min-rank} is defined by ranking values within each column of \code{x}, and then taking the minimum rank value across columns.
-This represents the highest rank that each gene achieves in any comparison,
-assuming that the columns of \code{x} represent statistics from a single comparison.
+This is most useful when the columns of \code{x} contain significance statistics or effect sizes from a single differential comparison, where larger values represent stronger differences.
+In this setting, the min-rank represents the highest rank that each gene achieves in any comparison.
+Taking all genes with min-ranks less than or equal to \eqn{T} yields the union of the top \eqn{T} DE genes from all comparisons.
 
-The min-rank allows us to easily filter a set of genes to obtain the top DE genes from each comparison.
-In the context of marker detection with pairwise comparisons between groups of cells, 
-taking all rows with min-ranks less than or equal to T yields a marker set containing the top T genes (ranked by significance) from each pairwise comparison.
-This guarantees the inclusion of genes that can distinguish between any two groups.
-
-The set of genes with min-ranks <= 1 will contain the top gene from each pairwise comparison to every other cluster.
-If T is instead, say, 5, the set will consist of the \emph{union} of the top 5 genes from each pairwise comparison.
+To illustrate, the set of genes with min-rank values of 1 will contain the top gene from each pairwise comparison to every other cluster.
+If we instead take all genes with min-ranks less than or equal to, say, \eqn{T = 5}, the set will consist of the \emph{union} of the top 5 genes from each pairwise comparison.
 Multiple genes can have the same min-rank as different genes may have the same rank across different pairwise comparisons.
-Conversely, the marker set may be smaller than the product of T and the number of other clusters, as the same gene may be shared across different comparisons.
+Conversely, the marker set may be smaller than the product of \eqn{T} and the number of other clusters, as the same gene may be shared across different comparisons.
+
+In the context of marker detection with pairwise comparisons between groups of cells, sorting by the min-rank guarantees the inclusion of genes that can distinguish between any two groups.
+More specifically, this approach does not explicitly favour genes that are uniquely expressed in a cluster.
+Rather, it focuses on combinations of genes that - together - drive separation of a cluster from the others.
+This is more general and robust but tends to yield a less focused marker set compared to the other methods of ranking potential markers.
 }
 \examples{
 # Get min-rank by log-FC:
@@ -46,4 +47,6 @@ computeMinRank(pvals, decreasing=FALSE)
 }
 \seealso{
 \code{\link{scoreMarkers}}, where this function is used to compute one of the effect size summaries.
+
+\code{\link{combineMarkers}}, where the same principle is used for the \code{Top} field.
 }
