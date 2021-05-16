@@ -90,8 +90,8 @@
 #' \item \code{max.*}, the minimum effect size across all pairwise comparisons involving \eqn{X}.
 #' A large value indicates that the gene is upregulated in \eqn{X} compared to at least one other group.
 #' A small value indicates that the gene is downregulated in \eqn{X} compared to all other groups.
-#' \item \code{rank.*}, the smallest rank across all pairwise comparisons involving \eqn{X} - see \code{?\link{computeTopRank}} for details.
-#' A small rank indicates that the gene is one of the top upregulated genes in at least one comparison to another group.
+#' \item \code{rank.*}, the minimum rank (i.e., \dQuote{min-rank}) across all pairwise comparisons involving \eqn{X} - see \code{?\link{computeMinRank}} for details.
+#' A small min-rank indicates that the gene is one of the top upregulated genes in at least one comparison to another group.
 #' }
 #' One set of these columns is added to the DataFrame for each effect size described above.
 #' For example, the mean column for the AUC would be \code{mean.AUC}.
@@ -510,7 +510,7 @@ NULL
             min=rowMins(effect.mat, na.rm=TRUE),
             median=rowMedians(effect.mat, na.rm=TRUE),
             max=rowMaxs(effect.mat, na.rm=TRUE),
-            rank=computeTopRank(effect.mat),
+            rank=computeMinRank(effect.mat),
             row.names=row.names
         )
 

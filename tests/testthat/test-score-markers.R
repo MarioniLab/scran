@@ -188,7 +188,7 @@ test_that("effect summary statistics are correctly computed", {
             expect_equal(current[,paste0("max.", n)], rowMaxs(mat))
             expect_equal(current[,paste0("max.", n)], rowMaxs(mat))
             expect_equal(current[,paste0("median.", n)], rowMedians(mat))
-            expect_equal(current[,paste0("rank.", n)], computeTopRank(mat))
+            expect_equal(current[,paste0("rank.", n)], computeMinRank(mat))
         }
     }
 })
