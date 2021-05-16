@@ -18,12 +18,14 @@ test_that("Cohen calculations are collated correctly", {
         current <- out[[i]]$full.logFC.cohen
         lmat <- mats[[i]]
         left <- rowMeans(lmat)
+        lvar <- rowVars(lmat)
 
         for (j in setdiff(names(mats), i)) {
             rmat <- mats[[j]]
             right <- rowMeans(rmat)
+            rvar <- rowVars(rmat)
 
-            expect_equal(current[,j], (left - right)/sqrt( (rowSums((lmat - left)^2) + rowSums((rmat - right)^2)) / (ncol(lmat) + ncol(rmat) - 2)) )
+            expect_equal(current[,j], (left - right)/sqrt( (lvar + rvar)/2 ))
             expect_equal(mcols(current)[j,], ncol(lmat) * ncol(rmat))
 
             flip <- out[[j]]$full.logFC.cohen[,i]

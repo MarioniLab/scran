@@ -69,8 +69,9 @@ Reordering the rows by the summary of choice can yield a ranking of potential ma
 \section{Choice of effect sizes}{
 
 The \code{logFC.cohen} columns contain the standardized log-fold change, i.e., Cohen's d.
-For each pairwise comparison, this is defined as the difference in the mean log-expression for each group scaled by the root of the pooled variance across the groups.
-Cohen's d is analogous to the t-statistic in Student's t-test and avoids spuriously large effect sizes from comparisons between highly variable groups.
+For each pairwise comparison, this is defined as the difference in the mean log-expression for each group scaled by the average standard deviation across the two groups.
+(Technically, we should use the pooled variance; however, this introduces some unpleasant asymmetry depending on the variance of the larger group, so we take a simple average instead.)
+Cohen's d is analogous to the t-statistic in a two-sample t-test and avoids spuriously large effect sizes from comparisons between highly variable groups.
 We can also interpret Cohen's d as the number of standard deviations between the two group means.
 
 The \code{AUC} columns contain the area under the curve.

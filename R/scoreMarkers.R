@@ -35,8 +35,9 @@
 #' 
 #' @section Choice of effect sizes:
 #' The \code{logFC.cohen} columns contain the standardized log-fold change, i.e., Cohen's d.
-#' For each pairwise comparison, this is defined as the difference in the mean log-expression for each group scaled by the root of the pooled variance across the groups.
-#' Cohen's d is analogous to the t-statistic in Student's t-test and avoids spuriously large effect sizes from comparisons between highly variable groups.
+#' For each pairwise comparison, this is defined as the difference in the mean log-expression for each group scaled by the average standard deviation across the two groups.
+#' (Technically, we should use the pooled variance; however, this introduces some unpleasant asymmetry depending on the variance of the larger group, so we take a simple average instead.)
+#' Cohen's d is analogous to the t-statistic in a two-sample t-test and avoids spuriously large effect sizes from comparisons between highly variable groups.
 #' We can also interpret Cohen's d as the number of standard deviations between the two group means.
 #' 
 #' The \code{AUC} columns contain the area under the curve.
@@ -301,7 +302,7 @@ NULL
 
     # Computing effects.
     stats <- compute_blocked_stats_none(x, combination.id - 1L, length(involved))
-    cohen <- .compute_pairwise_cohen_d(stats[[1]], stats[[2]], left, right, left.ncells, right.ncells, lfc=lfc)
+    cohen <- .compute_pairwise_cohen_d(stats[[1]], stats[[2]], left, right, lfc=lfc)
 
     detected.se <- summarizeAssayByGroup(x, combination.id, statistics=c("num.detected", "prop.detected"))
     m <- match(seq_len(nrow(unique.combinations)), detected.se$ids)
@@ -358,13 +359,9 @@ NULL
 }
 
 #' @importFrom DelayedMatrixStats rowWeightedMeans
-.compute_pairwise_cohen_d <- function(means, vars, left, right, left.ncells, right.ncells, lfc) {
+.compute_pairwise_cohen_d <- function(means, vars, left, right, lfc) {
     all.delta <- means[,left,drop=FALSE] - means[,right,drop=FALSE] - lfc
-
-    left.s2 <- t(vars[,left,drop=FALSE])
-    right.s2 <- t(vars[,right,drop=FALSE])
-    pooled.s2 <- ((left.ncells - 1) * left.s2 + (right.ncells - 1) * right.s2)/(left.ncells + right.ncells - 2)
-    pooled.s2 <- t(pooled.s2)
+    pooled.s2 <- (vars[,left,drop=FALSE] + vars[,right,drop=FALSE])/2
 
     is.zero <- all.delta == 0
     d <- all.delta / sqrt(pooled.s2)
