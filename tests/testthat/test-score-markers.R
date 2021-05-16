@@ -413,3 +413,42 @@ test_that("lfc handling is correct", {
         expect_equal(out[[x]][,1:4], ref2[[x]][,1:4])
     }
 })
+
+set.seed(100003)
+test_that("row.data handling is correct", {
+    y <- matrix(rnorm(1000), ncol=100)
+    cluster <- sample(c(1,"A",3,"C",5), ncol(y), replace=TRUE)
+    rownames(y) <- paste0("GENE_", seq_len(nrow(y)))
+    rd <- DataFrame(row.names=rownames(y), stuff=runif(nrow(y)))
+
+    ref <- scoreMarkers(y, cluster)
+    out <- scoreMarkers(y, cluster, row.data=rd)
+    for (i in seq_along(ref)) {
+        expect_identical(out[[i]][,1], rd$stuff)
+        expect_identical(out[[i]]$stuff, rd$stuff)
+        expect_identical(ref[[i]]$self.average, out[[i]]$self.average)
+    }
+})
+
+set.seed(100003)
+test_that("subset handling is correct", {
+    y <- matrix(rnorm(1000), ncol=100)
+    cluster <- sample(c(1,"A",3,"C",5), ncol(y), replace=TRUE)
+
+    sub <- sample(nrow(y), 5)
+    ref <- scoreMarkers(y[sub,], cluster)
+    out <- scoreMarkers(y, cluster, subset.row=sub)
+    expect_identical(ref, out)
+    
+    rownames(y) <- paste0("GENE_", seq_len(nrow(y)))
+    csub <- rownames(y)[sub]
+    ref <- scoreMarkers(y[csub,], cluster)
+    out <- scoreMarkers(y, cluster, subset.row=csub)
+    expect_identical(ref, out)
+
+    # Behaves correctly with row.data
+    rd <- DataFrame(row.names=rownames(y), stuff=runif(nrow(y)))
+    ref <- scoreMarkers(y[csub,], cluster, row.data=rd[csub,,drop=FALSE])
+    out <- scoreMarkers(y, cluster, subset.row=csub, row.data=rd)
+    expect_identical(ref, out)
+})

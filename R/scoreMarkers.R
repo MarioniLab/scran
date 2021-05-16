@@ -6,7 +6,7 @@
 #' Alternatively, a \linkS4class{SummarizedExperiment} object containing such a matrix in its assays.
 #' @param groups A factor or vector containing the identity of the group for each cell in \code{x}.
 #' @param block A factor or vector specifying the blocking level for each cell in \code{x}.
-#' @param row.data A DataFrame of length equal to \code{nrow(x)}, containing extra information to insert into each DataFrame.
+#' @param row.data A DataFrame with the same number and names of rows in \code{x}, containing extra information to insert into each DataFrame.
 #' @param full.stats Logical scalar indicating whether the statistics from the pairwise comparisons should be directly returned.
 #' @param BPPARAM A \linkS4class{BiocParallelParam} object specifying how the calculations should be parallelized.
 #' @param ... For the generic, further arguments to pass to individual methods.
@@ -143,14 +143,9 @@ NULL
 
 #' @importFrom S4Vectors I DataFrame SimpleList
 #' @importFrom DelayedArray DelayedArray
-#' @importFrom BiocParallel SerialParam bpstart bpstop
+#' @importFrom BiocParallel SerialParam 
 #' @importFrom Matrix t
-.scoreMarkers <- function(x, groups, block=NULL, lfc=0, row.data=NULL, full.stats=FALSE, BPPARAM=SerialParam()) {
-    if (.bpNotSharedOrUp(BPPARAM)) {
-        bpstart(BPPARAM)
-        on.exit(bpstop(BPPARAM))
-    }
-
+.scoreMarkers <- function(x, groups, block=NULL, lfc=0, row.data=NULL, full.stats=FALSE, subset.row=NULL, BPPARAM=SerialParam()) {
 #    if (!is.null(design)) {
 #        if (!is.null(block)) {
 #            stop("'block' and 'design' cannot both be specified")
@@ -191,6 +186,20 @@ NULL
     pre.ave <- .identify_effects_to_average(unique.combinations, reindexed.comparisons)
     desired.indices <- .cross_reference_to_desired(pre.ave$averaged.comparisons, desired.comparisons, collapse.symmetric=collapse.symmetric)
 
+    # Cleaning up the rows.
+    if (!is.null(row.data)) {
+        if (!identical(nrow(row.data), nrow(x))) {
+            stop("'row.data' and 'x' should have the same number of rows")
+        }
+        if (!identical(rownames(row.data), rownames(x))) {
+            stop("'row.data' and 'x' should have the same row names")
+        }
+    }
+    if (!is.null(subset.row)) {
+        x <- x[subset.row,,drop=FALSE]
+        row.data <- row.data[subset.row,,drop=FALSE]
+    }
+
     # Performing the per-cell calculations and gathering the statistics.
     stats <- rowBlockApply(x, 
         FUN=.compute_all_effect_sizes,
@@ -207,6 +216,13 @@ NULL
         BPPARAM=BPPARAM)
 
     res <- .mapply_bind(stats, rbind)
+
+    # Slapping on the row data.
+    if (!is.null(row.data)) {
+        for (i in seq_along(res)) {
+            res[[i]] <- cbind(row.data, res[[i]])
+        }
+    }
 
     SimpleList(res)
 }

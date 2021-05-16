@@ -16,6 +16,7 @@ scoreMarkers(x, ...)
   lfc = 0,
   row.data = NULL,
   full.stats = FALSE,
+  subset.row = NULL,
   BPPARAM = SerialParam()
 )
 
@@ -39,7 +40,7 @@ For the SingleCellExperiment method, further arguments to pass to the Summarized
 
 \item{lfc}{Numeric scalar specifying the log-fold change threshold to compute effect sizes against.}
 
-\item{row.data}{A DataFrame of length equal to \code{nrow(x)}, containing extra information to insert into each DataFrame.}
+\item{row.data}{A DataFrame with the same number and names of rows in \code{x}, containing extra information to insert into each DataFrame.}
 
 \item{full.stats}{Logical scalar indicating whether the statistics from the pairwise comparisons should be directly returned.}
 
