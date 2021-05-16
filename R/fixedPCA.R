@@ -63,6 +63,7 @@
 #' @importFrom scuttle .bpNotSharedOrUp
 #' @importFrom Matrix t 
 #' @importFrom beachmat realizeFileBackedMatrix
+#' @importFrom DelayedMatrixStats colVars
 fixedPCA <- function(x, rank=50, value=c("pca", "lowrank"), subset.row, preserve.shape=TRUE, assay.type="logcounts", name=NULL, BSPARAM=bsparam(), BPPARAM=SerialParam()) {
     if (!.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
