@@ -114,15 +114,18 @@ Similarly, if \code{design} has fewer than 3 residual d.f., all output statistic
 
 \section{Gene selection}{
 
-The \code{pairings} argument specifies the pairs of genes to compute correlations for:
+The \code{pairings} argument specifies the pairs of genes that should be used to compute correlations.
+This can be:
 \itemize{
-\item By default, correlations will be computed between all pairs of genes with \code{pairings=NULL}.
+\item \code{NULL}, in which case correlations will be computed between all pairs of genes in \code{x}.
 Genes that occur earlier in \code{x} are labelled as \code{gene1} in the output DataFrame.
 Redundant permutations are not reported.
-\item If \code{pairings} is a list of two vectors, correlations will be computed between one gene in the first vector and another gene in the second vector.
+\item A list of two vectors, where each list element defines a subset of genes in \code{x} as an integer, character or logical vector.
+In this case, correlations will be computed between one gene in the first vector and another gene in the second vector.
 This improves efficiency if the only correlations of interest are those between two pre-defined sets of genes.
 Genes in the first vector are always reported as \code{gene1}.
-\item If \code{pairings} is an integer/character matrix of two columns, each row is assumed to specify a gene pair.
+\item An integer/character matrix of two columns.
+In this case, each row is assumed to specify a gene pair based on the row indices (integer) or row names (character) of \code{x}.
 Correlations will then be computed for only those gene pairs, and the returned dataframe will \emph{not} be sorted by p-value.
 Genes in the first column of the matrix are always reported as \code{gene1}.
 }

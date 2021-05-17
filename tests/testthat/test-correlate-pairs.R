@@ -290,7 +290,9 @@ test_that("correlatePairs works correctly with SingleCellExperiment objects", {
 })
 
 test_that("correlatePairs fails properly upon silly inputs", {
-    expect_error(correlatePairs(X[0,]), "need at least two genes to compute correlations")
+    expect_identical(nrow(correlatePairs(X[0,])), 0L)
+    expect_identical(nrow(correlatePairs(X[1,,drop=FALSE])), 0L)
+
     expect_true(all(is.nan(correlatePairs(X[,0])$rho)))
     expect_true(all(is.na(correlatePairs(X, design=diag(ncol(X)))$rho)))
     expect_true(all(is.nan(correlatePairs(X, block=1:ncol(X))$rho)))

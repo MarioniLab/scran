@@ -79,15 +79,18 @@
 #' Similarly, if \code{design} has fewer than 3 residual d.f., all output statistics are set to \code{NA}.
 #'
 #' @section Gene selection:
-#' The \code{pairings} argument specifies the pairs of genes to compute correlations for:
+#' The \code{pairings} argument specifies the pairs of genes that should be used to compute correlations.
+#' This can be:
 #' \itemize{
-#' \item By default, correlations will be computed between all pairs of genes with \code{pairings=NULL}.
+#' \item \code{NULL}, in which case correlations will be computed between all pairs of genes in \code{x}.
 #' Genes that occur earlier in \code{x} are labelled as \code{gene1} in the output DataFrame.
 #' Redundant permutations are not reported.
-#' \item If \code{pairings} is a list of two vectors, correlations will be computed between one gene in the first vector and another gene in the second vector.
+#' \item A list of two vectors, where each list element defines a subset of genes in \code{x} as an integer, character or logical vector.
+#' In this case, correlations will be computed between one gene in the first vector and another gene in the second vector.
 #' This improves efficiency if the only correlations of interest are those between two pre-defined sets of genes.
 #' Genes in the first vector are always reported as \code{gene1}.
-#' \item If \code{pairings} is an integer/character matrix of two columns, each row is assumed to specify a gene pair.
+#' \item An integer/character matrix of two columns.
+#' In this case, each row is assumed to specify a gene pair based on the row indices (integer) or row names (character) of \code{x}.
 #' Correlations will then be computed for only those gene pairs, and the returned dataframe will \emph{not} be sorted by p-value.
 #' Genes in the first column of the matrix are always reported as \code{gene1}.
 #' }
@@ -154,11 +157,9 @@ NULL
         .Deprecated(msg="'iters=', 'ties.method=' and 'null.dist=' are deprecated.")
     }
 
-    # Checking which pairwise correlations should be computed.
-    pair.out <- .construct_pair_indices(subset.row=subset.row, x=x, pairings=pairings)
-    gene1 <- pair.out$gene1
-    gene2 <- pair.out$gene2
-    reorder <- pair.out$reorder
+    pair.out <- .process_corr_pairings(pairings, x, subset.row=subset.row)
+    gene1 <- pair.out$id1
+    gene2 <- pair.out$id2
 
     if (!is.null(design)) {
         block <- NULL 
@@ -207,9 +208,10 @@ NULL
         gene2 <- rownames(x)[gene2]
     } 
 
-    out <- DataFrame(gene1=gene1, gene2=gene2, rho=all.rho, 
-        p.value=all.pval, FDR=p.adjust(all.pval, method="BH"))
-    if (reorder) {
+    out <- DataFrame(gene1=gene1, gene2=gene2, rho=all.rho, p.value=all.pval, FDR=p.adjust(all.pval, method="BH"))
+
+    if (pair.out$mode != "predefined pairs") {
+        # Preserving the order if the pairings were predefined as a matrix.
         out <- out[order(out$p.value, -abs(out$rho)),]
         rownames(out) <- NULL
     }
@@ -246,86 +248,45 @@ NULL
     out
 }
 
-#' @importFrom utils combn
 #' @importFrom scuttle .subset2index
-.construct_pair_indices <- function(subset.row, x, pairings) {
-    subset.row <- .subset2index(subset.row, x, byrow=TRUE)
-    reorder <- TRUE
-
-    if (is.matrix(pairings)) {
-        # If matrix, we're using pre-specified pairs.
-        if ((!is.numeric(pairings) && !is.character(pairings)) || ncol(pairings)!=2L) { 
-            stop("'pairings' should be a numeric/character matrix with 2 columns") 
-        }
-        s1 <- .subset2index(pairings[,1], x, byrow=TRUE)
-        s2 <- .subset2index(pairings[,2], x, byrow=TRUE)
-
-        # Discarding elements not in subset.row.
-        keep <- s1 %in% subset.row & s2 %in% subset.row
-        gene1 <- s1[keep]
-        gene2 <- s2[keep]
-        reorder <- FALSE
-
-    } else if (is.list(pairings)) {
-        # If list, we're correlating between one gene selected from each of two pools.
-        if (length(pairings)!=2L) { 
-            stop("'pairings' as a list should have length 2") 
-        }
-        converted <- lapply(pairings, FUN=function(gene.set) {
-            gene.set <- .subset2index(gene.set, x, byrow=TRUE)
-            intersect(gene.set, subset.row) # automatically gets rid of duplicates.
-        })
-        if (any(lengths(converted)==0L)) { 
-            stop("need at least one gene in each set to compute correlations") 
-        }
-
-        all.pairs <- expand.grid(converted[[1]], converted[[2]])
-        keep <- all.pairs[,1]!=all.pairs[,2]
-        gene1 <- all.pairs[keep,1]
-        gene2 <- all.pairs[keep,2]
-
-    } else if (is.null(pairings)) {
-        # Otherwise, it's assumed to be a single pool, and we're just correlating between pairs within it.
-        ngenes <- length(subset.row)
-        if (ngenes < 2L) { 
-            stop("need at least two genes to compute correlations") 
-        }
-       
-        # Generating all pairs of genes within the subset.
-        all.pairs <- combn(subset.row, 2L)
-        gene1 <- all.pairs[1,]
-        gene2 <- all.pairs[2,]
-
-    } else {
-        stop("pairings should be a list, matrix or NULL")
+.process_corr_pairings <- function(pairings, x, subset.row=NULL) {
+    if (!is.null(subset.row)) {
+        subset.row <- .subset2index(subset.row, x, byrow=TRUE)
     }
 
-    list(gene1=gene1, gene2=gene2, reorder=reorder)
-}
+    # Unlike .subset2index, this doesn't throw on NAs.
+    dummy <- seq_len(nrow(x))
+    names(dummy) <- rownames(x)
 
-.choose_gene_names <- function(x, use.names) {
-    newnames <- NULL
-    if (is.logical(use.names)) {
-        if (use.names) {
-            newnames <- rownames(x)
+    .SUBSET <- function(request, clean=TRUE) {
+        if (is.null(request)) {
+            if (!is.null(subset.row)) {
+                out <- subset.row
+            } else {
+                out <- unname(dummy)
+            }
+        } else {
+            out <- unname(dummy[request])
+            if (!is.null(subset.row)) {
+                out[!out %in% subset.row] <- NA_integer_
+            }
         }
-    } else if (is.character(use.names)) {
-        if (length(use.names)!=nrow(x)) {
-            stop("length of 'use.names' does not match 'x' nrow")
+        if (clean) {
+            out <- unique(out[!is.na(out)])
         }
-        newnames <- use.names
+        out
     }
-    if (!is.null(newnames)) {
-        subset.row <- newnames[subset.row]
-    }
-    return(subset.row)
-}
 
-.is_sig_limited <- function(results, threshold=0.05) {
-    if (any(results$FDR > threshold & results$limited, na.rm=TRUE)) { 
-        warning(sprintf("lower bound on p-values at a FDR of %s, increase 'iter'", as.character(threshold)))
+    pair.out <- .expand_pairings_core(pairings, .SUBSET)
+
+    if (pair.out$mode == "single pool") {
+        # Removing redundant permutations, if we were asked to generate them from a single pool.
+        keep <- pair.out$id1 < pair.out$id2
+        pair.out$id1 <- pair.out$id1[keep]
+        pair.out$id2 <- pair.out$id2[keep]
     }
-    invisible(NULL)
+
+    pair.out
 }
 
 #############################
