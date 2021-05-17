@@ -13,6 +13,7 @@ scoreMarkers(x, ...)
   x,
   groups,
   block = NULL,
+  pairings = NULL,
   lfc = 0,
   row.data = NULL,
   full.stats = FALSE,
@@ -38,11 +39,15 @@ For the SingleCellExperiment method, further arguments to pass to the Summarized
 
 \item{block}{A factor or vector specifying the blocking level for each cell in \code{x}.}
 
+\item{pairings}{A vector, list or matrix specifying how the comparisons are to be performed, see details.}
+
 \item{lfc}{Numeric scalar specifying the log-fold change threshold to compute effect sizes against.}
 
 \item{row.data}{A DataFrame with the same number and names of rows in \code{x}, containing extra information to insert into each DataFrame.}
 
 \item{full.stats}{Logical scalar indicating whether the statistics from the pairwise comparisons should be directly returned.}
+
+\item{subset.row}{See \code{?"\link{scran-gene-selection}"}.}
 
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object specifying how the calculations should be parallelized.}
 
@@ -158,6 +163,31 @@ When \code{block} is specified, the reported mean for each group is computed via
 Briefly, this involves fitting a linear model to remove the effect of the blocking factor from the per-group mean log-expression.
 The same is done for the detected proportion, except that the values are subjected to a logit transformation prior to the model fitting.
 In both cases, each group/block combination is weighted by its number of cells in the model.
+}
+
+\section{Controlling the pairings}{
+
+The \code{pairings} argument specifies the pairs of groups that should be compared.
+This can be:
+\itemize{
+\item \code{NULL}, in which case comparisons are performed between all groups in \code{groups}.
+\item A vector of the same type as \code{group}, specifying a subset of groups of interest.
+We then perform all pairwise comparisons between groups in the subset.
+\item A list of two vectors, each of the same type as \code{group} and specifying a subset of groups.
+Comparisons are performed between one group from the first vector and another group from the second vector.
+\item A matrix of two columns of the same type as \code{group}.
+Each row is assumed to specify a pair of groups to be compared.
+}
+
+Effect sizes (and their summaries) are computed for only the pairwise comparisons specified by \code{pairings}.
+Similarly, the \code{other.*} values in \eqn{X}'s DataFrame are computed using only the groups involved in pairwise comparisons with \eqn{X}.
+The default of \code{pairings=NULL} ensures that all groups are used and effect sizes for all pairwise comparisons are reported;
+however, this may not be the case for other values of \code{pairings}.
+
+For list and matrix arguments, the first vector/column is treated as the first group in the effect size calculations.
+Statistics for each comparison will only show up in the DataFrame for the first group, 
+i.e., a comparison between \eqn{X} and \eqn{Y} will have a valid \code{full.AUC$Y} field in \eqn{X}'s DataFrame but not vice versa.
+If both directions are desired in the output, both of the corresponding permutations should be explicitly specified in \code{pairings}.
 }
 
 \examples{

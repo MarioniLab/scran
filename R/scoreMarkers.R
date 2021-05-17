@@ -16,6 +16,8 @@
 #' For the SingleCellExperiment method, further arguments to pass to the SummarizedExperiment method.
 #' @param assay.type String or integer scalar specifying the assay containing the log-expression matrix to use.
 #' @param lfc Numeric scalar specifying the log-fold change threshold to compute effect sizes against.
+#' @param pairings A vector, list or matrix specifying how the comparisons are to be performed, see details.
+#' @param subset.row See \code{?"\link{scran-gene-selection}"}.
 #'
 #' @return
 #' A List of DataFrames containing marker scores for each gene in each group.
@@ -118,6 +120,29 @@
 #' The same is done for the detected proportion, except that the values are subjected to a logit transformation prior to the model fitting.
 #' In both cases, each group/block combination is weighted by its number of cells in the model.
 #'
+#' @section Controlling the pairings:
+#' The \code{pairings} argument specifies the pairs of groups that should be compared.
+#' This can be:
+#' \itemize{
+#' \item \code{NULL}, in which case comparisons are performed between all groups in \code{groups}.
+#' \item A vector of the same type as \code{group}, specifying a subset of groups of interest.
+#' We then perform all pairwise comparisons between groups in the subset.
+#' \item A list of two vectors, each of the same type as \code{group} and specifying a subset of groups.
+#' Comparisons are performed between one group from the first vector and another group from the second vector.
+#' \item A matrix of two columns of the same type as \code{group}.
+#' Each row is assumed to specify a pair of groups to be compared.
+#' }
+#' 
+#' Effect sizes (and their summaries) are computed for only the pairwise comparisons specified by \code{pairings}.
+#' Similarly, the \code{other.*} values in \eqn{X}'s DataFrame are computed using only the groups involved in pairwise comparisons with \eqn{X}.
+#' The default of \code{pairings=NULL} ensures that all groups are used and effect sizes for all pairwise comparisons are reported;
+#' however, this may not be the case for other values of \code{pairings}.
+#' 
+#' For list and matrix arguments, the first vector/column is treated as the first group in the effect size calculations.
+#' Statistics for each comparison will only show up in the DataFrame for the first group, 
+#' i.e., a comparison between \eqn{X} and \eqn{Y} will have a valid \code{full.AUC$Y} field in \eqn{X}'s DataFrame but not vice versa.
+#' If both directions are desired in the output, both of the corresponding permutations should be explicitly specified in \code{pairings}.
+#' 
 #' @author Aaron Lun
 #' 
 #' @examples
@@ -145,7 +170,7 @@ NULL
 #' @importFrom DelayedArray DelayedArray
 #' @importFrom BiocParallel SerialParam 
 #' @importFrom Matrix t
-.scoreMarkers <- function(x, groups, block=NULL, lfc=0, row.data=NULL, full.stats=FALSE, subset.row=NULL, BPPARAM=SerialParam()) {
+.scoreMarkers <- function(x, groups, block=NULL, pairings=NULL, lfc=0, row.data=NULL, full.stats=FALSE, subset.row=NULL, BPPARAM=SerialParam()) {
 #    if (!is.null(design)) {
 #        if (!is.null(block)) {
 #            stop("'block' and 'design' cannot both be specified")
@@ -163,12 +188,17 @@ NULL
 #        x <- t(x)
 #    }
 
-    # Define the desired comparisons here.        
-    if (1) {
-        ugroups <- sort(unique(groups))
-        desired.comparisons <- DataFrame(expand.grid(left=ugroups, right=ugroups))
-        keep <- desired.comparisons$left != desired.comparisons$right
-        desired.comparisons <- desired.comparisons[keep,,drop=FALSE]
+    # Define the desired comparisons here.
+    universe <- sort(unique(groups))
+    desired.out <- .expand_pairings(pairings, universe=universe)
+    desired.comparisons <- DataFrame(left=universe[desired.out$id1], right=universe[desired.out$id2])
+
+    keep <- groups %in% desired.comparisons[,1] | groups %in% desired.comparisons[,2]
+    if (!all(keep)) {
+        # Trimming the matrix to avoid redundant calculations.
+        x <- x[,keep,drop=FALSE]
+        groups <- groups[keep]
+        block <- block[keep]
     }
 
     # Preparing the data structures for processing.
@@ -364,8 +394,9 @@ NULL
         mat <- more.stats[[i]]
         for (j in names(output)) {
             existing <- output[[j]]
-            keep <- colnames(mat) == j
-            extra <- DataFrame(self=rowMeans(mat[,keep,drop=FALSE]), other=rowMeans(mat[,!keep,drop=FALSE]), row.names=rownames(existing))
+            self <- colnames(mat) == j
+            other <- colnames(mat) %in% as.character(desired.indices[[j]]$right)
+            extra <- DataFrame(self=rowMeans(mat[,self,drop=FALSE]), other=rowMeans(mat[,other,drop=FALSE]), row.names=rownames(existing))
             colnames(extra) <- paste0(colnames(extra), ".", i)
             output[[j]] <- cbind(extra, existing)
         }

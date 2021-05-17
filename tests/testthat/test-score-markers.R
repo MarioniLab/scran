@@ -452,3 +452,28 @@ test_that("subset handling is correct", {
     out <- scoreMarkers(y, cluster, subset.row=csub, row.data=rd)
     expect_identical(ref, out)
 })
+
+set.seed(100004)
+test_that("pairings handling is correct", {
+    y <- matrix(rnorm(1000), ncol=100)
+    cluster <- sample(c(1,"A",3,"C",5), ncol(y), replace=TRUE)
+
+    # Equivalent to subsetting the groups.
+    keep <- cluster %in% as.character(1:5)
+    ref <- scoreMarkers(y[,keep], cluster[keep])
+    out <- scoreMarkers(y, cluster, pairings=as.character(1:5))
+
+    expect_identical(ref, out)
+
+    # A more directed approach.
+    mat <- rbind(c("A", "C"), c(1,5))
+    out <- scoreMarkers(y, cluster, pairings=mat)
+    expect_identical(sort(names(out)), sort(mat[,1]))
+
+    out1 <- scoreMarkers(y[,cluster %in% mat[1,]], cluster[cluster %in% mat[1,]])
+    expect_identical(out[["A"]], out1[["A"]])
+
+    out2 <- scoreMarkers(y[,cluster %in% mat[2,]], cluster[cluster %in% mat[2,]])
+    expect_identical(out[["1"]], out2[["1"]])
+})
+
