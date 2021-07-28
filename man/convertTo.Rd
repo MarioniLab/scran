@@ -52,7 +52,6 @@ sce$other <- sample(LETTERS, ncol(sce), replace=TRUE)
 # Converting to various objects.
 convertTo(sce, type="edgeR")
 convertTo(sce, type="DESeq2")
-convertTo(sce, type="monocle")
 
 }
 \seealso{

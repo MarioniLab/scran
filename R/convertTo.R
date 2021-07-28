@@ -42,7 +42,6 @@
 #' # Converting to various objects.
 #' convertTo(sce, type="edgeR")
 #' convertTo(sce, type="DESeq2")
-#' convertTo(sce, type="monocle")
 #' 
 #' @export
 #' @importFrom BiocGenerics sizeFactors as.data.frame "sizeFactors<-"
