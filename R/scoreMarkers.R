@@ -89,7 +89,7 @@
 #' \item \code{min.*}, the minimum effect size across all pairwise comparisons involving \eqn{X}.
 #' A large value indicates that the gene is upregulated in \eqn{X} compared to all other groups.
 #' A small value indicates that the gene is downregulated in \eqn{X} compared to at least one other group.
-#' \item \code{max.*}, the minimum effect size across all pairwise comparisons involving \eqn{X}.
+#' \item \code{max.*}, the maximum effect size across all pairwise comparisons involving \eqn{X}.
 #' A large value indicates that the gene is upregulated in \eqn{X} compared to at least one other group.
 #' A small value indicates that the gene is downregulated in \eqn{X} compared to all other groups.
 #' \item \code{rank.*}, the minimum rank (i.e., \dQuote{min-rank}) across all pairwise comparisons involving \eqn{X} - see \code{?\link{computeMinRank}} for details.
