@@ -149,7 +149,7 @@ This mirrors the p-value calculation but, again, is reported only for the benefi
 
 A slightly different flavor of the \dQuote{some cluster} approach is achieved by setting \code{method="any"} with \code{min.prop} set to some positive value in (0, 1).
 A gene will only be high-ranked if it is among the top-ranked genes in at least \code{min.prop} of the pairwise comparisons.
-For example, if \code{min.prop=0.3}, any gene with a value of \code{Top} less than or equal to 5 will be in the top 5 DEGs of at least 30% of the comparisons.
+For example, if \code{min.prop=0.3}, any gene with a value of \code{Top} less than or equal to 5 will be in the top 5 DEGs of at least 30\% of the comparisons.
 
 This method increases the stringency of the \code{"any"} setting in a safer manner than \code{pval.type="some"}.
 Specifically, we avoid comparing p-values across pairwise comparisons, which can be problematic if there are power differences across comparisons, e.g., due to differences in the number of cells across the other clusters.
