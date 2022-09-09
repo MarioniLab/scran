@@ -50,7 +50,7 @@ test_that("scaledColRanks correctly computes the ranks", {
     sparse <- abs(Matrix::rsparsematrix(ngenes, ncells, density=0.1))
     out <- scaledColRanks(sparse, min.mean=0)
     ref <- scaledColRanks(as.matrix(sparse), min.mean=0)
-    expect_identical(out, ref)
+    expect_identical(unname(out), unname(ref))
 })
 
 set.seed(430001)
