@@ -79,7 +79,8 @@ NULL
         # insert the new labels into the original levels
         subcluster_levels_idx <- which(i == subcluster_levels)
         subcluster_levels <- append(
-            subcluster_levels, subcluster_labels,
+            subcluster_levels, 
+            sort(unique(subcluster_labels)),
             after = subcluster_levels_idx
         )
         subcluster_levels <- subcluster_levels[-subcluster_levels_idx]
