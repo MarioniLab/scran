@@ -36,7 +36,9 @@
 #' @return a factor of length equal to ncol(x) containing cluster assignments
 #' for each column of x.
 #'
-#' @rdname findSubCluster
+#' @name findSubCluster
+NULL
+
 .find_sub_cluster <- function(x, groups = NULL, clusters = NULL, normalize = TRUE, prepFUN = NULL, clusterFUN = NULL, BLUSPARAM = NNGraphParam(), format = "%s.%s", assay.type = NULL) {
     if (is.null(groups)) {
         groups <- SingleCellExperiment::colLabels(x, onAbsence = "error")
