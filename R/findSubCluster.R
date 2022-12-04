@@ -36,37 +36,53 @@
 #' @return a factor of length equal to ncol(x) containing cluster assignments
 #' for each column of x.
 #'
-#' @name findSubCluster
+#' @rdname findSubCluster
 .find_sub_cluster <- function(x, groups = NULL, clusters = NULL, normalize = TRUE, prepFUN = NULL, clusterFUN = NULL, BLUSPARAM = NNGraphParam(), format = "%s.%s", assay.type = NULL) {
-    # nolint
     if (is.null(groups)) {
         groups <- SingleCellExperiment::colLabels(x, onAbsence = "error")
     } else if (!identical(length(groups), ncol(x))) {
         stop("the length of groups should equal to ncol(x)")
     }
+    # coerce groups and clusters into character vector
+    # in case of error matching and indexing
+    # keep the original factor levels
+    subcluster_levels <- levels(groups)
     groups <- as.character(groups)
+    if (is.null(subcluster_levels)) {
+        subcluster_levels <- unique(groups)
+    }
     if (is.null(clusters)) {
         clusters <- unique(groups)
     } else if (!all(clusters %in% unique(groups))) {
         stop("all clusters specified should be in the groups")
+    } else {
+        clusters <- as.character(clusters)
     }
     subclusters <- groups
     for (i in clusters) {
         idx <- i == groups
         sce_obj <- x[, idx]
-        subcluster_idx <- subcluster_internal(
+        subcluster_labels <- subcluster_internal(
             sce_obj,
             normalize = normalize, assay.type = assay.type,
             prepFUN = prepFUN, clusterFUN = clusterFUN,
             BLUSPARAM = BLUSPARAM
         )
-        subclusters[idx] <- sprintf(
+        subcluster_labels <- sprintf(
             fmt = format,
             subclusters[idx],
-            subcluster_idx
+            subcluster_labels
         )
+        subclusters[idx] <- subcluster_labels
+        # insert the new labels into the original levels
+        subcluster_levels_idx <- which(i == subcluster_levels)
+        subcluster_levels <- append(
+            subcluster_levels, subcluster_labels,
+            after = subcluster_levels_idx
+        )
+        subcluster_levels <- subcluster_levels[-subcluster_levels_idx]
     }
-    factor(subclusters)
+    factor(subclusters, subcluster_levels)
 }
 
 # the internal function to implement subcluster
