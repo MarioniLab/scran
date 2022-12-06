@@ -9,21 +9,11 @@
 \usage{
 findSubCluster(x, ...)
 
-\S4method{findSubCluster}{ANY}(x, normalize = TRUE, ...)
+\S4method{findSubCluster}{ANY}(x, groups, normalize = TRUE, ...)
 
-\S4method{findSubCluster}{SummarizedExperiment}(x, ...)
+\S4method{findSubCluster}{SummarizedExperiment}(x, groups, ...)
 
-\S4method{findSubCluster}{SingleCellExperiment}(
-  x,
-  groups = NULL,
-  clusters = NULL,
-  normalize = TRUE,
-  prepFUN = NULL,
-  clusterFUN = NULL,
-  BLUSPARAM = NNGraphParam(),
-  format = "\%s.\%s",
-  assay.type = NULL
-)
+\S4method{findSubCluster}{SingleCellExperiment}(x, groups = NULL, ...)
 }
 \arguments{
 \item{x}{A matrix of counts or log-normalized expression values (if
@@ -38,27 +28,25 @@ Alternatively, a \linkS4class{SummarizedExperiment} or
 For the ANY and SummarizedExperiment methods, further arguments to pass to
 the SingleCellExperiment method.}
 
-\item{normalize}{Logical scalar indicating whether each subset of \code{x}
-should be log-transformed prior to further analysis.}
-
 \item{groups}{A vector of group assignments for all cells, usually
 corresponding to cluster identities. If NULL, will determined by
 \code{colLabels(x)}}
 
-\item{clusters}{the cluster to be sub-clustered}
+\item{normalize}{Logical scalar indicating whether each subset of \code{x}
+should be log-transformed prior to further analysis.}
+
+\item{clusters}{the clusters to be sub-clustered}
 
 \item{prepFUN}{A function that accepts a single
 \linkS4class{SingleCellExperiment} object and returns another
 \linkS4class{SingleCellExperiment} containing any additional elements
-required for clustering (e.g., PCA results).}
+required for clustering (e.g., PCA results). Using \code{dimred} to specify
+the element names.}
 
-\item{clusterFUN}{A function that accepts a single
-\linkS4class{SingleCellExperiment} object and returns a vector of cluster
-assignments for each cell in that object.}
+\item{dimred}{String or integer scalar specifying the existing dimensionality reduction results to use..}
 
 \item{BLUSPARAM}{A \linkS4class{BlusterParam} object that is used to specify
-the clustering via \code{\link{clusterRows}}.  Only used when
-\code{clusterFUN=NULL}.}
+the clustering via \code{\link{clusterRows}}.}
 
 \item{format}{A string to be passed to \code{\link{sprintf}}, specifying how
 the subclusters should be named with respect to the parent level in

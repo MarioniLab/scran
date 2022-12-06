@@ -11,19 +11,17 @@
 #' @param groups A vector of group assignments for all cells, usually
 #' corresponding to cluster identities. If NULL, will determined by
 #' \code{colLabels(x)}
-#' @param clusters the cluster to be sub-clustered
+#' @param clusters the clusters to be sub-clustered
 #' @param normalize Logical scalar indicating whether each subset of \code{x}
 #' should be log-transformed prior to further analysis.
 #' @param prepFUN A function that accepts a single
 #' \linkS4class{SingleCellExperiment} object and returns another
 #' \linkS4class{SingleCellExperiment} containing any additional elements
-#' required for clustering (e.g., PCA results).
-#' @param clusterFUN A function that accepts a single
-#' \linkS4class{SingleCellExperiment} object and returns a vector of cluster
-#' assignments for each cell in that object.
+#' required for clustering (e.g., PCA results). Using \code{dimred} to specify
+#' the element names.
+#' @param dimred String or integer scalar specifying the existing dimensionality reduction results to use..
 #' @param BLUSPARAM A \linkS4class{BlusterParam} object that is used to specify
-#' the clustering via \code{\link{clusterRows}}.  Only used when
-#' \code{clusterFUN=NULL}.
+#' the clustering via \code{\link{clusterRows}}.
 #' @param format A string to be passed to \code{\link{sprintf}}, specifying how
 #' the subclusters should be named with respect to the parent level in
 #' \code{groups} and the level returned by \code{clusterFUN}.
@@ -39,12 +37,7 @@
 #' @name findSubCluster
 NULL
 
-.find_sub_cluster <- function(x, groups = NULL, clusters = NULL, normalize = TRUE, prepFUN = NULL, clusterFUN = NULL, BLUSPARAM = NNGraphParam(), format = "%s.%s", assay.type = NULL) {
-    if (is.null(groups)) {
-        groups <- SingleCellExperiment::colLabels(x, onAbsence = "error")
-    } else if (!identical(length(groups), ncol(x))) {
-        stop("the length of groups should equal to ncol(x)")
-    }
+.find_sub_cluster <- function(x, groups = NULL, clusters = NULL, normalize = TRUE, prepFUN = NULL, dimred = "PCA", BLUSPARAM = NNGraphParam(), format = "%s.%s", assay.type = NULL) {
     # coerce groups and clusters into character vector
     # in case of error matching and indexing
     # keep the original factor levels
@@ -60,38 +53,6 @@ NULL
     } else {
         clusters <- as.character(clusters)
     }
-    subclusters <- groups
-    for (i in clusters) {
-        idx <- i == groups
-        sce_obj <- x[, idx]
-        subcluster_labels <- subcluster_internal(
-            sce_obj,
-            normalize = normalize, assay.type = assay.type,
-            prepFUN = prepFUN, clusterFUN = clusterFUN,
-            BLUSPARAM = BLUSPARAM
-        )
-        subcluster_labels <- sprintf(
-            fmt = format,
-            subclusters[idx],
-            subcluster_labels
-        )
-        subclusters[idx] <- subcluster_labels
-        # insert the new labels into the original levels
-        subcluster_levels_idx <- which(i == subcluster_levels)
-        subcluster_levels <- append(
-            subcluster_levels, 
-            sort(unique(subcluster_labels)),
-            after = subcluster_levels_idx
-        )
-        subcluster_levels <- subcluster_levels[-subcluster_levels_idx]
-    }
-    factor(subclusters, subcluster_levels)
-}
-
-# the internal function to implement subcluster
-# return a factor of length equal to ncol(x)
-subcluster_internal <- function(x, normalize = TRUE, assay.type = NULL, prepFUN = NULL, clusterFUN = NULL, BLUSPARAM = NNGraphParam()) {
-    # nolint
     if (is.null(assay.type)) {
         if (normalize) {
             assay.type <- "counts"
@@ -109,16 +70,44 @@ subcluster_internal <- function(x, normalize = TRUE, assay.type = NULL, prepFUN 
             denoisePCA(x, dec, subset.row = top, assay.type = assay.type)
         }
     }
-    if (is.null(clusterFUN)) {
-        clusterFUN <- function(x) {
-            clusterRows(reducedDim(x, "PCA"), BLUSPARAM)
-        }
+    force(BLUSPARAM)
+    subclusters <- groups
+    for (i in clusters) {
+        idx <- i == groups
+        sce_obj <- x[, idx]
+        subcluster_labels <- subcluster_internal(
+            sce_obj,
+            normalize = normalize, assay.type = assay.type,
+            prepFUN = prepFUN, dimred = dimred,
+            BLUSPARAM = BLUSPARAM
+        )
+        subcluster_labels <- sprintf(
+            fmt = format,
+            subclusters[idx],
+            subcluster_labels
+        )
+        subclusters[idx] <- subcluster_labels
+        # insert the new labels into the original position
+        subcluster_levels_idx <- which(i == subcluster_levels)
+        subcluster_levels <- append(
+            subcluster_levels,
+            sort(unique(subcluster_labels)),
+            after = subcluster_levels_idx
+        )
+        subcluster_levels <- subcluster_levels[-subcluster_levels_idx]
     }
+    factor(subclusters, subcluster_levels)
+}
+
+# the internal function to implement subcluster
+# return a factor of length equal to ncol(x)
+subcluster_internal <- function(x, normalize = TRUE, assay.type = NULL, prepFUN = NULL, dimred = NULL, BLUSPARAM = NNGraphParam()) {
+    # nolint
     if (normalize) {
         x <- logNormCounts(x, exprs_values = assay.type)
     }
     x <- prepFUN(x)
-    as.character(clusterFUN(x))
+    as.character(clusterRows(reducedDim(x, dimred), BLUSPARAM = BLUSPARAM))
 }
 
 #' @export
@@ -128,12 +117,13 @@ setGeneric("findSubCluster", function(x, ...) standardGeneric("findSubCluster"))
 #' @export
 #' @rdname findSubCluster
 #' @importFrom SingleCellExperiment SingleCellExperiment
-setMethod("findSubCluster", "ANY", function(x, normalize = TRUE, ...) {
+setMethod("findSubCluster", "ANY", function(x, groups, normalize = TRUE, ...) {
     assays <- list(x)
     assay.type <- if (normalize) "counts" else "logcounts"
     names(assays) <- assay.type
     .find_sub_cluster(
         SingleCellExperiment(assays),
+        groups = groups,
         normalize = normalize,
         assay.type = assay.type,
         ...
@@ -144,10 +134,21 @@ setMethod("findSubCluster", "ANY", function(x, normalize = TRUE, ...) {
 #' @rdname findSubCluster
 #' @importFrom methods as
 #' @importClassesFrom SingleCellExperiment SingleCellExperiment
-setMethod("findSubCluster", "SummarizedExperiment", function(x, ...) {
-    .find_sub_cluster(as(x, "SingleCellExperiment"), ...)
+setMethod("findSubCluster", "SummarizedExperiment", function(x, groups, ...) {
+    .find_sub_cluster(
+        as(x, "SingleCellExperiment"),
+        groups = groups,
+        ...
+    )
 })
 
 #' @export
 #' @rdname findSubCluster
-setMethod("findSubCluster", "SingleCellExperiment", .find_sub_cluster)
+setMethod("findSubCluster", "SingleCellExperiment", function(x, groups = NULL, ...) {
+    if (is.null(groups)) {
+        groups <- SingleCellExperiment::colLabels(x, onAbsence = "error")
+    } else if (!identical(length(groups), ncol(x))) {
+        stop("the length of groups should be equal to ncol(x)")
+    }
+    .find_sub_cluster(x, groups = groups, ...)
+})
