@@ -69,3 +69,23 @@ test_that("quickSubCluster avoids subclustering with too few cells", {
     test <- quickSubCluster(dummy, groups=rep(1:2, c(1, ncells-1)))
     expect_equivalent(counts(test[[1]]), dummy[,1,drop=FALSE])
 })
+
+set.seed(30001)
+test_that("quickSubCluster restrictions work as expected", {
+    sampling <- sample(LETTERS[1:3], ncells, replace=TRUE)
+
+    set.seed(100)
+    suppressWarnings(full <- quickSubCluster(dummy, groups=sampling))
+    expect_identical(names(full), LETTERS[1:3])
+
+    set.seed(100)
+    suppressWarnings(res <- quickSubCluster(dummy, groups=sampling, restricted="A"))
+    expect_identical(names(res), "A")
+    expect_identical(res$A, full$A)
+
+    idx <- which(sampling == "A")
+    expect_identical(metadata(res)$index, list(A=idx))
+    expect_identical(metadata(res)$subcluster[idx], metadata(full)$subcluster[idx])
+    expect_identical(metadata(res)$subcluster[-idx], sampling[-idx])
+})
+

@@ -17,6 +17,7 @@ quickSubCluster(x, ...)
   x,
   groups,
   normalize = TRUE,
+  restricted = NULL,
   prepFUN = NULL,
   min.ncells = 50,
   clusterFUN = NULL,
@@ -40,6 +41,10 @@ For the ANY and SummarizedExperiment methods, further arguments to pass to the S
 
 \item{groups}{A vector of group assignments for all cells, usually corresponding to cluster identities.}
 
+\item{restricted}{Character vector containing the subset of groups in \code{groups} to be subclustered.
+By default, all unique groups in \code{groups} are used for subclustering,
+but this can be restricted to specific groups of interest to save compute time.}
+
 \item{prepFUN}{A function that accepts a single \linkS4class{SingleCellExperiment} object and returns another \linkS4class{SingleCellExperiment} containing any additional elements required for clustering (e.g., PCA results).}
 
 \item{min.ncells}{An integer scalar specifying the minimum number of cells in a group to be considered for subclustering.}
@@ -60,10 +65,13 @@ By default, a named \linkS4class{List} of \linkS4class{SingleCellExperiment} obj
 Each object corresponds to a level of \code{groups} and contains a \code{"subcluster"} column metadata field with the subcluster identities for each cell.
 The \code{\link{metadata}} of the List also contains \code{index}, a list of integer vectors specifying the cells in \code{x} in each returned SingleCellExperiment object; 
 and \code{subcluster}, a character vector of subcluster identities (see next).
+If \code{restricted} is not \code{NULL}, only the specified groups in \code{restricted} will be present in the output List.
 
 If \code{simplify=TRUE}, the character vector of subcluster identities is returned.
 This is of length equal to \code{ncol(x)} and each entry follows the format defined in \code{format}.
-(Unless the number of cells in the parent cluster is less than \code{min.cells}, in which case the parent cluster's name is used.)
+The only exceptions are if the number of cells in the parent cluster is less than \code{min.cells}, 
+or parent cluster is not listed in a non-\code{NULL} value of \code{restricted}.
+In such cases, the parent cluster's name is used instead.
 }
 \description{
 Performs a quick subclustering for all cells within each group.

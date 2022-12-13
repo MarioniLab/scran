@@ -2,6 +2,10 @@
 \title{scran News}
 \encoding{UTF-8}
 
+\section{Version 1.28}{\itemize{
+\item Added a \code{restricted=} option to \code{quickSubCluster()} to enable subclustering on specific clusters.
+}}
+
 \section{Version 1.20.0}{\itemize{
 \item All deprecated functions from the previous release are now defunct.
 
