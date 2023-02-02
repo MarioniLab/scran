@@ -25,6 +25,8 @@
 #' @param row.data A \linkS4class{DataFrame} containing additional row metadata for each gene in \code{x},
 #' to be included in each of the output DataFrames.
 #' This should have the same number and order of rows as \code{x}.
+#' @param weights A vector or matrix of weights. If vector, it is assumed the weights are equal for all genes. Alternatively,
+#' a matrix with the same dimensions as \code{x} can be provided.
 #' @param ... For the generic, additional arguments to pass to individual methods.
 #'
 #' For the SummarizedExperiment method, additional arguments to pass to the ANY method.
@@ -188,6 +190,7 @@ NULL
         curdata <- col.data[chosen,,drop=FALSE]
         y <- DGEList(curx, samples=as.data.frame(curdata))
         curcond <- condition[chosen]
+        curweights <- weights[,chosen]
 
         curdesign <- try({
             if (is.function(design)) {
@@ -204,7 +207,7 @@ NULL
         } else {
             args <- list(y, row.names=rownames(x), curdesign=curdesign, curcond=curcond,
                 coef=coef, contrast=contrast, lfc=lfc, null.lfc=null.lfc.list[[i]],
-                robust=robust, include.intermediates=include.intermediates, weights=weights)
+                robust=robust, include.intermediates=include.intermediates, weights=curweights)
 
             if (method=="edgeR") {
                 stuff <- do.call(.pseudo_bulk_edgeR, args)
