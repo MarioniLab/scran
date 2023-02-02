@@ -177,10 +177,10 @@ NULL
     
     # Checks on weights
     if(is.vector(weights)){
-      stopfinot(length(weights)==nrow(design))
+      stopifnot(length(weights)==nrow(design))
       weights <- matrix(weights,nrow=nrow(x), ncol=ncol(x), byrow=TRUE)
     } else if(is.matrix(weights)){
-      stopfinot(all.equal(dim(weights),dim(x)))
+      stopifnot(all.equal(dim(weights),dim(x)))
     }
 
     for (i in sort(unique(label))) {
