@@ -251,7 +251,7 @@ NULL
     y <- y[gkeep,]
     y <- calcNormFactors(y)
 
-    if(!is.null(weights)) y$weights <- weights
+    if(!is.null(weights)) y$weights <- weights[gkeep,]
     
     rank <- qr(curdesign)$rank
     if (rank == nrow(curdesign) || rank < ncol(curdesign)) { 
