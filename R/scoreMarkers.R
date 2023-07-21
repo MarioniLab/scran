@@ -247,6 +247,14 @@ NULL
 
     res <- .mapply_bind(stats, rbind)
 
+    # Computing the minimum rank across genes.
+    for (i in names(res)) {
+        all.names <- grep("^rank\\.", colnames(res[[i]]))
+        for (j in all.names) {
+            res[[i]][[j]] <- computeMinRank(res[[i]][[j]])
+        }
+    }
+
     # Slapping on the row data.
     if (!is.null(row.data)) {
         for (i in seq_along(res)) {
@@ -557,7 +565,7 @@ NULL
             min=rowMins(effect.mat, na.rm=TRUE),
             median=rowMedians(effect.mat, na.rm=TRUE),
             max=rowMaxs(effect.mat, na.rm=TRUE),
-            rank=computeMinRank(effect.mat),
+            rank=I(effect.mat), # need to combine the full effect size matrix across rows before compute ranks.
             row.names=row.names
         )
 
