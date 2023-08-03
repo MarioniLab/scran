@@ -185,8 +185,8 @@ NULL
         y <- cbind(x1, x2) # so we can block process both matrices at the same time.
 
         output <- rowBlockApply(y, FUN=.calculate_rho, BPPARAM=BPPARAM)
-        output <- unlist(output)
-        rhos[[b]] <- output
+        output <- unlist(output, use.names=FALSE)
+        rhos[[b]] <- unname(output)
 
         p.out <- rhoToPValue(output, n=ncol(x0))
         up.p[[b]] <- p.out$positive
