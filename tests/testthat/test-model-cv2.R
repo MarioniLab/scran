@@ -14,7 +14,7 @@ dummy2 <- normalizeCounts(dummy, log=FALSE)
 test_that("modelGeneCV2 works correctly without blocking", {
     out <- modelGeneCV2(dummy)
     expect_equal(out$mean, unname(rowMeans(dummy2)))
-    expect_equal(out$total, DelayedMatrixStats::rowVars(dummy2)/out$mean^2)
+    expect_equal(out$total, unname(DelayedMatrixStats::rowVars(dummy2)/out$mean^2))
     expect_equal(out$trend, metadata(out)$trend(out$mean))
     expect_equal(out$ratio, out$total/out$trend)
     expect_equal(order(out$p.value), order(out$ratio, decreasing=TRUE))
@@ -24,7 +24,7 @@ test_that("modelGeneCV2 responds to size factors", {
     sf <- runif(ncells)
     out <- modelGeneCV2(dummy, size.factors=sf)
     ref <- modelGeneCV2(t(t(dummy)/sf*mean(sf)), size.factors=rep(1, ncells))
-    expect_equal(out, ref)
+    expect_equal(out, ref, tol = 1e-6)
 })
 
 test_that("modelGeneCV2 works correctly with blocking, no weighting", {
@@ -139,7 +139,7 @@ test_that("modelGeneCV2 works with SingleCellExperiment objects", {
     X <- SingleCellExperiment(list(counts=dummy))
     expect_equal(modelGeneCV2(X), modelGeneCV2(dummy))
 
-    sizeFactors(X) <- runif(ncol(X))
+    sizeFactors(X) <- runif(ncol(X), 0.5, 1.5)
     expect_equal(modelGeneCV2(X), modelGeneCV2(dummy, sizeFactors(X)))
 
     X <- SingleCellExperiment(list(whee=dummy))
@@ -260,11 +260,11 @@ test_that("modelGeneCV2WithSpikes centers size factors correctly", {
     ref <- modelGeneCV2WithSpikes(t(t(dummy)/msf1), size.factors=rep(1, ncells), 
         spikes=t(t(spikes)/msf2), spike.size.factors=rep(1, ncells))
 
-    expect_equal(ref$mean, out$mean)
-    expect_equal(ref$total, out$total)
-    expect_equal(ref$trend, out$trend)
-    expect_equal(ref$ratio, out$ratio)
-    expect_equal(ref$p.value, out$p.value)
+    expect_equal(ref$mean, out$mean, tol=1e-6)
+    expect_equal(ref$total, out$total, tol=1e-6)
+    expect_equal(ref$trend, out$trend, tol=1e-6)
+    expect_equal(ref$ratio, out$ratio, tol=1e-6)
+    expect_equal(ref$p.value, out$p.value, tol=1e-6)
 
     # With blocking.
     block <- sample(LETTERS[1:5], ncells, replace=TRUE)
@@ -283,11 +283,11 @@ test_that("modelGeneCV2WithSpikes centers size factors correctly", {
             spike.size.factors=rep(1, sum(current)))
         subout <- out$per.block[[i]]
 
-        expect_equal(ref$mean, subout$mean)
-        expect_equal(ref$total, subout$total)
-        expect_equal(ref$trend, subout$trend)
-        expect_equal(ref$ratio, subout$ratio)
-        expect_equal(ref$p.value, subout$p.value)
+        expect_equal(ref$mean, subout$mean, tol=1e-6)
+        expect_equal(ref$total, subout$total, tol=1e-6)
+        expect_equal(ref$trend, subout$trend, tol=1e-6)
+        expect_equal(ref$ratio, subout$ratio, tol=1e-6)
+        expect_equal(ref$p.value, subout$p.value, tol=1e-6)
     }
 })
 

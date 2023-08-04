@@ -75,7 +75,10 @@ scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
             dn <- rev(dn)
         }
         dimnames(rkout) <- dn
+    } else if (!is.null(dimnames(rkout))) {
+        dimnames(rkout) <- NULL
     }
+
     rkout
 }
 

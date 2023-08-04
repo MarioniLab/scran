@@ -14,7 +14,7 @@ dummy <- normalizeCounts(dummy)
 test_that("modelGeneVar works correctly without blocking", {
     out <- modelGeneVar(dummy)
     expect_equal(out$mean, unname(rowMeans(dummy)))
-    expect_equal(out$total, DelayedMatrixStats::rowVars(dummy))
+    expect_equal(out$total, unname(DelayedMatrixStats::rowVars(dummy)))
     expect_equal(out$tech, metadata(out)$trend(out$mean))
     expect_equal(out$bio, out$total-out$tech)
     expect_equal(order(out$p.value), order(out$bio/out$tech, decreasing=TRUE))
@@ -235,7 +235,7 @@ test_that("modelGeneVarWithSpikes works correctly in the basic case", {
 
     lspikes <- scuttle::normalizeCounts(spikes)
     expect_equal(metadata(out)$mean, rowMeans(lspikes))
-    expect_equal(unname(metadata(out)$var), DelayedMatrixStats::rowVars(lspikes))
+    expect_equal(unname(metadata(out)$var), unname(DelayedMatrixStats::rowVars(lspikes)))
 
     fit <- fitTrendVar(metadata(out)$mean, metadata(out)$var)
     expect_identical(fit$std.dev, metadata(out)$std.dev)
@@ -378,7 +378,7 @@ test_that("modelGeneVarWithSpikes works with a different pseudo-count", {
 
     lspikes <- scuttle::normalizeCounts(spikes, pseudo.count=3)
     expect_equal(metadata(out)$mean, rowMeans(lspikes))
-    expect_equal(unname(metadata(out)$var), DelayedMatrixStats::rowVars(lspikes))
+    expect_equal(unname(metadata(out)$var), unname(DelayedMatrixStats::rowVars(lspikes)))
 })
 
 test_that("modelGeneVarWithSpikes works with sparse inputs", {
