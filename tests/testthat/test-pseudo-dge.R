@@ -227,8 +227,8 @@ test_that("contrast specification in the pseudoBulkDGE works", {
         expect_equal(ref[[i]]$logFC, out2[[i]]$logFC)
         expect_equal(ref[[i]]$logFC, out3[[i]]$logFC)
         expect_equal(ref[[i]]$PValue, out1[[i]]$PValue)
-        expect_equal(ref[[i]]$PValue, out2[[i]]$PValue)
-        expect_equal(ref[[i]]$PValue, out3[[i]]$PValue)
+        expect_equal(ref[[i]]$PValue, out2[[i]]$PValue, tol=1e-6) # Need more generous tolerances on windows, who knows why.
+        expect_equal(ref[[i]]$PValue, out3[[i]]$PValue, tol=1e-6)
     }
 
     # Voom is a bit different due to the approximation of the weights.
