@@ -205,7 +205,7 @@ NULL
     combination.out <- .group_block_combinations(groups, block)
     combination.id <- combination.out$id
     unique.combinations <- combination.out$combinations
-    ncells <- tabulate(combination.id, nbins=nrow(unique.combinations))
+    ncells <- as.double(tabulate(combination.id, nbins=nrow(unique.combinations)))
 
     collapse.symmetric <- lfc==0
     reindexed.comparisons <- .reindex_comparisons_for_combinations(unique.combinations, desired.comparisons, collapse.symmetric=collapse.symmetric)
