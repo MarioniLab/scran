@@ -224,8 +224,8 @@ NULL
 ###############################
 
 #' @importFrom BiocParallel bpmapply 
-#' @importFrom DelayedMatrixStats rowRanks rowSds
-#' @importFrom Matrix t rowMeans
+#' @importFrom MatrixGenerics rowRanks rowMeans rowSds
+#' @importFrom Matrix t
 #' @importFrom stats var
 .calculate_rho <- function(block) {
     half <- ncol(block)/2

@@ -32,7 +32,7 @@
 #' \code{\link{findMarkers}} and \code{\link{combineMarkers}}, to generate the DataFrames.
 #'
 #' @export
-#' @importFrom DelayedMatrixStats colAnyNAs
+#' @importFrom MatrixGenerics colAnyNAs
 getMarkerEffects <- function(x, prefix="logFC", strip=TRUE, remove.na.col=FALSE) {
     regex <- paste0("^", prefix, "\\.")
     i <- grep(regex, colnames(x))
