@@ -2,6 +2,10 @@
 \title{scran News}
 \encoding{UTF-8}
 
+\section{Version 1.34}{\itemize{
+\item Bugfix for \code{quickCluster()} to pass along arguments to the internal per-block call.
+}}
+
 \section{Version 1.28}{\itemize{
 \item Added a \code{restricted=} option to \code{quickSubCluster()} to enable subclustering on specific clusters.
 }}
