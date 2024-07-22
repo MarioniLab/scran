@@ -30,6 +30,7 @@ A numeric vector containing the combined p-values.
 }
 \description{
 Combine p-values from independent or dependent hypothesis tests using a variety of meta-analysis methods.
+This is deprecated in favor of \code{\link{combineParallelPValues}} from the \pkg{metapod} package.
 }
 \details{
 This function will operate across elements on \code{...} in parallel to combine p-values.

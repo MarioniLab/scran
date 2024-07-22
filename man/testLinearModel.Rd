@@ -15,7 +15,7 @@ testLinearModel(x, ...)
   contrasts = NULL,
   block = NULL,
   equiweight = FALSE,
-  method = "z",
+  method = "stouffer",
   subset.row = NULL,
   BPPARAM = SerialParam()
 )
@@ -45,7 +45,7 @@ If specified, variance modelling is performed separately within each block and s
 Otherwise, each block is weighted according to its number of cells.
 Only used if \code{block} is specified.}
 
-\item{method}{String specifying how p-values should be combined when \code{block} is specified, see \code{\link{combinePValues}}.}
+\item{method}{String specifying how p-values should be combined when \code{block} is specified, see \code{\link{combineParallelPValues}}.}
 
 \item{subset.row}{See \code{?"\link{scran-gene-selection}"}, specifying the rows for which to model the variance.
 Defaults to all genes in \code{x}.}

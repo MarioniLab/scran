@@ -1,6 +1,7 @@
 #' Combine p-values
 #'
 #' Combine p-values from independent or dependent hypothesis tests using a variety of meta-analysis methods.
+#' This is deprecated in favor of \code{\link{combineParallelPValues}} from the \pkg{metapod} package.
 #' 
 #' @param ... Two or more numeric vectors of p-values of the same length.
 #' @param method A string specifying the combining strategy to use.
@@ -87,75 +88,13 @@
 #' hist(berger)
 #'
 #' @export
-#' @importFrom stats pnorm qnorm pchisq
-#' @importFrom DelayedMatrixStats rowRanks rowQuantiles 
-#' @importFrom DelayedArray rowMins
+#' @importFrom metapod combineParallelPValues
 combinePValues <- function(..., 
     method=c("fisher", "z", "simes", "berger", "holm-middle"), 
     weights=NULL, log.p=FALSE, min.prop=0.5)
 {
-    input <- .unpackLists(...)
-    if (length(input)==1L) {
-        return(unname(input[[1]])) # returning directly.
-    }
-    Np <- unique(lengths(input))
-    if (length(Np) != 1) {
-        stop("all p-value vectors must have the same length")
-    }
-
+    .Deprecated(new="metapod::combineParallelPValues")
     method <- match.arg(method)
-    switch(method,
-        fisher={
-            if (log.p) {
-                all.logp <- input
-            } else {
-                all.logp <- lapply(input, FUN=log)
-            }
-
-            n <- integer(Np)
-            X <- numeric(Np)
-            for (i in seq_along(all.logp)) {
-                current <- all.logp[[i]]
-                keep <- !is.na(current)
-                X[keep] <- X[keep] + current[keep]
-                n <- n + keep
-            }
-            
-            n[n==0] <- NA_real_ # ensure that we get NA outputs.
-            pchisq(-2*X, df=2*n, lower.tail=FALSE, log.p=log.p)
-        },
-        simes=combine_simes(input, log.p),
-        `holm-middle`=combine_holm_middle(input, log.p, min.prop),
-        z={
-            if (is.null(weights)) {
-                weights <- rep(1, length(input))
-            } else if (length(weights)!=length(input)) {
-                stop("'length(weights)' must be equal to number of vectors in '...'")
-            } else {
-                check <- unlist(lapply(weights, range))
-                if (any(is.na(check) | check<=0)) {
-                    stop("weights must be positive")
-                }
-            }
-
-            Z <- W2 <- numeric(Np)
-            for (i in seq_along(input)) {
-                current <- input[[i]]
-                keep <- !is.na(current)
-                Z[keep] <- Z[keep] + qnorm(current[keep], log.p=log.p) * weights[[i]]
-                W2 <- W2 + ifelse(keep, weights[[i]]^2, 0)
-            }
-
-            # Combining p-values of 0 and 1 will yield zscores of -Inf + Inf => NaN.
-            # Here, we set them to 0 to get p-values of 0.5, as the Z-method doesn't
-            # give coherent answers when you have p-values at contradicting extremes.
-            Z[is.nan(Z)] <- 0
-
-            W2[W2==0] <- NA_real_ # ensure we get NA outputs.
-            pnorm(Z/sqrt(W2), log.p=log.p) 
-        },
-        berger={
-            do.call(pmax, c(input, list(na.rm=TRUE)))
-        }
-    )
+    method <- c(fisher='fisher', z='stouffer', simes='simes', berger='berger', `holm-middle`='holm-min')[method]
+    combineParallelPValues(list(...), method=method, weights=weights, log.p=log.p, min.prop=min.prop)$p.value
 }

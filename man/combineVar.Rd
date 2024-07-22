@@ -31,7 +31,7 @@ For \code{combineCV2}, these should be produced by \code{\link{modelGeneCV2}} or
 Alternatively, one or more lists of DataFrames containing variance modelling results.
 Mixed inputs are also acceptable, e.g., lists of DataFrames alongside the DataFrames themselves.}
 
-\item{method}{String specifying how p-values are to be combined, see \code{\link{combinePValues}} for options.}
+\item{method}{String specifying how p-values are to be combined, see \code{\link{combineParallelPValues}} for options.}
 
 \item{pval.field}{A string specifying the column name of each element of \code{...} that contains the p-value.}
 
@@ -70,8 +70,9 @@ If \code{equiweight=FALSE}, each per-batch statistic is weighted by the number o
 The number of cells can be explicitly set using \code{ncells}, and is otherwise assumed to be equal for all batches.
 No weighting is performed by default, which ensures that all batches contribute equally to the combined statistics and avoids situations where batches with many cells dominate the output.
 
-The \code{\link{combinePValues}} function is used to combine p-values across batches.
-Only \code{method="z"} will perform any weighting of batches, and only if \code{weights} is set.
+The \code{\link{combineParallelPValues}} function is used to combine p-values across batches.
+The default is to use Fisher's method, which will achieve a low p-value if a gene is highly variable in any batch.
+Only \code{method="stouffer"} will perform any weighting of batches, and only if \code{weights} is set.
 }
 \examples{
 library(scuttle)
@@ -93,7 +94,7 @@ head(combineVar(results1, results2, method="berger"))
 \seealso{
 \code{\link{modelGeneVar}} and \code{\link{modelGeneCV2}}, for two possible inputs into this function.
 
-\code{\link{combinePValues}}, for details on how the p-values are combined.
+\code{\link{combineParallelPValues}}, for details on how the p-values are combined.
 }
 \author{
 Aaron Lun

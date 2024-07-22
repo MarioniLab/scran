@@ -2,10 +2,37 @@
 \title{scran News}
 \encoding{UTF-8}
 
+\section{Version 1.28}{\itemize{
+\item Added a \code{restricted=} option to \code{quickSubCluster()} to enable subclustering on specific clusters.
+}}
+
 \section{Version 1.20.0}{\itemize{
 \item All deprecated functions from the previous release are now defunct.
 
 \item Added a \code{simplify=} option to \code{quickSubCluster()} to get the cluster assignments directly.
+
+\item Deprecated \code{combinePValues()} as this is replaced by \code{metapod::combineParallelPValues()}.
+
+\item \code{getClusteredPCs()} now uses \code{bluster::clusterRows()} by default.
+
+\item \code{decideTestsPerLabel()} now automatically detects \code{pval.field=} if not supplied.
+
+\item Added the \code{clusterCells()} wrapper around \pkg{bluster} functionality.
+
+\item Removed the option to pass a matrix in \code{design=} from \code{pseudoBulkDGE()}.
+
+\item Migrated all normalization-related functions (\code{computeSumFactors()}, \code{calculateSumFactors()},
+\code{cleanSizeFactors()} and \code{computeSpikeFactors()}) to a better home in \pkg{scuttle}.
+Soft-deprecated existing functions.
+
+\item Modified \code{getTopHVGs()} to accept a SingleCellExperiment and compute the DataFrame with \code{modelGeneVar()}.
+
+\item Added \code{fixedPCA()} to compute a PCA with a fixed number of components, a la \code{scater::runPCA()} (but without requiring \pkg{scater}).
+
+\item Modified \code{denoisePCA()} so that it now complains if \code{subset.row=} is not provided.
+
+\item Modified all \code{pairwise*} functions so that the p-value from \code{direction="any"} is derived from the two p-values from the one-sided tests.
+This is necessary for correctness with all choices of \code{lfc=} and \code{block=}, at the cost of conservativeness when \code{block=NULL} and \code{lfc} is large.
 }}
 
 \section{Version 1.18.0}{\itemize{

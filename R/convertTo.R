@@ -16,9 +16,6 @@
 #' For \code{type="DESeq2"}, a DESeqDataSet object is returned containing the count matrix and size factors.
 #' Additional gene- and cell-specific data is stored in the \code{mcols} and \code{colData} respectively.
 #' 
-#' For \code{type="monocle"}, a CellDataSet object is returned containing the count matrix and size factors.
-#' Additional gene- and cell-specific data is stored in the \code{featureData} and \code{phenoData} respectively.
-#' 
 #' @details
 #' This function converts an SingleCellExperiment object into various other classes in preparation for entry into other analysis pipelines, as specified by \code{type}.
 #' 
@@ -27,8 +24,8 @@
 #' 
 #' @seealso
 #' \code{\link[edgeR]{DGEList}},
-#' \code{\link[DESeq2:DESeqDataSet]{DESeqDataSetFromMatrix}},
-#' \code{\link[monocle]{newCellDataSet}}, for specific class constructors.
+#' \code{\link[DESeq2:DESeqDataSet]{DESeqDataSetFromMatrix}}
+#' for specific class constructors.
 #' 
 #' @examples
 #' library(scuttle)
@@ -42,7 +39,6 @@
 #' # Converting to various objects.
 #' convertTo(sce, type="edgeR")
 #' convertTo(sce, type="DESeq2")
-#' convertTo(sce, type="monocle")
 #' 
 #' @export
 #' @importFrom BiocGenerics sizeFactors as.data.frame "sizeFactors<-"
@@ -56,14 +52,12 @@ convertTo <- function(x, type=c("edgeR", "DESeq2", "monocle"), ..., assay.type=1
         fd <- rowData(x)
         pd <- colData(x)
     } else if (type=="monocle") {
-        fd <- Biobase::AnnotatedDataFrame(as.data.frame(rowData(x), row.names=rownames(x)))
-        pd <- Biobase::AnnotatedDataFrame(as.data.frame(colData(x)))
+        .Defunct(msg="'type=\"monocle\" is no longer supported, use monocle::newCellDataSet directly instead")
     }
 
     sf <- suppressWarnings(sizeFactors(x))
     subset.row <- .subset2index(subset.row, x)
 
-    # Constructing objects of various types.
     if (type=="edgeR") {
         y <- DGEList(assay(x, i=assay.type)[subset.row,,drop=FALSE], ...)
         if (ncol(fd)) { 
@@ -88,13 +82,5 @@ convertTo <- function(x, type=c("edgeR", "DESeq2", "monocle"), ..., assay.type=1
             sizeFactors(dds) <- sf
         }
         return(dds)
-
-    } else if (type=="monocle") {
-        cur.exprs <- assay(x, i=assay.type)[subset.row,,drop=FALSE]
-        out <- monocle::newCellDataSet(cur.exprs, phenoData=pd, featureData=fd[subset.row,,drop=FALSE], ...)
-        if (!is.null(sf)) { 
-            sizeFactors(out) <- sf 
-        }
-        return(out)
     }
 }

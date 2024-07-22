@@ -8,6 +8,9 @@
 #' Alternatively, a \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} object containing such a matrix.
 #' @param groups A vector of group assignments for all cells, usually corresponding to cluster identities.
 #' @param normalize Logical scalar indicating whether each subset of \code{x} should be log-transformed prior to further analysis.
+#' @param restricted Character vector containing the subset of groups in \code{groups} to be subclustered.
+#' By default, all unique groups in \code{groups} are used for subclustering,
+#' but this can be restricted to specific groups of interest to save compute time.
 #' @param prepFUN A function that accepts a single \linkS4class{SingleCellExperiment} object and returns another \linkS4class{SingleCellExperiment} containing any additional elements required for clustering (e.g., PCA results).
 #' @param min.ncells An integer scalar specifying the minimum number of cells in a group to be considered for subclustering.
 #' @param clusterFUN A function that accepts a single \linkS4class{SingleCellExperiment} object and returns a vector of cluster assignments for each cell in that object.
@@ -25,10 +28,13 @@
 #' Each object corresponds to a level of \code{groups} and contains a \code{"subcluster"} column metadata field with the subcluster identities for each cell.
 #' The \code{\link{metadata}} of the List also contains \code{index}, a list of integer vectors specifying the cells in \code{x} in each returned SingleCellExperiment object; 
 #' and \code{subcluster}, a character vector of subcluster identities (see next).
+#' If \code{restricted} is not \code{NULL}, only the specified groups in \code{restricted} will be present in the output List.
 #'
 #' If \code{simplify=TRUE}, the character vector of subcluster identities is returned.
 #' This is of length equal to \code{ncol(x)} and each entry follows the format defined in \code{format}.
-#' (Unless the number of cells in the parent cluster is less than \code{min.cells}, in which case the parent cluster's name is used.)
+#' The only exceptions are if the number of cells in the parent cluster is less than \code{min.cells}, 
+#' or parent cluster is not listed in a non-\code{NULL} value of \code{restricted}.
+#' In such cases, the parent cluster's name is used instead.
 #'
 #' @details
 #' \code{quickSubCluster} is a simple convenience function that loops over all levels of \code{groups} to perform subclustering.
@@ -88,7 +94,7 @@ NULL
 #' @importFrom BiocSingular bsparam
 #' @importClassesFrom S4Vectors List
 #' @importFrom bluster clusterRows NNGraphParam
-.quick_sub_cluster <- function(x, groups, normalize=TRUE, 
+.quick_sub_cluster <- function(x, groups, normalize=TRUE, restricted=NULL,
     prepFUN=NULL, min.ncells=50, clusterFUN=NULL, BLUSPARAM=NNGraphParam(), 
     format="%s.%s", assay.type="counts", simplify=FALSE) 
 {
@@ -118,9 +124,17 @@ NULL
         }
     }
 
-    all.sce <- collated <- list()
+    all.sce <- list()
+    all.clusters <- as.character(groups)
     by.group <- split(seq_along(groups), groups)
 
+    if (!is.null(restricted)) { # maybe check that 'restricted' is a subset of 'names(by.group)'
+        if (!all(restricted %in% names(by.group))) {
+            stop("not all 'restricted' are present in 'groups'");
+        }
+        by.group <- by.group[unique(as.character(restricted))]
+    }
+    
     for (i in names(by.group)) {
         y <- x[,by.group[[i]]]
         if (normalize) {
@@ -137,11 +151,8 @@ NULL
 
         y$subcluster <- clusters
         all.sce[[i]] <- y
-        collated[[i]] <- clusters
+        all.clusters[by.group[[i]]] <- clusters
     }
-
-    all.clusters <- rep(NA_character_, ncol(x))
-    all.clusters[unlist(by.group)] <- unlist(collated)
 
     if (simplify) {
         all.clusters

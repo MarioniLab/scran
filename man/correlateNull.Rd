@@ -33,6 +33,7 @@ A numeric vector of length \code{iters} is returned containing the sorted correl
 }
 \description{
 Build a distribution of correlations under the null hypothesis of independent expression between pairs of genes.
+This is now deprecated as \code{\link{correlatePairs}} uses an approximation instead.
 }
 \details{
 The \code{correlateNull} function constructs an empirical null distribution for Spearman's rank correlation when it is computed with \code{ncells} cells.

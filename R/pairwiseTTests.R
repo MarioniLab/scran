@@ -63,10 +63,12 @@
 #' By default, \code{lfc=0} meaning that we will reject the null upon detecting any differential expression.
 #' If this is set to some other positive value, the null hypothesis will change depending on \code{direction}:
 #' \itemize{
-#' \item If \code{direction="any"}, the null hypothesis is that the true log-fold change is either \code{-lfc} or \code{lfc} with equal probability.
-#' A two-sided p-value is computed against this composite null.
-#' \item If \code{direction="up"}, the null hypothesis is that the true log-fold change is \code{lfc}, and a one-sided p-value is computed.
-#' \item If \code{direction="down"}, the null hypothesis is that the true log-fold change is \code{-lfc}, and a one-sided p-value is computed.
+#' \item If \code{direction="any"}, the null hypothesis is that the true log-fold change lies inside \code{[-lfc, lfc]}.
+#' To be conservative, we perform one-sided tests against the boundaries of this interval, and combine them to obtain a two-sided p-value.
+#' \item If \code{direction="up"}, the null hypothesis is that the true log-fold change is less than or equal to \code{lfc}.
+#' A one-sided p-value is computed against the boundary of this interval.
+#' \item If \code{direction="down"}, the null hypothesis is that the true log-fold change is greater than or equal to \code{-lfc}.
+#' A one-sided p-value is computed against the boundary of this interval.
 #' }
 #' This is similar to the approach used in \code{\link[limma:eBayes]{treat}} and allows users to focus on genes with strong log-fold changes.
 #' 
@@ -271,13 +273,15 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
         cur.err <- t.out$err
         cur.df <- t.out$test.df
         cur.lfc <- out.means[[b]][,host] - out.means[[b]][,target]
-        p.out <- .run_t_test(cur.lfc, cur.err, cur.df, thresh.lfc=lfc, direction=direction)
+        p.out <- .run_t_test(cur.lfc, cur.err, cur.df, thresh.lfc=lfc) 
 
         effect.size <- cur.lfc
         if (std.lfc) {
             # Computing Cohen's D.
             pooled.s2 <- ((host.n - 1) * host.s2 + (target.n - 1) * target.s2)/(target.n + host.n - 2)
+            is.zero <- effect.size == 0
             effect.size <- effect.size / sqrt(pooled.s2)
+            effect.size[is.zero] <- 0
         }
         
         list(forward=effect.size, reverse=-effect.size, left=p.out$left, right=p.out$right, 
@@ -396,13 +400,15 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
             target <- clust.vals[tdex]
             cur.lfc <- ref.coef - coefficients[,tdex]
 
-            test.out <- .run_t_test(cur.lfc, lfit2$stdev.unscaled[tdex]^2*sigma2, resid.df, thresh.lfc=lfc, direction=direction)
+            test.out <- .run_t_test(cur.lfc, lfit2$stdev.unscaled[tdex]^2*sigma2, resid.df, thresh.lfc=lfc)
             hvt.p <- .choose_leftright_pvalues(test.out$left, test.out$right, direction=direction)
             tvh.p <- .choose_leftright_pvalues(test.out$right, test.out$left, direction=direction)
 
             if (std.lfc) {
                 # Computing Cohen's D.
+                is.zero <- cur.lfc == 0
                 cur.lfc <- cur.lfc / sqrt(sigma2)
+                cur.lfc[is.zero] <- 0
             }
 
             collected.stats[[counter]] <- list(
@@ -426,7 +432,7 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
 ###########################################################
 
 #' @importFrom stats pt
-.run_t_test <- function(cur.lfc, cur.err, cur.df, thresh.lfc=0, direction="any")
+.run_t_test <- function(cur.lfc, cur.err, cur.df, thresh.lfc=0) 
 # This runs the t-test given the relevant statistics, regardless of how
 # they were computed (i.e., within blocks, or in a linear model).
 {
@@ -436,28 +442,15 @@ setMethod("pairwiseTTests", "SingleCellExperiment", function(x, groups=colLabels
         left <- pt(cur.t, df=cur.df, lower.tail=TRUE, log.p=TRUE)
         right <- pt(cur.t, df=cur.df, lower.tail=FALSE, log.p=TRUE)
     } else {
-        upper.t <- (cur.lfc - thresh.lfc)/sqrt(cur.err)
+        # For one-sided tests, testing against the lfc threshold in the specified direction.
+        # Note that if direction='up', only 'right' is used; nonetheless, 'left' is still calculated
+        # using 'lower.t' so as to allow quick calculation of the p-value for the reversed contrast,
+        # by simply swapping 'left' and 'right'. The same applies when direction='down'.
         lower.t <- (cur.lfc + thresh.lfc)/sqrt(cur.err)
+        left <- pt(lower.t, df=cur.df, lower.tail=TRUE, log.p=TRUE)
 
-        left.lower <- pt(lower.t, df=cur.df, lower.tail=TRUE, log.p=TRUE)
-        right.upper <- pt(upper.t, df=cur.df, lower.tail=FALSE, log.p=TRUE)
-
-        if (direction=="any") {
-            # Using the TREAT method, which tests against a null where the log-fold change is
-            # takes values at the extremes of [-thresh, thresh]. The null probability is 50%
-            # distributed across both extremes, hence the -log(2) at the end.
-            left.upper <- pt(upper.t, df=cur.df, lower.tail=TRUE, log.p=TRUE)
-            right.lower <- pt(lower.t, df=cur.df, lower.tail=FALSE, log.p=TRUE)
-            left <- .add_log_values(left.upper, left.lower) - log(2)
-            right <- .add_log_values(right.upper, right.lower) - log(2)
-        } else {
-            # For one-sided tests, testing against the lfc threshold in the specified direction.
-            # Note that if direction='up', only 'right' is used; nonetheless, 'left' is still calculated
-            # using 'lower.t' so as to allow quick calculation of the p-value for the reversed contrast,
-            # by simply swapping 'left' and 'right'. The same applies when direction='down'.
-            left <- left.lower
-            right <- right.upper
-        }
+        upper.t <- (cur.lfc - thresh.lfc)/sqrt(cur.err)
+        right <- pt(upper.t, df=cur.df, lower.tail=FALSE, log.p=TRUE)
     }
 
     list(left=left, right=right)

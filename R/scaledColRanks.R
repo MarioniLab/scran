@@ -49,7 +49,7 @@
 scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, as.sparse=FALSE, 
     withDimnames=TRUE, BPPARAM=SerialParam())
 {
-    if (!.bpNotSharedOrUp(BPPARAM)) {
+    if (.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))
     }
@@ -60,8 +60,8 @@ scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
         subset.row <- subset.row[further.subset]
     }
 
-    out <- colBlockApply(x[subset.row,,drop=FALSE], FUN=.get_scaled_ranks, 
-        transposed=transposed, as.sparse=as.sparse, BPPARAM=BPPARAM)
+    out <- colBlockApply(x[subset.row,,drop=FALSE], FUN=.get_scaled_ranks, grid=as.sparse, 
+        transposed=transposed, .as.sparse=as.sparse, BPPARAM=BPPARAM)
 
     if (transposed) {
         rkout <- do.call(rbind, out)
@@ -75,20 +75,17 @@ scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
             dn <- rev(dn)
         }
         dimnames(rkout) <- dn
+    } else if (!is.null(dimnames(rkout))) {
+        dimnames(rkout) <- NULL
     }
+
     rkout
 }
 
-#' @importClassesFrom Matrix sparseMatrix dgCMatrix
-#' @importFrom DelayedMatrixStats colRanks rowSds
-#' @importFrom DelayedArray rowMins
-#' @importFrom Matrix rowMeans
-#' @importFrom DelayedArray getAutoBPPARAM setAutoBPPARAM
-.get_scaled_ranks <- function(block, transposed, as.sparse) {
-    if (is(block, "SparseArraySeed")) {
-        block <- as(block, "sparseMatrix")
-    }
-
+#' @importClassesFrom Matrix dgCMatrix
+#' @importFrom MatrixGenerics colRanks rowVars rowMeans
+#' @importFrom DelayedArray DelayedArray getAutoBPPARAM setAutoBPPARAM
+.get_scaled_ranks <- function(block, transposed, .as.sparse) {
     old <- getAutoBPPARAM()
     setAutoBPPARAM(NULL) # turning off any additional parallelization, just in case.
     on.exit(setAutoBPPARAM(old))
@@ -100,8 +97,13 @@ scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
         stop("rank variances of zero detected for a cell")
     }
 
-    if (as.sparse) {
-        out <- out - rowMins(DelayedArray(out)) # TODO: switch to MatGen once this is available.
+    if (.as.sparse) {
+        # Figure out what the zeroes got transformed into.
+        is.zero <- which(block==0, arr.ind=TRUE)
+        offset <- numeric(ncol(block))
+        offset[is.zero[,2]] <- out[is.zero[,2:1]]
+
+        out <- out - offset
         out <- as(out, "dgCMatrix")
     } else {
         out <- out - rowMeans(out)

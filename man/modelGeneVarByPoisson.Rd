@@ -62,11 +62,11 @@ If zero, a Poisson distribution is used.}
 Otherwise, each block is weighted according to its number of cells.
 Only used if \code{block} is specified.}
 
-\item{method}{String specifying how p-values should be combined when \code{block} is specified, see \code{\link{combinePValues}}.}
+\item{method}{String specifying how p-values should be combined when \code{block} is specified, see \code{\link{combineParallelPValues}}.}
 
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object indicating whether parallelization should be performed across genes.}
 
-\item{assay.type}{String or integer scalar specifying the assay containing the log-expression values.}
+\item{assay.type}{String or integer scalar specifying the assay containing the counts.}
 }
 \value{
 A \linkS4class{DataFrame} is returned where each row corresponds to a gene in \code{x} (or in \code{subset.row}, if specified).
@@ -126,7 +126,7 @@ Per-level statistics are then combined to obtain a single value per gene:
 \item For means and variance components, this is done by averaging values across levels.
 If \code{equiweight=FALSE}, a weighted average is used where the value for each level is weighted by the number of cells.
 By default, all levels are equally weighted when combining statistics.
-\item Per-level p-values are combined using \code{\link{combinePValues}} according to \code{method}.
+\item Per-level p-values are combined using \code{\link{combineParallelPValues}} according to \code{method}.
 By default, Fisher's method is used to identify genes that are highly variable in any batch.
 Whether or not this is responsive to \code{equiweight} depends on the chosen method.
 \item Blocks with fewer than 2 cells are completely ignored and do not contribute to the combined mean, variance component or p-value.

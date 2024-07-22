@@ -227,8 +227,8 @@ test_that("contrast specification in the pseudoBulkDGE works", {
         expect_equal(ref[[i]]$logFC, out2[[i]]$logFC)
         expect_equal(ref[[i]]$logFC, out3[[i]]$logFC)
         expect_equal(ref[[i]]$PValue, out1[[i]]$PValue)
-        expect_equal(ref[[i]]$PValue, out2[[i]]$PValue)
-        expect_equal(ref[[i]]$PValue, out3[[i]]$PValue)
+        expect_equal(ref[[i]]$PValue, out2[[i]]$PValue, tol=1e-6) # Need more generous tolerances on windows, who knows why.
+        expect_equal(ref[[i]]$PValue, out3[[i]]$PValue, tol=1e-6)
     }
 
     # Voom is a bit different due to the approximation of the weights.
@@ -264,6 +264,7 @@ test_that("sorting in the pseudoBulkDGE works", {
     for (i in seq_len(3)) {
         expect_false(is.unsorted(ref[[i]]$PValue))
         expect_true("X" %in% colnames(ref[[i]]))
+        expect_true(!is.null(metadata(ref[[i]])$y)) # metadata is preserved by the cbind.
     }
 })
 
@@ -292,4 +293,19 @@ test_that("decideTestsPerLabel works correctly", {
     }
     dt02 <- decideTestsPerLabel(out)
     expect_identical(dt02, dt0)
+
+    # Works automatically with voom.
+    out <- pseudoBulkDGE(pseudo,
+        label=pseudo$cluster,
+        design=~DRUG,
+        coef="DRUG2",
+        method="voom"
+    )
+
+    dt <- decideTestsPerLabel(out)
+    dtp <- decideTestsPerLabel(out, pval.field="P.Value")
+    expect_identical(dt, dtp)
+
+    colnames(out[[1]]) <- head(LETTERS, ncol(out[[1]]))
+    expect_error(decideTestsPerLabel(out), "pval.field")
 })

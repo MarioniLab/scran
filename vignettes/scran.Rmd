@@ -32,7 +32,7 @@ set.seed(100)
 Single-cell RNA sequencing (scRNA-seq) is a widely used technique for profiling gene expression in individual cells.
 This allows molecular biology to be studied at a resolution that cannot be matched by bulk sequencing of cell populations.
 The `r Biocpkg("scran")` package implements methods to perform low-level processing of scRNA-seq data,
-including cell cycle phase assignment, scaling normalization, variance modelling and testing for corrrelated genes.
+including cell cycle phase assignment, variance modelling and testing for marker genes and gene-gene correlations.
 This vignette provides brief descriptions of these methods and some toy examples to demonstrate their use.
 
 **Note:** A more comprehensive description of the use of `r Biocpkg("scran")` (along with other packages) in a scRNA-seq analysis workflow is available at https://osca.bioconductor.org.
@@ -63,39 +63,13 @@ sce <- sce[,!qcfilter$discard]
 summary(qcfilter$discard)
 ```
 
-# Normalizing cell-specific biases
-
 Cell-specific biases are normalized using the `computeSumFactors` method, which implements the deconvolution strategy for scaling normalization [@lun2016pooling].
-This computes size factors that are used to scale the counts in each cell.
-The assumption is that most genes are not differentially expressed (DE) between cells, such that any differences in expression across the majority of genes represents some technical bias that should be removed.
 
 ```{r}
 library(scran)
 clusters <- quickCluster(sce)
 sce <- computeSumFactors(sce, clusters=clusters)
 summary(sizeFactors(sce))
-```
-
-For larger data sets, clustering should be performed with the `quickCluster` function before normalization.
-Briefly, cells are grouped into clusters of similar expression; normalization is applied within each cluster to compute size factors for each cell; and the factors are rescaled by normalization between clusters.
-This reduces the risk of violating the above assumption when many genes are DE between clusters in a heterogeneous population.
-We also assume that quality control on the cells has already been performed, as low-quality cells with few expressed genes can often have negative size factor estimates.
-
-An alternative approach is to normalize based on the spike-in counts [@lun2017assessing].
-The idea is that the same quantity of spike-in RNA was added to each cell prior to library preparation.
-Size factors are computed to scale the counts such that the total coverage of the spike-in transcripts is equal across cells.
-The main practical difference is that spike-in normalization preserves differences in total RNA content between cells, whereas `computeSumFactors` and other non-DE methods do not.
-
-```{r}
-sce2 <- computeSpikeFactors(sce, "ERCC")
-summary(sizeFactors(sce2))
-```
-
-Regardless of which size factor calculation we choose,
-we will use the size factors to compute normalized expression values using `logNormCounts()` from `r Biocpkg("scuttle")`.
-Each expression value can be interpreted as a log-transformed "normalized count", and can be used in downstream applications like clustering or dimensionality reduction.
-
-```{r}
 sce <- logNormCounts(sce)
 ```
 
@@ -157,12 +131,10 @@ top.hvgs4 <- getTopHVGs(dec, fdr.threshold=0.05)
 ```
 
 The selected subset of genes can then be passed to the `subset.row` argument (or equivalent) in downstream steps.
-This process is demonstrated below for the PCA step, using the `runPCA()` function from the `r Biocpkg("scater")` package.
+This process is demonstrated below for the PCA step:
 
 ```{r}
-# Running the PCA with the 10% of HVGs.
-library(scater)
-sce <- runPCA(sce, subset_row=top.hvgs)
+sce <- fixedPCA(sce, subset.row=top.hvgs)
 reducedDimNames(sce)
 ```
 
@@ -214,6 +186,7 @@ Note that `colLabels()<-` will just add the cluster assignments to the `"label"`
 however, any name can be used as long as downstream functions are adjusted appropriately.
 
 ```{r}
+library(scater)
 sce <- runTSNE(sce, dimred="PCAsub")
 plotTSNE(sce, colour_by="label", text_by="label")
 ```
@@ -255,58 +228,74 @@ table(metadata(subout)$subcluster) # formatted as '<parent>.<subcluster>'
 
 # Identifying marker genes
 
-The `findMarkers()` wrapper function will perform some simple differential expression tests between pairs of clusters to identify potential marker genes for each cluster.
-For each cluster, we perform $t$-tests to identify genes that are DE in each cluster compared to at least one other cluster.
-All pairwise tests are combined into a single ranking by simply taking the top genes from each pairwise comparison.
-For example, if we take all genes with `Top <= 5`, this is equivalent to the union of the top 5 genes from each pairwise comparison.
-This aims to provide a set of genes that is guaranteed to be able to distinguish the chosen cluster from all others.
+The `scoreMarkers()` wrapper function will perform differential expression comparisons between pairs of clusters to identify potential marker genes.
+For each pairwise comparison, we compute a variety of effect sizes to quantify the differences between those clusters.
+
+- Cohen's $d$ is a standardized log-fold change, representing the number of standard deviations that separate the means of two groups.
+This is analogous to the $t$-statistic in Student's $t$-test.
+- The area under the curve (AUC) is the probability that a randomly chosen observation from one group is greater than a random observation from another group.
+This is proportional to the U-statistic from the Wilcoxon ranked sum test.
+- We also compute the log-fold change in the proportion of cells with detectable (i.e., non-zero) expression.
+
+For each cluster, we then summarize the effect sizes from all comparisons to other clusters.
+Specifically, we compute the mean, median, minimum and maximum effect size across all comparisons.
+This yields a series of statistics for each effect size and summary type, e.g., `mean.AUC`.
 
 ```{r}
 # Uses clustering information from 'colLabels(sce)' by default:
-markers <- findMarkers(sce)
-markers[[1]][,1:3]
+markers <- scoreMarkers(sce)
+markers
+colnames(markers[[1]])
 ```
 
-We can modify the tests by passing a variety of arguments to `findMarkers()`.
-For example, the code below will perform Wilcoxon tests instead of $t$-tests;
-only identify genes that are upregulated in the target cluster compared to each other cluster;
-and require a minimum log~2~-fold change of 1 to be considered significant.
+The idea is to use this information to sort the `DataFrame` for each cluster based on one of these metrics to obtain a ranking of the strongest candidate markers.
+A good default approach is to sort by either the mean AUC or Cohen's $d$ in decreasing order.
+This focuses on marker genes that are upregulated in the cluster of interest compared to most other clusters (hopefully).
+For example, we can get a quick summary of the best markers for cluster 1 using the code below:
 
 ```{r}
-wmarkers <- findMarkers(sce, test.type="wilcox", direction="up", lfc=1)
-wmarkers[[1]][,1:3]
+# Just showing the first few columns for brevity.
+markers[[1]][order(markers[[1]]$mean.AUC, decreasing=TRUE),1:4]
 ```
 
-We can also modify how the statistics are combined across pairwise comparisons.
-Setting `pval.type="all"` requires a gene to be DE between each cluster and _every_ other cluster (rather than _any_ other cluster, as is the default with `pval.type="any"`).
-This is a more stringent definition that can yield a more focused set of markers but may also fail to detect any markers in the presence of overclustering. 
+The other summaries provide additional information about the comparisons to other clusters without requiring examination of all pairwise changes.
+For example, a positive median AUC means that the gene is upregulated in this cluster against most (i.e., at least 50%) of the other clusters.
+A positive minimum AUC means that the gene is upregulated against _all_ other clusters, while a positive maximum AUC indicates upregulation against at least one other cluster.
+It can be helpful to sort on the median instead, if the mean is too sensitive to outliers;
+or to sort on the minimum, if we wish to identify genes that are truly unique to a particular cluster.
+
+That said, if the full set of pairwise effects is desired, we can obtain them with `full.stats=TRUE`.
+This yields a nested `DataFrame` containing the effects from each pairwise comparison to another cluster.
 
 ```{r}
-markers <- findMarkers(sce, pval.type="all")
-markers[[1]][,1:2]
+markers <- scoreMarkers(sce, full.stats=TRUE)
+markers[[1]]$full.logFC.cohen
 ```
+
+In addition, we report some basic descriptive statistics such as the mean log-expression in each cluster and the proportion of cells with detectable expression.
+The grand mean of these values across all _other_ clusters is also reported.
+Note that, because we use a grand mean, we are unaffected by differences in the number of cells between clusters;
+the same applies for our effect sizes as they are computed by summarizing pairwise comparisons rather than by aggregating cells from all other clusters into a single group.
 
 # Detecting correlated genes
 
 Another useful procedure is to identify significant pairwise correlations between pairs of HVGs.
 The idea is to distinguish between HVGs caused by random stochasticity, and those that are driving systematic heterogeneity, e.g., between subpopulations.
-Correlations are computed in the `correlatePairs` method using a slightly modified version of Spearman's rho.
-Testing is performed against the null hypothesis of independent genes, using a permutation method in `correlateNull` to construct a null distribution.
+Correlations are computed by the `correlatePairs` method using a slightly modified version of Spearman's rho, 
+tested against the null hypothesis of zero correlation using the same method in `cor.test()`.
 
 ```{r}
 # Using the first 200 HVs, which are the most interesting anyway.
-# Also turning down the number of iterations for speed.
 of.interest <- top.hvgs[1:200]
-cor.pairs <- correlatePairs(sce, subset.row=of.interest, iters=1e5)
+cor.pairs <- correlatePairs(sce, subset.row=of.interest)
 cor.pairs
 ```
 
-As with variance estimation, if uninteresting substructure is present, this should be blocked on using the `block=` argument in both `correlateNull` and `correlatePairs`.
+As with variance estimation, if uninteresting substructure is present, this should be blocked on using the `block=` argument.
 This avoids strong correlations due to the blocking factor.
 
 ```{r}
-cor.pairs2 <- correlatePairs(sce, subset.row=of.interest, 
-    block=sce$donor, iters=1e5)
+cor.pairs2 <- correlatePairs(sce, subset.row=of.interest, block=sce$donor)
 ```
 
 The pairs can be used for choosing marker genes in experimental validation, and to construct gene-gene association networks.

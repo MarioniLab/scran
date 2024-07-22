@@ -54,10 +54,12 @@
 #' By default, \code{lfc=0} meaning that we will reject the null upon detecting any difference in proportions.
 #' If this is set to some other positive value, the null hypothesis will change depending on \code{direction}:
 #' \itemize{
-#' \item If \code{direction="any"}, the null hypothesis is that the true log-fold change in proportions is either \code{-lfc} or \code{lfc} with equal probability.
-#' A two-sided p-value is computed against this composite null.
-#' \item If \code{direction="up"}, the null hypothesis is that the true log-fold change is \code{lfc}, and a one-sided p-value is computed.
-#' \item If \code{direction="down"}, the null hypothesis is that the true log-fold change is \code{-lfc}, and a one-sided p-value is computed.
+#' \item If \code{direction="any"}, the null hypothesis is that the true log-fold change in proportions lies within \code{[-lfc, lfc]}.
+#' To be conservative, we perform one-sided tests against the boundaries of this interval, and combine them to obtain a two-sided p-value.
+#' \item If \code{direction="up"}, the null hypothesis is that the true log-fold change is less than \code{lfc}.
+#' A one-sided p-value is computed against the boundary of this interval.
+#' \item If \code{direction="down"}, the null hypothesis is that the true log-fold change is greater than \code{-lfc}.
+#' A one-sided p-value is computed against the boundary of this interval.
 #' }
 #' 
 #' @section Blocking on uninteresting factors:
@@ -304,21 +306,8 @@ setMethod("pairwiseBinom", "SingleCellExperiment", function(x, groups=colLabels(
             valid=host.n > 0L && target.n > 0L
         )
 
-        left.lower <- pbinom(host.nzero, size, p.left, log.p=TRUE)
-        right.upper <- pbinom(host.nzero - 1, size, p.right, lower.tail=FALSE, log.p=TRUE)
-
-        if (direction=="any") {
-            left.upper <- pbinom(host.nzero, size, p.right, log.p=TRUE)
-            right.lower <- pbinom(host.nzero - 1, size, p.left, lower.tail=FALSE, log.p=TRUE)
-
-            # Here, the null hypothesis is that the shift is evenly distributed at 50%
-            # probability for -lfc and lfc, hence we take the average of the two p-values.
-            output$left <- .add_log_values(left.lower, left.upper) - log(2)
-            output$right <- .add_log_values(right.lower, right.upper) - log(2)
-        } else {
-            output$left <- left.lower
-            output$right <- right.upper
-        }
+        output$left <- pbinom(host.nzero, size, p.left, log.p=TRUE)
+        output$right <- pbinom(host.nzero - 1, size, p.right, lower.tail=FALSE, log.p=TRUE)
 
         output
     }

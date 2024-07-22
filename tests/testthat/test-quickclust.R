@@ -58,11 +58,11 @@ test_that("quickCluster with use.ranks=TRUE is consistent with clustering on cor
 })
 
 set.seed(30000101)
-test_that("use.ranks=TRUE generates the correct DeferredMatrix", {
+test_that("use.ranks=TRUE generates the correct ScaledMatrix", {
     mat <- matrix(rpois(10000, lambda=5), nrow=20)
     ref <- scran:::.create_rank_matrix(mat, deferred=FALSE)
     def <- scran:::.create_rank_matrix(mat, deferred=TRUE)
-    expect_s4_class(def, "DeferredMatrix")
+    expect_s4_class(def, "ScaledMatrix")
     expect_equivalent(ref, as.matrix(def))
 
     # Same results from the two options in quickCluster() itself.

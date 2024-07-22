@@ -117,18 +117,6 @@ parallelPCA <- function(...) {
 
 #' @export
 #' @rdname defunct
-neighborsToSNNGraph <- function(...) {
-    .Defunct("bluster::neighborsToSNNGraph")
-}
-
-#' @export
-#' @rdname defunct
-neighborsToKNNGraph <- function(...) {
-    .Defunct("bluster::neighborsToKNNGraph")
-}
-
-#' @export
-#' @rdname defunct
 bootstrapCluster <- function(...) {
     .Defunct("bluster::bootstrapStability")
 }

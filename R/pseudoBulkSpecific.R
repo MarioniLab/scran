@@ -94,8 +94,7 @@
 #' @name pseudoBulkSpecific
 NULL
 
-#' @importFrom DelayedMatrixStats rowMedians
-#' @importFrom Matrix rowMeans
+#' @importFrom MatrixGenerics rowMedians rowMeans
 .pseudo_bulk_specific <- function(x, label, condition=NULL, ..., method=c("edgeR", "voom"),
     sorted=FALSE, average=c("median", "mean"), missing.as.zero=FALSE, reference=NULL) 
 {

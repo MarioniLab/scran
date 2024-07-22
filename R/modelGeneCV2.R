@@ -51,7 +51,7 @@
 #' \item For means and CV2 values, this is done by taking the geometric mean across blocking levels.
 #' If \code{equiweight=FALSE}, a weighted average is used where the value for each level is weighted by the number of cells.
 #' By default, all levels are equally weighted when combining statistics.
-#' \item Per-level p-values are combined using \code{\link{combinePValues}} according to \code{method}.
+#' \item Per-level p-values are combined using \code{\link{combineParallelPValues}} according to \code{method}.
 #' By default, Fisher's method is used to identify genes that are highly variable in any batch.
 #' Whether or not this is responsive to \code{equiweight} depends on the chosen method.
 #' \item Blocks with fewer than 2 cells are completely ignored and do not contribute to the combined mean, variance component or p-value.

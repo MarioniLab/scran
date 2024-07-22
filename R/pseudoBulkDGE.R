@@ -9,8 +9,8 @@
 #' @param col.data A data.frame or \linkS4class{DataFrame} containing metadata for each column of \code{x}.
 #' @param label A vector of factor of length equal to \code{ncol(x)},
 #' specifying the cluster or cell type assignment for each column of \code{x}.
-#' @param design A formula to be used to construct a design matrix from variables in \code{data}.
-#' Alternatively, a function that accepts a data.frame with the same fields as \code{data} and returns a design matrix.
+#' @param design A formula to be used to construct a design matrix from variables in \code{col.data}.
+#' Alternatively, a function that accepts a data.frame with the same fields as \code{col.data} and returns a design matrix.
 #' @param condition A vector or factor of length equal to \code{ncol(x)},
 #' specifying the experimental condition for each column of \code{x}.
 #' Only used for abundance-based filtering of genes.
@@ -24,6 +24,7 @@
 #' @param include.intermediates Logical scalar indicating whether the intermediate \pkg{edgeR} objects should be returned.
 #' @param row.data A \linkS4class{DataFrame} containing additional row metadata for each gene in \code{x},
 #' to be included in each of the output DataFrames.
+#' This should have the same number and order of rows as \code{x}.
 #' @param ... For the generic, additional arguments to pass to individual methods.
 #'
 #' For the SummarizedExperiment method, additional arguments to pass to the ANY method.
@@ -144,16 +145,16 @@ NULL
     condition=NULL, lfc=0, include.intermediates=TRUE, row.data=NULL, sorted=FALSE, 
     method=c("edgeR", "voom"), qualities=TRUE, robust=TRUE, sample=NULL)
 {
-    if (is.function(design) || is(design, "formula")) {
-        .pseudo_bulk_dge(x=x, col.data=col.data, label=label, condition=condition, 
-            design=design, coef=coef, contrast=contrast, lfc=lfc, row.data=row.data, 
-            sorted=sorted, include.intermediates=include.intermediates,
-            method=match.arg(method), qualities=qualities, robust=robust)
-    } else {
-        .Deprecated(msg="matrix arguments for 'design=' are deprecated. \nUse functions or formulas instead.")
-        .pseudo_bulk_old(x=x, label=label, sample=sample, design=design, condition=condition,
-            coef=coef, contrast=contrast, lfc=lfc) 
+    if (!is.null(sample)) {
+        .Deprecated(msg="'sample=' is deprecated and will be ignored")
     }
+    if (is.matrix(design)) {
+        .Defunct(msg="matrix 'design=' is defunct, use a formula or function instead")
+    }
+    .pseudo_bulk_dge(x=x, col.data=col.data, label=label, condition=condition, 
+        design=design, coef=coef, contrast=contrast, lfc=lfc, row.data=row.data, 
+        sorted=sorted, include.intermediates=include.intermediates,
+        method=match.arg(method), qualities=qualities, robust=robust)
 }
 
 #' @importFrom edgeR DGEList 
@@ -212,7 +213,8 @@ NULL
         }
 
         if (!is.null(row.data)) {
-            stuff <- cbind(row.data, stuff)
+            # Adding stuff[,0] to preserve the DF's metadata and row names.
+            stuff <- cbind(stuff[,0], row.data, stuff)
         }
         if (sorted) {
             o <- order(stuff[,pval.field])
@@ -222,43 +224,6 @@ NULL
     }
 
     output <- SimpleList(de.results)
-    metadata(output)$failed <- failed
-    output
-}
-
-#' @importFrom edgeR DGEList 
-#' @importFrom S4Vectors DataFrame List metadata metadata<-
-.pseudo_bulk_old <- function(x, sample, label, design, coef, contrast=NULL, condition=NULL, lfc=0) {
-    sample <- as.character(sample)
-    label <- as.character(label)
-
-    if (!identical(sort(rownames(design)), sort(unique(sample)))) {
-        stop("'rownames(design)' and 'sample' should have the same levels")
-    }
-
-    de.results <- list()
-    failed <- character(0)
-
-    for (i in sort(unique(label))) {
-        chosen <- i==label
-
-        curx <- x[,chosen,drop=FALSE]
-        y <- DGEList(curx, samples=data.frame(sample=sample[chosen], stringsAsFactors=FALSE))
-
-        m <- match(as.character(y$samples$sample), rownames(design))
-        curdesign <- design[m,,drop=FALSE]
-        curcond <- condition[m]
-
-        de.out <- .pseudo_bulk_edgeR(y, curdesign=curdesign, curcond=curcond,
-            coef=coef, contrast=contrast, lfc=lfc)
-
-        if (de.out$failed) {
-            failed <- c(failed, i)
-        }
-        de.results[[i]] <- de.out$result
-    }
-
-    output <- List(de.results)
     metadata(output)$failed <- failed
     output
 }
@@ -291,7 +256,7 @@ NULL
     }
 
     y <- estimateDisp(y, curdesign)
-    fit <- glmQLFit(y, curdesign, robust=TRUE)
+    fit <- glmQLFit(y, curdesign, robust=robust)
 
     if (lfc==0) {
         res <- glmQLFTest(fit, coef=coef, contrast=contrast)

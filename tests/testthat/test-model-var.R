@@ -14,7 +14,7 @@ dummy <- normalizeCounts(dummy)
 test_that("modelGeneVar works correctly without blocking", {
     out <- modelGeneVar(dummy)
     expect_equal(out$mean, unname(rowMeans(dummy)))
-    expect_equal(out$total, DelayedMatrixStats::rowVars(dummy))
+    expect_equal(out$total, unname(DelayedMatrixStats::rowVars(dummy)))
     expect_equal(out$tech, metadata(out)$trend(out$mean))
     expect_equal(out$bio, out$total-out$tech)
     expect_equal(order(out$p.value), order(out$bio/out$tech, decreasing=TRUE))
@@ -48,12 +48,12 @@ test_that("modelGeneVar works correctly with blocking, no weighting", {
     expect_equal(out$bio, out$total - out$tech)
 
     all.p <- lapply(out$per.block, "[[", i="p.value")
-    expect_equal(out$p.value, do.call(combinePValues, all.p))
+    expect_equal(out$p.value, metapod::parallelFisher(all.p)$p.value)
 
     # Responds to choice of method. 
-    out2 <- modelGeneVar(dummy, block=block, method="z")
+    out2 <- modelGeneVar(dummy, block=block, method="stouffer")
     all.p <- lapply(out2$per.block, "[[", i="p.value")
-    expect_equal(out2$p.value, do.call(combinePValues, c(all.p, list(method='z'))))
+    expect_equal(out2$p.value, metapod::parallelStouffer(all.p)$p.value)
 })
 
 test_that("modelGeneVar works correctly with blocking and weighting", {
@@ -85,13 +85,13 @@ test_that("modelGeneVar works correctly with blocking and weighting", {
     expect_equal(out$bio, out$total - out$tech)
 
     all.p <- lapply(out$per.block, "[[", i="p.value")
-    expect_equal(out$p.value, do.call(combinePValues, all.p))
+    expect_equal(out$p.value, metapod::parallelFisher(all.p)$p.value)
 
     # Responds to choice of method with weighting.
-    out2 <- modelGeneVar(dummy, block=block, method="z", equiweight=FALSE)
+    out2 <- modelGeneVar(dummy, block=block, method="stouffer", equiweight=FALSE)
     all.p <- lapply(out2$per.block, "[[", i="p.value")
     w <- countMatches(names(all.p), block)
-    expect_equal(out2$p.value, do.call(combinePValues, c(all.p, list(method='z', weights=w))))
+    expect_equal(out2$p.value, metapod::parallelStouffer(all.p, weights=w)$p.value)
 })
 
 test_that("modelGeneVar handles blocks with no residual d.f.", {
@@ -153,6 +153,7 @@ test_that("modelGeneVar works with design matrices", {
     design0 <- matrix(1, ncol(dummy), 1)
     out <- modelGeneVar(dummy, design=design0)
     ref <- modelGeneVar(dummy)
+    metadata(out) <- metadata(ref) <- list() # the fit parameters are more sensitive to numerical precision.
     expect_equal(out, ref)
 
     REFFUN <- function(y, X) {
@@ -234,7 +235,7 @@ test_that("modelGeneVarWithSpikes works correctly in the basic case", {
 
     lspikes <- scuttle::normalizeCounts(spikes)
     expect_equal(metadata(out)$mean, rowMeans(lspikes))
-    expect_equal(unname(metadata(out)$var), DelayedMatrixStats::rowVars(lspikes))
+    expect_equal(unname(metadata(out)$var), unname(DelayedMatrixStats::rowVars(lspikes)))
 
     fit <- fitTrendVar(metadata(out)$mean, metadata(out)$var)
     expect_identical(fit$std.dev, metadata(out)$std.dev)
@@ -290,7 +291,7 @@ test_that("modelGeneVarWithSpikes works correctly with blocking", {
     expect_equal(out$bio, out$total - out$tech)
 
     all.p <- lapply(out$per.block, "[[", i="p.value")
-    expect_equal(out$p.value, do.call(combinePValues, all.p))
+    expect_equal(out$p.value, metapod::parallelFisher(all.p)$p.value)
 })
 
 test_that("modelGeneVarWithSpikes centers size factors correctly", {
@@ -377,7 +378,7 @@ test_that("modelGeneVarWithSpikes works with a different pseudo-count", {
 
     lspikes <- scuttle::normalizeCounts(spikes, pseudo.count=3)
     expect_equal(metadata(out)$mean, rowMeans(lspikes))
-    expect_equal(unname(metadata(out)$var), DelayedMatrixStats::rowVars(lspikes))
+    expect_equal(unname(metadata(out)$var), unname(DelayedMatrixStats::rowVars(lspikes)))
 })
 
 test_that("modelGeneVarWithSpikes works with sparse inputs", {

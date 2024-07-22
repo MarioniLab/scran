@@ -191,3 +191,30 @@ Rcpp::List overlap_exprs(Rcpp::RObject exprs, Rcpp::List groups, double lfc) {
 
     return Rcpp::List::create(pout, tout);
 }
+
+// [[Rcpp::export(rng=false)]]
+Rcpp::NumericMatrix overlap_exprs_paired(Rcpp::RObject exprs, Rcpp::IntegerVector left, Rcpp::IntegerVector right, Rcpp::List groups, double lfc) {
+    auto mat = beachmat::read_lin_block(exprs);
+    const size_t ngenes=mat->get_nrow();
+    const size_t ncells=mat->get_ncol();
+
+    // Constructing groups. 
+    const size_t ngroups=groups.size();
+    wilcoxer wilcox_calc(groups, ncells);
+
+    // Setting up the output matrices to hold the overlap proportions, number of ties.
+    Rcpp::NumericMatrix overlaps(left.size(), ngenes);
+    auto oIt = overlaps.begin();
+
+    std::vector<double> tmp(ncells);
+    for (size_t g=0; g<ngenes; ++g) {
+        auto ptr = mat->get_row(g, tmp.data());
+        wilcox_calc.initialize(ptr);
+
+        for (size_t i=0; i<left.size(); ++i, ++oIt) {
+            *oIt = wilcox_calc.contrast_groups(left[i] - 1, right[i] - 1, lfc).first;
+        }
+    }
+
+    return overlaps;
+}

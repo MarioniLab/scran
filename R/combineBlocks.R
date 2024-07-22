@@ -8,8 +8,8 @@
 #' @param ave.fields Character vector specifying the columns of \code{blocks} to be averaged.
 #' The value of each column is averaged across blocks, potentially in a weighted manner.
 #' @param pval.field String specifying the column of \code{blocks} containing the p-value.
-#' This is combined using \code{\link{combinePValues}}.
-#' @param method String specifying how p-values should be combined, see \code{?\link{combinePValues}}.
+#' This is combined using \code{\link{combineParallelPValues}}.
+#' @param method String specifying how p-values should be combined, see \code{?\link{combineParallelPValues}}.
 #' @param geometric Logical scalar indicating whether the geometric mean should be computed when averaging \code{ave.fields}.
 #' @param equiweight Logical scalar indicating whether each block should be given equal weight.
 #' @param weights Numeric vector of length equal to \code{blocks}, containing the weight for each block.
@@ -51,6 +51,7 @@
 #' @export
 #' @importFrom stats p.adjust
 #' @importFrom S4Vectors DataFrame I
+#' @importFrom metapod combineParallelPValues
 combineBlocks <- function(blocks, ave.fields, pval.field, method, geometric, equiweight, weights, valid) {
     if (length(blocks)==1L) {
         return(blocks[[1]])
@@ -94,7 +95,15 @@ combineBlocks <- function(blocks, ave.fields, pval.field, method, geometric, equ
     }
 
     extracted <- lapply(blocks, "[[", i=pval.field)
-    combined$p.value <- do.call(combinePValues, c(extracted, list(method=method, weights=weights)))
+
+    if (method=="z") {
+        .Deprecated(old='method="z"', new='method="stouffer"')
+        method <- "stouffer"
+    } else if (method=="holm-middle") {
+        .Deprecated(old='method="holm-middle"', new='method="holm-min"')
+        method <- "holm-min"
+    }
+    combined$p.value <- combineParallelPValues(extracted, method=method, weights=weights)$p.value
     combined$FDR <- p.adjust(combined$p.value, method="BH")
 
     output <- DataFrame(combined, row.names=rn[[1]])
@@ -102,5 +111,3 @@ combineBlocks <- function(blocks, ave.fields, pval.field, method, geometric, equ
 
     output
 }
-
-

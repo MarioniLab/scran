@@ -41,8 +41,8 @@ For the SummarizedExperiment method, additional arguments to pass to the ANY met
 \item{label}{A vector of factor of length equal to \code{ncol(x)},
 specifying the cluster or cell type assignment for each column of \code{x}.}
 
-\item{design}{A formula to be used to construct a design matrix from variables in \code{data}.
-Alternatively, a function that accepts a data.frame with the same fields as \code{data} and returns a design matrix.}
+\item{design}{A formula to be used to construct a design matrix from variables in \code{col.data}.
+Alternatively, a function that accepts a data.frame with the same fields as \code{col.data} and returns a design matrix.}
 
 \item{coef}{String or character vector containing the coefficients to drop from the design matrix to form the null hypothesis.
 Can also be an integer scalar or vector specifying the indices of the relevant columns.}
@@ -60,7 +60,8 @@ Only used for abundance-based filtering of genes.}
 \item{include.intermediates}{Logical scalar indicating whether the intermediate \pkg{edgeR} objects should be returned.}
 
 \item{row.data}{A \linkS4class{DataFrame} containing additional row metadata for each gene in \code{x},
-to be included in each of the output DataFrames.}
+to be included in each of the output DataFrames.
+This should have the same number and order of rows as \code{x}.}
 
 \item{sorted}{Logical scalar indicating whether the output tables should be sorted by p-value.}
 

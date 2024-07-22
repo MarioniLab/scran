@@ -126,7 +126,7 @@ test_that("linear model testing works with blocking", {
     
     expect_equivalent(alt1, out$per.block[,1])
     expect_equivalent(alt2, out$per.block[,2])
-    expect_equal(out$p.value, combinePValues(alt1$p.value, alt2$p.value, method="z"))
+    expect_equal(out$p.value, metapod::parallelStouffer(list(alt1$p.value, alt2$p.value))$p.value)
 
     # Robust to parallelization.
     parl <- testLinearModel(y, design, contrast=c(0, 1), block=b, BPPARAM=safeBPParam(2))
@@ -137,7 +137,7 @@ test_that("linear model testing works with blocking", {
     out <- testLinearModel(y, design, contrast=c(0, 1), block=b)
     alt1 <- testLinearModel(y[,b], design[b,], contrast=c(0, 1))
     alt2 <- testLinearModel(y[,!b], design[!b,], contrast=c(0, 1))
-    expect_equal(out$p.value, combinePValues(alt1$p.value, alt2$p.value, method="z", weights=c(1,3)))
+    expect_equal(out$p.value, metapod::parallelStouffer(list(alt1$p.value, alt2$p.value), weights=c(1,3))$p.value)
 
     # Fails gracefully without rank.
     b <- rep(c(1,2), c(75, 25))

@@ -5,45 +5,11 @@
 
 using namespace Rcpp;
 
-// combine_rho
-Rcpp::List combine_rho(int Ngenes, Rcpp::IntegerVector first, Rcpp::IntegerVector second, Rcpp::NumericVector Rho, Rcpp::NumericVector Pval, Rcpp::LogicalVector Limited, Rcpp::IntegerVector Order);
-RcppExport SEXP _scran_combine_rho(SEXP NgenesSEXP, SEXP firstSEXP, SEXP secondSEXP, SEXP RhoSEXP, SEXP PvalSEXP, SEXP LimitedSEXP, SEXP OrderSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< int >::type Ngenes(NgenesSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type first(firstSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type second(secondSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Rho(RhoSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Pval(PvalSEXP);
-    Rcpp::traits::input_parameter< Rcpp::LogicalVector >::type Limited(LimitedSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type Order(OrderSEXP);
-    rcpp_result_gen = Rcpp::wrap(combine_rho(Ngenes, first, second, Rho, Pval, Limited, Order));
-    return rcpp_result_gen;
-END_RCPP
-}
-// combine_simes
-Rcpp::NumericVector combine_simes(Rcpp::List Pvals, bool logp);
-RcppExport SEXP _scran_combine_simes(SEXP PvalsSEXP, SEXP logpSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type Pvals(PvalsSEXP);
-    Rcpp::traits::input_parameter< bool >::type logp(logpSEXP);
-    rcpp_result_gen = Rcpp::wrap(combine_simes(Pvals, logp));
-    return rcpp_result_gen;
-END_RCPP
-}
-// combine_holm_middle
-Rcpp::NumericVector combine_holm_middle(Rcpp::List Pvals, bool logp, double prop);
-RcppExport SEXP _scran_combine_holm_middle(SEXP PvalsSEXP, SEXP logpSEXP, SEXP propSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::List >::type Pvals(PvalsSEXP);
-    Rcpp::traits::input_parameter< bool >::type logp(logpSEXP);
-    Rcpp::traits::input_parameter< double >::type prop(propSEXP);
-    rcpp_result_gen = Rcpp::wrap(combine_holm_middle(Pvals, logp, prop));
-    return rcpp_result_gen;
-END_RCPP
-}
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // compute_Top_statistic_from_ranks
 Rcpp::IntegerVector compute_Top_statistic_from_ranks(Rcpp::List Ranks, double prop);
 RcppExport SEXP _scran_compute_Top_statistic_from_ranks(SEXP RanksSEXP, SEXP propSEXP) {
@@ -64,6 +30,21 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::List >::type Effects(EffectsSEXP);
     Rcpp::traits::input_parameter< double >::type prop(propSEXP);
     rcpp_result_gen = Rcpp::wrap(choose_middle_effect_size(Pvals, Effects, prop));
+    return rcpp_result_gen;
+END_RCPP
+}
+// combine_rho
+Rcpp::List combine_rho(int Ngenes, Rcpp::IntegerVector first, Rcpp::IntegerVector second, Rcpp::NumericVector Rho, Rcpp::NumericVector Pval, Rcpp::IntegerVector Order);
+RcppExport SEXP _scran_combine_rho(SEXP NgenesSEXP, SEXP firstSEXP, SEXP secondSEXP, SEXP RhoSEXP, SEXP PvalSEXP, SEXP OrderSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< int >::type Ngenes(NgenesSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type first(firstSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type second(secondSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Rho(RhoSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type Pval(PvalSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type Order(OrderSEXP);
+    rcpp_result_gen = Rcpp::wrap(combine_rho(Ngenes, first, second, Rho, Pval, Order));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -159,18 +140,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// compute_rho_pairs
-Rcpp::NumericVector compute_rho_pairs(Rcpp::IntegerVector gene1, Rcpp::IntegerVector gene2, Rcpp::NumericMatrix ranks);
-RcppExport SEXP _scran_compute_rho_pairs(SEXP gene1SEXP, SEXP gene2SEXP, SEXP ranksSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type gene1(gene1SEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type gene2(gene2SEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type ranks(ranksSEXP);
-    rcpp_result_gen = Rcpp::wrap(compute_rho_pairs(gene1, gene2, ranks));
-    return rcpp_result_gen;
-END_RCPP
-}
 // cyclone_scores
 Rcpp::NumericVector cyclone_scores(Rcpp::RObject exprs, Rcpp::IntegerVector marker1, Rcpp::IntegerVector marker2, Rcpp::IntegerVector indices, int niters, int miniters, int minpairs, Rcpp::List seeds, Rcpp::IntegerVector streams);
 RcppExport SEXP _scran_cyclone_scores(SEXP exprsSEXP, SEXP marker1SEXP, SEXP marker2SEXP, SEXP indicesSEXP, SEXP nitersSEXP, SEXP minitersSEXP, SEXP minpairsSEXP, SEXP seedsSEXP, SEXP streamsSEXP) {
@@ -201,26 +170,25 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// pool_size_factors
-Rcpp::List pool_size_factors(Rcpp::RObject exprs, Rcpp::NumericVector pseudo_cell, Rcpp::IntegerVector order, Rcpp::IntegerVector pool_sizes);
-RcppExport SEXP _scran_pool_size_factors(SEXP exprsSEXP, SEXP pseudo_cellSEXP, SEXP orderSEXP, SEXP pool_sizesSEXP) {
+// overlap_exprs_paired
+Rcpp::NumericMatrix overlap_exprs_paired(Rcpp::RObject exprs, Rcpp::IntegerVector left, Rcpp::IntegerVector right, Rcpp::List groups, double lfc);
+RcppExport SEXP _scran_overlap_exprs_paired(SEXP exprsSEXP, SEXP leftSEXP, SEXP rightSEXP, SEXP groupsSEXP, SEXP lfcSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::traits::input_parameter< Rcpp::RObject >::type exprs(exprsSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type pseudo_cell(pseudo_cellSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type order(orderSEXP);
-    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type pool_sizes(pool_sizesSEXP);
-    rcpp_result_gen = Rcpp::wrap(pool_size_factors(exprs, pseudo_cell, order, pool_sizes));
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type left(leftSEXP);
+    Rcpp::traits::input_parameter< Rcpp::IntegerVector >::type right(rightSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type groups(groupsSEXP);
+    Rcpp::traits::input_parameter< double >::type lfc(lfcSEXP);
+    rcpp_result_gen = Rcpp::wrap(overlap_exprs_paired(exprs, left, right, groups, lfc));
     return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_scran_combine_rho", (DL_FUNC) &_scran_combine_rho, 7},
-    {"_scran_combine_simes", (DL_FUNC) &_scran_combine_simes, 2},
-    {"_scran_combine_holm_middle", (DL_FUNC) &_scran_combine_holm_middle, 3},
     {"_scran_compute_Top_statistic_from_ranks", (DL_FUNC) &_scran_compute_Top_statistic_from_ranks, 2},
     {"_scran_choose_middle_effect_size", (DL_FUNC) &_scran_choose_middle_effect_size, 3},
+    {"_scran_combine_rho", (DL_FUNC) &_scran_combine_rho, 6},
     {"_scran_compute_blocked_stats_lognorm", (DL_FUNC) &_scran_compute_blocked_stats_lognorm, 5},
     {"_scran_compute_blocked_stats_norm", (DL_FUNC) &_scran_compute_blocked_stats_norm, 4},
     {"_scran_compute_blocked_stats_none", (DL_FUNC) &_scran_compute_blocked_stats_none, 3},
@@ -228,10 +196,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_scran_compute_residual_stats_none", (DL_FUNC) &_scran_compute_residual_stats_none, 3},
     {"_scran_get_null_rho", (DL_FUNC) &_scran_get_null_rho, 4},
     {"_scran_get_null_rho_design", (DL_FUNC) &_scran_get_null_rho_design, 5},
-    {"_scran_compute_rho_pairs", (DL_FUNC) &_scran_compute_rho_pairs, 3},
     {"_scran_cyclone_scores", (DL_FUNC) &_scran_cyclone_scores, 9},
     {"_scran_overlap_exprs", (DL_FUNC) &_scran_overlap_exprs, 3},
-    {"_scran_pool_size_factors", (DL_FUNC) &_scran_pool_size_factors, 4},
+    {"_scran_overlap_exprs_paired", (DL_FUNC) &_scran_overlap_exprs_paired, 5},
     {NULL, NULL, 0}
 };
 

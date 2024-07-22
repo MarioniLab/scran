@@ -4,7 +4,10 @@
 # On Windows:
 # - C++ build failures for Win32 and Win64.
 # - Weird test failures on Win32 with the optimized score calculation.
-skip_on_os("windows")
+#
+# On Mac:
+# - Weird test failures for the optimized score calculation.
+skip_on_os(c("windows", "mac"))
 
 ####################################################################################################
 

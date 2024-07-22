@@ -45,19 +45,33 @@
 #' See \code{?\link{wilcox.test}} for more details on the interpretation of one-sided Wilcoxon rank sum tests.
 #'
 #' Users can also specify a log-fold change threshold in \code{lfc} to focus on genes that exhibit large shifts in location.
-#' This is equivalent to specifying the \code{mu} parameter in \code{\link{wilcox.test}}, 
-#' with some additional subtleties depending on \code{direction}:
+#' This is equivalent to specifying the \code{mu} parameter in \code{\link{wilcox.test}} with some additional subtleties depending on \code{direction}:
 #' \itemize{
-#' \item If \code{direction="any"}, the null hypothesis is that the true shift is either \code{-lfc} or \code{lfc} with equal probability.
-#' A two-sided p-value is computed against this composite null.
-#' The AUC is computed by averaging the AUCs obtained when X's expression values are shifted to the left or right by \code{lfc}.
-#' This can be very roughly interpreted as considering an observation of Y to be tied with an observation of X if they differ by less than \code{lfc}.
-#' \item If \code{direction="up"}, the null hypothesis is that the true shift is \code{lfc}, and a one-sided p-value is computed.
-#' The AUC is computed after shifting X's expression values to the left by \code{lfc}.
-#' \item If \code{direction="down"}, the null hypothesis is that the true shift is \code{-lfc}, and a one-sided p-value is computed.
-#' The AUC is computed after shifting X's expression values to the right by \code{lfc}.
+#' \item If \code{direction="any"}, the null hypothesis is that the true shift lies in \code{[-lfc, lfc]}.
+#' Two one-sided p-values are computed against the boundaries of this interval by shifting X's expression values to either side by \code{lfc},
+#' and these are combined to obtain a (conservative) two-sided p-value.
+#' \item If \code{direction="up"}, the null hypothesis is that the true shift is less than or equal to \code{lfc}.
+#' A one-sided p-value is computed against the boundary of this interval.
+#' \item If \code{direction="down"}, the null hypothesis is that the true shift is greater than or equal to \code{-lfc}.
+#' A one-sided p-value is computed against the boundary of this interval.
 #' }
-#' The fact that the AUC depends on \code{lfc} is necessary to preserve its relationship with the p-value.
+#'
+#' The AUC is conveniently derived from the U-statistic used in the test, which ensures that it is always consistent with the reported p-value.
+#' An interesting side-effect is that the reported AUC is dependent on both the specified \code{lfc} and \code{direction}.
+#' \itemize{
+#' \item If \code{direction="up"}, the AUC is computed after shifting X's expression values to the left by the specified \code{lfc}.
+#' An AUC above 0.5 means that X's values are \dQuote{greater} than Y's, even after shifting down the former by \code{lfc}.
+#' This is helpful as a large AUC tells us that X and Y are well-separated by at least \code{lfc}.
+#' However, an AUC below 0.5 cannot be interpreted as \dQuote{X is lower than Y}, only that \dQuote{X - lfc is lower than Y}.
+#' \item If \code{direction="down"}, the AUC is computed after shifting X's expression values to the right by the specified \code{lfc}.
+#' An AUC below 0.5 means that X's values are \dQuote{lower} than Y's, even after shifting up the former by \code{lfc}.
+#' This is helpful as a low AUC tells us that X and Y are well-separated by at least \code{lfc}.
+#' However, an AUC above 0.5 cannot be interpreted as \dQuote{X is greater than Y}, only that \dQuote{X + lfc is greater than Y}.
+#' \item If \code{direction="any"}, the AUC is computed by averaging the AUCs obtained in each of the two one-sided tests, i.e., after shifting in each direction.
+#' This considers an observation of Y to be tied with an observation of X if their absolute difference is less than \code{lfc}.
+#' (Technically, the test procedure should also consider these to be ties to be fully consistent, but we have not done so for simplicity.)
+#' The AUC can be interpreted as it would be for \code{lfc=0}, i.e., above 0.5 means that X is greater than Y and below 0.5 means that X is less than Y. 
+#' }
 #'
 #' @section Blocking on uninteresting factors:
 #' If \code{block} is specified, Wilcoxon tests are performed between groups of cells within each level of \code{block}.
@@ -265,8 +279,9 @@ setMethod("pairwiseWilcox", "SingleCellExperiment", function(x, groups=colLabels
         z <- effect - cur.prod/2
         SIGMA <- .get_sigma(host.n, target.n, all.ties[[b]][[host]][,target])
 
-        # using 0.25 to avoid numerical imprecision; z should go up in units of 0.5's.
-        CORRECTION <- if (direction=="any") ifelse(abs(z) < 0.25, 0, 0.5) else 0.5 
+        # Always dealing with one-sided tests, so we fix the correction at 0.5
+        # rather than allowing it to be zero for direction='any' (as in wilcox.test()).
+        CORRECTION <- 0.5
         output$left <- pnorm((z + CORRECTION)/SIGMA, log.p=TRUE)
         output$right <- pnorm((z - CORRECTION)/SIGMA, log.p=TRUE, lower.tail=FALSE)
 
@@ -291,12 +306,8 @@ setMethod("pairwiseWilcox", "SingleCellExperiment", function(x, groups=colLabels
         minus.effect <- all.stats[[b]][[host]][,target]
         added.effect <- all.stats[[b]][[target]][,host]
 
-        # Taking the average assuming that the shift is 50% distributed at -lfc and lfc.
-        # This has the benefit that the effect size is agnostic to the setting of direction
-        # (which is necessary, as .pairwise_blocked_template() doesn't have any concept
-        # of choosing a different effect value according to the direction of change).
-        # Also see Details for an interpretation of what this actually means.
         if (direction=="any") {
+            # Taking the average to ensure that the AUC is interpretable around 0.5, see Details.
             effect <- minus.effect/2 + added.effect/2
             auc <- effect/cur.prod
             output <- list(forward=auc, reverse=1-auc)
@@ -317,25 +328,13 @@ setMethod("pairwiseWilcox", "SingleCellExperiment", function(x, groups=colLabels
         added.SIGMA <- .get_sigma(host.n, target.n, all.ties[[b]][[target]][,host])
 
         CORRECTION <- 0.5
-        left.lower <- pnorm((added.z + CORRECTION)/added.SIGMA, log.p=TRUE)
-        right.upper <- pnorm((minus.z - CORRECTION)/minus.SIGMA, log.p=TRUE, lower.tail=FALSE)
 
-        if (direction=="any") {
-            left.upper <- pnorm((minus.z + CORRECTION)/minus.SIGMA, log.p=TRUE)
-            right.lower <- pnorm((added.z - CORRECTION)/added.SIGMA, log.p=TRUE, lower.tail=FALSE)
-
-            # Here, the null hypothesis is that the shift is evenly distributed at 50%
-            # probability for -lfc and lfc, hence we take the average of the two p-values.
-            output$left <- .add_log_values(left.lower, left.upper) - log(2)
-            output$right <- .add_log_values(right.lower, right.upper) - log(2)
-        } else {
-            # For one-sided tests, testing against the lfc threshold in the specified direction.
-            # Note that if direction='up', only 'right' is used; nonetheless, 'left' is still calculated
-            # so as to allow quick calculation of the p-value for the reversed contrast,
-            # by simply swapping 'left' and 'right'. The same applies when direction='down'.
-            output$left <- left.lower 
-            output$right <- right.upper
-        }
+        # For one-sided tests, testing against the lfc threshold in the specified direction.
+        # Note that if direction='up', only 'right' is used; nonetheless, 'left' is still calculated
+        # so as to allow quick calculation of the p-value for the reversed contrast,
+        # by simply swapping 'left' and 'right'. The same applies when direction='down'.
+        output$left <- pnorm((added.z + CORRECTION)/added.SIGMA, log.p=TRUE)
+        output$right <- pnorm((minus.z - CORRECTION)/minus.SIGMA, log.p=TRUE, lower.tail=FALSE)
 
         output
     }

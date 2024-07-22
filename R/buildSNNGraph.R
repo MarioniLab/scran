@@ -35,6 +35,8 @@
 #' \code{\link{makeSNNGraph}} and \code{\link{makeKNNGraph}}, for the underlying functions that do the work.
 #' 
 #' See \code{\link{cluster_walktrap}} and related functions in \pkg{igraph} for clustering based on the produced graph.
+#'
+#' \code{\link{clusterCells}}, for a more succinct way of performing graph-based clustering.
 #' 
 #' @examples
 #' library(scuttle)

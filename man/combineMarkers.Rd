@@ -59,7 +59,7 @@ If \code{FALSE}, effect sizes are reported as a nested matrix for easier program
 A named \linkS4class{List} of \linkS4class{DataFrame}s where each DataFrame contains the consolidated marker statistics for each gene (row) for the cluster of the same name.
 The DataFrame for cluster \eqn{X} contains the fields:
 \describe{
-\item{\code{Top}:}{Integer, the minimum rank across all pairwise comparisons.
+\item{\code{Top}:}{Integer, the minimum rank across all pairwise comparisons - see \code{?\link{computeMinRank}} for details.
 This is only reported if \code{pval.type="any"}.}
 \item{\code{p.value}:}{Numeric, the combined p-value across all comparisons if \code{log.p.out=FALSE}.}
 \item{\code{FDR}:}{Numeric, the BH-adjusted p-value for each gene if \code{log.p.out=FALSE}.}
@@ -102,19 +102,10 @@ The effect size field in the output will vary according to the type of input sta
 }
 \section{Consolidating with DE against any other cluster}{
 
-By default, each DataFrame is sorted by the \code{Top} value when \code{pval.type="any"}.
-Taking all rows with \code{Top} values less than or equal to T yields a marker set containing the top T genes (ranked by significance) from each pairwise comparison.
+When \code{pval.type="any"}, each DataFrame is sorted by the min-rank in the \code{Top} column.
+Taking all rows with \code{Top} values less than or equal to \eqn{T} yields a marker set containing the top \eqn{T} genes (ranked by significance) from each pairwise comparison.
 This guarantees the inclusion of genes that can distinguish between any two clusters.
-
-To demonstrate, let us define a marker set with an T of 1 for a given cluster.
-The set of genes with \code{Top <= 1} will contain the top gene from each pairwise comparison to every other cluster.
-If T is instead, say, 5, the set will consist of the \emph{union} of the top 5 genes from each pairwise comparison.
-Obviously, multiple genes can have the same \code{Top} as different genes may have the same rank across different pairwise comparisons.
-Conversely, the marker set may be smaller than the product of \code{Top} and the number of other clusters, as the same gene may be shared across different comparisons.
-
-This approach does not explicitly favour genes that are uniquely expressed in a cluster.
-Rather, it focuses on combinations of genes that - together - drive separation of a cluster from the others.
-This is more general and robust but tends to yield a less focused marker set compared to the other \code{pval.type} settings.
+Also see \code{?\link{computeMinRank}} for more details on the rationale behind this metric.
 
 For each gene and cluster, the summary effect size is defined as the effect size from the pairwise comparison with the lowest p-value.
 The combined p-value is computed by applying Simes' method to all p-values.
@@ -143,7 +134,7 @@ Again, this value is not directly used for ranking and are only reported for the
 
 The \code{pval.type="some"} setting serves as a compromise between \code{"all"} and \code{"any"}.
 A combined p-value is calculated by taking the middlemost value of the Holm-corrected p-values for each gene.
-(By default, this the median for odd numbers of contrasts and one-after-the-median for even numbers, but the exact proportion can be changed by setting \code{min.prop} - see \code{?\link{combinePValues}}.)
+(By default, this the median for odd numbers of contrasts and one-after-the-median for even numbers, but the exact proportion can be changed by setting \code{min.prop} - see \code{?\link{combineParallelPValues}}.)
 Here, the null hypothesis is that the gene is not DE in at least half of the contrasts.
 
 Genes are then ranked by the combined p-value.
@@ -158,7 +149,7 @@ This mirrors the p-value calculation but, again, is reported only for the benefi
 
 A slightly different flavor of the \dQuote{some cluster} approach is achieved by setting \code{method="any"} with \code{min.prop} set to some positive value in (0, 1).
 A gene will only be high-ranked if it is among the top-ranked genes in at least \code{min.prop} of the pairwise comparisons.
-For example, if \code{min.prop=0.3}, any gene with a value of \code{Top} less than or equal to 5 will be in the top 5 DEGs of at least 30% of the comparisons.
+For example, if \code{min.prop=0.3}, any gene with a value of \code{Top} less than or equal to 5 will be in the top 5 DEGs of at least 30\% of the comparisons.
 
 This method increases the stringency of the \code{"any"} setting in a safer manner than \code{pval.type="some"}.
 Specifically, we avoid comparing p-values across pairwise comparisons, which can be problematic if there are power differences across comparisons, e.g., due to differences in the number of cells across the other clusters.

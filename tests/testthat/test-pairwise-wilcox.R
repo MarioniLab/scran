@@ -29,14 +29,9 @@ REFFUN <- function(y, grouping, direction="any", lfc=0)
                         if (direction=="any") {
                             left.result1 <- wilcox.test(host.vals, target.vals, alternative="less", mu=-lfc, exact=FALSE)
                             left.result2 <- wilcox.test(host.vals, target.vals, alternative="less", mu=lfc, exact=FALSE)
-                            left.p <- (left.result1$p.value + left.result2$p.value) / 2
-
-                            right.result1 <- wilcox.test(host.vals, target.vals, alternative="greater", mu=-lfc, exact=FALSE)
-                            right.result2 <- wilcox.test(host.vals, target.vals, alternative="greater", mu=lfc, exact=FALSE)
-                            right.p <- (right.result1$p.value + right.result2$p.value) / 2
-
+                            right.p <- wilcox.test(host.vals, target.vals, alternative="greater", mu=lfc, exact=FALSE)$p.value
                             auc[i] <- (left.result1$statistic + left.result2$statistic) / 2
-                            pval[i] <- pmin(left.p, right.p, 0.5) * 2
+                            pval[i] <- pmin(left.result1$p.value, right.p, 0.5) * 2
                         } else if (direction=="up") {
                             result <- wilcox.test(host.vals, target.vals, alternative=alt.hyp, mu=lfc, exact=FALSE)
                             auc[i] <- result$statistic
@@ -91,13 +86,13 @@ test_that("pairwiseWilcox works as expected without blocking", {
     re.clust <- clust$cluster
     re.clust[1:2] <- 4:5
     re.clust <- factor(re.clust)
-    REFFUN(X, re.clust)
+    expect_warning(REFFUN(X, re.clust), "no within-block")
 
     # Checking what happens if there is an empty level.
     re.clusters <- clusters
     levels(re.clusters) <- 1:4
 
-    out <- pairwiseWilcox(X, re.clusters)
+    expect_warning(out <- pairwiseWilcox(X, re.clusters), "no within-block")
     ref <- pairwiseWilcox(X, clusters)
     subset <- match(paste0(ref$pairs$first, ".", ref$pairs$second), 
         paste0(out$pairs$first, ".", out$pairs$second))
@@ -196,7 +191,7 @@ BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
         for (b in unique(block)) { 
             B <- as.character(b)
             chosen <- block==b & grouping %in% curpair
-            subgroup <- grouping[chosen]
+            subgroup <- factor(grouping[chosen]) # refactoring to eliminate unused levels.
 
             N1 <- sum(subgroup==curpair[1])
             N2 <- sum(subgroup==curpair[2])
@@ -205,21 +200,20 @@ BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
             } 
             block.weights[[B]] <- N1 * N2
 
+            suby <- y[,chosen,drop=FALSE]
             if (direction=="any") { 
                 # Recovering one-sided p-values for separate combining across blocks.
-                block.res.up <- pairwiseWilcox(y[,chosen], grouping[chosen], direction="up", ...)
+                block.res.up <- pairwiseWilcox(suby, subgroup, direction="up", ...)
                 to.use.up <- which(block.res.up$pairs$first==curpair[1] & block.res.up$pairs$second==curpair[2])
-                block.res.down <- pairwiseWilcox(y[,chosen], grouping[chosen], direction="down", ...)
-                to.use.down <- which(block.res.down$pairs$first==curpair[1] & block.res.down$pairs$second==curpair[2])
+                block.up[[B]] <- block.res.up$statistics[[to.use.up]]$p.value
 
-                # Directional p-values exhibit different corrections from two-sided p-values for near-zero U-statistics,
-                # so some care is required here; see pairwiseWilcox() for why we use 0.25.
+                block.res.down <- pairwiseWilcox(suby, subgroup, direction="down", ...)
+                to.use.down <- which(block.res.down$pairs$first==curpair[1] & block.res.down$pairs$second==curpair[2])
+                block.down[[B]] <- block.res.down$statistics[[to.use.down]]$p.value
+
                 block.lfc[[B]] <- block.res.up$statistics[[to.use.up]]$AUC
-                middled <- abs(block.lfc[[B]] - 0.5) * N1 * N2 < 0.25 
-                block.up[[B]] <- ifelse(middled, 0.5, block.res.up$statistics[[to.use.up]]$p.value)
-                block.down[[B]] <- ifelse(middled, 0.5, block.res.down$statistics[[to.use.down]]$p.value)
             } else {
-                block.res <- pairwiseWilcox(y[,chosen], grouping[chosen], direction=direction, ...)
+                block.res <- pairwiseWilcox(suby, subgroup, direction=direction, ...)
                 to.use <- which(block.res$pairs$first==curpair[1] & block.res$pairs$second==curpair[2])
                 block.lfc[[B]] <- block.res$statistics[[to.use]]$AUC
                 block.up[[B]] <- block.down[[B]] <- block.res$statistics[[to.use]]$p.value
@@ -239,8 +233,8 @@ BLOCKFUN <- function(y, grouping, block, direction="any", ...) {
         expect_equal(ave.lfc, ref.res$AUC)
 
         # Combining p-values in each direction.
-        up.p <- do.call(combinePValues, c(block.up, list(method="z", weights=block.weights)))
-        down.p <- do.call(combinePValues, c(block.down, list(method="z", weights=block.weights)))
+        up.p <- metapod::parallelStouffer(block.up, weights=block.weights)$p.value
+        down.p <- metapod::parallelStouffer(block.down, weights=block.weights)$p.value
 
         if (direction=="any") {
             expect_equal(pmin(up.p, down.p, 0.5) * 2, ref.res$p.value)
@@ -286,7 +280,7 @@ test_that("pairwiseWilcox works as expected with blocking", {
     re.clust[block==1] <- 1
     re.block <- block
     re.block[re.clust==1] <- 1
-    BLOCKFUN(X, re.clust, re.block)
+    expect_warning(BLOCKFUN(X, re.clust, re.block), "no within-block")
 })
 
 set.seed(80000021)

@@ -24,7 +24,7 @@ TESTER <- function(p1, p2, p3, method, weights=NULL) {
         numeric(0))
 
     # Throws on invalid inputs.
-    expect_error(combinePValues(p1, p2[0], method=method, weights=weights), "must have the same length")
+    expect_error(combinePValues(p1, p2[0], method=method, weights=weights), "should have the same length")
         
     # Handles partial NA values correctly.
     some.na <- sample(length(p1), length(p1)/2)
@@ -90,7 +90,7 @@ test_that("Middle-Holm method works correctly", {
     p4 <- (p1+p2)/2
     pout <- combinePValues(p1, p2, p3, p4, method="holm-middle")
     expect_equal(pout, apply(cbind(p1, p2, p3, p4), 1, FUN=function(p) { sort(p.adjust(p, method="holm"))[2] })) 
-    TESTER(p1, p2, p3, p2, method="holm-middle")
+    TESTER(p1, p2, p3, method="holm-middle")
 
     # Testing alternative min.prop settings.
     pout <- combinePValues(p1, p2, p3, p4, method="holm-middle", min.prop=0.2)
@@ -145,13 +145,12 @@ test_that("Stouffer's Z method works correctly", {
     TESTER(p1, p2, p3, method="z", weights=c(5, 2, 3))
 
     # Handles weights as a list.
-    expect_equal(pnorm(Q), combinePValues(p1, p2, p3, method="z", weights=as.list(W))) 
     expect_equal(pnorm(Q), combinePValues(p1, p2, p3, method="z", weights=lapply(W, rep, length.out=length(p1))))
 
     # Throws errors correctly.
-    expect_error(combinePValues(p1,p2,p3,method="z", weights=1), "must be equal")
-    expect_error(combinePValues(p1,p2,p3,method="z", weights=list(-1, 1, 2)), "must be positive")
-    expect_error(combinePValues(p1,p2,p3,method="z", weights=list(NA, 1, 2)), "must be positive")
+    expect_error(combinePValues(p1,p2,p3,method="z", weights=1), "should be equal")
+    expect_error(combinePValues(p1,p2,p3,method="z", weights=c(-1, 1, 2)), "must be positive")
+    expect_error(combinePValues(p1,p2,p3,method="z", weights=c(NA, 1, 2)), "must be positive")
 
     # Behaves sensibly at edge cases.
     expect_equal(combinePValues(0, 0, method="z"), 0)

@@ -16,7 +16,8 @@ getTopHVGs(
 )
 }
 \arguments{
-\item{stats}{A \linkS4class{DataFrame} of variance modelling statistics with one row per gene.}
+\item{stats}{A \linkS4class{DataFrame} of variance modelling statistics with one row per gene.
+Alternatively, a \linkS4class{SummarizedExperiment} object, in which case it is supplied to \code{\link{modelGeneVar}} to generate the required DataFrame.}
 
 \item{var.field}{String specifying the column of \code{stats} containing the relevant metric of variation.}
 
@@ -65,6 +66,10 @@ stats <- modelGeneVar(sce)
 str(getTopHVGs(stats))
 str(getTopHVGs(stats, fdr.threshold=0.05)) # more stringent
 
+# Or directly pass in the SingleCellExperiment:
+str(getTopHVGs(sce))
+
+# Alternatively, use with the coefficient of variation:
 stats2 <- modelGeneCV2(sce)
 str(getTopHVGs(stats2, var.field="ratio"))
 

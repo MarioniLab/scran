@@ -6,9 +6,7 @@ Ngenes <- 20
 Ncells <- 100
 X <- log(matrix(rpois(Ngenes*Ncells, lambda=10), nrow=Ngenes) + 1)
 rownames(X) <- paste0("X", seq_len(Ngenes))
-
-nulls <- correlateNull(ncells=ncol(X), iter=1e4)
-ref <- correlatePairs(X, nulls)
+ref <- correlatePairs(X)
 
 test_that("correlateGenes works correctly", {
     out <- correlateGenes(ref)
@@ -20,16 +18,6 @@ test_that("correlateGenes works correctly", {
 
         max.i <- which.max(abs(ref$rho[collected]))
         expect_equal(ref$rho[collected][max.i], out$rho[out$gene==x])
-    }
-})
-
-test_that("correlateGenes handles limiting correctly", {
-    alt <- ref
-    alt$limited <- rbinom(nrow(alt), 1, 0.5)==1L
-    out <- correlateGenes(alt)
-    for (x in rownames(X)) {
-        collected <- alt$gene1 == x | alt$gene2==x
-        expect_identical(out$limited[out$gene==x], any(alt$limited[collected]))
     }
 })
 

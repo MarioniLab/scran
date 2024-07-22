@@ -23,9 +23,9 @@ These should have the same number of rows and the same set of columns.}
 The value of each column is averaged across blocks, potentially in a weighted manner.}
 
 \item{pval.field}{String specifying the column of \code{blocks} containing the p-value.
-This is combined using \code{\link{combinePValues}}.}
+This is combined using \code{\link{combineParallelPValues}}.}
 
-\item{method}{String specifying how p-values should be combined, see \code{?\link{combinePValues}}.}
+\item{method}{String specifying how p-values should be combined, see \code{?\link{combineParallelPValues}}.}
 
 \item{geometric}{Logical scalar indicating whether the geometric mean should be computed when averaging \code{ave.fields}.}
 

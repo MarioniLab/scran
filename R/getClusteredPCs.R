@@ -6,7 +6,10 @@
 #' @param pcs A numeric matrix of PCs, where rows are cells and columns are dimensions representing successive PCs.
 #' @param FUN A clustering function that takes a numeric matrix with rows as cells and
 #' returns a vector containing a cluster label for each cell.
+#' Defaults to \code{\link{clusterRows}}.
 #' @param ... Further arguments to pass to \code{FUN}.
+#' Ignored if \code{FUN=NULL}, use \code{BLUSPARAM} instead.
+#' @param BLUSPARAM A \linkS4class{BlusterParam} object specifying the clustering to use when \code{FUN=NULL}.
 #' @param min.rank Integer scalar specifying the minimum number of PCs to use.
 #' @param max.rank Integer scalar specifying the maximum number of PCs to use.
 #' @param by Integer scalar specifying what intervals should be tested between \code{min.rank} and \code{max.rank}.
@@ -40,7 +43,7 @@
 #' such that resolution decreases and it becomes more difficult for \code{FUN} to distinguish between subpopulations.
 #' 
 #' Any \code{FUN} can be used that automatically chooses the number of clusters based on the data.
-#' The default is a graph-based clustering method using \code{\link{buildSNNGraph}} and \code{\link{cluster_walktrap}},
+#' The default is a graph-based clustering method using \code{\link{makeSNNGraph}} and \code{\link{cluster_walktrap}},
 #' where arguments in \code{...} are passed to the former.
 #' Users should not supply \code{FUN} where the number of clusters is fixed in advance, 
 #' (e.g., k-means, hierarchical clustering with known \code{k} in \code{\link{cutree}}).
@@ -63,17 +66,18 @@
 #' @seealso
 #' \code{\link{runPCA}}, to compute the PCs in the first place.
 #'
-#' \code{\link{buildSNNGraph}}, for arguments to use in with default \code{FUN}.
+#' \code{\link{clusterRows}} and \linkS4class{BlusterParam}, for possible choices of \code{BLUSPARAM}.
 #'
 #' @export
 #' @importFrom igraph cluster_walktrap
 #' @importFrom S4Vectors DataFrame metadata metadata<- List
-getClusteredPCs <- function(pcs, FUN=NULL, ..., min.rank=5, max.rank=ncol(pcs), by=1) {
+#' @importFrom bluster NNGraphParam
+getClusteredPCs <- function(pcs, FUN=NULL, ..., BLUSPARAM=NNGraphParam(), min.rank=5, max.rank=ncol(pcs), by=1) {
     if (is.null(FUN)) {
-        FUN <- function(x, ...) {
-            g <- buildSNNGraph(x, ..., transposed=TRUE)
-            cluster_walktrap(g)$membership
+        if (length(list(...))) {
+            warning("arguments in '...' are now ignored with 'FUN=NULL'")
         }
+        FUN <- function(x, ...) clusterRows(x, BLUSPARAM=BLUSPARAM)
     }
 
     max.rank <- max(max.rank, min.rank)

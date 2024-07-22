@@ -1,6 +1,7 @@
 #' Build null correlations
 #' 
 #' Build a distribution of correlations under the null hypothesis of independent expression between pairs of genes.
+#' This is now deprecated as \code{\link{correlatePairs}} uses an approximation instead.
 #'
 #' @param ncells An integer scalar indicating the number of cells in the data set.
 #' @param iters An integer scalar specifying the number of values in the null distribution.
@@ -59,6 +60,7 @@
 #' @importFrom BiocParallel SerialParam bpmapply bpstart bpstop bpisup
 #' @importFrom scuttle .bpNotSharedOrUp .ranksafeQR
 correlateNull <- function(ncells, iters=1e6, block=NULL, design=NULL, equiweight=TRUE, BPPARAM=SerialParam()) {
+    .Deprecated()
     if (!bpisup(BPPARAM)) {
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))
