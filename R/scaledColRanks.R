@@ -82,15 +82,10 @@ scaledColRanks <- function(x, subset.row=NULL, min.mean=NULL, transposed=FALSE, 
     rkout
 }
 
-#' @importClassesFrom Matrix sparseMatrix dgCMatrix
-#' @importFrom DelayedMatrixStats colRanks rowMins rowVars
-#' @importFrom Matrix rowMeans
-#' @importFrom DelayedArray getAutoBPPARAM setAutoBPPARAM
+#' @importClassesFrom Matrix dgCMatrix
+#' @importFrom MatrixGenerics colRanks rowVars rowMeans
+#' @importFrom DelayedArray DelayedArray getAutoBPPARAM setAutoBPPARAM
 .get_scaled_ranks <- function(block, transposed, .as.sparse) {
-    if (is(block, "SparseArraySeed")) {
-        block <- as(block, "sparseMatrix")
-    }
-
     old <- getAutoBPPARAM()
     setAutoBPPARAM(NULL) # turning off any additional parallelization, just in case.
     on.exit(setAutoBPPARAM(old))

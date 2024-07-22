@@ -30,9 +30,6 @@ Gene-specific \code{rowData} is stored in the \code{genes} element, and cell-spe
 
 For \code{type="DESeq2"}, a DESeqDataSet object is returned containing the count matrix and size factors.
 Additional gene- and cell-specific data is stored in the \code{mcols} and \code{colData} respectively.
-
-For \code{type="monocle"}, a CellDataSet object is returned containing the count matrix and size factors.
-Additional gene- and cell-specific data is stored in the \code{featureData} and \code{phenoData} respectively.
 }
 \description{
 Convert a \linkS4class{SingleCellExperiment} object into other classes for entry into other analysis pipelines.
@@ -56,8 +53,8 @@ convertTo(sce, type="DESeq2")
 }
 \seealso{
 \code{\link[edgeR]{DGEList}},
-\code{\link[DESeq2:DESeqDataSet]{DESeqDataSetFromMatrix}},
-\code{\link[monocle]{newCellDataSet}}, for specific class constructors.
+\code{\link[DESeq2:DESeqDataSet]{DESeqDataSetFromMatrix}}
+for specific class constructors.
 }
 \author{
 Aaron Lun

@@ -230,7 +230,8 @@ NULL
 # Internal functions.
 ############################
 
-#' @importFrom Matrix colMeans t
+#' @importFrom Matrix t
+#' @importFrom MatrixGenerics colMeans
 #' @importFrom DelayedArray getAutoBPPARAM setAutoBPPARAM
 #' @importFrom BiocParallel SerialParam
 .create_rank_matrix <- function(x, deferred, ..., BPPARAM=SerialParam()) {

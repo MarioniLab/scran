@@ -1,6 +1,6 @@
 Package: scran
-Version: 1.33.0
-Date: 2024-03-02
+Version: 1.33.1
+Date: 2024-07-19
 Title: Methods for Single-Cell RNA-Seq Data Analysis
 Description: 
     Implements miscellaneous functions for interpretation of single-cell RNA-seq data.
@@ -27,8 +27,9 @@ Imports:
     limma, 
     igraph, 
     statmod, 
+    MatrixGenerics,
+    S4Arrays,
     DelayedArray, 
-    DelayedMatrixStats, 
     BiocSingular,
     bluster,
     metapod,
@@ -39,6 +40,7 @@ Suggests:
     BiocStyle, 
     knitr, 
     rmarkdown,
+    DelayedMatrixStats,
     HDF5Array, 
     scRNAseq,
     dynamicTreeCut, 
@@ -67,4 +69,4 @@ License: GPL-3
 NeedsCompilation: yes
 VignetteBuilder: knitr
 SystemRequirements: C++11
-RoxygenNote: 7.1.2
+RoxygenNote: 7.3.2

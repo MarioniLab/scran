@@ -38,7 +38,7 @@
 #' computeMinRank(pvals, decreasing=FALSE)
 #' 
 #' @export
-#' @importFrom DelayedMatrixStats colMins colRanks
+#' @importFrom MatrixGenerics colMins colRanks
 computeMinRank <- function(x, ties.method="min", decreasing=TRUE) {
     x <- as.matrix(x)
     if (decreasing) x <- -x

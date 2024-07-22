@@ -33,7 +33,7 @@
     pcs
 }
 
-#' @importFrom Matrix rowMeans colSums
+#' @importFrom MatrixGenerics rowMeans colSums
 .svd_to_rot <- function(svd.out, ncomp, original.mat, subset.row, fill.missing) {
     ncomp <- min(ncomp, ncol(svd.out$v))
 

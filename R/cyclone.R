@@ -178,7 +178,8 @@ setGeneric("cyclone", function(x, ...) standardGeneric("cyclone"))
     list(phases=phases, scores=scores, normalized.scores=scores.normalised)
 }
 
-#' @importFrom DelayedArray currentViewport makeNindexFromArrayViewport
+#' @importFrom S4Arrays makeNindexFromArrayViewport
+#' @importFrom DelayedArray currentViewport
 .cyclone_scores <- function(block, ..., seeds, streams) {
     vp <- currentViewport()
     cols <- makeNindexFromArrayViewport(vp, expand.RangeNSBS=TRUE)[[2]]

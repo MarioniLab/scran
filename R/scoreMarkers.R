@@ -413,7 +413,7 @@ NULL
     output
 }
 
-#' @importFrom DelayedMatrixStats rowWeightedMeans
+#' @importFrom MatrixGenerics rowWeightedMeans
 .compute_pairwise_cohen_d <- function(means, vars, left, right, lfc) {
     all.delta <- means[,left,drop=FALSE] - means[,right,drop=FALSE] - lfc
     pooled.s2 <- (vars[,left,drop=FALSE] + vars[,right,drop=FALSE])/2
@@ -475,7 +475,7 @@ NULL
     list(averaged.comparisons=comp, indices.to.average=merger)
 }
 
-#' @importFrom DelayedMatrixStats rowWeightedMeans 
+#' @importFrom MatrixGenerics rowWeightedMeans
 .average_effect_across_blocks <- function(effects, weights, indices.to.average) {
     output <- vector("list", length(indices.to.average))
     combined.weight <- numeric(length(indices.to.average))
@@ -521,8 +521,7 @@ NULL
 }
 
 #' @importFrom S4Vectors DataFrame mcols mcols<-
-#' @importFrom DelayedMatrixStats rowMins rowMedians rowMaxs 
-#' @importFrom Matrix rowMeans
+#' @importFrom MatrixGenerics rowMeans rowMins rowMedians rowMaxs
 .collate_into_DataFrame <- function(desired.indices, averaged.effects, combined.weights, REVERSE, effect.name, nrow, row.names=NULL, full.stats=FALSE) {
     output <- desired.indices
 

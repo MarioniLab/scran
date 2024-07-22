@@ -5,6 +5,11 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // compute_Top_statistic_from_ranks
 Rcpp::IntegerVector compute_Top_statistic_from_ranks(Rcpp::List Ranks, double prop);
 RcppExport SEXP _scran_compute_Top_statistic_from_ranks(SEXP RanksSEXP, SEXP propSEXP) {
