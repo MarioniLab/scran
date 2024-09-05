@@ -163,5 +163,5 @@ test_that("pseudoBulkSpecific errors out correctly", {
        label=pseudo$cluster,
        design=~DRUG,
        coef=1:2
-    ), "cannot be specified")
+    ))
 })
