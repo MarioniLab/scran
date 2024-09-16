@@ -25,6 +25,8 @@
 #' @param row.data A \linkS4class{DataFrame} containing additional row metadata for each gene in \code{x},
 #' to be included in each of the output DataFrames.
 #' This should have the same number and order of rows as \code{x}.
+#' @param weights A vector or matrix of weights. If vector, it is assumed the weights are equal for all genes. Alternatively,
+#' a matrix with the same dimensions as \code{x} can be provided.
 #' @param ... For the generic, additional arguments to pass to individual methods.
 #'
 #' For the SummarizedExperiment method, additional arguments to pass to the ANY method.
@@ -143,7 +145,7 @@ NULL
 
 .pseudo_bulk_master <- function(x, col.data, label, design, coef, contrast=NULL, 
     condition=NULL, lfc=0, include.intermediates=TRUE, row.data=NULL, sorted=FALSE, 
-    method=c("edgeR", "voom"), qualities=TRUE, robust=TRUE, sample=NULL)
+    method=c("edgeR", "voom"), qualities=TRUE, robust=TRUE, sample=NULL, weights=NULL)
 {
     if (!is.null(sample)) {
         .Deprecated(msg="'sample=' is deprecated and will be ignored")
@@ -154,14 +156,14 @@ NULL
     .pseudo_bulk_dge(x=x, col.data=col.data, label=label, condition=condition, 
         design=design, coef=coef, contrast=contrast, lfc=lfc, row.data=row.data, 
         sorted=sorted, include.intermediates=include.intermediates,
-        method=match.arg(method), qualities=qualities, robust=robust)
+        method=match.arg(method), qualities=qualities, robust=robust, weights=weights)
 }
 
 #' @importFrom edgeR DGEList 
 #' @importFrom S4Vectors DataFrame SimpleList metadata metadata<-
 .pseudo_bulk_dge <- function(x, col.data, label, design, coef, contrast=NULL, 
     condition=NULL, lfc=0, null.lfc.list=NULL, row.data=NULL, sorted=FALSE, include.intermediates=FALSE,
-    method=c("edgeR", "voom"), qualities=TRUE, robust=TRUE)
+    method=c("edgeR", "voom"), qualities=TRUE, robust=TRUE, weights=NULL)
 {
     de.results <- list()
     failed <- character(0)
@@ -172,6 +174,14 @@ NULL
     if (!is.null(contrast)) {
         coef <- NULL
     }
+    
+    # Checks on weights
+    if(is.vector(weights)){
+      stopifnot(length(weights)==nrow(design))
+      weights <- matrix(weights,nrow=nrow(x), ncol=ncol(x), byrow=TRUE)
+    } else if(is.matrix(weights)){
+      stopifnot(all.equal(dim(weights),dim(x)))
+    }
 
     for (i in sort(unique(label))) {
         chosen <- i==label
@@ -180,6 +190,7 @@ NULL
         curdata <- col.data[chosen,,drop=FALSE]
         y <- DGEList(curx, samples=as.data.frame(curdata))
         curcond <- condition[chosen]
+        curweights <- weights[,chosen]
 
         curdesign <- try({
             if (is.function(design)) {
@@ -196,7 +207,7 @@ NULL
         } else {
             args <- list(y, row.names=rownames(x), curdesign=curdesign, curcond=curcond,
                 coef=coef, contrast=contrast, lfc=lfc, null.lfc=null.lfc.list[[i]],
-                robust=robust, include.intermediates=include.intermediates)
+                robust=robust, include.intermediates=include.intermediates, weights=curweights)
 
             if (method=="edgeR") {
                 stuff <- do.call(.pseudo_bulk_edgeR, args)
@@ -233,13 +244,15 @@ NULL
 #' calcNormFactors filterByExpr topTags glmLRT glmFit glmTreat
 #' @importFrom limma makeContrasts
 .pseudo_bulk_edgeR <- function(y, row.names, curdesign, curcond, coef, contrast, 
-    lfc, null.lfc, include.intermediates, robust=TRUE) 
+    lfc, null.lfc, include.intermediates, robust=TRUE, weights=NULL) 
 {
     ngenes <- nrow(y)
     gkeep <- filterByExpr(y, design=curdesign, group=curcond)
     y <- y[gkeep,]
     y <- calcNormFactors(y)
 
+    if(!is.null(weights)) y$weights <- weights[gkeep,]
+    
     rank <- qr(curdesign)$rank
     if (rank == nrow(curdesign) || rank < ncol(curdesign)) { 
         return(NULL)
@@ -301,7 +314,7 @@ NULL
 #' @importFrom limma voom voomWithQualityWeights lmFit 
 #' contrasts.fit eBayes treat topTable makeContrasts
 .pseudo_bulk_voom <- function(y, row.names, curdesign, curcond, coef, contrast, 
-    lfc, null.lfc, include.intermediates, qualities=TRUE, robust=TRUE) 
+    lfc, null.lfc, include.intermediates, qualities=TRUE, robust=TRUE, weights=NULL) 
 {
     ngenes <- nrow(y)
     gkeep <- filterByExpr(y, design=curdesign, group=curcond)
