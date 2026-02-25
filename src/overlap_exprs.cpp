@@ -59,7 +59,7 @@ public:
         return;
     }
 
-    std::pair<double, int> contrast_groups(int left, int right, double shift) const {
+    std::pair<double, double> contrast_groups(int left, int right, double shift) const {
         const auto& group1 = by_group[left];
         const int nelements1 = nelements[left];
         const auto& group2 = by_group[right];
