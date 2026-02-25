@@ -3,7 +3,7 @@
 \encoding{UTF-8}
 
 \section{Version 1.40}{\itemize{
-\item Bugfix for \code{overlapExprs()} to avoid integer overflow with large numbers of ties.
+\item Bugfix for the AUC calculations in \code{pairwiseWilcox()} and \code{scoreMarkers()}, to avoid integer overflow with large numbers of ties.
 }}
 
 \section{Version 1.34}{\itemize{
