@@ -1,7 +1,10 @@
 #' Model the per-gene variance
 #'
+#' @description
 #' Model the variance of the log-expression profiles for each gene, 
 #' decomposing it into technical and biological components based on a fitted mean-variance trend.
+#'
+#' This is deprecated - users should consider calling the \code{modelGeneVariances} function from the \pkg{scrapper} package instead.
 #' 
 #' @param x A numeric matrix of log-normalized expression values where rows are genes and columns are cells.
 #'

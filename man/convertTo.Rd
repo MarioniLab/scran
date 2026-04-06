@@ -32,7 +32,9 @@ For \code{type="DESeq2"}, a DESeqDataSet object is returned containing the count
 Additional gene- and cell-specific data is stored in the \code{mcols} and \code{colData} respectively.
 }
 \description{
-Convert a \linkS4class{SingleCellExperiment} object into other classes for entry into other analysis pipelines.
+Convert a \link[SingleCellExperiment]{SingleCellExperiment} object into other classes for entry into other analysis pipelines.
+
+This function is now deprecated, as all pipelines are now capable of accepting SingleCellExperiment objects.
 }
 \details{
 This function converts an SingleCellExperiment object into various other classes in preparation for entry into other analysis pipelines, as specified by \code{type}.

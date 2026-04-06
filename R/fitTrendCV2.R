@@ -1,7 +1,9 @@
 #' Fit a trend to the CV2
 #' 
-#' Fit a mean-dependent trend to the squared coefficient of variation, 
-#' computed from count data after size factor normalization.
+#' @description
+#' Fit a mean-dependent trend to the squared coefficient of variation, computed from count data after size factor normalization.
+#'
+#' This function is deprecated - users are suggested to use the \code{fitVarianceTrend} function from the \pkg{scrapper} package instead.
 #'
 #' @param means A numeric vector containing mean normalized expression values for all genes.
 #' @param cv2 A numeric vector containing the squared coefficient of variation computed from normalized expression values for all genes.
@@ -72,6 +74,7 @@
 fitTrendCV2 <- function(means, cv2, ncells, min.mean=0.1, nls.args=list(), 
     simplified=TRUE, nmads=6, max.iter=50)
 {
+    .Deprecated(new = "scrapper::modelGeneVariances")
     # Ignoring maxed CV2 values due to an outlier (caps at the number of cells).
     # Also ignoring means that are too low.
     to.use <- cv2 < ncells - 1e-8 & means > min.mean

@@ -1,6 +1,9 @@
 #' Cluster cells in a SingleCellExperiment
 #'
-#' A \linkS4class{SingleCellExperiment}-compatible wrapper around \code{\link{clusterRows}} from the \pkg{bluster} package.
+#' @description
+#' A \linkS4class{SingleCellExperiment}-compatible wrapper around \code{\link[bluster]{clusterRows}} from the \pkg{bluster} package.
+#'
+#' This function has been deprecated, users should directly call the \pkg{bluster} function directly.
 #'
 #' @param x A \linkS4class{SummarizedExperiment} or \linkS4class{SingleCellExperiment} object containing cells in the columns.
 #' @param assay.type Integer or string specifying the assay values to use for clustering, typically log-normalized expression.
@@ -44,6 +47,7 @@
 #' @importFrom SummarizedExperiment assay
 #' @importFrom bluster clusterRows NNGraphParam
 clusterCells <- function(x, assay.type=NULL, use.dimred=NULL, BLUSPARAM=NNGraphParam(), ...) {
+    .Deprecated(old = "clusterCells", new = "bluster::clusterRows")
     if (!is.null(assay.type)) {
         x <- t(assay(x, assay.type))
     } else if (!is.null(use.dimred)) {

@@ -90,6 +90,8 @@ Each internal DataFrame's \code{metadata} contains the output of \code{\link{fit
 \description{
 Model the variance of the log-expression profiles for each gene, 
 decomposing it into technical and biological components based on a mean-variance trend corresponding to Poisson noise.
+
+This is deprecated because I don't think anyone uses it anymore.
 }
 \details{
 For each gene, we compute the variance and mean of the log-expression values.

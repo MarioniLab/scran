@@ -42,6 +42,8 @@ Otherwise, an integer vector specifying the indices of \code{stats} containing t
 \description{
 Define a set of highly variable genes, based on variance modelling statistics
 from \code{\link{modelGeneVar}} or related functions.
+
+This is deprecated, use the \code{chooseHighlyVariableGenes} function from \pkg{scrapper} instead.
 }
 \details{
 This function will identify all genes where the relevant metric of variation is greater than \code{var.threshold}.

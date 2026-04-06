@@ -18,6 +18,8 @@ A numeric vector containing the minimum (i.e., top) rank for each gene across al
 }
 \description{
 Compute the minimum rank in a matrix of statistics, usually effect sizes from a set of differential comparisons.
+
+This function is now deprecated, see the \code{summarizeEffects} function from \pkg{scrapper} instead.
 }
 \details{
 For each gene, the minimum rank, a.k.a., \dQuote{min-rank} is defined by ranking values within each column of \code{x}, and then taking the minimum rank value across columns.

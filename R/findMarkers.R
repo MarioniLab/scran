@@ -1,7 +1,9 @@
 #' Find marker genes
-#' 
-#' Find candidate marker genes for groups of cells (e.g., clusters) 
-#' by testing for differential expression between pairs of groups.
+#'
+#' @description
+#' Find candidate marker genes for groups of cells (e.g., clusters) by testing for differential expression between pairs of groups.
+#'
+#' This function is deprecated - users should consider calling \code{scoreMarkers.se} from \pkg{scrapper} instead.
 #' 
 #' @param x A numeric matrix-like object of expression values, 
 #' where each column corresponds to a cell and each row corresponds to an endogenous gene.
@@ -122,6 +124,7 @@ NULL
     pval.type=c("any", "some", "all"), min.prop=NULL, log.p=FALSE, full.stats=FALSE, 
     sorted=TRUE, row.data=NULL, add.summary=FALSE, BPPARAM=SerialParam())
 {
+    .Deprecated(old= "findMarkers", new="scrapper::scoreMarkers.se")
     test.type <- match.arg(test.type)
     if (test.type=="t") {
         FUN <- pairwiseTTests

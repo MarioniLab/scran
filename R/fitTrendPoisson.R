@@ -1,6 +1,9 @@
 #' Generate a trend for Poisson noise
 #' 
+#' @description
 #' Create a mean-variance trend for log-normalized expression values derived from Poisson-distributed counts.
+#'
+#' This is deprecated because I don't think anyone uses it anymore.
 #'
 #' @param means A numeric vector of length 2 or more, containing the range of mean counts observed in the dataset.
 #' @param size.factors A numeric vector of size factors for all cells in the dataset.
@@ -50,6 +53,7 @@
 #' @export
 #' @importFrom BiocParallel SerialParam
 fitTrendPoisson <- function(means, size.factors, npts=1000, dispersion=0, pseudo.count=1, BPPARAM=SerialParam(), ...) {
+    .Deprecated()
     out <- .generate_poisson_values(means, size.factors, npts=npts, 
         dispersion=dispersion, pseudo.count=pseudo.count, BPPARAM=BPPARAM)
     fitTrendVar(out$means, out$vars, ...)

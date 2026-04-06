@@ -79,7 +79,9 @@ A \link{graph} where nodes are cells and edges represent connections between nea
 see \code{?\link{makeSNNGraph}} for more details.
 }
 \description{
-\linkS4class{SingleCellExperiment}-friendly wrapper around the \code{\link{makeSNNGraph}} and \code{\link{makeKNNGraph}} functions for creating nearest-neighbor graphs.
+\linkS4class{SingleCellExperiment}-friendly wrappers around the \code{\link[bluster]{makeSNNGraph}} and \code{\link[bluster]{makeKNNGraph}} functions for creating nearest-neighbor graphs.
+
+This set of functions has been deprecated, users should directly call the relevant \pkg{bluster} functions instead.
 }
 \examples{
 library(scuttle)

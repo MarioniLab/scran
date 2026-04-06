@@ -50,6 +50,8 @@ and \code{FDR}, which contains the adjusted p-value using the BH method.
 }
 \description{
 Combine the results of multiple variance decompositions, usually generated for the same genes across separate batches of cells.
+
+This function is now deprecated - users should call the \code{modelGeneVariances} function from \pkg{scrapper}, which automatically combines the variance statistics across blocks/batches.
 }
 \details{
 These functions are designed to merge results from separate calls to \code{\link{modelGeneVar}}, \code{\link{modelGeneCV2}} or related functions, where each result is usually computed for a different batch of cells.

@@ -77,8 +77,9 @@ specifying the two groups under comparison in the corresponding DataFrame in \co
 In each DataFrame in \code{statistics}, the log-fold change represents the log-ratio of the proportion of expressing cells in the \code{first} group compared to the expressing proportion in the \code{second} group.
 }
 \description{
-Perform pairwise binomial tests between groups of cells, 
-possibly after blocking on uninteresting factors of variation.
+Perform pairwise binomial tests between groups of cells, possibly after blocking on uninteresting factors of variation.
+
+This function is deprecated in favor of the marker scoring functions in \code{scoreMarkers} from the \pkg{scrapper} package.
 }
 \details{
 This function performs exact binomial tests to identify marker genes between pairs of groups of cells.

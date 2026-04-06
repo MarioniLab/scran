@@ -1,6 +1,9 @@
 #' PCA with a fixed number of components
 #'
+#' @description
 #' Perform a PCA where the desired number of components is known ahead of time.
+#'
+#' This function is now deprecated - consider using \code{runPca.se} from the \pkg{scrapper} package instead.
 #'
 #' @param x A \linkS4class{SingleCellExperiment} object containing a log-expression amtrix.
 #' @inheritParams denoisePCA
@@ -65,6 +68,7 @@
 #' @importFrom beachmat realizeFileBackedMatrix
 #' @importFrom MatrixGenerics colVars
 fixedPCA <- function(x, rank=50, value=c("pca", "lowrank"), subset.row, preserve.shape=TRUE, assay.type="logcounts", name=NULL, BSPARAM=bsparam(), BPPARAM=SerialParam()) {
+    .Deprecated(new = "scrapper::runPca.se")
     if (.bpNotSharedOrUp(BPPARAM)) {
         bpstart(BPPARAM)
         on.exit(bpstop(BPPARAM))

@@ -82,6 +82,8 @@ Each internal DataFrame's \code{metadata} contains the output of \code{\link{fit
 \description{
 Model the squared coefficient of variation (CV2) of the normalized expression profiles for each gene,
 fitting a trend to account for the mean-variance relationship across genes.
+
+This function is deprecated - users are suggested to use the \code{modelGeneVariances} function from the \pkg{scrapper} package instead.
 }
 \details{
 For each gene, we compute the CV2 and mean of the counts after scaling them by \code{size.factors}.

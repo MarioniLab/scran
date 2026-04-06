@@ -77,6 +77,8 @@ In each DataFrame in \code{statistics}, the AUC represents the probability of sa
 }
 \description{
 Perform pairwise Wilcoxon rank sum tests between groups of cells, possibly after blocking on uninteresting factors of variation.
+
+This function is deprecated in favor of the marker scoring functions in \code{scoreMarkers} from the \pkg{scrapper} package.
 }
 \details{
 This function performs Wilcoxon rank sum tests to identify differentially expressed genes (DEGs) between pairs of groups of cells.

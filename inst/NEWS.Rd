@@ -4,6 +4,8 @@
 
 \section{Version 1.40}{\itemize{
 \item Bugfix for the AUC calculations in \code{pairwiseWilcox()} and \code{scoreMarkers()}, to avoid integer overflow with large numbers of ties.
+
+\item Deprecate many historical functions in favor of their replacements in the \pkg{scrapper} package.
 }}
 
 \section{Version 1.34}{\itemize{

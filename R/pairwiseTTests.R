@@ -1,6 +1,9 @@
 #' Perform pairwise t-tests
 #' 
+#' @description
 #' Perform pairwise Welch t-tests between groups of cells, possibly after blocking on uninteresting factors of variation.
+#'
+#' This function is deprecated in favor of the marker scoring functions in \code{scoreMarkers} from the \pkg{scrapper} package.
 #' 
 #' @param x A numeric matrix-like object of normalized log-expression values, 
 #' where each column corresponds to a cell and each row corresponds to an endogenous gene.
@@ -176,6 +179,7 @@ NULL
 .pairwiseTTests <- function(x, groups, block=NULL, design=NULL, restrict=NULL, exclude=NULL, direction=c("any", "up", "down"),
     lfc=0, std.lfc=FALSE, log.p=FALSE, gene.names=NULL, subset.row=NULL, BPPARAM=SerialParam())
 {
+    .Deprecated(old= "pairwiseTTests")
     groups <- .setup_groups(groups, x, restrict=restrict, exclude=exclude)
     direction <- match.arg(direction)
 

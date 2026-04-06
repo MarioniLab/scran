@@ -1,7 +1,9 @@
 #' Perform pairwise binomial tests
 #'
-#' Perform pairwise binomial tests between groups of cells, 
-#' possibly after blocking on uninteresting factors of variation.
+#' @description
+#' Perform pairwise binomial tests between groups of cells, possibly after blocking on uninteresting factors of variation.
+#'
+#' This function is deprecated in favor of the marker scoring functions in \code{scoreMarkers} from the \pkg{scrapper} package.
 #' 
 #' @param x A numeric matrix-like object of counts,
 #' where each column corresponds to a cell and each row corresponds to a gene.
@@ -133,6 +135,7 @@ NULL
     threshold=1e-8, lfc=0, log.p=FALSE, gene.names=NULL, 
     subset.row=NULL, BPPARAM=SerialParam())
 {
+    .Deprecated(old= "pairwiseBinom")
     groups <- .setup_groups(groups, x, restrict=restrict, exclude=exclude)
     direction <- match.arg(direction)
 

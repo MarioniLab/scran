@@ -1,7 +1,10 @@
 #' Combine blockwise statistics
 #'
+#' @description
 #' Combine DataFrames of statistics computed separately for each block.
 #' This usually refers to feature-level statistics and sample-level blocks.
+#'
+#' This function is now deprecated - all block-aware functions in the \pkg{scrapper} package automatically combine statistics across blocks.
 #'
 #' @param blocks A list of \linkS4class{DataFrame}s containing blockwise statistics.
 #' These should have the same number of rows and the same set of columns.
@@ -53,6 +56,7 @@
 #' @importFrom S4Vectors DataFrame I
 #' @importFrom metapod combineParallelPValues
 combineBlocks <- function(blocks, ave.fields, pval.field, method, geometric, equiweight, weights, valid) {
+    .Deprecated()
     if (length(blocks)==1L) {
         return(blocks[[1]])
     }

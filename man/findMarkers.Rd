@@ -95,8 +95,9 @@ Any log-fold changes are reported as differences in average \code{x} between gro
 (usually in base 2, depending on the transformation applied to \code{x}).
 }
 \description{
-Find candidate marker genes for groups of cells (e.g., clusters) 
-by testing for differential expression between pairs of groups.
+Find candidate marker genes for groups of cells (e.g., clusters) by testing for differential expression between pairs of groups.
+
+This function is deprecated - users should consider calling \code{scoreMarkers.se} from \pkg{scrapper} instead.
 }
 \details{
 This function provides a convenience wrapper for marker gene identification between groups of cells,

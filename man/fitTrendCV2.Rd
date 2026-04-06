@@ -40,8 +40,9 @@ A named list is returned containing:
 }
 }
 \description{
-Fit a mean-dependent trend to the squared coefficient of variation, 
-computed from count data after size factor normalization.
+Fit a mean-dependent trend to the squared coefficient of variation, computed from count data after size factor normalization.
+
+This function is deprecated - users are suggested to use the \code{fitVarianceTrend} function from the \pkg{scrapper} package instead.
 }
 \details{
 This function fits a mean-dependent trend to the CV2 of normalized expression values for the selected features.

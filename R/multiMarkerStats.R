@@ -1,7 +1,10 @@
 #' Combine multiple sets of marker statistics
 #'
+#' @description
 #' Combine multiple sets of marker statistics, typically from different tests,
 #' into a single \linkS4class{DataFrame} for convenient inspection.
+#'
+#' This function is now deprecated as newer functions like \code{scoreMarkers.se} automatically report all results for a group/cluster in a single data frame.
 #'
 #' @param ... Two or more lists or \linkS4class{List}s produced by \code{\link{findMarkers}} or \code{\link{combineMarkers}}.
 #' Each list should contain \linkS4class{DataFrame}s of results, one for each group/cluster of cells.
@@ -63,6 +66,7 @@
 #' @export
 #' @importFrom S4Vectors DataFrame SimpleList I
 multiMarkerStats <- function(..., repeated=NULL, sorted=TRUE) {
+    .Deprecated()
     all.methods <- list(...)
     nmethods <- length(all.methods)
     if (is.null(names(all.methods))) {

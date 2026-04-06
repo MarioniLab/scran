@@ -26,6 +26,7 @@
 \alias{doubletCells}
 \alias{doubletCluster}
 \alias{doubletRecovery}
+\alias{combinePValues}
 \title{Defunct functions}
 \usage{
 trendVar(...)
@@ -75,6 +76,8 @@ doubletCells(...)
 doubletCluster(...)
 
 doubletRecovery(...)
+
+combinePValues(...)
 }
 \arguments{
 \item{...}{Ignored arguments.}
@@ -135,6 +138,8 @@ Their successors are also listed.
 \code{overlapExprs} is succeeded by \code{\link{findMarkers}} with \code{test.type="wilcox"}.
 
 \code{parallelPCA} has been moved over to the \pkg{PCAtools} package.
+
+\code{combinePValues} has been replaced by \code{combineParallelPValues} in the \pkg{metapod} package.
 }
 
 \examples{

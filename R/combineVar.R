@@ -1,6 +1,9 @@
 #' Combine variance decompositions
 #'
+#' @description
 #' Combine the results of multiple variance decompositions, usually generated for the same genes across separate batches of cells.
+#'
+#' This function is now deprecated - users should call the \code{modelGeneVariances} function from \pkg{scrapper}, which automatically combines the variance statistics across blocks/batches.
 #'
 #' @param ... Two or more \linkS4class{DataFrame}s of variance modelling results.
 #' For \code{combineVar}, these should be produced by \code{\link{modelGeneVar}} or \code{\link{modelGeneVarWithSpikes}}.

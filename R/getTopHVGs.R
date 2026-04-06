@@ -1,7 +1,10 @@
 #' Identify HVGs
 #' 
+#' @description
 #' Define a set of highly variable genes, based on variance modelling statistics
 #' from \code{\link{modelGeneVar}} or related functions.
+#'
+#' This is deprecated, use the \code{chooseHighlyVariableGenes} function from \pkg{scrapper} instead.
 #'
 #' @param stats A \linkS4class{DataFrame} of variance modelling statistics with one row per gene.
 #' Alternatively, a \linkS4class{SummarizedExperiment} object, in which case it is supplied to \code{\link{modelGeneVar}} to generate the required DataFrame.
@@ -60,6 +63,7 @@
 getTopHVGs <- function(stats, var.field="bio", n=NULL, prop=NULL, var.threshold=0,
     fdr.field="FDR", fdr.threshold=NULL, row.names=!is.null(rownames(stats))) 
 {
+    .Deprecated(new = "scrapper::chooseHighlyVariableGenes")
     if (is(stats, "SummarizedExperiment")) {
         stats <- modelGeneVar(stats)
     }

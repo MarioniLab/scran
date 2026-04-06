@@ -1,6 +1,9 @@
 #' Compute the minimum rank
 #'
+#' @description
 #' Compute the minimum rank in a matrix of statistics, usually effect sizes from a set of differential comparisons.
+#'
+#' This function is now deprecated, see the \code{summarizeEffects} function from \pkg{scrapper} instead. 
 #'
 #' @param x A matrix of statistics from multiple differential comparisons (columns) and genes (rows).
 #' @param ties.method String specifying how ties should be handled.
@@ -40,6 +43,7 @@
 #' @export
 #' @importFrom MatrixGenerics colMins colRanks
 computeMinRank <- function(x, ties.method="min", decreasing=TRUE) {
+    .Deprecated(new="scrapper::summarizeEffects")
     x <- as.matrix(x)
     if (decreasing) x <- -x
     colMins(colRanks(x, ties.method=ties.method), na.rm=TRUE) 

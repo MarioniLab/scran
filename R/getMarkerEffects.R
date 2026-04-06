@@ -34,6 +34,7 @@
 #' @export
 #' @importFrom MatrixGenerics colAnyNAs
 getMarkerEffects <- function(x, prefix="logFC", strip=TRUE, remove.na.col=FALSE) {
+    .Deprecated()
     regex <- paste0("^", prefix, "\\.")
     i <- grep(regex, colnames(x))
     out <- as.matrix(x[,i])

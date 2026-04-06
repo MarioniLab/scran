@@ -1,5 +1,6 @@
 #' Denoise expression with PCA
 #'
+#' @description
 #' Denoise log-expression data by removing principal components corresponding to technical noise.
 #'
 #' @param x 
@@ -156,6 +157,7 @@ NULL
 .get_denoised_pcs <- function(x, technical, subset.row, min.rank=5, max.rank=50, 
     fill.missing=FALSE, BSPARAM=bsparam(), BPPARAM=SerialParam())
 {
+    .Deprecated(msg = "'getDenoisedPCs' is deprecated.\nUse 'scrapper::runPca.se' instead and pick the number of PCs with 'denoisePCANumber'.")
     subset.row <- .process_subset_for_pca(subset.row, x)
     stats <- .compute_mean_var(x, BPPARAM=BPPARAM, subset.row=subset.row, design=NULL,
         block.FUN=compute_blocked_stats_none, block=NULL)

@@ -45,6 +45,8 @@ A \code{per.block} column is also reported, containing a DataFrame of the DataFr
 \description{
 Combine DataFrames of statistics computed separately for each block.
 This usually refers to feature-level statistics and sample-level blocks.
+
+This function is now deprecated - all block-aware functions in the \pkg{scrapper} package automatically combine statistics across blocks.
 }
 \examples{
 library(scuttle)

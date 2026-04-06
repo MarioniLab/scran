@@ -1,6 +1,10 @@
 #' Combine pairwise DE results into a marker list
 #' 
+#' @description
 #' Combine multiple pairwise differential expression comparisons between groups or clusters into a single ranked list of markers for each cluster.
+#'
+#' This function is now deprecated - see the \code{summarizeEffects} function from \pkg{scrapper} instead,
+#' which does not quite replace it but provides analogous functionality for pairwise effect sizes.
 #' 
 #' @param de.lists A list-like object where each element is a data.frame or \linkS4class{DataFrame}.
 #' Each element should represent the results of a pairwise comparison between two groups/clusters,
@@ -179,6 +183,7 @@ combineMarkers <- function(de.lists, pairs, pval.field="p.value", effect.field="
     pval.type=c("any", "some", "all"), min.prop=NULL, log.p.in=FALSE, log.p.out=log.p.in, 
     output.field=NULL, full.stats=FALSE, sorted=TRUE, flatten=TRUE, BPPARAM=SerialParam())
 {
+    .Deprecated(new="scrapper::summarizeEffects")
     if (length(de.lists)!=nrow(pairs)) {
         stop("'nrow(pairs)' must be equal to 'length(de.lists)'")
     }

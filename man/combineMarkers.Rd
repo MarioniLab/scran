@@ -85,6 +85,9 @@ Only reported if \code{flatten=FALSE} and (for \code{full.stats=FALSE}) if \code
 }
 \description{
 Combine multiple pairwise differential expression comparisons between groups or clusters into a single ranked list of markers for each cluster.
+
+This function is now deprecated - see the \code{summarizeEffects} function from \pkg{scrapper} instead,
+which does not quite replace it but provides analogous functionality for pairwise effect sizes.
 }
 \details{
 An obvious strategy to characterizing differences between clusters is to look for genes that are differentially expressed (DE) between them.

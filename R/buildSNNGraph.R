@@ -1,6 +1,9 @@
 #' Build a nearest-neighbor graph
 #'
-#' \linkS4class{SingleCellExperiment}-friendly wrapper around the \code{\link{makeSNNGraph}} and \code{\link{makeKNNGraph}} functions for creating nearest-neighbor graphs.
+#' @description
+#' \linkS4class{SingleCellExperiment}-friendly wrappers around the \code{\link[bluster]{makeSNNGraph}} and \code{\link[bluster]{makeKNNGraph}} functions for creating nearest-neighbor graphs.
+#'
+#' This set of functions has been deprecated, users should directly call the relevant \pkg{bluster} functions instead.
 #'
 #' @param x A matrix-like object containing expression values for each gene (row) in each cell (column).
 #' These dimensions can be transposed if \code{transposed=TRUE}.
@@ -70,6 +73,7 @@ NULL
 #' @importFrom BiocSingular bsparam
 #' @importFrom bluster makeSNNGraph
 .buildSNNGraph <- function(x, ..., d=50, transposed=FALSE, subset.row=NULL, BSPARAM=bsparam(), BPPARAM=SerialParam()) { 
+    .Deprecated(old = "buildSNNGraph", new = "bluster::makeSNNGraph")
     input <- .setup_knn_data(x=x, subset.row=subset.row, d=d, transposed=transposed, BSPARAM=BSPARAM, BPPARAM=BPPARAM) 
     makeSNNGraph(input, ..., BPPARAM=BPPARAM)
 }
@@ -78,6 +82,7 @@ NULL
 #' @importFrom BiocSingular bsparam
 #' @importFrom bluster makeKNNGraph
 .buildKNNGraph <- function(x, ..., d=50, transposed=FALSE, subset.row=NULL, BSPARAM=bsparam(), BPPARAM=SerialParam()) { 
+    .Deprecated(old = "buildKNNGraph", new = "bluster::makeKNNGraph")
     input <- .setup_knn_data(x=x, subset.row=subset.row, d=d, transposed=transposed, BSPARAM=BSPARAM, BPPARAM=BPPARAM) 
     makeKNNGraph(input, ..., BPPARAM=BPPARAM)
 }

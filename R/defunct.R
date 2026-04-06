@@ -46,6 +46,8 @@
 #'
 #' \code{parallelPCA} has been moved over to the \pkg{PCAtools} package.
 #'
+#' \code{combinePValues} has been replaced by \code{combineParallelPValues} in the \pkg{metapod} package.
+#'
 #' @return All functions error out with a defunct message pointing towards its descendent (if available).
 #'
 #' @author Aaron Lun
@@ -199,3 +201,8 @@ doubletRecovery <- function(...) {
     .Defunct("scDblFinder::recoverDoublets")
 }
 
+#' @export
+#' @rdname defunct
+combinePValues <- function(...) {
+    .Defunct("metapod::combineParallelPValues")
+}

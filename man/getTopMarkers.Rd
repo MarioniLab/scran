@@ -56,6 +56,8 @@ depending on \code{combine.type}.
 }
 \description{
 Obtain the top markers for each pairwise comparison between clusters, or for each cluster.
+
+This is deprecated as the top markers are automatically computed in functions like \code{scrapper::scoreMarkers.se}.
 }
 \details{
 This is a convenience utility that converts the results of pairwise comparisons into a marker list

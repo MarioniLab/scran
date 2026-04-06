@@ -52,6 +52,8 @@ This is represented as a \linkS4class{LowRankMatrix}.
 }
 \description{
 Perform a PCA where the desired number of components is known ahead of time.
+
+This function is now deprecated - consider using \code{runPca.se} from the \pkg{scrapper} package instead.
 }
 \details{
 In theory, there is an optimal number of components for any given application,

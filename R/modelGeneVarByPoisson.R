@@ -1,7 +1,10 @@
 #' Model the per-gene variance with Poisson noise
 #'
+#' @description
 #' Model the variance of the log-expression profiles for each gene, 
 #' decomposing it into technical and biological components based on a mean-variance trend corresponding to Poisson noise.
+#'
+#' This is deprecated because I don't think anyone uses it anymore.
 #' 
 #' @param x A numeric matrix of counts where rows are (usually endogenous) genes and columns are cells.
 #'
@@ -108,6 +111,7 @@ NULL
     block=NULL, design=NULL, subset.row=NULL, npts=1000, dispersion=0, pseudo.count=1, ..., 
     equiweight=TRUE, method="fisher", BPPARAM=SerialParam()) 
 {
+    .Deprecated(old = "modelGeneCV2ByPoisson")
     if (is.null(size.factors)) {
         size.factors <- librarySizeFactors(x, subset_row=subset.row)
     }

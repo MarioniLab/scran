@@ -1,7 +1,10 @@
 #' Model the per-gene CV2 with spike-ins
 #'
+#' @description
 #' Model the squared coefficient of variation (CV2) of the normalized expression profiles for each gene, 
 #' using spike-ins to estimate the baseline level of technical noise at each abundance.
+#'
+#' This function is now deprecated, I don't think anyone really uses spike-ins anymore.
 #' 
 #' @param ... For the generic, further arguments to pass to each method.
 #' 
@@ -99,6 +102,7 @@ NULL
     block=NULL, subset.row=NULL, ..., 
     equiweight=TRUE, method="fisher", BPPARAM=SerialParam()) 
 {
+    .Deprecated(old = "modelGeneCV2WithSpikes")
     all <- .compute_var_stats_with_spikes(x=x, size.factors=size.factors, 
         subset.row=subset.row, block=block, 
         spikes=spikes, spike.size.factors=spike.size.factors, 

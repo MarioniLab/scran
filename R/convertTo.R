@@ -1,6 +1,9 @@
 #' Convert to other classes
 #'
-#' Convert a \linkS4class{SingleCellExperiment} object into other classes for entry into other analysis pipelines.
+#' @description
+#' Convert a \link[SingleCellExperiment]{SingleCellExperiment} object into other classes for entry into other analysis pipelines.
+#'
+#' This function is now deprecated, as all pipelines are now capable of accepting SingleCellExperiment objects.
 #' 
 #' @param x A \linkS4class{SingleCellExperiment} object.
 #' @param type A string specifying the analysis for which the object should be prepared.
@@ -47,6 +50,7 @@
 #' @importFrom edgeR DGEList "[.DGEList" scaleOffset.DGEList
 #' @importFrom scuttle .subset2index
 convertTo <- function(x, type=c("edgeR", "DESeq2", "monocle"), ..., assay.type=1, subset.row=NULL) {
+    .Deprecated()
     type <- match.arg(type)
     if (type=="edgeR" || type=="DESeq2") { 
         fd <- rowData(x)

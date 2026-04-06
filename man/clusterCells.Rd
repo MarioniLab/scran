@@ -30,7 +30,9 @@ A factor of cluster identities for each cell in \code{x},
 or a list containing such a factor - see the return value of \code{?\link{clusterRows}}.
 }
 \description{
-A \linkS4class{SingleCellExperiment}-compatible wrapper around \code{\link{clusterRows}} from the \pkg{bluster} package.
+A \linkS4class{SingleCellExperiment}-compatible wrapper around \code{\link[bluster]{clusterRows}} from the \pkg{bluster} package.
+
+This function has been deprecated, users should directly call the \pkg{bluster} function directly.
 }
 \details{
 This is largely a convenience wrapper to avoid the need to manually extract the relevant assays or reduced dimensions from \code{x}.

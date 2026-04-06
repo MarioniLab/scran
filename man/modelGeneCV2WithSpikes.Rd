@@ -96,6 +96,8 @@ Each internal DataFrame's \code{metadata} contains the output of \code{\link{fit
 \description{
 Model the squared coefficient of variation (CV2) of the normalized expression profiles for each gene, 
 using spike-ins to estimate the baseline level of technical noise at each abundance.
+
+This function is now deprecated, I don't think anyone really uses spike-ins anymore.
 }
 \details{
 For each gene and spike-in transcript, we compute the variance and CV2 of the normalized expression values.

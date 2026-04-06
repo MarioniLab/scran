@@ -84,6 +84,8 @@ In each DataFrame in \code{statistics}, the log-fold change represents the chang
 }
 \description{
 Perform pairwise Welch t-tests between groups of cells, possibly after blocking on uninteresting factors of variation.
+
+This function is deprecated in favor of the marker scoring functions in \code{scoreMarkers} from the \pkg{scrapper} package.
 }
 \details{
 This function performs t-tests to identify differentially expressed genes (DEGs) between pairs of groups of cells.

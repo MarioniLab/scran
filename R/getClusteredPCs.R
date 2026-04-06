@@ -1,7 +1,10 @@
 #' Use clusters to choose the number of PCs
 #'
+#' @description
 #' Cluster cells after using varying number of PCs,
 #' and pick the number of PCs using a heuristic based on the number of clusters.
+#'
+#' This function is now deprecated as it is rarely used.
 #'
 #' @param pcs A numeric matrix of PCs, where rows are cells and columns are dimensions representing successive PCs.
 #' @param FUN A clustering function that takes a numeric matrix with rows as cells and
@@ -73,6 +76,7 @@
 #' @importFrom S4Vectors DataFrame metadata metadata<- List
 #' @importFrom bluster NNGraphParam
 getClusteredPCs <- function(pcs, FUN=NULL, ..., BLUSPARAM=NNGraphParam(), min.rank=5, max.rank=ncol(pcs), by=1) {
+    .Deprecated()
     if (is.null(FUN)) {
         if (length(list(...))) {
             warning("arguments in '...' are now ignored with 'FUN=NULL'")

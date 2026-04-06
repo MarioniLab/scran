@@ -36,6 +36,8 @@ This is replaced by \code{log.FDR} if p-values in \code{...} are log-transformed
 \description{
 Combine multiple sets of marker statistics, typically from different tests,
 into a single \linkS4class{DataFrame} for convenient inspection.
+
+This function is now deprecated as newer functions like \code{scoreMarkers.se} automatically report all results for a group/cluster in a single data frame.
 }
 \details{
 The combined statistics are designed to favor a gene that is highly ranked in each of the individual test results.

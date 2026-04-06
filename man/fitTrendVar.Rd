@@ -41,6 +41,8 @@ A named list is returned containing:
 }
 \description{
 Fit a mean-dependent trend to the variances of the log-normalized expression values derived from count data.
+
+This function is deprecated - users should consider calling \code{fitVarianceTrend} from \pkg{scrapper} instead.
 }
 \details{
 This function fits a mean-dependent trend to the variance of the log-normalized expression for the selected features.

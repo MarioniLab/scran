@@ -1,7 +1,10 @@
 #' Model the per-gene CV2 
 #'
+#' @description
 #' Model the squared coefficient of variation (CV2) of the normalized expression profiles for each gene,
 #' fitting a trend to account for the mean-variance relationship across genes.
+#'
+#' This function is deprecated - users are suggested to use the \code{modelGeneVariances} function from the \pkg{scrapper} package instead.
 #' 
 #' @param x A numeric matrix of counts where rows are genes and columns are cells.
 #'

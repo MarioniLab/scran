@@ -39,6 +39,8 @@ A named list is returned containing:
 }
 \description{
 Create a mean-variance trend for log-normalized expression values derived from Poisson-distributed counts.
+
+This is deprecated because I don't think anyone uses it anymore.
 }
 \details{
 This function is useful for modelling technical noise in highly diverse datasets without spike-ins,

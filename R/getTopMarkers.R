@@ -1,6 +1,9 @@
 #' Get top markers
 #'
+#' @description
 #' Obtain the top markers for each pairwise comparison between clusters, or for each cluster.
+#'
+#' This is deprecated as the top markers are automatically computed in functions like \code{scrapper::scoreMarkers.se}.
 #'
 #' @inheritParams combineMarkers
 #' @param pval.field String specifying the column of each DataFrame in \code{de.lists} to use to identify top markers.

@@ -102,6 +102,8 @@ Each internal DataFrame's \code{metadata} contains the output of \code{\link{fit
 \description{
 Model the variance of the log-expression profiles for each gene, 
 decomposing it into technical and biological components based on a mean-variance trend fitted to spike-in transcripts.
+
+This function is now deprecated, I don't think anyone really uses spike-ins anymore.
 }
 \details{
 For each gene and spike-in transcript, we compute the variance and mean of the log-expression values.

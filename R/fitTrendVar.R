@@ -1,6 +1,9 @@
 #' Fit a trend to the variances of log-counts
 #' 
+#' @description
 #' Fit a mean-dependent trend to the variances of the log-normalized expression values derived from count data.
+#'
+#' This function is deprecated - users should consider calling \code{fitVarianceTrend} from \pkg{scrapper} instead.
 #'
 #' @param means A numeric vector containing the mean log-expression value for each gene.
 #' @param vars A numeric vector containing the variance of log-expression values for each gene.
@@ -91,6 +94,7 @@
 #' @importFrom limma weightedLowess
 #' @importFrom stats nls predict fitted approxfun
 fitTrendVar <- function(means, vars, min.mean=0.1, parametric=TRUE, lowess=TRUE, density.weights=TRUE, nls.args=list(), ...) {
+    .Deprecated(new = "scrapper::fitVarianceTrend")
     # Filtering out zero-variance and low-abundance genes.
     is.okay <- !is.na(vars) & vars > 1e-8 & means >= min.mean 
     v <- vars[is.okay]

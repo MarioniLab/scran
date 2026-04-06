@@ -76,6 +76,8 @@ Each internal DataFrame's \code{metadata} contains the output of \code{\link{fit
 \description{
 Model the variance of the log-expression profiles for each gene, 
 decomposing it into technical and biological components based on a fitted mean-variance trend.
+
+This is deprecated - users should consider calling the \code{modelGeneVariances} function from the \pkg{scrapper} package instead.
 }
 \details{
 For each gene, we compute the variance and mean of the log-expression values.
