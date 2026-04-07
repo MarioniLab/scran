@@ -48,7 +48,8 @@ Suggests:
     ScaledMatrix,
     DESeq2, 
     pheatmap,
-    scater
+    scater,
+    scrapper
 biocViews: 
     ImmunoOncology, 
     Normalization, 
