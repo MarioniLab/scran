@@ -55,7 +55,7 @@ sce
 # Quickly analyzing it to generate bits and pieces that we can
 # reuse in the rest of this vignette.
 library(scrapper)
-results <- analyze.se(sce)
+results <- analyze.se(sce, num.threads=2)
 sce.ready <- results$x
 ```
 
