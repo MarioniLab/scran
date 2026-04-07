@@ -187,12 +187,12 @@ NULL
         min.mean <- .guessMinMean(x, min.mean=min.mean, BPPARAM=BPPARAM)
         y <- .create_rank_matrix(x, deferred=deferred, subset.row=subset.row, min.mean=min.mean, BPPARAM=BPPARAM)
     } else {
-        sf <- librarySizeFactors(x, subset_row=subset.row)
-        y <- normalizeCounts(x, size_factors=sf, subset_row=subset.row)
+        sf <- suppressWarnings(librarySizeFactors(x, subset_row=subset.row))
+        y <- suppressWarnings(normalizeCounts(x, size_factors=sf, subset_row=subset.row))
         if (is.null(d)) {
-            fit <- modelGeneVar(y)
-            chosen <- getTopHVGs(fit, n=500, prop=0.1) # At least 500 genes, or 10% of genes; whichever is larger.
-            y <- getDenoisedPCs(y, technical=fit, subset.row=chosen, BSPARAM=BSPARAM)$components
+            fit <- suppressWarnings(modelGeneVar(y))
+            chosen <- suppressWarnings(getTopHVGs(fit, n=500, prop=0.1)) # At least 500 genes, or 10% of genes; whichever is larger.
+            y <- suppressWarnings(getDenoisedPCs(y, technical=fit, subset.row=chosen, BSPARAM=BSPARAM)$components)
             d <- NA
         } else {
             y <- t(y)

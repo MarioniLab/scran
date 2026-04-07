@@ -271,13 +271,13 @@ test_that("pairwiseTTests works as expected with blocking", {
     re.clust <- clust$cluster
     re.clust[block!=1 & re.clust==1] <- 2
     re.clust <- factor(re.clust)
-    expect_warning(BLOCKFUN(X, re.clust, block), NA)
+    expect_error(BLOCKFUN(X, re.clust, block), NA)
 
     # Checking what happens to a group-specific block.
     re.clust <- clust$cluster
     re.clust[block==1] <- 1
     re.clust <- factor(re.clust)
-    expect_warning(BLOCKFUN(X, re.clust, block), NA)
+    expect_error(BLOCKFUN(X, re.clust, block), NA)
 
     # Checking what happens to a doubly-specific group and block.
     re.clust <- clust$cluster

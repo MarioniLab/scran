@@ -113,9 +113,11 @@ NULL
             }
 
             # For consistency with quickCluster().
-            dec <- modelGeneVar(x, assay.type=alt.assay)
-            top <- getTopHVGs(dec, n=500, prop=0.1)
-            denoisePCA(x, dec, subset.row=top, assay.type=alt.assay)
+            suppressWarnings({
+                dec <- modelGeneVar(x, assay.type=alt.assay)
+                top <- getTopHVGs(dec, n=500, prop=0.1)
+                denoisePCA(x, dec, subset.row=top, assay.type=alt.assay)
+            })
         }
     }
     if (is.null(clusterFUN)) {
