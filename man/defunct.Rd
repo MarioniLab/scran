@@ -27,6 +27,7 @@
 \alias{doubletCluster}
 \alias{doubletRecovery}
 \alias{combinePValues}
+\alias{convertTo}
 \title{Defunct functions}
 \usage{
 trendVar(...)
@@ -78,6 +79,8 @@ doubletCluster(...)
 doubletRecovery(...)
 
 combinePValues(...)
+
+convertTo(...)
 }
 \arguments{
 \item{...}{Ignored arguments.}
@@ -140,6 +143,8 @@ Their successors are also listed.
 \code{parallelPCA} has been moved over to the \pkg{PCAtools} package.
 
 \code{combinePValues} has been replaced by \code{combineParallelPValues} in the \pkg{metapod} package.
+
+\code{convertTo} has been removed as \pkg{edgeR} and \pkg{DESeq2} can directly operate on a SummarizedExperiment.
 }
 
 \examples{

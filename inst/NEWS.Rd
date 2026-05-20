@@ -2,6 +2,10 @@
 \title{scran News}
 \encoding{UTF-8}
 
+\section{Version 1.42}{\itemize{
+\item Finally removed the old \code{convertTo()} function, given that both \pkg{edgeR} and \pkg{DESeq2} can operate directly on a SummarizedExperiment.
+}}
+
 \section{Version 1.40}{\itemize{
 \item Bugfix for the AUC calculations in \code{pairwiseWilcox()} and \code{scoreMarkers()}, to avoid integer overflow with large numbers of ties.
 

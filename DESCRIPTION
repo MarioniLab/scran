@@ -46,7 +46,6 @@ Suggests:
     dynamicTreeCut, 
     ResidualMatrix,
     ScaledMatrix,
-    DESeq2, 
     pheatmap,
     scater,
     scrapper

@@ -48,6 +48,8 @@
 #'
 #' \code{combinePValues} has been replaced by \code{combineParallelPValues} in the \pkg{metapod} package.
 #'
+#' \code{convertTo} has been removed as \pkg{edgeR} and \pkg{DESeq2} can directly operate on a SummarizedExperiment.
+#'
 #' @return All functions error out with a defunct message pointing towards its descendent (if available).
 #'
 #' @author Aaron Lun
@@ -205,4 +207,10 @@ doubletRecovery <- function(...) {
 #' @rdname defunct
 combinePValues <- function(...) {
     .Defunct("metapod::combineParallelPValues")
+}
+
+#' @export
+#' @rdname defunct
+convertTo <- function(...) {
+    .Defunct()
 }
