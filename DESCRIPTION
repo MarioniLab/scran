@@ -1,6 +1,6 @@
 Package: scran
-Version: 1.41.0
-Date: 2026-04-07
+Version: 1.41.1
+Date: 2026-05-20
 Title: Methods for Single-Cell RNA-Seq Data Analysis
 Description: 
     Implements miscellaneous functions for interpretation of single-cell RNA-seq data.
@@ -70,6 +70,7 @@ License: GPL-3
 NeedsCompilation: yes
 VignetteBuilder: knitr
 SystemRequirements: C++11
-RoxygenNote: 7.3.3
 URL: https://github.com/MarioniLab/scran/
 BugReports: https://github.com/MarioniLab/scran/issues
+Config/roxygen2/version: 8.0.0
+Encoding: UTF-8

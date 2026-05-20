@@ -229,8 +229,7 @@ NULL
 }
 
 #' @importFrom S4Vectors DataFrame metadata metadata<-
-#' @importFrom edgeR estimateDisp glmQLFit glmQLFTest getOffset scaleOffset
-#' calcNormFactors filterByExpr topTags glmLRT glmFit glmTreat
+#' @importFrom edgeR estimateDisp glmQLFit glmQLFTest getOffset scaleOffset calcNormFactors filterByExpr topTags glmLRT glmFit glmTreat
 #' @importFrom limma makeContrasts
 .pseudo_bulk_edgeR <- function(y, row.names, curdesign, curcond, coef, contrast, 
     lfc, null.lfc, include.intermediates, robust=TRUE) 
@@ -298,8 +297,7 @@ NULL
 
 #' @importFrom S4Vectors DataFrame metadata metadata<-
 #' @importFrom edgeR calcNormFactors filterByExpr 
-#' @importFrom limma voom voomWithQualityWeights lmFit 
-#' contrasts.fit eBayes treat topTable makeContrasts
+#' @importFrom limma voom voomWithQualityWeights lmFit contrasts.fit eBayes treat topTable makeContrasts
 .pseudo_bulk_voom <- function(y, row.names, curdesign, curcond, coef, contrast, 
     lfc, null.lfc, include.intermediates, qualities=TRUE, robust=TRUE) 
 {
