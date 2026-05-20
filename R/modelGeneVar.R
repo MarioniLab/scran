@@ -148,6 +148,7 @@ NULL
 .model_gene_var <- function(x, block=NULL, design=NULL, subset.row=NULL, subset.fit=NULL, 
     ..., equiweight=TRUE, method="fisher", BPPARAM=SerialParam()) 
 {
+    .Deprecated(new = "scrapper::modelGeneVariances", old = "modelGeneVar")
     FUN <- function(s) {
         .compute_mean_var(x, block=block, design=design, subset.row=s, 
             block.FUN=compute_blocked_stats_none, 

@@ -102,7 +102,7 @@ NULL
     block=NULL, subset.row=NULL, ..., 
     equiweight=TRUE, method="fisher", BPPARAM=SerialParam()) 
 {
-    .Deprecated(old = "modelGeneCV2WithSpikes")
+    .Deprecated(old = "modelGeneCV2WithSpikes", new = "scrapper::chooseRnaHvgsWithSpikeIns.se")
     all <- .compute_var_stats_with_spikes(x=x, size.factors=size.factors, 
         subset.row=subset.row, block=block, 
         spikes=spikes, spike.size.factors=spike.size.factors, 

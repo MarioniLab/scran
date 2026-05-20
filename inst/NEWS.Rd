@@ -5,7 +5,27 @@
 \section{Version 1.40}{\itemize{
 \item Bugfix for the AUC calculations in \code{pairwiseWilcox()} and \code{scoreMarkers()}, to avoid integer overflow with large numbers of ties.
 
-\item Deprecate many historical functions in favor of their replacements in the \pkg{scrapper} package.
+\item Deprecate many historical functions in favor of replacements in other packages, mostly \pkg{scrapper}.
+\itemize{
+\item \code{buildSNNGraph()} is replaced by \code{bluster::makeSNNGraph()}.
+\item \code{buildKNNGraph()} is replaced by \code{bluster::makeKNNGraph()}.
+\item \code{clusterCells()} is replaced by \code{bluster::clusterRows()}.
+\item \code{combineMarkers()} is replaced by \code{scrapper::summarizeEffects()}.
+\item \code{computeMinRank()} is replaced by \code{scrapper::summarizeEffects()}.
+\item \code{denoisePCA()} is replaced by \code{scrapper::runPca.se()}.
+\item \code{findMarkers()} is replaced by \code{scrapper::scoreMarkers.se()}.
+\item \code{fitTrendCV2()} is replaced by \code{scrapper::fitVarianceTrend()}.
+\item \code{fitTrendVar()} is replaced by \code{scrapper::fitVarianceTrend()}.
+\item \code{fixedPCA()} is replaced by \code{scrapper::runPca.se()}.
+\item \code{getTopHVGs()} is replaced by \code{scrapper::chooseHighlyVariableGenes()}.
+\item \code{getTopMarkers()} is replaced by \code{scrapper::previewMarkers()}.
+\item \code{modelGeneCV2WithSpikes()} is replaced by \code{scrapper::chooseRnaHvgsWithSpikeIns.se()}.
+\item \code{modelGeneVarWithSpikes()} is replaced by \code{scrapper::chooseRnaHvgsWithSpikeIns.se()}.
+}
+Also deprecated many functions without any replacements as they are rarely used, if ever.
+This includes \code{combineBlocks()}, \code{convertTo()}, \code{fitTrendPoission()}, \code{modelGeneVarByPoisson()}, \code{modelGeneCV2ByPoisson()},
+\code{getClusteredPCs()}, \code{getMarkerEffects()}, \code{pairwiseBinom()}, \code{pairwiseTTests()}, \code{pairwiseWilcox()},
+\code{multiMarkerStats()} and \code{summaryMarkerStats()}.
 }}
 
 \section{Version 1.34}{\itemize{

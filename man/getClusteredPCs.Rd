@@ -46,6 +46,8 @@ an integer scalar specifying the \dQuote{ideal} number of PCs to use.
 \description{
 Cluster cells after using varying number of PCs,
 and pick the number of PCs using a heuristic based on the number of clusters.
+
+This function is now deprecated as it is rarely used.
 }
 \details{
 Assume that the data contains multiple subpopulations, each of which is separated from the others on a different axis.

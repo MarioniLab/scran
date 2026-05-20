@@ -74,7 +74,7 @@
 fitTrendCV2 <- function(means, cv2, ncells, min.mean=0.1, nls.args=list(), 
     simplified=TRUE, nmads=6, max.iter=50)
 {
-    .Deprecated(new = "scrapper::modelGeneVariances")
+    .Deprecated(new = "scrapper::fitVarianceTrend")
     # Ignoring maxed CV2 values due to an outlier (caps at the number of cells).
     # Also ignoring means that are too low.
     to.use <- cv2 < ncells - 1e-8 & means > min.mean

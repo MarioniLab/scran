@@ -74,6 +74,7 @@
 #' @export
 #' @importFrom scuttle .unpackLists
 combineVar <- function(..., method="fisher", pval.field="p.value", other.fields=NULL, equiweight=TRUE, ncells=NULL) {
+    .Deprecated(new = "scrapper::modelGeneVariances")
     collected <- .unpackLists(...)
     if (is.null(ncells)) {
         # Any arbitrary value will do here, 

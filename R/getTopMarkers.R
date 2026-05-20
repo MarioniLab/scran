@@ -74,6 +74,7 @@
 getTopMarkers <- function(de.lists, pairs, n=10, pval.field="p.value", fdr.field="FDR", 
     pairwise=TRUE, pval.type=c("any", "some", "all"), fdr.threshold=0.05, ...)
 {
+    .Deprecated(new = "scrapper::previewMarkers")
     markers <- List()
     all.labels <- sort(unique(c(pairs$first, pairs$second)))
 
